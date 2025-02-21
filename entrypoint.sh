@@ -5,5 +5,8 @@ if [ "$TASK" = "publish" ]; then
   python setup.py sdist bdist_wheel
   twine upload dist/* --repository-url https://upload.pypi.org/legacy/ -u "__token__" -p "$PYPI_API_TOKEN"
 else
-  pre-commit run --all-files && pytest --capture=no
+  if [ "$RUN_PRE_COMMIT" == "true" ]; then
+    pre-commit run --all-files
+  fi
+  pytest --capture=no
 fi
