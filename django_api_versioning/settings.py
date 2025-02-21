@@ -2,7 +2,7 @@ import logging
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Any
 from .exceptions import VersionTypeError, VersionRangeError, VersioningError
 
 # Initialize logger
@@ -10,14 +10,14 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class APISettings:
-
+    
     API_BASE_PATH: str = "api/v{version}/"
     API_MAX_VERSION: int = 1
     API_MIN_VERSION: int = 1
     ROOT_URLCONF: str = 'django_api_versioning.urls'
 
     @staticmethod
-    def get_setting(name: str, default: Optional[any] = None) -> Optional[any]:
+    def get_setting(name: str, default: Optional[Any] = None) -> Any:
         """
         Reads the setting from Django settings and provides a default if not found.
         """
@@ -30,9 +30,7 @@ class APISettings:
         
         # Ensure that API_BASE_PATH ends with a "/"
         if not self.API_BASE_PATH.endswith("/"):
-            logger.warning(
-                "API_BASE_PATH should end with a '/'. Adding '/' automatically."
-            )
+            logger.warning("API_BASE_PATH should end with a '/'. Adding '/' automatically.")
             self.API_BASE_PATH += "/"
 
         # Validate version settings

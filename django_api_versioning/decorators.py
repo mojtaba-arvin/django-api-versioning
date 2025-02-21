@@ -20,10 +20,16 @@ def endpoint(
     - Ensures that no version lower than `API_MIN_VERSION` is registered.
     
     Args:
-        postfix (str): The endpoint suffix (e.g., "users" → "api/v1/users").
-        version (Optional[int]): The version of the API. Defaults to None (unversioned).
-        backward (bool): If True, registers routes for all versions from `API_MIN_VERSION` up to the current version, which is less than or equal to `API_MAX_VERSION`. Defaults to True.
-        app_name (Optional[str]): The app name to be prefixed to the route.
+        postfix (str): The endpoint suffix (e.g., "users" →
+                    "api/v1/users").
+        version (Optional[int]): The version of the API. Defaults
+                                to None (unversioned).
+        backward (bool): If True, registers routes for all versions
+                        from `API_MIN_VERSION` up to the current
+                        version, which is less than or equal to
+                        `API_MAX_VERSION`. Defaults to True.
+        app_name (Optional[str]): The app name to be prefixed to
+                                the route.
         view_name (Optional[str]): The custom view name for Django.
 
     Returns:

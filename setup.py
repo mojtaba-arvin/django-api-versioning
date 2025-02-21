@@ -8,7 +8,13 @@ setup(
     version="0.1.0",
     author="Mojtaba Arvin",
     author_email="ArvinDevDay@gmail.com",
-    description="A powerful and flexible library for managing API versioning in Django projects.",
+    description= (
+    "Django API versioning decorator provides a solution "
+    "for managing multiple API versions within "
+    "the Django framework, enabling versioning "
+    "through URLs with backward compatibility "
+    "and automatically registering routes."
+    ),
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/mojtaba-arvin/django-api-versioning",
