@@ -1,0 +1,25 @@
+# Byte-compiled / binary
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.env/
+.env
+
+# Editor files
+.idea/
+.vscode/
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+
+# Pre-commit cache
+.pre-commit-cache/
+
+# Pytest & Coverage
+.coverage
+pytest_cache/

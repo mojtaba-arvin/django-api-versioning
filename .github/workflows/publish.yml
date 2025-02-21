@@ -1,0 +1,21 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: docker build -t django-api-versioning-package .
+
+      - name: Publish to PyPI
+        run: |
+          docker run --rm -e TASK=publish -e PYPI_API_TOKEN=${{ secrets.PYPI_API_TOKEN }} django-api-versioning-package
