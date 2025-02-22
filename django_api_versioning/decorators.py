@@ -1,5 +1,6 @@
 from functools import wraps
 from typing import Callable, Optional, List
+from django.views import View
 from .settings import api_settings as settings
 from .registry import registry
 from .exceptions import InvalidVersionError, VersionRangeError, VersionTypeError
@@ -41,8 +42,13 @@ def endpoint(
     """
 
     def decorator(func: Callable) -> Callable:
+        
         @wraps(func)
         def view(*args, **kwargs):
+            # Check if the view is a class-based view (CBV)
+            if isinstance(func, type) and issubclass(func, View):
+                # For class-based views, ensure it's called as a method
+                return func.as_view()(*args, **kwargs)
             return func(*args, **kwargs)
 
         # Read API versioning settings
