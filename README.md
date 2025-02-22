@@ -85,6 +85,11 @@ def users_view(request):
 
 In this example, the `users_view` function is decorated with the endpoint decorator. This specifies that the view is accessible under version `2` of the API and **supports backward compatibility**. The `backward=True` flag as default ensures that users can also access the previous version (version `1`) at `/api/v1/account_app/users`.
 
+```bash
+api/v1/account_app/users [name='users_list_api']
+api/v2/account_app/users [name='users_list_api']
+```
+
 #### Example for Class-Based Views (CBVs):
 
 For class-based views, you can apply the decorator to methods such as `get`, `post`, or any other HTTP method you need to handle. Here’s an example:
@@ -109,11 +114,13 @@ If you have already installed [Django Rest Framework](https://www.django-rest-fr
 
 ```python
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django_api_versioning.decorators import endpoint
 
 @endpoint("users", version=2, app_name='account_app', view_name="users_list_api")
 class UsersAPIView(APIView):
+    permission_classes = [AllowAny]
 
     def get(self, request):
         return Response({"message": "API Version 2 Users"})
@@ -121,10 +128,12 @@ class UsersAPIView(APIView):
 
 #### URL Generation Based on Versioning:
 
-Once the decorator is applied, the URLs for your API will be generated based on the version specified in the decorator. For example, if the `API_MIN_VERSION` in your settings.py is set to `1` and the version in the decorator is set to `2`, the following URLs will be available:
+Once the decorator is applied, the URLs for your API will be generated based on the version specified in the decorator. For example, if the `API_MIN_VERSION` in your `settings.py` is set to `1` and the version in the decorator is set to `2`, the following URLs will be available:
 
-- `/api/v1/account_app/users`
-- `/api/v2/account_app/users`
+```bash
+api/v1/account_app/users [name='users_list_api']
+api/v2/account_app/users [name='users_list_api']
+```
 
 The `API_MIN_VERSION` setting ensures that users can access the API using different versions, providing backward compatibility. You can adjust which versions are considered valid by modifying the `API_MIN_VERSION` and `version` numbers in the decorators.
 
@@ -138,8 +147,10 @@ The `API_MIN_VERSION` setting ensures that users can access the API using differ
 
 The generated URLs will be:
 
-- `/api/v1/users`
-- `/api/v2/users`
+```bash
+api/v1/users [name='users_list_api']
+api/v2/users [name='users_list_api']
+```
 
 **Without `version`:** If you don't pass `version` in the decorator, like this:
 
@@ -149,7 +160,9 @@ The generated URLs will be:
 
 API versioning will be disabled (`API_BASE_PATH` as prefix will be removed) for that view. The only URL generated will be:
 
-- `/users`
+```bash
+users [name='users_list_api']
+```
 
 **Setting `backward=False`:** By default, the `backward` parameter is set to `True`, which ensures backward compatibility. If you explicitly set `backward=False`, like this:
 
@@ -159,7 +172,9 @@ API versioning will be disabled (`API_BASE_PATH` as prefix will be removed) for 
 
 The generated URL will be only version 2:
 
-- `api/v2/users`
+```bash
+api/v2/users [name='users_list_api']
+```
 
 4. Run the Server:
 
@@ -169,23 +184,56 @@ python manage.py runserver
 
 ## Notes
 
-### 1. `API_BASE_PATH` in settings Must Include ‍‍`{version}`:
+#### 1. `API_BASE_PATH` in settings Must Include ‍‍`{version}`:
 
 The `API_BASE_PATH` should always include `{version}` to ensure proper API versioning. This is important for correctly mapping API routes to different versions.
 
-### 2. Using `app_name` in the `endpoint` decorator:
+#### 2. Using `app_name` in the `endpoint` decorator:
 
 It's recommended to fill in the `app_name` in the `endpoint` decorator to make the API URLs **more unique and organized**. This ensures that the routes are scoped under the correct app, avoiding potential conflicts and making them easier to manage.
 
-### 3. Views with Version Less Than `API_MIN_VERSION` Are Automatically Ignored:
+#### 3. Behavior When Resolving a Route:
+
+When resolving the route using Django's `reverse()` function or any other method to resolve the URL, the latest version (highest version number) of the API will be returned. In this example, route for version 3 would be resolved:
+
+```python
+from django_api_versioning.decorators import endpoint
+from django.http import JsonResponse
+from django.views import View
+from django.urls import reverse
+
+
+@endpoint("users", version=3, app_name='account_app', view_name="users_list_api")
+class UsersView(View):
+
+    def get(self, request):
+
+        return JsonResponse({"path of users_list_api view is": reverse('users_list_api')})
+```
+
+response body:
+
+```json
+{ "path of users_list_api view is": "api/v3/account_app/users" }
+```
+
+The generated URLs will be:
+
+```bash
+api/v1/account_app/users [name='users_list_api']
+api/v2/account_app/users [name='users_list_api']
+api/v3/account_app/users [name='users_list_api']
+```
+
+#### 4. Views with Version Less Than `API_MIN_VERSION` Are Automatically Ignored:
 
 Any view whose `version` is less than the `API_MIN_VERSION` will be automatically ignored. This means clients will no longer have access to these older versions, **without the need to manually edit or remove code**. This is handled automatically by the package.
 
-### 4. URLs for Versions Between `API_MIN_VERSION` <= `version` <= `API_MAX_VERSION`:
+#### 5. URLs for Versions Between `API_MIN_VERSION` <= `version` <= `API_MAX_VERSION`:
 
 Endpoints that have versions within the range defined by `API_MIN_VERSION` <= `version` <= `API_MAX_VERSION` will always have a corresponding URL generated. This ensures that only valid versions will be accessible, providing flexibility in version management.
 
-### `endpoint` Decorator Function Definition
+## `endpoint` Decorator Function Definition
 
 The `endpoint` decorator is designed to register API views with versioning support in a Django application. It provides flexibility in managing versioned endpoints and ensures backward compatibility with previous versions of the API.
 
