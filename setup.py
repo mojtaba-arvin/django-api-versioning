@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="django-api-versioning",
-    version="0.1.1",
+    version="0.1.2",
     author="Mojtaba Arvin",
     author_email="ArvinDevDay@gmail.com",
     description= (
@@ -29,7 +29,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.9",
+    python_requires=">=3.6",
     install_requires=[
         "Django>=3.2",
     ],
