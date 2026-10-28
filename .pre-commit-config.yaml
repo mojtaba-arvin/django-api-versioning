@@ -14,6 +14,7 @@ repos:
     hooks:
       - id: isort
         language_version: python3.9
+        args: [--profile=black] # follow Black for line length
         files: \.py$
 
   # Flake8 for linting
@@ -22,6 +23,7 @@ repos:
     hooks:
       - id: flake8
         language_version: python3.9
+        args: [--max-line-length=88] # Flake default is 79, but Black is 88
         files: \.py$
 
   # mypy for type checking

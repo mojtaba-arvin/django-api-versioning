@@ -1,10 +1,13 @@
-import pytest
 from typing import Iterator
+
+import pytest
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
-from django_api_versioning.settings import APISettings 
+
 from django_api_versioning.exceptions import VersioningError, VersionTypeError
+from django_api_versioning.settings import APISettings
+
 
 @pytest.fixture(autouse=True)
 def reset_settings() -> Iterator[None]:
@@ -22,6 +25,7 @@ def reset_settings() -> Iterator[None]:
     settings.API_MAX_VERSION = 1
     settings.API_MIN_VERSION = 1
     settings.ROOT_URLCONF = "django_api_versioning.urls"
+
 
 @override_settings(
     API_BASE_PATH="api/v{version}/",
@@ -45,6 +49,7 @@ def test_default_settings() -> None:
     assert api_settings.API_MIN_VERSION == 1
     assert api_settings.ROOT_URLCONF == "django_api_versioning.urls"
 
+
 @override_settings(
     API_BASE_PATH="api/v{version}/custom/",
     API_MAX_VERSION=2,
@@ -67,6 +72,7 @@ def test_custom_settings() -> None:
     assert api_settings.API_MIN_VERSION == 1
     assert api_settings.ROOT_URLCONF == "my_custom_urls"
 
+
 @override_settings(API_BASE_PATH="api/v1/")
 def test_invalid_api_base_path() -> None:
     """
@@ -80,18 +86,22 @@ def test_invalid_api_base_path() -> None:
             ROOT_URLCONF="django_api_versioning.urls",
         )
 
+
 @override_settings(API_MIN_VERSION=2, API_MAX_VERSION=1)
 def test_invalid_version_range() -> None:
     """
     Ensures that API_MIN_VERSION > API_MAX_VERSION raises a ValueError.
     """
-    with pytest.raises(VersioningError, match="API_MIN_VERSION cannot be greater than API_MAX_VERSION"):
+    with pytest.raises(
+        VersioningError, match="API_MIN_VERSION cannot be greater than API_MAX_VERSION"
+    ):
         APISettings(
             API_BASE_PATH="api/v{version}/",
             API_MAX_VERSION=settings.API_MAX_VERSION,
             API_MIN_VERSION=settings.API_MIN_VERSION,
             ROOT_URLCONF="django_api_versioning.urls",
         )
+
 
 @override_settings(API_MIN_VERSION="one")
 def test_api_min_version_is_not_integer() -> None:
@@ -106,6 +116,7 @@ def test_api_min_version_is_not_integer() -> None:
             ROOT_URLCONF="django_api_versioning.urls",
         )
 
+
 @override_settings(API_MAX_VERSION="two")
 def test_api_max_version_is_not_integer() -> None:
     """
@@ -118,6 +129,7 @@ def test_api_max_version_is_not_integer() -> None:
             API_MIN_VERSION=1,
             ROOT_URLCONF="django_api_versioning.urls",
         )
+
 
 @override_settings(API_BASE_PATH="api/v{version}")
 def test_validate_version_path_format() -> None:
@@ -133,11 +145,12 @@ def test_validate_version_path_format() -> None:
 
     assert api_settings.API_BASE_PATH == "api/v{version}/"
 
+
 @override_settings(ROOT_URLCONF=None)
 def test_missing_root_urlconf() -> None:
     """
     Ensures that missing ROOT_URLCONF raises an ImproperlyConfigured exception.
-    """    
+    """
     with pytest.raises(ImproperlyConfigured, match="ROOT_URLCONF is required"):
         APISettings(
             API_BASE_PATH="api/v{version}/",

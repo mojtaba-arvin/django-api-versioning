@@ -1,9 +1,11 @@
 from functools import wraps
-from typing import Callable, Optional, List
+from typing import Callable, List, Optional
+
 from django.views import View
-from .settings import api_settings as settings
-from .registry import registry
+
 from .exceptions import InvalidVersionError, VersionRangeError, VersionTypeError
+from .registry import registry
+from .settings import api_settings as settings
 
 
 def endpoint(
@@ -19,7 +21,7 @@ def endpoint(
     - Uses `API_MIN_VERSION` and `API_MAX_VERSION` from Django settings.
     - Supports backward compatibility by registering multiple versions if needed.
     - Ensures that no version lower than `API_MIN_VERSION` is registered.
-    
+
     Args:
         postfix (str): The endpoint suffix (e.g., "users" →
                     "api/v1/users").
@@ -38,11 +40,11 @@ def endpoint(
 
     Raises:
         VersionTypeError: If the provided `version` is not an integer.
-        VersionRangeError: If `API_MIN_VERSION` or `API_MAX_VERSION` are not properly set.
+        VersionRangeError: If `API_MIN_VERSION` or `API_MAX_VERSION` are not
+            properly set.
     """
 
     def decorator(func: Callable) -> Callable:
-        
         @wraps(func)
         def view(*args, **kwargs):
             # Check if the view is a class-based view (CBV)
@@ -56,16 +58,22 @@ def endpoint(
         max_version: int = getattr(settings, "API_MAX_VERSION", 1)
 
         if not isinstance(min_version, int) or not isinstance(max_version, int):
-            raise VersionRangeError("API_MIN_VERSION and API_MAX_VERSION must be integers.")
-        
+            raise VersionRangeError(
+                "API_MIN_VERSION and API_MAX_VERSION must be integers."
+            )
+
         if min_version > max_version:
-            raise VersionRangeError("API_MIN_VERSION cannot be greater than API_MAX_VERSION.")
-        
+            raise VersionRangeError(
+                "API_MIN_VERSION cannot be greater than API_MAX_VERSION."
+            )
+
         if version is not None and not isinstance(version, int):
             raise VersionTypeError("Version must be an integer or None.")
-        
+
         if version is not None and version > max_version:
-            raise InvalidVersionError(f"Version {version} is above the maximum allowed version {max_version}.")
+            raise InvalidVersionError(
+                f"Version {version} is above the maximum allowed version {max_version}."
+            )
 
         app_name_part: str = f"{app_name}/" if app_name else ""
 
@@ -86,8 +94,12 @@ def endpoint(
             if version < min_version:
                 return []  # Ignore versions below min_version
             if backward:
-                return list(range(min_version, version + 1))  # Register all versions up to the given version
-            return [version]  # Only register the specified version when backward is False
+                return list(
+                    range(min_version, version + 1)
+                )  # Register all versions up to the given version
+            return [
+                version
+            ]  # Only register the specified version when backward is False
 
         # Register valid versions
         valid_versions = _get_valid_versions()

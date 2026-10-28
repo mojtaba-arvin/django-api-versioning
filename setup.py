@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -8,12 +8,12 @@ setup(
     version="0.1.4",
     author="Mojtaba Arvin",
     author_email="ArvinDevDay@gmail.com",
-    description= (
-    "Django API versioning decorator provides a solution "
-    "for managing multiple API versions within "
-    "the Django framework, enabling versioning "
-    "through URLs with backward compatibility "
-    "and automatically registering routes."
+    description=(
+        "Django API versioning decorator provides a solution "
+        "for managing multiple API versions within "
+        "the Django framework, enabling versioning "
+        "through URLs with backward compatibility "
+        "and automatically registering routes."
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -49,6 +49,6 @@ setup(
     },
     include_package_data=True,
     package_data={
-        '': ['.pre-commit-config.yaml'],
+        "": [".pre-commit-config.yaml"],
     },
 )
