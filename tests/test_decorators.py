@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
 import pytest
+import json as std_json
 from django.http import JsonResponse
+from django.test import RequestFactory
 from django.views import View
 
 from django_api_versioning.decorators import endpoint
@@ -161,3 +163,39 @@ def test_class_based_view_with_backward_compatibility(mock_settings):
         assert (
             f"api/v{version}/users" in registered_routes
         ), f"Missing route for v{version}: {registered_routes}"
+
+def test_class_based_view_handles_request(mock_settings):
+    # Test that the class-based view correctly handles a request
+    @endpoint("users", version=2)
+    class UsersView(View):
+        def get(self, request):
+            return JsonResponse({"message": "API Version 2 Users"})
+
+    pattern = next(
+        (p for p in registry.urlpatterns if str(p.pattern) == "api/v2/users"), None
+    )
+
+    assert pattern is not None, "Route api/v2/users was not registered"
+
+    factory = RequestFactory()
+    request = factory.get("/api/v2/users")
+    response = pattern.callback(request)
+
+    assert response.status_code == 200
+    assert std_json.loads(response.content) == {"message": "API Version 2 Users"}
+
+
+def test_function_based_view_handles_request(mock_settings):
+    # Test that the function-based view correctly handles a request
+    @endpoint("health", version=1)
+    def health_view(request):
+        return JsonResponse({"status": "ok"})
+
+    pattern = next(p for p in registry.urlpatterns if str(p.pattern) == "api/v1/health")
+
+    request = RequestFactory().get("/api/v1/health")
+    response = pattern.callback(request)
+
+    assert response.status_code == 200
+    assert std_json.loads(response.content) == {"status": "ok"}
+
