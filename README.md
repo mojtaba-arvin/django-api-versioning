@@ -1,277 +1,389 @@
 # Django API Versioning
 
 [![PyPI version](https://badge.fury.io/py/django-api-versioning.svg)](https://badge.fury.io/py/django-api-versioning)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![Build Status](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions)
-[![codecov](https://codecov.io/gh/mojtaba-arvin/django-api-versioning/branch/main/graph/badge.svg)](https://codecov.io/gh/mojtaba-arvin/django-api-versioning)
+[![Python versions](https://img.shields.io/pypi/pyversions/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Django API Versioning** is a powerful and flexible library for managing [API versioning in Django](https://github.com/mojtaba-arvin/django-api-versioning) projects. It allows you to easily define and manage different versions of your API endpoints using decorators, ensuring backward compatibility and clean code organization.
+**Django API Versioning** is a Python package for [API versioning in Django](https://github.com/mojtaba-arvin/django-api-versioning) and Django REST Framework (DRF) projects. Stop copy-pasting
+`path()` declarations for every API version — declare an endpoint once,
+and let the registry handle v1, v2, v3, and beyond.
 
-## Features
+```python
+from django.http import JsonResponse
+from django_api_versioning.decorators import endpoint
 
-- **Easy Versioning**: Define API versions using simple decorators.
-- **Backward Compatibility**: Automatically register routes for all versions up to the specified version.
-- **Automatic Registration:** Views are **automatically** registered for each version specified, so there is no need to manually register each version in your `urls.py`.
-- **Customizable Settings**: Configure API base path, minimum and maximum versions, and more.
-- **Type Checking**: Full support for type hints and static type checking with `mypy`.
-- **Testing Ready**: Includes comprehensive test suite and pre-commit hooks for code quality.
+@endpoint("users", version=2)
+def user_list(request):
+    return JsonResponse({"users": []})
+
+# With API_MIN_VERSION = 1, API_MAX_VERSION = 3, this single
+# decorator registers:
+#
+#   GET /api/v1/users/   ->  user_list
+#   GET /api/v2/users/   ->  user_list
+#   GET /api/v3/users/   ->  user_list   (with forward inheritance)‍‍‍
+```
+
+It registers versioned URL routes from a simple `@endpoint` decorator, helps preserve backward compatibility, and can optionally inherit unchanged endpoints into newer API versions.
+
+It is especially useful for large APIs where many endpoints stay the same between releases. Instead of creating duplicate views or manually maintaining every route as the API grows, you can declare each endpoint once and control version routing centrally. Use `app_name` to group related resources by a domain or application area, while keeping each `postfix` focused on the resource itself.
+
+- **Package:** [`django-api-versioning`](https://pypi.org/project/django-api-versioning/)
+- **Source code:** [mojtaba-arvin/django-api-versioning](https://github.com/mojtaba-arvin/django-api-versioning)
+- **License:** MIT
+
+## Why not just use DRF's built-in versioning?
+
+DRF ships with `URLPathVersioning` and friends — and they work. But they
+only handle *which* version a request is on. You still write every
+`path()` declaration by hand, duplicate unchanged routes, and decide
+per-version which view to call.
+
+
+| Feature | DRF `URLPathVersioning` | `django-api-versioning` |
+|---|---|---|
+| Route registration | Manual `path()` per version | Automatic via decorator |
+| Backward compatibility | Manual | `backward=True` (default) |
+| Forward inheritance (new versions reuse old views) | ❌ | ✅ Opt-in |
+| Function-based views | ✅ | ✅ |
+| Class-based views | ⚠️ DRF only | ✅ Django + DRF |
+| `resolve().view_class` preserved | ✅ | ✅ |
+| Unversioned routes | Manual | `version=None` |
+| Works without DRF | ❌ | ✅ |
+| Django `reverse()` support | ✅ | ✅ (highest version wins) |
+
+If you already use DRF, you can keep it — this package handles routing,
+not request parsing.
+
+---
 
 ## Installation
 
-You can [install Django API Versioning](https://pypi.org/project/django-api-versioning/) via pip:
+Install [Django API Versioning](https://pypi.org/project/django-api-versioning/) package from PyPI:
 
 ```bash
 pip install django-api-versioning
 ```
 
+Requires **Django >= 5.2** and **Python >= 3.11**.  
+Django REST Framework is optional and auto-detected.
+
 ## Quick Start
 
-1. ### Add to Django Settings:
+### 1. Configure Django settings
 
 ```python
+# settings.py
 INSTALLED_APPS = [
-    ...
-    'django_api_versioning',
-    ...
+    # ... your other apps
+    "django_api_versioning",
 ]
-```
-
-2. ### Define API Settings:
-
-```python
 
 API_BASE_PATH = "api/v{version}/"
 API_MIN_VERSION = 1
 API_MAX_VERSION = 3
 ```
 
-3. ### Register API urls:
+`API_BASE_PATH` **must** contain the `{version}` placeholder.
 
-if you don't use any `ROOT_URLCONF` in settings you can use this:
+### 2. Include the generated URL patterns
 
-```python
-ROOT_URLCONF = 'django_api_versioning.urls'
-```
-
-or you have already have a `ROOT_URLCONF` in settings, you only need to import them into your root `urls.py`:
+If your project doesn't have a root URLconf yet:
 
 ```python
-   from django.urls import path, include
-   from django_api_versioning.urls import urlpatterns as api_urlpatterns
-
-   urlpatterns = [
-       # other paths here
-
-       # use empty `route` param and use `API_BASE_PATH` in settings as prefix
-       path('', include(api_urlpatterns)),
-   ]
-
+# settings.py
+ROOT_URLCONF = "django_api_versioning.urls"
 ```
 
-3. ### Use the Decorator:
-
-The `endpoint` decorator can be used in both function-based views (FBVs) and class-based views (CBVs). It's also fully compatible with `Django Rest Framework (DRF)`. The decorator allows you to define versioning for your API views and supports backward compatibility by default and you don't need to pass `backward=True` flag to the `endpoint` decorator.
-
-#### Example for Function-Based Views (FBVs):
+If it does, include them:
 
 ```python
-from django_api_versioning.decorators import endpoint
-from django.http import HttpResponse
+# project/urls.py
+from django.urls import include, path
+from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
-@endpoint("users", version=2, app_name='account_app', view_name="users_list_api")
-def users_view(request):
-    return HttpResponse("API Version 2 Users")
+urlpatterns = [
+    # ... your other URL patterns
+    path("", include(api_urlpatterns)),
+]
 ```
 
-In this example, the `users_view` function is decorated with the endpoint decorator. This specifies that the view is accessible under version `2` of the API and **supports backward compatibility**. The `backward=True` flag as default ensures that users can also access the previous version (version `1`) at `/api/v1/account_app/users`.
-
-```bash
-api/v1/account_app/users [name='users_list_api']
-api/v2/account_app/users [name='users_list_api']
-```
-
-#### Example for Class-Based Views (CBVs):
-
-For class-based views, you can apply the decorator to methods such as `get`, `post`, or any other HTTP method you need to handle. Here’s an example:
+### 3. Decorate your views
 
 ```python
-
-from django_api_versioning.decorators import endpoint
 from django.http import JsonResponse
-from django.views import View
+from django_api_versioning.decorators import endpoint
 
-@endpoint("users", version=2, app_name='account_app', view_name="users_list_api")
-class UsersView(View):
 
-    def get(self, request):
-        return JsonResponse({"message": "API Version 2 Users"})
-
+@endpoint(
+    "products/",
+    app_name="catalog",
+    version=2,
+    view_name="catalog-products-list",
+)
+def product_list(request):
+    return JsonResponse({"results": []})
 ```
 
-#### Integration with Django Rest Framework (DRF):
+That's it. You now have:
 
-If you have already installed [Django Rest Framework](https://www.django-rest-framework.org/#installation), the `endpoint` decorator can be easily applied to APIView or viewsets. Here’s an example with a DRF APIView:
+```text
+GET /api/v1/catalog/products/
+GET /api/v2/catalog/products/
+```
+
+Class-based views, DRF views, and path converters (`<int:pk>`) work
+the same way:
 
 ```python
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django_api_versioning.decorators import endpoint
+from rest_framework.views import APIView
 
-@endpoint("users", version=2, app_name='account_app', view_name="users_list_api")
-class UsersAPIView(APIView):
-    permission_classes = [AllowAny]
 
-    def get(self, request):
-        return Response({"message": "API Version 2 Users"})
+@endpoint("invoices/<int:invoice_id>/", app_name="billing", version=2)
+class InvoiceDetailView(APIView):
+    def get(self, request, invoice_id):
+        return Response({"id": invoice_id})
 ```
 
-#### URL Generation Based on Versioning:
+## Before and after
 
-Once the decorator is applied, the URLs for your API will be generated based on the version specified in the decorator. For example, if the `API_MIN_VERSION` in your `settings.py` is set to `1` and the version in the decorator is set to `2`, the following URLs will be available:
-
-```bash
-api/v1/account_app/users [name='users_list_api']
-api/v2/account_app/users [name='users_list_api']
-```
-
-The `API_MIN_VERSION` setting ensures that users can access the API using different versions, providing backward compatibility. You can adjust which versions are considered valid by modifying the `API_MIN_VERSION` and `version` numbers in the decorators.
-
-#### Additional Configuration Options:
-
-**Without `app_name`:** If you don't pass `app_name` in the decorator, like this:
+**Without `django-api-versioning`** — you maintain one `path()` per
+version, and copy unchanged views when a new version ships:
 
 ```python
-@endpoint("users", version=2, view_name="users_list_api")
+# urls.py — manual, error-prone, hard to keep in sync
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path("api/v1/users/", views.user_list_v1),
+    path("api/v2/users/", views.user_list_v2),
+    path("api/v3/users/", views.user_list_v3),  # same body as v2
+    path("api/v1/orders/", views.order_list_v1),
+    path("api/v2/orders/", views.order_list_v2),
+    # ... × 150 endpoints
+]
 ```
 
-The generated URLs will be:
-
-```bash
-api/v1/users [name='users_list_api']
-api/v2/users [name='users_list_api']
-```
-
-**Without `version`:** If you don't pass `version` in the decorator, like this:
-
-```python
-@endpoint("users", view_name="users_list_api")
-```
-
-API versioning will be disabled (`API_BASE_PATH` as prefix will be removed) for that view. The only URL generated will be:
-
-```bash
-users [name='users_list_api']
-```
-
-**Setting `backward=False`:** By default, the `backward` parameter is set to `True`, which ensures backward compatibility. If you explicitly set `backward=False`, like this:
-
-```python
-@endpoint("users", version=2, backward=False, view_name="users_list_api")
-```
-
-The generated URL will be only version 2:
-
-```bash
-api/v2/users [name='users_list_api']
-```
-
-4. Run the Server:
-
-```bash
-python manage.py runserver
-```
-
-## Notes
-
-#### 1. `API_BASE_PATH` in settings Must Include ‍‍`{version}`:
-
-The `API_BASE_PATH` should always include `{version}` to ensure proper API versioning. This is important for correctly mapping API routes to different versions.
-
-#### 2. Using `app_name` in the `endpoint` decorator:
-
-It's recommended to fill in the `app_name` in the `endpoint` decorator to make the API URLs **more unique and organized**. This ensures that the routes are scoped under the correct app, avoiding potential conflicts and making them easier to manage.
-
-#### 3. Behavior When Resolving a Route:
-
-When resolving the route using Django's `reverse()` function or any other method to resolve the URL, the latest version (highest version number) of the API will be returned. In this example, route for version 3 would be resolved:
+**With `django-api-versioning`** — one declaration, routing handled:
 
 ```python
 from django_api_versioning.decorators import endpoint
-from django.http import JsonResponse
-from django.views import View
+
+@endpoint("users/", version=2)
+def user_list(request):
+    ...
+
+@endpoint("orders/", version=2)
+def order_list(request):
+    ...
+```
+
+Add `API_FORWARD_INHERITANCE = True` and the same declarations serve
+v3 automatically, without redeclaring anything that hasn't changed.
+
+---
+
+## Forward inheritance (the new feature)
+
+Big APIs change in small increments. Suppose v3 changes only 8 endpoints
+out of 150. You don't want to redeclare the other 142.
+
+Enable **forward inheritance** to let unchanged endpoints serve future
+versions automatically:
+
+```python
+# settings.py
+API_FORWARD_INHERITANCE = True
+```
+
+Now a single `@endpoint("products/", version=2)` declaration serves
+`/api/v1/...`, `/api/v2/...`, and `/api/v3/...` — subject to
+`API_MAX_VERSION`.
+
+### Opt one endpoint out
+
+
+```python
+@endpoint("events/", app_name="audit", version=2, forward=False)
+def audit_events(request):
+    ...
+```
+
+The per-endpoint value overrides the global setting, in either
+direction.
+
+### Override an inherited endpoint
+
+
+Keep the v1/v2 implementation, and register a separate view for v3:
+
+```python
+@endpoint("reports/", app_name="analytics", version=2, view_name="reports")
+def reports_v2(request):
+    return JsonResponse({"api_version": 2})
+
+
+@endpoint(
+    "reports/",
+    app_name="analytics",
+    version=3,
+    backward=False,
+    forward=False,
+    view_name="reports",
+)
+def reports_v3(request):
+    return JsonResponse({"api_version": 3})
+```
+
+Result:
+
+```text
+/api/v1/analytics/reports/  ->  reports_v2
+/api/v2/analytics/reports/  ->  reports_v2
+/api/v3/analytics/reports/  ->  reports_v3
+```
+
+The registry resolves collisions by **declared-version priority**, so
+the override always wins regardless of module import order.
+
+---
+
+
+## Configuration reference
+
+### Django settings
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `API_BASE_PATH` | `"api/v{version}/"` | URL prefix template. Must contain `{version}`. |
+| `API_MIN_VERSION` | `1` | Lowest API version to register. |
+| `API_MAX_VERSION` | `1` | Highest configured API version. |
+| `API_FORWARD_INHERITANCE` | `False` | Default for whether endpoints may be inherited into newer versions. |
+| `ROOT_URLCONF` | `"django_api_versioning.urls"` | Django URLconf. Use the package one directly, or include its `urlpatterns` in your own. |
+
+### `@endpoint` arguments
+
+| Argument | Default | Purpose |
+|---|---|---|
+| `postfix` | required | Resource path, e.g. `"products/"` or `"products/<int:pk>/"`. |
+| `app_name` | `None` | Optional path segment for grouping (e.g. `"catalog"`). This is a URL path segment, not Django's namespace `app_name`. |
+| `version` | `None` | Version where this implementation is declared. `None` → unversioned route. |
+| `backward` | `True` | Also register for earlier versions, down to `API_MIN_VERSION`. |
+| `forward` | `None` | Per-endpoint override for forward inheritance. `None` → follow `API_FORWARD_INHERITANCE`. |
+| `view_name` | `None` | Django URL name for `reverse()`. Use stable, unique names. |
+
+`backward` and `forward` control different directions:
+
+- `backward=True` → expose this view to earlier versions.
+- `forward=True` → inherit this view into later versions.
+- `backward=False, forward=False` → pin to the specified version only.
+
+Both affect **routing**, not whether the response is semantically
+compatible. You remain responsible for API contract design.
+
+---
+
+
+## URL reversing
+
+Give each route a stable `view_name` and use `reverse()` instead of
+hard-coding versioned URLs:
+
+```python
 from django.urls import reverse
 
-
-@endpoint("users", version=3, app_name='account_app', view_name="users_list_api")
-class UsersView(View):
-
-    def get(self, request):
-
-        return JsonResponse({"path of users_list_api view is": reverse('users_list_api')})
+url = reverse("catalog-products-list")  # -> "/api/v3/catalog/products/"
 ```
 
-response body:
+If multiple registrations share a name, the registry orders routes so
+Django resolves the **highest registered version**.
 
-```json
-{ "path of users_list_api view is": "api/v3/account_app/users" }
-```
+---
 
-The generated URLs will be:
+## FAQ
 
-```bash
-api/v1/account_app/users [name='users_list_api']
-api/v2/account_app/users [name='users_list_api']
-api/v3/account_app/users [name='users_list_api']
-```
+**Does this work with DRF `APIView`?**  
+Yes. Django's `View` is a base class of DRF's `APIView`, so the
+decorator handles both. `resolve().func.view_class` is preserved, which
+means DRF's authentication, permissions, and schema generation all
+continue to work.
 
-#### 4. Views with Version Less Than `API_MIN_VERSION` Are Automatically Ignored:
+**Does this conflict with DRF's `DEFAULT_VERSIONING_CLASS`?**  
+No, but they solve different problems: DRF's versioning tells *your
+code* which version a request is on; this package decides *which view
+is reachable at which URL*. You can use both together.
 
-Any view whose `version` is less than the `API_MIN_VERSION` will be automatically ignored. This means clients will no longer have access to these older versions, **without the need to manually edit or remove code**. This is handled automatically by the package.
+**What happens with duplicate `view_name`s?**  
+`reverse()` returns the highest-version route. Each versioned path is
+still uniquely resolvable.
 
-#### 5. URLs for Versions Between `API_MIN_VERSION` <= `version` <= `API_MAX_VERSION`:
+**Can I use this with Django < 5.2?**  
+No. Django 5.2 LTS is the minimum supported version. Django 4.2
+reached end-of-life in April 2026.
 
-Endpoints that have versions within the range defined by `API_MIN_VERSION` <= `version` <= `API_MAX_VERSION` will always have a corresponding URL generated. This ensures that only valid versions will be accessible, providing flexibility in version management.
+**How do I deprecate a version?**  
+Remove the corresponding declarations from your code (or set
+`API_MIN_VERSION` upward) and run your test suite. The package does not
+manage deprecation policy — that's an API design decision.
 
-## `endpoint` Decorator Function Definition
+**Does the package require DRF?**  
+No. DRF is optional. Pure Django projects work out of the box.
 
-The `endpoint` decorator is designed to register API views with versioning support in a Django application. It provides flexibility in managing versioned endpoints and ensures backward compatibility with previous versions of the API.
+**Where do I report a routing issue?**  
+Open an issue at [GitHub Issues](https://github.com/mojtaba-arvin/django-api-versioning/issues)
+with your settings, endpoint declarations, expected URL patterns, and
+actual behavior.
 
-```python
-def endpoint(
-    postfix: str,
-    version: Optional[int] = None,
-    backward: bool = True,
-    app_name: Optional[str] = None,
-    view_name: Optional[str] = None,
-) -> Callable:
-    """
-    Decorator to register API views with versioning support.
-
-    - Uses `API_MIN_VERSION` and `API_MAX_VERSION` from Django settings.
-    - Supports backward compatibility by registering multiple versions if needed.
-    - Ensures that no version lower than `API_MIN_VERSION` is registered.
-
-    Args:
-        postfix (str): The endpoint suffix (e.g., "users" → "api/v1/users").
-        version (Optional[int]): The version of the API. Defaults to None (unversioned).
-        backward (bool): If True, registers routes for all versions from `API_MIN_VERSION` up to the current version, which is less than or equal to `API_MAX_VERSION`. Defaults to True.
-        app_name (Optional[str]): The app name to be prefixed to the route.
-        view_name (Optional[str]): The custom view name for Django.
-
-    Returns:
-        Callable: The decorated view function.
-
-    Raises:
-        VersionTypeError: If the provided `version` is not an integer.
-        VersionRangeError: If `API_MIN_VERSION` or `API_MAX_VERSION` are not properly set.
-    """
-```
+---
 
 ## Contributing
 
-Feel free to open an issue or submit a pull request with any improvements or bug fixes. We appreciate contributions to enhance this package!
+### Setup
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt && pip install -e .
+pre-commit install
+```
+
+### Running tests
+
+```bash
+pytest
+pre-commit run --all-files
+```
+
+### Docker
+
+The `Dockerfile` parameterizes Python via `PYTHON_VERSION` and delegates
+to `entrypoint.sh`:
+
+```bash
+docker build -t dapi .
+docker run --rm dapi                                          # tests
+docker run --rm -e RUN_PRE_COMMIT=true dapi                   # + lint
+docker build --build-arg PYTHON_VERSION=3.15 -t dapi:py315 .  # other Python
+docker run --rm dapi:py311
+```
+
+### Releasing
+
+1. Bump `version` in `pyproject.toml` and update `CHANGELOG.md`
+2. Commit, push to `main`
+3. `git tag v0.2.1 && git push origin v0.2.1` → CI publishes to PyPI
+
+## Reporting issues
+
+Include your Django and package settings, the `@endpoint` declarations
+involved, expected vs actual URL patterns, and your Python and Django
+versions.
+
+---
 
 ## License
 
-This package is open-source and available under the MIT license.
+Released under the [MIT License](LICENSE).

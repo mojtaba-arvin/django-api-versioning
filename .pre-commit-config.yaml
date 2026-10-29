@@ -2,45 +2,32 @@ repos:
 
   # Black for code formatting
   - repo: https://github.com/psf/black
-    rev: 23.3.0  # version of black
+    rev: 26.10.0
     hooks:
       - id: black
-        language_version: python3.9
         files: \.py$
 
   # isort for sorting imports
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1  # version of isort
+  - repo: https://github.com/pycqa/isort
+    rev: 9.0.2
     hooks:
       - id: isort
-        language_version: python3.9
         args: [--profile=black] # follow Black for line length
         files: \.py$
 
   # Flake8 for linting
   - repo: https://github.com/PyCQA/flake8
-    rev: 5.0.4  # version of flake8
+    rev: 7.4.1
     hooks:
       - id: flake8
-        language_version: python3.9
+        additional_dependencies:
+          - Flake8-pyproject>=1.2.4
         args: [--max-line-length=88] # Flake default is 79, but Black is 88
         files: \.py$
 
   # mypy for type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.991  # version of mypy
+    rev: v2.4.0
     hooks:
       - id: mypy
-        language_version: python3.9
         files: \.py$
-
-  # # Pytest for testing
-  # - repo: https://github.com/pre-commit/mirrors-pytest
-  #   rev: v6.0.0  # version of pytest
-  #   hooks:
-  #     - id: pytest
-  #       name: "Run tests with pytest"
-  #       entry: pytest
-  #       language: system  # using the system's pytest
-  #       types: [python]
-  #       files: \.py$

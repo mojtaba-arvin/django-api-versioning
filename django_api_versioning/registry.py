@@ -1,38 +1,128 @@
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Type, Union
 
-from django.http import HttpRequest, HttpResponse
-from django.urls import path
+from django.http import HttpResponse
+from django.urls import URLPattern, path
+from django.views import View
+
+ViewType = Union[Callable[..., HttpResponse], Type[View]]
 
 
 class UrlRegistry:
     """Registry for managing API versioning URLs."""
 
-    def __init__(self):
-        self.urlpatterns: List[path] = []
+    _SOURCE_VERSION_ATTR = "_django_api_versioning_source_version"
+    _ROUTE_VERSION_ATTR = "_django_api_versioning_route_version"
+
+    def __init__(self) -> None:
+        self.urlpatterns: List[URLPattern] = []
 
     def register(
         self,
         route: str,
-        view: Callable[[HttpRequest], HttpResponse],
+        view: ViewType,
         name: Optional[str] = None,
+        source_version: Optional[int] = None,
+        route_version: Optional[int] = None,
     ) -> None:
-        """Register a new API endpoint."""
-        if self._is_duplicate(route):
-            self._remove_duplicate(route)
+        """Register a route, preferring definitions from newer source versions."""
+        route_index = self._find_route_index(route)
 
-        if not callable(view) and hasattr(view, "as_view"):
+        if route_index is not None:
+            existing_pattern = self.urlpatterns[route_index]
+
+            if not self._should_replace(existing_pattern, source_version):
+                return
+
+        pattern = self._create_pattern(route, view, name)
+        setattr(pattern, self._SOURCE_VERSION_ATTR, source_version)
+        setattr(pattern, self._ROUTE_VERSION_ATTR, route_version)
+
+        if route_index is None:
+            self.urlpatterns.append(pattern)
+        else:
+            self.urlpatterns[route_index] = pattern
+
+        self._sort_urlpatterns()
+
+    def _find_route_index(self, route: str) -> Optional[int]:
+        """Return the index of a registered route, or None if absent."""
+        for index, pattern in enumerate(self.urlpatterns):
+            if str(pattern.pattern) == route:
+                return index
+
+        return None
+
+    def _should_replace(
+        self,
+        existing_pattern: URLPattern,
+        source_version: Optional[int],
+    ) -> bool:
+        """Return whether the new declaration should replace the existing one.
+
+        Newer ``source_version`` values win. When either side has no source
+        version (e.g. unversioned endpoints or direct ``register()`` calls),
+        the last registration wins.
+        """
+        existing_version = getattr(
+            existing_pattern,
+            self._SOURCE_VERSION_ATTR,
+            None,
+        )
+
+        if existing_version is None or source_version is None:
+            return True
+
+        return source_version >= existing_version
+
+    @staticmethod
+    def _create_pattern(
+        route: str,
+        view: ViewType,
+        name: Optional[str],
+    ) -> URLPattern:
+        """Create a URL pattern from a function or class-based view.
+
+        Only class-based views are routed through ``as_view()``. Calling
+        ``as_view`` on an instance would still "work" because the classmethod
+        is accessible from the instance, but the resulting pattern loses the
+        ``view_class`` reference used by ``resolve()`` and DRF.
+        """
+        if isinstance(view, View):
+            raise TypeError(
+                f"Pass the view class {type(view).__name__!r}, not an instance. "
+                f"Use @endpoint(...) on the class itself, or call "
+                f"{type(view).__name__}.as_view() before registering."
+            )
+
+        if isinstance(view, type) and callable(getattr(view, "as_view", None)):
             view = view.as_view()
+        return path(route, view, name=name)
 
-        path_dict = {"name": name} if name else {}
-        self.urlpatterns.append(path(route, view, **path_dict))
+    def _sort_urlpatterns(self) -> None:
+        """Order unversioned routes first, then versioned routes by version."""
+        unversioned: List[URLPattern] = []
+        versioned: List[URLPattern] = []
 
-    def _is_duplicate(self, full_path):
-        """Check if the route is already registered."""
-        return any(str(pattern.pattern) == full_path for pattern in self.urlpatterns)
+        for pattern in self.urlpatterns:
+            route_version = getattr(
+                pattern,
+                self._ROUTE_VERSION_ATTR,
+                None,
+            )
 
-    def _remove_duplicate(self, full_path):
-        """Remove any existing route with the same path."""
-        self.urlpatterns = [p for p in self.urlpatterns if str(p.pattern) != full_path]
+            if route_version is None:
+                unversioned.append(pattern)
+            else:
+                versioned.append(pattern)
+
+        versioned.sort(
+            key=lambda p: getattr(
+                p,
+                self._ROUTE_VERSION_ATTR,
+            )
+        )
+
+        self.urlpatterns[:] = unversioned + versioned
 
 
 registry = UrlRegistry()

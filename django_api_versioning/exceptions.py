@@ -20,3 +20,9 @@ class VersionTypeError(VersioningError):
     """Raised when the version type is invalid (e.g., not an integer)."""
 
     pass
+
+
+class ForwardTypeError(VersioningError):
+    """Raised when the forward type is invalid (e.g., not a boolean)."""
+
+    pass

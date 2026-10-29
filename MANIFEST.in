@@ -1,8 +1,9 @@
 include README.md
 include LICENSE
-include .pre-commit-config.yaml
-recursive-include django_api_versioning *.py
-recursive-include tests *.py
+include CHANGELOG.md
 include requirements.txt
 include requirements-dev.txt
 include pytest.ini
+recursive-include django_api_versioning *.py
+recursive-include django_api_versioning py.typed
+recursive-include tests *.py

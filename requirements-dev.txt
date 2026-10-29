@@ -1,11 +1,13 @@
 -r requirements.txt
-pytest>=6.0
-pytest-django>=4.0
-pytest-cov>=3.0.0
-pre-commit>=2.0.0
-black>=22.0.0
-flake8>=4.0.0
-isort>=5.0.0
-mypy>=0.900
-twine>=4.0.0
-build>=0.8.0
+pytest>=9.2.0
+pytest-django>=4.14.0
+pytest-cov>=7.1.0
+pre-commit>=4.6.2
+black>=26.10.1
+flake8>=7.4.1
+Flake8-pyproject>=1.2.4
+isort>=9.0.2
+mypy>=2.4.0
+twine>=7.0.0
+build>=1.6.1
+djangorestframework>=3.18.3

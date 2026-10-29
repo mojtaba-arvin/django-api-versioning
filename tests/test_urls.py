@@ -1,26 +1,36 @@
 import pytest
-from django.urls import URLPattern, resolve
+from django.urls import URLPattern, clear_url_caches, resolve
+
+from django_api_versioning.registry import registry
 
 
-@pytest.fixture(scope="module", autouse=True)
-def clear_urlpatterns():
-    """Ensure urlpatterns is cleared before each test."""
-    from django_api_versioning.urls import urlpatterns
-
-    urlpatterns.clear()  # Clear any existing patterns
+@pytest.fixture(autouse=True)
+def clear_registered_routes():
+    """Reset the registry and Django's URL resolver caches between tests."""
+    registry.urlpatterns.clear()
+    clear_url_caches()
     yield
+    registry.urlpatterns.clear()
+    clear_url_caches()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def register_routes():
     from django_api_versioning.decorators import endpoint
 
     # Registering the accounts route with the endpoint decorator
     @endpoint("accounts", view_name="accounts_view")
     def test_accounts():
-        pass
+        return None
 
     yield
+
+
+def test_urlpatterns_is_shared_registry_list():
+    """The package's ``urlpatterns`` must be the same list object as the registry's."""
+    from django_api_versioning.urls import urlpatterns
+
+    assert urlpatterns is registry.urlpatterns
 
 
 def test_urlpatterns_type():

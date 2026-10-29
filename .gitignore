@@ -5,8 +5,13 @@ __pycache__/
 
 # Virtual environments
 venv/
+.venv/
 .env/
 .env
+
+# macOS
+.DS_Store
+**/.DS_Store
 
 # Editor files
 .idea/
@@ -22,4 +27,4 @@ dist/
 
 # Pytest & Coverage
 .coverage
-pytest_cache/
+.pytest_cache/
