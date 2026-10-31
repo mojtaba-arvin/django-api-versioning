@@ -1,30 +1,39 @@
 import pytest
 
 from django_api_versioning.exceptions import (
+    AmbiguousVersionError,
     InvalidVersionError,
     VersioningError,
+    VersionMatrixError,
     VersionRangeError,
     VersionTypeError,
 )
 
 
-def test_versioning_error():
-    with pytest.raises(VersioningError, match="General versioning error"):
-        raise VersioningError("General versioning error")
+class TestInheritance:
+    def test_all_specific_errors_inherit_from_versioning_error(self):
+        for exc in (
+            InvalidVersionError,
+            VersionRangeError,
+            VersionTypeError,
+            AmbiguousVersionError,
+            VersionMatrixError,
+        ):
+            assert issubclass(exc, VersioningError)
+
+    def test_versioning_error_inherits_from_exception(self):
+        assert issubclass(VersioningError, Exception)
 
 
-def test_invalid_version_error():
-    with pytest.raises(InvalidVersionError, match="Invalid version specified"):
-        raise InvalidVersionError("Invalid version specified")
+class TestRaisingAndCatching:
+    def test_catch_specific_as_base(self):
+        with pytest.raises(VersioningError):
+            raise InvalidVersionError("bad")
 
+    def test_catch_specific_as_itself(self):
+        with pytest.raises(AmbiguousVersionError):
+            raise AmbiguousVersionError("ambiguous")
 
-def test_version_range_error():
-    with pytest.raises(
-        VersionRangeError, match="Invalid version range: min_version > max_version"
-    ):
-        raise VersionRangeError("Invalid version range: min_version > max_version")
-
-
-def test_version_type_error():
-    with pytest.raises(VersionTypeError, match="Version must be an integer"):
-        raise VersionTypeError("Version must be an integer")
+    def test_message_is_preserved(self):
+        with pytest.raises(VersionMatrixError, match="matrix changed"):
+            raise VersionMatrixError("matrix changed unexpectedly")

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-api-versioning"
-version = "0.2.0"
-description = "Django API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint versioning, automatic URL registration, backward compatibility, and forward endpoint inheritance."
+version = "0.3.0"
+description = "Django API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint versioning, automatic URL registration, backward compatibility, and segment-based forward inheritance."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -24,7 +24,9 @@ keywords = [
     "versioned api endpoints",
     "automatic url registration",
     "backward compatibility",
-    "endpoint inheritance",
+    "forward endpoint inheritance",
+    "segment model",
+    "django-api-versioning",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -38,7 +40,7 @@ classifiers = [
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
     "Framework :: Django :: 6.1",
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Topic :: Internet :: WWW/HTTP",
@@ -61,6 +63,7 @@ dev = [
     "pre-commit>=4.6.2",
     "twine>=7.0.0",
     "build>=1.6.1",
+    "djangorestframework>=3.18",
 ]
 
 [project.urls]
@@ -103,4 +106,22 @@ exclude = [
     "venv",
     ".eggs",
     "*.egg",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
+testpaths = ["tests"]
+addopts = "-ra --cov=django_api_versioning --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["django_api_versioning"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
 ]

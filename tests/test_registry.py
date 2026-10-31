@@ -208,6 +208,113 @@ def test_newer_definition_wins_regardless_of_registration_order(
     }
 
 
+def test_explicit_declarations_do_not_collapse(clear_registry):
+    """Three explicit declarations produce three independent routes.
+
+    Regression guard for the 0.2.0 collapse bug: with the default
+    ``backward=True``, ``version=2`` used to overwrite ``version=1``
+    because inherited fills and explicit declarations were treated
+    identically.
+    """
+
+    def make_view(n):
+        def view(request):
+            return None
+
+        view.__name__ = f"users_v{n}"
+        return view
+
+    views = {n: make_view(n) for n in (1, 2, 3)}
+
+    for version in (1, 2, 3):
+        registry.register(
+            f"api/v{version}/users",
+            views[version],
+            name="users",
+            source_version=version,
+            route_version=version,
+        )
+
+    routes = {str(p.pattern): p.callback for p in registry.urlpatterns}
+
+    assert routes == {
+        "api/v1/users": views[1],
+        "api/v2/users": views[2],
+        "api/v3/users": views[3],
+    }
+
+
+def test_higher_source_version_replaces_lower(clear_registry):
+    """
+    0.3.0 segment contract: a registration with a higher source_version
+    replaces an existing route registration at the same path.
+    """
+
+    def users_v2(request):
+        return None
+
+    def users_v5(request):
+        return None
+
+    # Simulate: @endpoint("users", version=2) fills v2..v5 with source_version=2
+    for route_version in range(2, 6):
+        registry.register(
+            f"api/v{route_version}/users",
+            users_v2,
+            name="users",
+            source_version=2,
+            route_version=route_version,
+        )
+
+    # Simulate: @endpoint("users", version=5) overrides only v5
+    registry.register(
+        "api/v5/users",
+        users_v5,
+        name="users",
+        source_version=5,
+        route_version=5,
+    )
+
+    routes = {str(p.pattern): p.callback for p in registry.urlpatterns}
+    assert routes["api/v2/users"] is users_v2
+    assert routes["api/v3/users"] is users_v2
+    assert routes["api/v4/users"] is users_v2
+    assert routes["api/v5/users"] is users_v5
+
+
+def test_lower_source_version_does_not_replace_higher(clear_registry):
+    """
+    0.3.0 segment contract: a registration with a lower source_version does
+    NOT replace an existing route registration at the same path.
+    """
+
+    def users_v5(request):
+        return None
+
+    def users_v2(request):
+        return None
+
+    registry.register(
+        "api/v5/users",
+        users_v5,
+        name="users",
+        source_version=5,
+        route_version=5,
+    )
+
+    # Simulate: @endpoint("users", version=2) — should NOT clobber v5
+    registry.register(
+        "api/v5/users",
+        users_v2,
+        name="users",
+        source_version=2,
+        route_version=5,
+    )
+
+    routes = {str(p.pattern): p.callback for p in registry.urlpatterns}
+    assert routes["api/v5/users"] is users_v5
+
+
 def test_routes_are_sorted_by_version(clear_registry):
     """Ensure routes are ordered by version, with unversioned routes first."""
 

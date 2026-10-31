@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Type, Union
+from typing import Callable, Dict, List, Optional, Type, Union
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
@@ -43,6 +43,20 @@ class UrlRegistry:
             self.urlpatterns[route_index] = pattern
 
         self._sort_urlpatterns()
+
+    def get_version_matrix(self) -> Dict[str, Dict[Optional[int], Callable]]:
+        """
+        Return ``{route: {route_version: callback}}``.
+
+        ``route_version`` is ``None`` for unversioned routes.  This is the
+        source of truth for ``check_versions`` and ``assert_version_matrix``.
+        """
+        matrix: Dict[str, Dict[Optional[int], Callable]] = {}
+        for pattern in self.urlpatterns:
+            route = str(pattern.pattern)
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            matrix.setdefault(route, {})[route_version] = pattern.callback
+        return matrix
 
     def _find_route_index(self, route: str) -> Optional[int]:
         """Return the index of a registered route, or None if absent."""
