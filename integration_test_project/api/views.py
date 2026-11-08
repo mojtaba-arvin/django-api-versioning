@@ -201,6 +201,132 @@ try:
             # Return a list instead of queryset for simplicity
             return [{"id": 1, "title": "Doc 1"}]
 
+    # DRF APIViews with multiple HTTP methods
+    from rest_framework import status
+
+    @endpoint("orders/", version=1, view_name="order-list-v1-drf-methods")
+    class OrderListV1(APIView):
+        """DRF APIView: Orders - v1 with POST support."""
+
+        def get(self, request):
+            return Response({
+                "version": 1,
+                "orders": [
+                    {"id": 1, "total": "19.99"},
+                    {"id": 2, "total": "29.99"},
+                ]
+            })
+
+        def post(self, request):
+            return Response({
+                "version": 1,
+                "id": 3,
+                "total": request.data.get("total", "0.00")
+            }, status=status.HTTP_201_CREATED)
+
+    @endpoint("orders/", version=2, view_name="order-list-v2-drf-methods")
+    class OrderListV2(APIView):
+        """DRF APIView: Orders - v2 with currency and POST support."""
+
+        def get(self, request):
+            return Response({
+                "version": 2,
+                "orders": [
+                    {"id": 1, "total": 1999, "currency": "USD"},
+                    {"id": 2, "total": 2999, "currency": "USD"},
+                ]
+            })
+
+        def post(self, request):
+            return Response({
+                "version": 2,
+                "id": 3,
+                "total": request.data.get("total", 0),
+                "currency": request.data.get("currency", "USD")
+            }, status=status.HTTP_201_CREATED)
+
+    @endpoint("orders/<int:order_id>/", version=1, view_name="order-detail-v1-drf-methods")
+    class OrderDetailV1(APIView):
+        """DRF APIView: Order detail - v1 with PUT/PATCH/DELETE support."""
+
+        def get(self, request, order_id):
+            return Response({
+                "version": 1,
+                "id": order_id,
+                "total": "99.99"
+            })
+
+        def put(self, request, order_id):
+            return Response({
+                "version": 1,
+                "id": order_id,
+                "total": request.data.get("total", "99.99")
+            })
+
+        def patch(self, request, order_id):
+            return Response({
+                "version": 1,
+                "id": order_id,
+                "total": request.data.get("total", "99.99")
+            })
+
+        def delete(self, request, order_id):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @endpoint("orders/<int:order_id>/", version=2, view_name="order-detail-v2-drf-methods")
+    class OrderDetailV2(APIView):
+        """DRF APIView: Order detail - v2 with currency and PUT/PATCH/DELETE support."""
+
+        def get(self, request, order_id):
+            return Response({
+                "version": 2,
+                "id": order_id,
+                "total": 9999,
+                "currency": "USD"
+            })
+
+        def put(self, request, order_id):
+            return Response({
+                "version": 2,
+                "id": order_id,
+                "total": request.data.get("total", 9999),
+                "currency": request.data.get("currency", "USD")
+            })
+
+        def patch(self, request, order_id):
+            return Response({
+                "version": 2,
+                "id": order_id,
+                "total": request.data.get("total", 9999),
+                "currency": request.data.get("currency", "USD")
+            })
+
+        def delete(self, request, order_id):
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # Error response testing
+    @endpoint("items/", version=1, view_name="item-list-v1-errors")
+    class ItemListV1(APIView):
+        """DRF APIView: Items - v1 with error handling."""
+
+        def get(self, request):
+            return Response({
+                "version": 1,
+                "items": []
+            })
+
+        def post(self, request):
+            if not request.data.get("name"):
+                return Response(
+                    {"error": "name is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response({
+                "version": 1,
+                "id": 1,
+                "name": request.data["name"]
+            }, status=status.HTTP_201_CREATED)
+
     DRF_AVAILABLE = True
 except ImportError:
     DRF_AVAILABLE = False

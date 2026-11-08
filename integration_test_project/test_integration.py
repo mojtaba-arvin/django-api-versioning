@@ -179,6 +179,125 @@ class BasicIntegrationTestCase(TestCase):
         self.assertIsInstance(data, list)
         self.assertGreater(len(data), 0)
 
+    # HTTP Methods Tests - POST
+    def test_drf_post_v1(self):
+        """Test DRF POST request - v1."""
+        response = self.client.post(
+            "/api/v1/orders/",
+            {"total": "49.99"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["total"], "49.99")
+        self.assertNotIn("currency", data)
+
+    def test_drf_post_v2(self):
+        """Test DRF POST request - v2 with currency."""
+        response = self.client.post(
+            "/api/v2/orders/",
+            {"total": 4999, "currency": "EUR"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["total"], 4999)
+        self.assertEqual(data["currency"], "EUR")
+
+    # HTTP Methods Tests - PUT (full update)
+    def test_drf_put_v1(self):
+        """Test DRF PUT request (full update) - v1."""
+        response = self.client.put(
+            "/api/v1/orders/123/",
+            {"total": "199.99"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["id"], 123)
+        self.assertEqual(data["total"], "199.99")
+
+    def test_drf_put_v2(self):
+        """Test DRF PUT request (full update) - v2 with currency."""
+        response = self.client.put(
+            "/api/v2/orders/123/",
+            {"total": 19999, "currency": "GBP"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["id"], 123)
+        self.assertEqual(data["total"], 19999)
+        self.assertEqual(data["currency"], "GBP")
+
+    # HTTP Methods Tests - PATCH (partial update)
+    def test_drf_patch_v1(self):
+        """Test DRF PATCH request (partial update) - v1."""
+        response = self.client.patch(
+            "/api/v1/orders/123/",
+            {"total": "149.99"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["id"], 123)
+        self.assertEqual(data["total"], "149.99")
+
+    def test_drf_patch_v2(self):
+        """Test DRF PATCH request (partial update) - v2."""
+        response = self.client.patch(
+            "/api/v2/orders/123/",
+            {"currency": "JPY"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["id"], 123)
+        self.assertEqual(data["currency"], "JPY")
+
+    # HTTP Methods Tests - DELETE
+    def test_drf_delete_v1(self):
+        """Test DRF DELETE request - v1."""
+        response = self.client.delete("/api/v1/orders/123/")
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, b"")
+
+    def test_drf_delete_v2(self):
+        """Test DRF DELETE request - v2."""
+        response = self.client.delete("/api/v2/orders/123/")
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.content, b"")
+
+    # Error handling tests
+    def test_drf_post_error_missing_required_field_v1(self):
+        """Test DRF error handling - missing required field."""
+        response = self.client.post(
+            "/api/v1/items/",
+            {},  # Missing 'name'
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertIn("error", data)
+
+    def test_drf_post_success_with_required_field_v1(self):
+        """Test DRF POST with required field - v1."""
+        response = self.client.post(
+            "/api/v1/items/",
+            {"name": "Item A"},
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["name"], "Item A")
+
 
 def run_integration_tests():
     """Run the integration test suite."""
