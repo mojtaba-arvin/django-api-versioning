@@ -777,3 +777,62 @@ def admin_config_v2(request):
             "max_api_calls_per_day": 100000,
         }
     })
+
+
+# Authentication and Permission testing views
+try:
+    from rest_framework.permissions import IsAuthenticated, BasePermission
+    from rest_framework.response import Response
+    from rest_framework.decorators import api_view, permission_classes as drf_permission_classes
+
+    class IsAdminUser(BasePermission):
+        """Custom permission for admin users."""
+        def has_permission(self, request, view):
+            return hasattr(request, 'user') and getattr(request.user, 'is_staff', False)
+
+    @endpoint("secure-data/", version=1, view_name="secure-v1")
+    @api_view(["GET"])
+    @drf_permission_classes([IsAuthenticated])
+    def secure_data_v1(request):
+        """Secure data endpoint - v1 requires authentication."""
+        return Response({
+            "version": 1,
+            "data": "secure_v1",
+            "user": getattr(request.user, 'username', 'anonymous'),
+        })
+
+    @endpoint("secure-data/", version=2, view_name="secure-v2")
+    @api_view(["GET"])
+    @drf_permission_classes([IsAuthenticated])
+    def secure_data_v2(request):
+        """Secure data endpoint - v2 requires authentication."""
+        return Response({
+            "version": 2,
+            "data": "secure_v2",
+            "user": getattr(request.user, 'username', 'anonymous'),
+            "email": getattr(request.user, 'email', 'no-email'),
+        })
+
+    @endpoint("admin-only/", version=1, view_name="admin-only-v1")
+    @api_view(["GET"])
+    @drf_permission_classes([IsAdminUser])
+    def admin_only_v1(request):
+        """Admin-only endpoint - v1."""
+        return Response({
+            "version": 1,
+            "admin_data": "admin_content_v1",
+        })
+
+    @endpoint("admin-only/", version=2, view_name="admin-only-v2")
+    @api_view(["GET"])
+    @drf_permission_classes([IsAdminUser])
+    def admin_only_v2(request):
+        """Admin-only endpoint - v2."""
+        return Response({
+            "version": 2,
+            "admin_data": "admin_content_v2",
+            "admin_user": getattr(request.user, 'username', 'none'),
+        })
+
+except ImportError:
+    pass

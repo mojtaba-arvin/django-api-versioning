@@ -1441,6 +1441,117 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         self.assertEqual(response_v2_put.status_code, 200)
 
 
+class AuthenticationAndPermissionTestCase(TestCase):
+    """Test authentication and permission enforcement per version."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        if APIClient is not None:
+            self.client = APIClient()
+        else:
+            self.client = Client()
+
+    def test_secure_data_v1_unauthenticated_401_or_403(self):
+        """Test that unauthenticated requests to v1 secure endpoint return 401 or 403."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v1/secure-data/")
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_secure_data_v2_unauthenticated_401_or_403(self):
+        """Test that unauthenticated requests to v2 secure endpoint return 401 or 403."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v2/secure-data/")
+        self.assertIn(response.status_code, [401, 403])
+
+    def test_secure_data_v1_with_authentication(self):
+        """Test that authenticated requests to v1 secure endpoint succeed."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/v1/secure-data/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["user"], "testuser")
+
+    def test_secure_data_v2_with_authentication(self):
+        """Test that authenticated requests to v2 secure endpoint succeed."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username='testuser', email='test@example.com', password='testpass')
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/v2/secure-data/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["user"], "testuser")
+        self.assertEqual(data["email"], "test@example.com")
+
+    def test_admin_only_v1_non_admin_403(self):
+        """Test that non-admin users get 403 for admin endpoint."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username='normaluser', password='testpass')
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/v1/admin-only/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_only_v2_non_admin_403(self):
+        """Test that non-admin users get 403 for v2 admin endpoint."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username='normaluser', password='testpass')
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/v2/admin-only/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_only_v1_admin_user_200(self):
+        """Test that admin users can access v1 admin endpoint."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username='admin', password='testpass', is_staff=True)
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/v1/admin-only/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+
+    def test_admin_only_v2_admin_user_200(self):
+        """Test that admin users can access v2 admin endpoint."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        user = User.objects.create_user(username='admin', password='testpass', is_staff=True)
+        self.client.force_authenticate(user=user)
+        response = self.client.get("/api/v2/admin-only/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["admin_user"], "admin")
+
+    def test_protected_data_v1_accessible_without_auth(self):
+        """Test that AllowAny permission allows access without authentication."""
+        response = self.client.get("/api/v1/protected-data/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json() if isinstance(self.client, Client) else response.json()
+        self.assertEqual(data["version"], 1)
+
+    def test_protected_data_v2_accessible_without_auth(self):
+        """Test that AllowAny permission allows access without authentication."""
+        response = self.client.get("/api/v2/protected-data/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json() if isinstance(self.client, Client) else response.json()
+        self.assertEqual(data["version"], 2)
+
+
 def run_integration_tests():
     """Run the integration test suite."""
     from django.test.utils import get_runner
