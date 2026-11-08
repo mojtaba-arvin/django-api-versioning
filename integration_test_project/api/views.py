@@ -126,3 +126,81 @@ def post_detail_v2(request, post_id):
         "title": f"Post {post_id}",
         "content": f"Content for post {post_id}"
     })
+
+
+# Class-Based Views
+from django.views import View
+
+
+@endpoint("comments/", version=1, view_name="comment-list-v1-cbv")
+class CommentListV1(View):
+    """CBV: List comments - v1 implementation."""
+    def get(self, request):
+        return JsonResponse({
+            "version": 1,
+            "comments": [
+                {"id": 1, "text": "Great post!"},
+            ]
+        })
+
+
+@endpoint("comments/", version=2, view_name="comment-list-v2-cbv")
+class CommentListV2(View):
+    """CBV: List comments - v2 implementation with author."""
+    def get(self, request):
+        return JsonResponse({
+            "version": 2,
+            "comments": [
+                {"id": 1, "text": "Great post!", "author": "Alice"},
+            ]
+        })
+
+
+# DRF APIViews
+try:
+    from rest_framework.views import APIView
+    from rest_framework.response import Response
+
+    @endpoint("articles/", version=1, view_name="article-list-v1-drf")
+    class ArticleListV1(APIView):
+        """DRF APIView: List articles - v1 implementation."""
+        def get(self, request):
+            return Response({
+                "version": 1,
+                "articles": [
+                    {"id": 1, "title": "Django Tips"},
+                ]
+            })
+
+    @endpoint("articles/", version=2, view_name="article-list-v2-drf")
+    class ArticleListV2(APIView):
+        """DRF APIView: List articles - v2 implementation with summary."""
+        def get(self, request):
+            return Response({
+                "version": 2,
+                "articles": [
+                    {"id": 1, "title": "Django Tips", "summary": "Best practices"},
+                ]
+            })
+
+    # DRF Generic Views
+    from rest_framework.generics import ListAPIView
+    from rest_framework.serializers import Serializer, IntegerField, CharField
+
+    class ArticleSerializer(Serializer):
+        id = IntegerField()
+        title = CharField()
+        summary = CharField(required=False, allow_blank=True)
+
+    @endpoint("docs/", version=1, view_name="doc-list-v1-drf-generic")
+    class DocListV1(ListAPIView):
+        """DRF Generic View: List docs - v1 implementation."""
+        serializer_class = ArticleSerializer
+
+        def get_queryset(self):
+            # Return a list instead of queryset for simplicity
+            return [{"id": 1, "title": "Doc 1"}]
+
+    DRF_AVAILABLE = True
+except ImportError:
+    DRF_AVAILABLE = False

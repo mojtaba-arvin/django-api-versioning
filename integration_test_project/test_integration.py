@@ -130,6 +130,55 @@ class BasicIntegrationTestCase(TestCase):
         self.assertIn("user-detail-v1", all_routes)
         self.assertIn("user-detail-v2", all_routes)
 
+    def test_class_based_view_v1(self):
+        """Test that class-based views work with @endpoint - v1."""
+        response = self.client.get("/api/v1/comments/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertNotIn("author", data["comments"][0])
+
+    def test_class_based_view_v2(self):
+        """Test that class-based views work with @endpoint - v2 with inheritance."""
+        response = self.client.get("/api/v2/comments/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertIn("author", data["comments"][0])
+
+    def test_class_based_view_v3_inherits(self):
+        """Test that CBV forward inheritance works (v3 inherits from v2)."""
+        response = self.client.get("/api/v3/comments/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # Should get v2 response since v3 not explicitly defined
+        self.assertEqual(data["version"], 2)
+
+    def test_drf_apiview_v1(self):
+        """Test that DRF APIView works with @endpoint - v1."""
+        response = self.client.get("/api/v1/articles/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertNotIn("summary", data["articles"][0])
+
+    def test_drf_apiview_v2(self):
+        """Test that DRF APIView works with @endpoint - v2."""
+        response = self.client.get("/api/v2/articles/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertIn("summary", data["articles"][0])
+
+    def test_drf_generic_view_v1(self):
+        """Test that DRF generic views work with @endpoint - v1."""
+        response = self.client.get("/api/v1/docs/")
+        self.assertEqual(response.status_code, 200)
+        # ListAPIView returns data as a list
+        data = response.json()
+        self.assertIsInstance(data, list)
+        self.assertGreater(len(data), 0)
+
 
 def run_integration_tests():
     """Run the integration test suite."""
