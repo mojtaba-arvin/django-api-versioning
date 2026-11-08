@@ -135,7 +135,7 @@ from django_api_versioning.decorators import endpoint
 @endpoint("invoices/<int:invoice_id>/", version=2, view_name="invoice-detail")
 class InvoiceDetailView(APIView):
     def get(self, request, invoice_id):
-        return Response({"id": invoice_id, "status": "paid"}
+        return Response({"id": invoice_id, "status": "paid"})
 ```
 
 That's it. You now have:
@@ -171,7 +171,7 @@ urlpatterns = [
 ]
 ```
 
-**With `django-api-versioning`** — one declaration, routing handled. `API_MAX_VERSION = 3‍` in this example.
+**With `django-api-versioning`** — one declaration, routing handled. `API_MAX_VERSION = 3` in this example.
 
 ```python
 # apps/users/views.py
@@ -429,8 +429,8 @@ The middleware reads request.version (set by DRF) or `resolver_match.kwargs["ver
 | --- | --- | --- |
 | `API_BASE_PATH` | `"api/v{version}/"` | `Prefix template. Must contain {version}.` |
 | `API_MIN_VERSION` | `1` | `Lowest valid version.` |
-| `API_MAX_VERSION` | `1` | `Highest valid version.` |
-| `ROOT_URLCONF` | `"django_api_versioning.urls"` | `Points Django at the registry (only if you don't use include()).` |
+| `API_MAX_VERSION` | Required | `Highest valid version. Required setting with no default.` |
+| `ROOT_URLCONF` | `None` (see note) | `Optional. Set to "django_api_versioning.urls" only if your project has no existing root URLconf. Otherwise use include() in your urls.py.` |
 | `API_VERSION_LIFECYCLE` | `{}` | `Per-version status and sunset.` |
 | `API_VERSIONING_CHANNELS` | `["path"]` | `Reserved. Only path is currently honored.` |
 | `API_EFFECTIVE_VERSION_RESOLVER` | `None` | `Reserved. Not yet wired into routing.` |
@@ -439,7 +439,7 @@ The middleware reads request.version (set by DRF) or `resolver_match.kwargs["ver
 
 | **Argument** | **Type** | **Default** | **Purpose** |
 | :--- | :--- | :--- | :--- |
-| `postfix` | `str` | Required | Resource path, e.g. `"users/"` or `"users/<int:pk>/"`. |
+| `postfix` (positional) | `str` | Required | Resource path, e.g. `"users/"` or `"users/<int:pk>/"`. Passed as first argument: `@endpoint("users/", version=1)`. |
 | `version` | `int \| None` | `None` | Declares a version segment starting at `N` and extending through `API_MAX_VERSION`. |
 | `versions` | `list[int] \| None` | `None` | Explicitly specifies the versions served, e.g. `[1, 3, 5]` or `ver_range(1, 3)`. |
 | `app_name` | `str \| None` | `None` | Optional path segment for grouping, e.g. `"shop"` → `/api/v1/shop/users/`. |
