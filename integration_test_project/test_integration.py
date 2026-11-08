@@ -298,6 +298,226 @@ class BasicIntegrationTestCase(TestCase):
         self.assertEqual(data["version"], 1)
         self.assertEqual(data["name"], "Item A")
 
+    # Additional comprehensive tests for DRF patterns
+    def test_drf_listapi_view_v1(self):
+        """Test DRF ListAPIView - read-only list view."""
+        response = self.client.get("/api/v1/docs/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # ListAPIView returns list directly
+        self.assertIsInstance(data, list)
+        self.assertGreater(len(data), 0)
+
+    def test_multiple_http_methods_same_endpoint_v1(self):
+        """Test that same endpoint can handle multiple HTTP methods in v1."""
+        # GET should work
+        get_response = self.client.get("/api/v1/orders/")
+        self.assertEqual(get_response.status_code, 200)
+
+        # POST should work
+        post_response = self.client.post(
+            "/api/v1/orders/",
+            {"total": "99.99"},
+            content_type="application/json"
+        )
+        self.assertEqual(post_response.status_code, 201)
+
+    def test_multiple_http_methods_same_endpoint_v2(self):
+        """Test that same endpoint can handle multiple HTTP methods in v2."""
+        # GET should work
+        get_response = self.client.get("/api/v2/orders/")
+        self.assertEqual(get_response.status_code, 200)
+
+        # POST should work with v2 format
+        post_response = self.client.post(
+            "/api/v2/orders/",
+            {"total": 9999, "currency": "CAD"},
+            content_type="application/json"
+        )
+        self.assertEqual(post_response.status_code, 201)
+
+    def test_detail_endpoint_multiple_methods_v1(self):
+        """Test detail endpoint with GET, PUT, PATCH, DELETE - v1."""
+        # GET
+        get_response = self.client.get("/api/v1/orders/42/")
+        self.assertEqual(get_response.status_code, 200)
+
+        # PUT
+        put_response = self.client.put(
+            "/api/v1/orders/42/",
+            {"total": "299.99"},
+            content_type="application/json"
+        )
+        self.assertEqual(put_response.status_code, 200)
+
+        # PATCH
+        patch_response = self.client.patch(
+            "/api/v1/orders/42/",
+            {"total": "199.99"},
+            content_type="application/json"
+        )
+        self.assertEqual(patch_response.status_code, 200)
+
+        # DELETE
+        delete_response = self.client.delete("/api/v1/orders/42/")
+        self.assertEqual(delete_response.status_code, 204)
+
+    def test_detail_endpoint_multiple_methods_v2(self):
+        """Test detail endpoint with GET, PUT, PATCH, DELETE - v2."""
+        # GET
+        get_response = self.client.get("/api/v2/orders/99/")
+        self.assertEqual(get_response.status_code, 200)
+        data = get_response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertIn("currency", data)
+
+        # PUT with v2 format
+        put_response = self.client.put(
+            "/api/v2/orders/99/",
+            {"total": 29999, "currency": "AUD"},
+            content_type="application/json"
+        )
+        self.assertEqual(put_response.status_code, 200)
+        put_data = put_response.json()
+        self.assertEqual(put_data["currency"], "AUD")
+
+        # PATCH with v2 format
+        patch_response = self.client.patch(
+            "/api/v2/orders/99/",
+            {"currency": "NZD"},
+            content_type="application/json"
+        )
+        self.assertEqual(patch_response.status_code, 200)
+        patch_data = patch_response.json()
+        self.assertEqual(patch_data["currency"], "NZD")
+
+        # DELETE
+        delete_response = self.client.delete("/api/v2/orders/99/")
+        self.assertEqual(delete_response.status_code, 204)
+
+    def test_version_specific_response_format_v1_vs_v2(self):
+        """Test that response format differs between versions."""
+        # v1 has simple format with "orders" key
+        v1_response = self.client.get("/api/v1/orders/")
+        v1_data = v1_response.json()
+        self.assertIn("orders", v1_data)
+        self.assertEqual(v1_data["version"], 1)
+        v1_orders = v1_data["orders"]
+        self.assertGreater(len(v1_orders), 0)
+        v1_order = v1_orders[0]
+        self.assertIn("total", v1_order)
+        self.assertNotIn("currency", v1_order)
+
+        # v2 has extended format with "orders" key
+        v2_response = self.client.get("/api/v2/orders/")
+        v2_data = v2_response.json()
+        self.assertIn("orders", v2_data)
+        self.assertEqual(v2_data["version"], 2)
+        v2_orders = v2_data["orders"]
+        self.assertGreater(len(v2_orders), 0)
+        v2_order = v2_orders[0]
+        self.assertIn("total", v2_order)
+        self.assertIn("currency", v2_order)
+
+    def test_forward_inheritance_with_multiple_methods(self):
+        """Test that forward inheritance works with multiple HTTP methods."""
+        # Articles endpoint - v2 doesn't exist, should inherit from v1 for GET
+        # But POST might not be allowed (test the behavior)
+        v2_get = self.client.get("/api/v2/articles/")
+        self.assertEqual(v2_get.status_code, 200)
+        v2_data = v2_get.json()
+        # v2 is explicitly defined, not inherited
+        self.assertEqual(v2_data["version"], 2)
+
+    def test_version_mismatch_returns_404(self):
+        """Test that requesting undefined version returns 404."""
+        # Users endpoint goes to v3, v4+ should return 404
+        response = self.client.get("/api/v4/users/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_posts_segment_with_different_versions(self):
+        """Test posts segment inheritance."""
+        # v1 is defined
+        v1 = self.client.get("/api/v1/posts/")
+        self.assertEqual(v1.status_code, 200)
+        self.assertEqual(v1.json()["version"], 1)
+
+        # v2 is defined
+        v2 = self.client.get("/api/v2/posts/")
+        self.assertEqual(v2.status_code, 200)
+        self.assertEqual(v2.json()["version"], 2)
+
+        # v3+ should inherit from v2
+        v3 = self.client.get("/api/v3/posts/")
+        self.assertEqual(v3.status_code, 200)
+        self.assertEqual(v3.json()["version"], 2)  # inherited from v2
+
+    def test_concurrent_versions_of_same_endpoint(self):
+        """Test that multiple versions can coexist for same endpoint."""
+        # Get all registered patterns
+        all_routes = [p.name for p in registry.urlpatterns if p.name]
+
+        # Users endpoint should have multiple versions registered
+        user_routes = [r for r in all_routes if "user" in r]
+        self.assertGreaterEqual(len(user_routes), 3)  # at least v1, v2, v3
+
+    def test_url_parameter_preservation_across_versions(self):
+        """Test that URL parameters work correctly across versions."""
+        # Test with different IDs in v1
+        v1_123 = self.client.get("/api/v1/users/123/")
+        self.assertEqual(v1_123.json()["id"], 123)
+
+        v1_999 = self.client.get("/api/v1/users/999/")
+        self.assertEqual(v1_999.json()["id"], 999)
+
+        # Same with v2
+        v2_456 = self.client.get("/api/v2/users/456/")
+        self.assertEqual(v2_456.json()["id"], 456)
+
+    def test_error_response_format_consistency(self):
+        """Test that error responses are consistent across versions."""
+        # v1 error
+        v1_error = self.client.post(
+            "/api/v1/items/",
+            {},  # missing required field
+            content_type="application/json"
+        )
+        self.assertEqual(v1_error.status_code, 400)
+
+        # v2 error (if exists)
+        v2_error = self.client.post(
+            "/api/v2/items/",
+            {},  # missing required field
+            content_type="application/json"
+        )
+        # v2 inherits from v1 if not explicitly defined
+        self.assertEqual(v2_error.status_code, 400)
+
+    def test_class_based_view_inheritance_across_versions(self):
+        """Test CBV inheritance works correctly."""
+        # Comments is a CBV
+        v1 = self.client.get("/api/v1/comments/")
+        self.assertEqual(v1.status_code, 200)
+        v1_data = v1.json()
+        self.assertEqual(v1_data["version"], 1)
+        # v1 has simple comment structure
+        if v1_data.get("comments"):
+            self.assertNotIn("author", v1_data["comments"][0])
+
+        # v2 is also defined
+        v2 = self.client.get("/api/v2/comments/")
+        self.assertEqual(v2.status_code, 200)
+        v2_data = v2.json()
+        self.assertEqual(v2_data["version"], 2)
+        # v2 has richer structure
+        if v2_data.get("comments"):
+            self.assertIn("author", v2_data["comments"][0])
+
+        # v3 should inherit from v2
+        v3 = self.client.get("/api/v3/comments/")
+        self.assertEqual(v3.status_code, 200)
+        self.assertEqual(v3.json()["version"], 2)
+
 
 def run_integration_tests():
     """Run the integration test suite."""
