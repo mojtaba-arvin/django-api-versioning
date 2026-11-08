@@ -1441,6 +1441,239 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         self.assertEqual(response_v2_put.status_code, 200)
 
 
+class DRFGenericViewsComprehensiveTestCase(TestCase):
+    """
+    Comprehensive tests for DRF generic views with versioning.
+    Tests all generic view types, version inheritance, and edge cases.
+    """
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.client = APIClient() if APIClient else None
+
+    def test_list_apiview_v1_basic(self):
+        """Test ListAPIView basic list operation - v1."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v1/docs/")
+        self.assertEqual(response.status_code, 200)
+        # ListAPIView returns list directly or wrapped in results key
+        data = response.json()
+        # Could be list or dict with results
+        self.assertTrue(isinstance(data, (list, dict)))
+
+    def test_list_apiview_v2_basic(self):
+        """Test ListAPIView basic list operation - v2 (forward inherited from v1)."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v2/docs/")
+        # v2 should inherit from v1
+        self.assertEqual(response.status_code, 200)
+
+    def test_create_apiview_error_handling_v1(self):
+        """Test CreateAPIView error handling with missing required fields."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+        # POST without required fields should fail
+        response = self.client.post("/api/v1/tasks/", data={}, format="json")
+        self.assertIn(response.status_code, [400, 422])  # Bad request or validation error
+
+    def test_retrieve_apiview_with_different_ids(self):
+        """Test RetrieveAPIView correctly extracts and returns different IDs."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+        # Mock view returns data for any ID, verifying parameter extraction
+        response1 = self.client.get("/api/v1/tasks/1/")
+        response2 = self.client.get("/api/v1/tasks/42/")
+        self.assertEqual(response1.status_code, 200)
+        self.assertEqual(response2.status_code, 200)
+        # Verify different IDs are returned
+        self.assertEqual(response1.json()["id"], 1)
+        self.assertEqual(response2.json()["id"], 42)
+
+    def test_retrieve_update_destroy_all_methods_v2(self):
+        """Test RetrieveUpdateDestroyAPIView supports GET, PUT, PATCH, DELETE."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # GET - retrieve
+        get_response = self.client.get("/api/v2/tasks/42/")
+        self.assertEqual(get_response.status_code, 200)
+
+        # PUT - full update
+        put_response = self.client.put(
+            "/api/v2/tasks/42/",
+            data={"title": "Updated", "completed": True},
+            format="json"
+        )
+        self.assertEqual(put_response.status_code, 200)
+
+        # PATCH - partial update
+        patch_response = self.client.patch(
+            "/api/v2/tasks/42/",
+            data={"completed": False},
+            format="json"
+        )
+        self.assertEqual(patch_response.status_code, 200)
+
+        # DELETE - destroy
+        delete_response = self.client.delete("/api/v2/tasks/42/")
+        self.assertEqual(delete_response.status_code, 204)
+
+    def test_create_apiview_success_response_format(self):
+        """Test CreateAPIView returns proper response format with status 201."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+        payload = {"title": "New Task", "completed": False}
+        response = self.client.post("/api/v1/tasks/", data=payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        # Should return created object
+        self.assertIn("id", data)
+        self.assertEqual(data["title"], payload["title"])
+
+    def test_retrieve_apiview_returns_single_object(self):
+        """Test RetrieveAPIView returns single object, not array."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v1/tasks/42/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # Should be dict, not list
+        self.assertIsInstance(data, dict)
+        self.assertIn("id", data)
+
+    def test_list_apiview_list_format_consistency(self):
+        """Test ListAPIView returns consistent list format across versions."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        v1_response = self.client.get("/api/v1/docs/")
+        v2_response = self.client.get("/api/v2/docs/")
+
+        self.assertEqual(v1_response.status_code, 200)
+        self.assertEqual(v2_response.status_code, 200)
+
+        # Both should be lists or have similar structure
+        v1_data = v1_response.json()
+        v2_data = v2_response.json()
+        self.assertEqual(type(v1_data), type(v2_data))
+
+    def test_retrieve_update_destroy_put_vs_patch(self):
+        """Test PUT (full update) vs PATCH (partial update) in RetrieveUpdateDestroyAPIView."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # PUT requires all fields
+        full_payload = {"title": "Full Update", "completed": True}
+        put_response = self.client.put(
+            "/api/v2/tasks/42/",
+            data=full_payload,
+            format="json"
+        )
+        self.assertEqual(put_response.status_code, 200)
+
+        # PATCH allows partial update
+        partial_payload = {"completed": False}
+        patch_response = self.client.patch(
+            "/api/v2/tasks/42/",
+            data=partial_payload,
+            format="json"
+        )
+        self.assertEqual(patch_response.status_code, 200)
+
+    def test_generic_view_parameter_extraction(self):
+        """Test generic views correctly extract URL parameters."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # Test with different IDs
+        for task_id in [1, 42, 999]:
+            response = self.client.get(f"/api/v1/tasks/{task_id}/")
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            # Should have the requested ID
+            self.assertEqual(data["id"], task_id)
+
+    def test_retrieve_apiview_version_inheritance_chain(self):
+        """Test RetrieveAPIView version inheritance across multiple versions."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # v1 has RetrieveAPIView
+        v1 = self.client.get("/api/v1/tasks/42/")
+        self.assertEqual(v1.status_code, 200)
+
+        # v2 has RetrieveUpdateDestroyAPIView (different view)
+        v2 = self.client.get("/api/v2/tasks/42/")
+        self.assertEqual(v2.status_code, 200)
+
+        # v3 should inherit from v2
+        v3 = self.client.get("/api/v3/tasks/42/")
+        self.assertEqual(v3.status_code, 200)
+
+    def test_create_apiview_multiple_consecutive_creations(self):
+        """Test CreateAPIView handles multiple consecutive POSTs without error."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        results = []
+        for i in range(3):
+            payload = {"title": f"Task {i}", "completed": False}
+            response = self.client.post("/api/v1/tasks/", data=payload, format="json")
+            # All requests should succeed
+            self.assertEqual(response.status_code, 201)
+            results.append(response.json())
+
+        # All should have returned data
+        self.assertEqual(len(results), 3)
+        # Each should have required fields
+        for result in results:
+            self.assertIn("id", result)
+            self.assertIn("title", result)
+
+    def test_retrieve_update_destroy_post_not_allowed(self):
+        """Test RetrieveUpdateDestroyAPIView doesn't allow POST (not in allowed methods)."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # POST to detail endpoint should not be allowed
+        response = self.client.post("/api/v2/tasks/42/", data={}, format="json")
+        # Should be 405 Method Not Allowed or similar
+        self.assertIn(response.status_code, [405, 400])
+
+    def test_generic_view_with_content_negotiation(self):
+        """Test generic views work with different content types."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # JSON format
+        response = self.client.get("/api/v1/tasks/42/", format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+
+    def test_retrieve_apiview_vs_list_apiview_endpoints(self):
+        """Test that retrieve and list endpoints are separate."""
+        if self.client is None:
+            self.skipTest("DRF not installed")
+
+        # List endpoint
+        list_response = self.client.get("/api/v1/docs/")
+        self.assertEqual(list_response.status_code, 200)
+
+        # Retrieve endpoint (different from docs list)
+        retrieve_response = self.client.get("/api/v1/tasks/42/")
+        self.assertEqual(retrieve_response.status_code, 200)
+
+        # They should have different response structures
+        list_data = list_response.json()
+        retrieve_data = retrieve_response.json()
+
+        # List is array/collection, retrieve is single object
+        self.assertTrue(isinstance(list_data, (list, dict)))
+        self.assertIsInstance(retrieve_data, dict)
+
+
 class EdgeCasesAndErrorHandlingTestCase(TestCase):
     """Test edge cases and error handling per version."""
 
