@@ -694,6 +694,157 @@ class BasicIntegrationTestCase(TestCase):
         url_v2 = api_reverse("analytics-overview-v2", version=2)
         self.assertEqual(url_v2, "/api/v2/analytics/overview/")
 
+    # Permissions-based endpoint tests
+    def test_protected_data_v1_accessible(self):
+        """Test protected data endpoint - v1 is accessible (AllowAny)."""
+        response = self.client.get("/api/v1/protected-data/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["permission_level"], "all")
+
+    def test_protected_data_v2_accessible(self):
+        """Test protected data endpoint - v2 is accessible."""
+        response = self.client.get("/api/v2/protected-data/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["permission_level"], "restricted")
+
+    # Serializer versioning tests
+    def test_product_list_v1_serializer(self):
+        """Test product list with v1 serializer (basic fields)."""
+        response = self.client.get("/api/v1/products-list/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsInstance(data, list)
+        self.assertGreater(len(data), 0)
+        # v1 serializer only has id and name
+        product = data[0]
+        self.assertIn("id", product)
+        self.assertIn("name", product)
+        self.assertNotIn("price", product)
+
+    def test_product_list_v2_serializer(self):
+        """Test product list with v2 serializer (extended fields)."""
+        response = self.client.get("/api/v2/products-list/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIsInstance(data, list)
+        self.assertGreater(len(data), 0)
+        # v2 serializer has id, name, description, and price
+        product = data[0]
+        self.assertIn("id", product)
+        self.assertIn("name", product)
+        self.assertIn("description", product)
+        self.assertIn("price", product)
+
+    # Edge cases and error scenarios
+    def test_invalid_version_returns_404(self):
+        """Test that invalid version returns 404."""
+        response = self.client.get("/api/v999/users/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_non_existent_endpoint_returns_404(self):
+        """Test that non-existent endpoint returns 404."""
+        response = self.client.get("/api/v1/does-not-exist/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_version_zero_not_allowed(self):
+        """Test that version 0 returns 404."""
+        response = self.client.get("/api/v0/users/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_negative_version_returns_404(self):
+        """Test that negative version returns 404."""
+        response = self.client.get("/api/v-1/users/")
+        # This will likely return 404 due to URL pattern matching
+        self.assertEqual(response.status_code, 404)
+
+    def test_string_version_returns_404(self):
+        """Test that string version returns 404."""
+        response = self.client.get("/api/vABC/users/")
+        self.assertEqual(response.status_code, 404)
+
+    # Regression tests
+    def test_v1_endpoint_after_multiple_requests(self):
+        """Test that v1 endpoint works consistently after multiple requests."""
+        # Make multiple requests to the same endpoint
+        for i in range(3):
+            response = self.client.get("/api/v1/users/")
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data["version"], 1)
+
+    def test_different_endpoints_isolation(self):
+        """Test that different endpoints don't interfere with each other."""
+        # Request from different endpoints in sequence
+        users_v1 = self.client.get("/api/v1/users/")
+        posts_v1 = self.client.get("/api/v1/posts/")
+        comments_v1 = self.client.get("/api/v1/comments/")
+
+        self.assertEqual(users_v1.json()["version"], 1)
+        self.assertEqual(posts_v1.json()["version"], 1)
+        self.assertEqual(comments_v1.json()["version"], 1)
+
+    def test_version_cross_contamination_check(self):
+        """Test that data from v1 doesn't contaminate v2 requests."""
+        v1_data = self.client.get("/api/v1/users/").json()
+        v2_data = self.client.get("/api/v2/users/").json()
+
+        # v1 users should NOT have email
+        self.assertNotIn("email", v1_data["users"][0])
+
+        # v2 users SHOULD have email
+        self.assertIn("email", v2_data["users"][0])
+
+    # Parameter encoding tests
+    def test_parameter_with_special_chars(self):
+        """Test URL parameters with special characters."""
+        # Regular alphanumeric
+        response = self.client.get("/api/v1/users/123/")
+        self.assertEqual(response.status_code, 200)
+
+        # Different numeric value
+        response = self.client.get("/api/v1/users/999999/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_slug_parameter_encoding(self):
+        """Test slug parameter encoding in URLs."""
+        response = self.client.get("/api/v1/posts/my-first-post/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["slug"], "my-first-post")
+
+    # Response consistency tests
+    def test_json_response_structure_v1(self):
+        """Test that JSON response structure is valid for v1."""
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("application/json", response.get("content-type", ""))
+        data = response.json()
+        self.assertIsInstance(data, dict)
+
+    def test_json_response_structure_v2(self):
+        """Test that JSON response structure is valid for v2."""
+        response = self.client.get("/api/v2/users/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("application/json", response.get("content-type", ""))
+        data = response.json()
+        self.assertIsInstance(data, dict)
+
+    def test_empty_request_body_handling(self):
+        """Test that GET requests with empty body work correctly."""
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_request_idempotency(self):
+        """Test that identical requests return identical responses."""
+        response1 = self.client.get("/api/v1/users/")
+        response2 = self.client.get("/api/v1/users/")
+
+        self.assertEqual(response1.json(), response2.json())
+
 
 def run_integration_tests():
     """Run the integration test suite."""

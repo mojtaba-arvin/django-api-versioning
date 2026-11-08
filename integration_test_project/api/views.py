@@ -419,3 +419,72 @@ def post_by_slug_v1(request, slug):
         "slug": slug,
         "slug_type": "slug"
     })
+
+
+# Permissions-based views (permission testing)
+try:
+    from rest_framework.permissions import IsAuthenticated, AllowAny
+    from rest_framework.decorators import api_view, permission_classes as drf_permission_classes
+
+    @endpoint("protected-data/", version=1, view_name="protected-v1")
+    @api_view(["GET"])
+    @drf_permission_classes([AllowAny])  # v1 allows all
+    def protected_data_v1(request):
+        """Protected data endpoint - v1 with AllowAny permission."""
+        return Response({
+            "version": 1,
+            "data": "public",
+            "permission_level": "all",
+        })
+
+    @endpoint("protected-data/", version=2, view_name="protected-v2")
+    @api_view(["GET"])
+    @drf_permission_classes([AllowAny])  # v2 also allows all for testing
+    def protected_data_v2(request):
+        """Protected data endpoint - v2 with different permission."""
+        return Response({
+            "version": 2,
+            "data": "sensitive",
+            "permission_level": "restricted",
+        })
+
+    # Serializer-based versioning views
+    from rest_framework.serializers import Serializer, CharField, IntegerField
+    from rest_framework.generics import ListAPIView
+
+    class ProductV1Serializer(Serializer):
+        """v1 product serializer - basic fields only."""
+        id = IntegerField()
+        name = CharField()
+
+    class ProductV2Serializer(Serializer):
+        """v2 product serializer - extended fields."""
+        id = IntegerField()
+        name = CharField()
+        description = CharField(required=False)
+        price = IntegerField(required=False)
+
+    @endpoint("products-list/", version=1, view_name="products-list-v1")
+    class ProductListV1(ListAPIView):
+        """Product list - v1 with basic serializer."""
+        serializer_class = ProductV1Serializer
+
+        def get_queryset(self):
+            return [
+                {"id": 1, "name": "Product 1"},
+                {"id": 2, "name": "Product 2"},
+            ]
+
+    @endpoint("products-list/", version=2, view_name="products-list-v2")
+    class ProductListV2(ListAPIView):
+        """Product list - v2 with extended serializer."""
+        serializer_class = ProductV2Serializer
+
+        def get_queryset(self):
+            return [
+                {"id": 1, "name": "Product 1", "description": "First product", "price": 100},
+                {"id": 2, "name": "Product 2", "description": "Second product", "price": 200},
+            ]
+
+except ImportError:
+    pass
