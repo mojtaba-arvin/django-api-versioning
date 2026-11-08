@@ -57,17 +57,11 @@ def endpoint(
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
 
     def decorator(view: Callable) -> Callable:
-        min_version: int = getattr(settings, "API_MIN_VERSION", 1)
-        max_version: int = getattr(settings, "API_MAX_VERSION", 1)
-
-        if isinstance(min_version, bool) or not isinstance(min_version, int):
-            raise VersionRangeError("API_MIN_VERSION must be an integer.")
-        if isinstance(max_version, bool) or not isinstance(max_version, int):
-            raise VersionRangeError("API_MAX_VERSION must be an integer.")
-        if min_version > max_version:
-            raise VersionRangeError(
-                "API_MIN_VERSION cannot be greater than API_MAX_VERSION."
-            )
+        # Settings object is pre-validated at module load time by APISettings.
+        # Accessing validated api_settings directly instead of getattr() with defaults
+        # and re-validating, which was redundant with the validation in settings.py.
+        min_version: int = settings.API_MIN_VERSION
+        max_version: int = settings.API_MAX_VERSION
 
         if version is not None:
             _validate_version(version, max_version)
