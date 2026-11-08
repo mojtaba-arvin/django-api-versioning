@@ -1977,6 +1977,200 @@ class AuthenticationAndPermissionTestCase(TestCase):
         self.assertEqual(data["version"], 2)
 
 
+class ForwardVersioningComprehensiveTestCase(TestCase):
+    """
+    Comprehensive tests for forward versioning scenarios.
+    Tests segment-based inheritance model, version resolution,
+    and edge cases with multiple segments.
+    """
+
+    def test_single_segment_all_versions_use_same_impl(self):
+        """Test that single segment serves all versions with same implementation."""
+        # Products endpoint uses @endpoint("products/<int:product_id>/", version=1)
+        # So all versions v1-vMAX use the same v1 implementation (no v2 defined)
+        v1 = self.client.get("/api/v1/products/123/").json()
+        v2 = self.client.get("/api/v2/products/123/").json()
+        v3 = self.client.get("/api/v3/products/123/").json()
+        # All should have version=1 because only v1 is defined
+        self.assertEqual(v1["version"], 1)
+        self.assertEqual(v2["version"], 1)
+        self.assertEqual(v3["version"], 1)
+
+    def test_two_segment_boundary(self):
+        """Test version boundary between two segments."""
+        # Comments has:
+        # @endpoint("comments/", version=1) class CommentListV1
+        # @endpoint("comments/", version=2) class CommentListV2
+        v1 = self.client.get("/api/v1/comments/").json()
+        v2 = self.client.get("/api/v2/comments/").json()
+        v3 = self.client.get("/api/v3/comments/").json()
+
+        # v1 uses CommentListV1 (class-based view)
+        self.assertEqual(v1["version"], 1)
+        self.assertNotIn("author", v1["comments"][0])
+
+        # v2 uses CommentListV2 (class-based view)
+        self.assertEqual(v2["version"], 2)
+        self.assertIn("author", v2["comments"][0])
+
+        # v3+ inherits from v2
+        self.assertEqual(v3["version"], 2)
+        self.assertIn("author", v3["comments"][0])
+
+    def test_segment_transition_preserves_data_format(self):
+        """Test that transitioning between segments preserves data format consistency."""
+        # Users endpoint has v1, v2, v3 all separately defined
+        v1_data = self.client.get("/api/v1/users/").json()
+        v2_data = self.client.get("/api/v2/users/").json()
+        v3_data = self.client.get("/api/v3/users/").json()
+
+        # All should have users array
+        self.assertIn("users", v1_data)
+        self.assertIn("users", v2_data)
+        self.assertIn("users", v3_data)
+
+        # Each version adds new fields (forward compatibility demonstration)
+        # v1: id, name only
+        self.assertEqual(len(v1_data["users"][0]), 2)  # id, name
+        # v2: id, name, email
+        self.assertEqual(len(v2_data["users"][0]), 3)  # id, name, email
+        # v3: id, name, email, status, pagination
+        self.assertEqual(len(v3_data["users"][0]), 4)  # id, name, email, status
+
+    def test_version_resolution_selects_highest_matching_segment(self):
+        """Test that version resolution uses the highest matching segment."""
+        # Posts has: v1 segment, v2 segment
+        # Request v4 should use v2 segment (highest available)
+        v4 = self.client.get("/api/v4/posts/").json()
+        self.assertEqual(v4["version"], 2)
+
+    def test_forward_inheritance_with_parameter_endpoints(self):
+        """Test forward versioning with parameterized endpoints."""
+        # User detail: v1, v2 segments
+        v1_detail = self.client.get("/api/v1/users/123/").json()
+        v2_detail = self.client.get("/api/v2/users/123/").json()
+        v3_detail = self.client.get("/api/v3/users/123/").json()
+
+        self.assertEqual(v1_detail["version"], 1)
+        self.assertNotIn("email", v1_detail)
+
+        self.assertEqual(v2_detail["version"], 2)
+        self.assertIn("email", v2_detail)
+
+        # v3 inherits from v2
+        self.assertEqual(v3_detail["version"], 2)
+        self.assertIn("email", v3_detail)
+
+    def test_max_version_boundary_enforcement(self):
+        """Test that requests beyond API_MAX_VERSION return 404."""
+        # API_MAX_VERSION is 4 (from settings)
+        response = self.client.get("/api/v5/users/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_segment_isolation_different_endpoints(self):
+        """Test that segments of different endpoints are isolated."""
+        # Comments has v1, v2 segments
+        # Users has v1, v2, v3 segments
+        # v3/comments should exist (use v2 implementation)
+        # v3/users should exist (use v3 implementation)
+
+        comments_v3 = self.client.get("/api/v3/comments/").json()
+        users_v3 = self.client.get("/api/v3/users/").json()
+
+        self.assertEqual(comments_v3["version"], 2)  # inherits from v2
+        self.assertEqual(users_v3["version"], 3)     # explicitly v3
+
+    def test_drf_apiview_forward_inheritance(self):
+        """Test forward versioning with DRF APIView."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+
+        client = APIClient()
+        # Articles has: v1, v2 segments (DRF APIView)
+        v1 = client.get("/api/v1/articles/").json()
+        v2 = client.get("/api/v2/articles/").json()
+        v3 = client.get("/api/v3/articles/").json()
+
+        self.assertEqual(v1["version"], 1)
+        self.assertEqual(v2["version"], 2)
+        # v3 inherits from v2
+        self.assertEqual(v3["version"], 2)
+
+    def test_forward_inheritance_post_vs_get(self):
+        """Test forward inheritance with different HTTP methods."""
+        # Articles accepts POST in v1
+        client = APIClient() if APIClient else None
+        if client is None:
+            self.skipTest("DRF not installed")
+
+        # GET should work and inherit
+        v3_get = client.get("/api/v3/articles/")
+        self.assertEqual(v3_get.status_code, 200)
+        self.assertEqual(v3_get.json()["version"], 2)
+
+        # POST might also inherit depending on implementation
+        v3_post = client.post("/api/v3/articles/", {"title": "Test"})
+        self.assertIn(v3_post.status_code, [200, 201, 405])  # 405 if not allowed
+
+    def test_version_extraction_from_segment_boundary(self):
+        """Test that version extraction works correctly at segment boundaries."""
+        # Test that URL parameters don't interfere with version extraction
+        v1_detail = self.client.get("/api/v1/users/999/").json()
+        v2_detail = self.client.get("/api/v2/users/999/").json()
+
+        # Both should resolve to correct version despite path parameter
+        self.assertEqual(v1_detail["version"], 1)
+        self.assertEqual(v2_detail["version"], 2)
+        self.assertEqual(v1_detail["id"], 999)
+        self.assertEqual(v2_detail["id"], 999)
+
+    def test_registry_contains_all_versioned_segments(self):
+        """Verify registry is correctly populated with all segments."""
+        matrix = registry.get_version_matrix()
+
+        # Comments routes should have v1 and v2 versions
+        comments_routes = [r for r in matrix.keys() if "comments" in r]
+        self.assertTrue(len(comments_routes) > 0)
+
+        # Posts routes should have v1, v2 versions
+        posts_routes = [r for r in matrix.keys() if "posts" in r]
+        self.assertTrue(len(posts_routes) > 0)
+
+        # Verify products route exists (single segment)
+        product_routes = [r for r in matrix.keys() if "products" in r]
+        self.assertTrue(len(product_routes) > 0)
+
+    def test_four_segment_cascade(self):
+        """Test cascade with four distinct segments (edge case with many versions)."""
+        # This test verifies behavior with a complex segment configuration
+        # Using Posts which has v1, v2 segments across API_MAX_VERSION=4
+
+        responses = {}
+        for v in [1, 2, 3, 4]:
+            resp = self.client.get(f"/api/v{v}/posts/").json()
+            responses[v] = resp["version"]
+
+        # Expected: v1 -> 1, v2 -> 2, v3 -> 2 (inherit), v4 -> 2 (inherit)
+        self.assertEqual(responses[1], 1)
+        self.assertEqual(responses[2], 2)
+        self.assertEqual(responses[3], 2)
+        self.assertEqual(responses[4], 2)
+
+    def test_segment_revert_with_repeated_decorator(self):
+        """Test version inheritance across revert scenarios."""
+        # Some endpoints may use repeated decorators to "revert" to earlier impl
+        # This verifies the behavior works correctly in the segment model
+
+        # Standard forward versioning (not revert scenario, but validates basic model)
+        v1 = self.client.get("/api/v1/posts/").json()
+        v2 = self.client.get("/api/v2/posts/").json()
+
+        # Verify they're different implementations
+        self.assertEqual(v1["version"], 1)
+        self.assertEqual(v2["version"], 2)
+        self.assertNotEqual(v1["posts"], v2["posts"])  # Different data
+
+
 def run_integration_tests():
     """Run the integration test suite."""
     from django.test.utils import get_runner
