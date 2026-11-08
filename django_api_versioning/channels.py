@@ -1,9 +1,7 @@
-from typing import Optional
-
 from django.http import HttpRequest
 
 
-def extract_version(request: HttpRequest, channels: list[str]) -> Optional[int]:
+def extract_version(request: HttpRequest, channels: list[str]) -> int | None:
     """
     Extract API version from the configured channels, in priority order.
 
@@ -26,7 +24,7 @@ def extract_version(request: HttpRequest, channels: list[str]) -> Optional[int]:
     return None
 
 
-def _from_path(request: HttpRequest) -> Optional[int]:
+def _from_path(request: HttpRequest) -> int | None:
     match = getattr(request, "resolver_match", None)
     if match and "version" in match.kwargs:
         try:
@@ -41,7 +39,7 @@ def _from_path(request: HttpRequest) -> Optional[int]:
     return None
 
 
-def _from_header(request: HttpRequest) -> Optional[int]:
+def _from_header(request: HttpRequest) -> int | None:
     raw = request.headers.get("Accept-Version")
     if not raw:
         return None
@@ -52,7 +50,7 @@ def _from_header(request: HttpRequest) -> Optional[int]:
         return None
 
 
-def _from_query(request: HttpRequest) -> Optional[int]:
+def _from_query(request: HttpRequest) -> int | None:
     raw = request.GET.get("version")
     if not raw:
         return None

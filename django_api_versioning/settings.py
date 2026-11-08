@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -20,9 +20,9 @@ _DEFAULT_API_BASE_PATH = "api/v{version}/"
 _DEFAULT_API_MAX_VERSION = 1
 _DEFAULT_API_MIN_VERSION = 1
 _DEFAULT_ROOT_URLCONF = "django_api_versioning.urls"
-_DEFAULT_LIFECYCLE: Dict[int, Dict[str, Any]] = {}
-_DEFAULT_CHANNELS: List[str] = ["path"]
-_DEFAULT_RESOLVER: Optional[Callable] = None
+_DEFAULT_LIFECYCLE: dict[int, dict[str, Any]] = {}
+_DEFAULT_CHANNELS: list[str] = ["path"]
+_DEFAULT_RESOLVER: Callable | None = None
 
 
 @dataclass
@@ -33,13 +33,13 @@ class APISettings:
     API_MAX_VERSION: int = _DEFAULT_API_MAX_VERSION
     API_MIN_VERSION: int = _DEFAULT_API_MIN_VERSION
     ROOT_URLCONF: str = _DEFAULT_ROOT_URLCONF
-    API_VERSION_LIFECYCLE: Dict[int, Dict[str, Any]] = field(
+    API_VERSION_LIFECYCLE: dict[int, dict[str, Any]] = field(
         default_factory=lambda: dict(_DEFAULT_LIFECYCLE)
     )
-    API_VERSIONING_CHANNELS: List[str] = field(
+    API_VERSIONING_CHANNELS: list[str] = field(
         default_factory=lambda: list(_DEFAULT_CHANNELS)
     )
-    API_EFFECTIVE_VERSION_RESOLVER: Optional[Callable] = _DEFAULT_RESOLVER
+    API_EFFECTIVE_VERSION_RESOLVER: Callable | None = _DEFAULT_RESOLVER
 
     def __post_init__(self) -> None:
         self._validate_base_path()

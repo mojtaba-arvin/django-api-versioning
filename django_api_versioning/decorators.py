@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List, Optional, TypeVar
+from typing import Callable, TypeVar
 
 from .exceptions import (
     InvalidVersionError,
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 ViewT = TypeVar("ViewT", bound=Callable)
 
 
-def ver_range(start: int, end: int) -> List[int]:
+def ver_range(start: int, end: int) -> list[int]:
     """Inclusive range of API versions, e.g. ver_range(1, 3) -> [1, 2, 3]."""
     if start > end:
         raise VersionRangeError(f"ver_range start ({start}) must be <= end ({end}).")
@@ -22,10 +22,10 @@ def ver_range(start: int, end: int) -> List[int]:
 
 def endpoint(
     postfix: str,
-    version: Optional[int] = None,
-    versions: Optional[List[int]] = None,
-    app_name: Optional[str] = None,
-    view_name: Optional[str] = None,
+    version: int | None = None,
+    versions: list[int] | None = None,
+    app_name: str | None = None,
+    view_name: str | None = None,
 ) -> Callable[[ViewT], ViewT]:
     """
     Register an API view.
@@ -71,7 +71,7 @@ def endpoint(
 
         app_name_part: str = f"{app_name}/" if app_name else ""
 
-        def _register_route(ver: Optional[int], source_version: Optional[int]) -> None:
+        def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
             if ver is None:
                 base_path = ""  # No version prefix
