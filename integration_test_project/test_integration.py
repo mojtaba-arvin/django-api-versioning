@@ -1441,6 +1441,199 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         self.assertEqual(response_v2_put.status_code, 200)
 
 
+class URLDetectionAndRoutingComprehensiveTestCase(TestCase):
+    """
+    Comprehensive tests for URL detection, routing, and resolution.
+    Tests path converters, nested includes, namespaces, and api_reverse.
+    """
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.client = Client()
+
+    def test_api_reverse_basic_no_parameters(self):
+        """Test api_reverse works for endpoints without parameters."""
+        url = api_reverse("user-list-v1", version=1)
+        self.assertIn("v1", url)
+        self.assertIn("users", url)
+
+    def test_api_reverse_with_int_parameter(self):
+        """Test api_reverse correctly formats integer path parameters."""
+        url = api_reverse("user-detail-v1", version=1, user_id=42)
+        self.assertIn("v1", url)
+        self.assertIn("users", url)
+        self.assertIn("42", url)
+
+    def test_api_reverse_with_slug_parameter(self):
+        """Test api_reverse correctly formats slug parameters."""
+        url = api_reverse("post-by-slug", version=1, slug="my-first-post")
+        self.assertIn("v1", url)
+        self.assertIn("posts", url)
+        self.assertIn("my-first-post", url)
+
+    def test_api_reverse_version_in_url_path(self):
+        """Test that version appears in the URL path at correct location."""
+        url = api_reverse("user-list-v1", version=1)
+        # Version should appear before resource name
+        self.assertTrue(url.index("v1") < url.index("users"))
+
+    def test_api_reverse_different_versions_produce_different_urls(self):
+        """Test that api_reverse produces different URLs for different versions."""
+        url_v1 = api_reverse("user-list-v1", version=1)
+        url_v2 = api_reverse("user-list-v2", version=2)
+        self.assertNotEqual(url_v1, url_v2)
+        self.assertIn("v1", url_v1)
+        self.assertIn("v2", url_v2)
+
+    def test_url_path_converter_int(self):
+        """Test that integer path converter correctly matches integer values."""
+        response = self.client.get("/api/v1/users/123/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 123)
+
+    def test_url_path_converter_slug(self):
+        """Test that slug path converter correctly matches slug values."""
+        response = self.client.get("/api/v1/posts/hello-world/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("hello-world", data.get("slug", "") or str(data))
+
+    def test_url_path_converter_uuid(self):
+        """Test that UUID path converter works with versioned endpoints."""
+        # Test with a valid UUID format
+        uuid_str = "550e8400-e29b-41d4-a716-446655440000"
+        response = self.client.get(f"/api/v1/items/{uuid_str}/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # UUID is extracted and passed to view
+        self.assertIn(uuid_str, str(data))
+
+    def test_url_routing_exact_match(self):
+        """Test that URLs must match exactly (no partial matches)."""
+        # Valid endpoint
+        response_valid = self.client.get("/api/v1/users/")
+        self.assertEqual(response_valid.status_code, 200)
+
+        # Non-existent variation
+        response_invalid = self.client.get("/api/v1/users/extra/segment/")
+        self.assertEqual(response_invalid.status_code, 404)
+
+    def test_api_reverse_preserves_path_parameter_types(self):
+        """Test that api_reverse preserves parameter types in URL."""
+        # Integer parameter
+        url_int = api_reverse("user-detail-v1", version=1, user_id=999)
+        self.assertIn("999", url_int)
+
+        # Large integer
+        url_large = api_reverse("user-detail-v1", version=1, user_id=2147483647)
+        self.assertIn("2147483647", url_large)
+
+    def test_versioned_endpoint_namespace_isolation(self):
+        """Test that versioned endpoints in namespaces work correctly."""
+        # Admin namespace endpoints with app_name="admin"
+        response_admin_v1 = self.client.get("/api/v1/admin/reports/summary/")
+        self.assertEqual(response_admin_v1.status_code, 200)
+
+        # Standard API endpoint
+        response_standard_v1 = self.client.get("/api/v1/users/")
+        self.assertEqual(response_standard_v1.status_code, 200)
+
+    def test_url_reversal_across_namespaces(self):
+        """Test api_reverse works correctly with namespaced endpoints."""
+        # This should work if the endpoint is registered in the namespace
+        url = api_reverse("reports-summary-v1", version=1)
+        self.assertIn("admin", url)
+        self.assertIn("reports", url)
+
+    def test_base_path_configuration_in_urls(self):
+        """Test that API_BASE_PATH is correctly applied in URL patterns."""
+        # All versioned endpoints should follow /api/v<version>/ pattern
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+        # Non-versioned unversioned endpoint is not in /api/ prefix
+        response_unversioned = self.client.get("/status/")
+        self.assertEqual(response_unversioned.status_code, 200)
+
+    def test_url_reverse_with_special_characters_in_parameters(self):
+        """Test api_reverse with special characters in parameters."""
+        # Slug with hyphens and underscores
+        url = api_reverse("post-by-slug", version=1, slug="my-post_v2")
+        self.assertIn("my-post_v2", url)
+
+    def test_multiple_path_parameters_in_single_endpoint(self):
+        """Test endpoint with multiple URL parameters (if available)."""
+        # Most endpoints have 0-1 parameter, but test what we have
+        response_single_param = self.client.get("/api/v1/users/42/")
+        self.assertEqual(response_single_param.status_code, 200)
+
+    def test_url_pattern_trailing_slash_handling(self):
+        """Test trailing slash handling in URL patterns."""
+        # With trailing slash (expected)
+        response_with_slash = self.client.get("/api/v1/users/")
+        self.assertEqual(response_with_slash.status_code, 200)
+
+        # Without trailing slash should not match
+        response_no_slash = self.client.get("/api/v1/users")
+        self.assertEqual(response_no_slash.status_code, 404)
+
+    def test_api_reverse_consistency_with_actual_urls(self):
+        """Test that api_reverse produces URLs that actually work."""
+        url = api_reverse("user-list-v1", version=1)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_url_parameter_extraction_in_view(self):
+        """Test that URL parameters are correctly extracted and passed to views."""
+        # User 42 should return data for user 42
+        response = self.client.get("/api/v1/users/42/")
+        data = response.json()
+        self.assertEqual(data["id"], 42)
+
+        # User 100 should return data for user 100
+        response = self.client.get("/api/v1/users/100/")
+        data = response.json()
+        self.assertEqual(data["id"], 100)
+
+    def test_versioned_vs_unversioned_endpoints_routing(self):
+        """Test that versioned and unversioned endpoints route correctly."""
+        # Versioned: users endpoint
+        versioned_response = self.client.get("/api/v1/users/")
+        self.assertEqual(versioned_response.status_code, 200)
+
+        # Unversioned: status endpoint (not under /api/)
+        unversioned_response = self.client.get("/status/")
+        self.assertEqual(unversioned_response.status_code, 200)
+
+        # Different response structures for versioned vs unversioned
+        versioned_data = versioned_response.json()
+        unversioned_data = unversioned_response.json()
+
+        self.assertIn("version", versioned_data)  # Versioned has version field
+        self.assertNotIn("version", unversioned_data)  # Unversioned doesn't
+
+    def test_url_resolution_with_version_inheritance(self):
+        """Test URL resolution when using version inheritance."""
+        # Analytics endpoint: v1 and v2 exist, v3 should inherit from v2
+        v2_url = api_reverse("analytics-overview-v2", version=2)
+        v3_path = v2_url.replace("/v2/", "/v3/")  # Simulate v3 request
+
+        response = self.client.get(v3_path)
+        # Should work due to version inheritance
+        self.assertEqual(response.status_code, 200)
+
+    def test_parameter_type_affects_url_matching(self):
+        """Test that URL parameter types are correctly enforced."""
+        # Valid integer parameter
+        valid_response = self.client.get("/api/v1/products/123/")
+        self.assertEqual(valid_response.status_code, 200)
+
+        # Invalid: non-integer where integer expected (should 404)
+        invalid_response = self.client.get("/api/v1/products/abc/")
+        self.assertEqual(invalid_response.status_code, 404)
+
+
 class DRFGenericViewsComprehensiveTestCase(TestCase):
     """
     Comprehensive tests for DRF generic views with versioning.
