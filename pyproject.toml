@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=84.2.1"]
+requires = ["setuptools>=70.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-api-versioning"
-version = "0.3.0"
+version = "0.3.1"
 description = "Django API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint versioning, automatic URL registration, backward compatibility, and segment-based forward inheritance."
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     { name = "Mojtaba Arvin", email = "ArvinDevDay@gmail.com" },
 ]
@@ -48,7 +48,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "Django>=5.2",
+    "Django>=4.2",
 ]
 
 [project.optional-dependencies]
@@ -73,7 +73,7 @@ Documentation = "https://github.com/mojtaba-arvin/django-api-versioning#readme"
 Changelog = "https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
-exclude = ["tests", "tests.*"]
+exclude = ["tests", "tests.*", "integration_test_project", "integration_test_project.*"]
 
 [tool.setuptools.package-data]
 django_api_versioning = ["py.typed"]

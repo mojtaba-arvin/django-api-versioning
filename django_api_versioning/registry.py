@@ -1,10 +1,10 @@
-from typing import Callable, Dict, List, Optional, Type, Union
+from typing import Callable
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
 from django.views import View
 
-ViewType = Union[Callable[..., HttpResponse], Type[View]]
+ViewType = Callable[..., HttpResponse] | type[View]
 
 
 class UrlRegistry:
@@ -14,15 +14,15 @@ class UrlRegistry:
     _ROUTE_VERSION_ATTR = "_django_api_versioning_route_version"
 
     def __init__(self) -> None:
-        self.urlpatterns: List[URLPattern] = []
+        self.urlpatterns: list[URLPattern] = []
 
     def register(
         self,
         route: str,
         view: ViewType,
-        name: Optional[str] = None,
-        source_version: Optional[int] = None,
-        route_version: Optional[int] = None,
+        name: str | None = None,
+        source_version: int | None = None,
+        route_version: int | None = None,
     ) -> None:
         """Register a route, preferring definitions from newer source versions."""
         route_index = self._find_route_index(route)
@@ -44,21 +44,21 @@ class UrlRegistry:
 
         self._sort_urlpatterns()
 
-    def get_version_matrix(self) -> Dict[str, Dict[Optional[int], Callable]]:
+    def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{route: {route_version: callback}}``.
 
         ``route_version`` is ``None`` for unversioned routes.  This is the
         source of truth for ``check_versions`` and ``assert_version_matrix``.
         """
-        matrix: Dict[str, Dict[Optional[int], Callable]] = {}
+        matrix: dict[str, dict[int | None, Callable]] = {}
         for pattern in self.urlpatterns:
             route = str(pattern.pattern)
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(route, {})[route_version] = pattern.callback
         return matrix
 
-    def _find_route_index(self, route: str) -> Optional[int]:
+    def _find_route_index(self, route: str) -> int | None:
         """Return the index of a registered route, or None if absent."""
         for index, pattern in enumerate(self.urlpatterns):
             if str(pattern.pattern) == route:
@@ -69,7 +69,7 @@ class UrlRegistry:
     def _should_replace(
         self,
         existing_pattern: URLPattern,
-        source_version: Optional[int],
+        source_version: int | None,
     ) -> bool:
         """Return whether the new declaration should replace the existing one.
 
@@ -92,7 +92,7 @@ class UrlRegistry:
     def _create_pattern(
         route: str,
         view: ViewType,
-        name: Optional[str],
+        name: str | None,
     ) -> URLPattern:
         """Create a URL pattern from a function or class-based view.
 
@@ -114,8 +114,8 @@ class UrlRegistry:
 
     def _sort_urlpatterns(self) -> None:
         """Order unversioned routes first, then versioned routes by version."""
-        unversioned: List[URLPattern] = []
-        versioned: List[URLPattern] = []
+        unversioned: list[URLPattern] = []
+        versioned: list[URLPattern] = []
 
         for pattern in self.urlpatterns:
             route_version = getattr(

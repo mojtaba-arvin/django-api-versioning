@@ -73,3 +73,44 @@ class TestApiReverse:
 
         with pytest.raises(NoReverseMatch, match="Missing required parameter"):
             api_reverse("user-detail", version=1)
+
+    def test_kwarg_with_backslash_not_treated_as_regex_escape(self):
+        """Ensure parameters with backslashes don't trigger regex escape sequences."""
+        @endpoint("docs/<slug>/", version=1, view_name="doc-detail")
+        def doc_detail(request, slug):
+            return JsonResponse({"slug": slug})
+
+        # Parameter containing backslash should be literal, not regex escape sequence
+        url = api_reverse("doc-detail", version=1, slug=r"path\to\file")
+        assert url == r"/api/v1/docs/path\to\file/"
+
+    def test_kwarg_with_dollar_sign_not_treated_as_regex_group(self):
+        """Ensure parameters with $ don't trigger regex group references."""
+        @endpoint("items/<name>/", version=1, view_name="item-detail")
+        def item_detail(request, name):
+            return JsonResponse({"name": name})
+
+        # Parameter containing $ should be literal, not regex group reference
+        url = api_reverse("item-detail", version=1, name="price$5")
+        assert url == "/api/v1/items/price$5/"
+
+    def test_kwarg_with_regex_metacharacters(self):
+        """Ensure all regex metacharacters are escaped in parameters."""
+        @endpoint("search/<query>/", version=1, view_name="search-results")
+        def search(request, query):
+            return JsonResponse({"query": query})
+
+        # Test various regex metacharacters
+        test_cases = [
+            ("(pattern)", "/api/v1/search/(pattern)/"),
+            ("[abc]", "/api/v1/search/[abc]/"),
+            ("a.b", "/api/v1/search/a.b/"),
+            ("a*b", "/api/v1/search/a*b/"),
+            ("a+b", "/api/v1/search/a+b/"),
+            ("a?b", "/api/v1/search/a?b/"),
+            ("a|b", "/api/v1/search/a|b/"),
+            ("a{2}", "/api/v1/search/a{2}/"),
+        ]
+        for query, expected_url in test_cases:
+            url = api_reverse("search-results", version=1, query=query)
+            assert url == expected_url, f"Failed for query={query!r}"

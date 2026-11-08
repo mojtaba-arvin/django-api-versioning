@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Callable, Optional
+from typing import Callable
 
 from django.http import HttpRequest, HttpResponse, HttpResponseGone
 
@@ -48,7 +48,7 @@ class LifecycleMiddleware:
         return response
 
 
-def _extract_version(request: HttpRequest) -> Optional[int]:
+def _extract_version(request: HttpRequest) -> int | None:
     # Path-based: request.version is set by DRF or by URLPathVersioning.
     if hasattr(request, "version") and request.version is not None:
         try:

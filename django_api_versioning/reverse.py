@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional
+from typing import Any
 
 from django.urls import NoReverseMatch
 
@@ -12,7 +12,7 @@ _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
 
 def api_reverse(
     view_name: str,
-    version: Optional[int] = None,
+    version: int | None = None,
     **kwargs: Any,
 ) -> str:
     """

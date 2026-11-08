@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from typing import Optional
 
 from .exceptions import VersionMatrixError
 from .registry import registry
@@ -22,7 +21,7 @@ def build_version_matrix() -> dict:
 
 
 def assert_version_matrix(
-    snapshot: Optional[str] = None,
+    snapshot: str | None = None,
     *,
     update: bool = False,
 ) -> None:
@@ -71,5 +70,6 @@ def _diff(expected: dict, current: dict) -> str:
             e = exp.get(version, "<missing>")
             c = cur.get(version, "<missing>")
             if e != c:
-                lines.append(f"    v{version}: {e} -> {c}")
+                label = version if version == "unversioned" else f"v{version}"
+                lines.append(f"    {label}: {e} -> {c}")
     return "\n".join(lines)
