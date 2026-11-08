@@ -59,7 +59,7 @@ def api_reverse(
             raise NoReverseMatch(
                 f"Missing required parameter {name!r} for {view_name!r}."
             )
-        return re.escape(str(kwargs[name]))
+        return str(kwargs[name])
 
     route = _CONVERTER_RE.sub(_substitute, route)
     return "/" + route.lstrip("/")

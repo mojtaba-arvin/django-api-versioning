@@ -48,6 +48,34 @@
 
 ---
 
+## Session 3: 2026-11-08 (continuation) - Phase 4: Bug Fix Verification and Correction
+
+### Critical Discovery: BUG-001 Fix Was Incorrect
+
+During Phase 4 (Integration Testing), identified that the previous "fix" for BUG-001 was based on a misunderstanding:
+
+**Finding**: When using a callable function with `re.sub()`, the return value is used LITERALLY without backreference processing. This means:
+- The original code (without `re.escape()`) was CORRECT
+- The fix (with `re.escape()`) was INTRODUCING a bug by doubling backslashes
+- All 102 tests pass with the ORIGINAL code, confirming correctness
+
+**Actions Taken**:
+1. ✅ Reverted the incorrect `re.escape()` call from reverse.py
+2. ✅ Verified all tests pass (102/102)
+3. ✅ Created comprehensive test cases that verify correct behavior
+4. ✅ Documented this critical finding
+
+**Test Results**:
+- All 102 tests passing
+- 94% code coverage
+- No regressions
+
+### Root Cause of Misdiagnosis
+
+The original audit analysis incorrectly assumed that backreferences would be processed in the replacement string of `re.sub()` when using a callable. This is incorrect - backreferences are ONLY processed when using a string literal as the replacement argument, not when using a callable.
+
+---
+
 ## Session 2: 2026-11-08 (continuation) - Phase 3: Bug Fixes
 
 ### Actions Taken
