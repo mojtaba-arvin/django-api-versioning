@@ -591,6 +591,109 @@ class BasicIntegrationTestCase(TestCase):
         url = api_reverse("status-check")
         self.assertEqual(url, "/status/")
 
+    # Tests for different path converters
+    def test_int_path_converter_v1(self):
+        """Test that <int:product_id> path converter works - v1."""
+        response = self.client.get("/api/v1/products/123/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["product_id"], 123)
+        self.assertEqual(data["id_type"], "integer")
+
+    def test_int_path_converter_various_values(self):
+        """Test int converter with various values."""
+        # Single digit
+        response = self.client.get("/api/v1/products/1/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["product_id"], 1)
+
+        # Large number
+        response = self.client.get("/api/v1/products/999999/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["product_id"], 999999)
+
+        # Zero
+        response = self.client.get("/api/v1/products/0/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["product_id"], 0)
+
+    def test_slug_path_converter_v1(self):
+        """Test that <slug:slug> path converter works - v1."""
+        response = self.client.get("/api/v1/posts/my-awesome-post/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["slug"], "my-awesome-post")
+        self.assertEqual(data["slug_type"], "slug")
+
+    def test_slug_path_converter_various_values(self):
+        """Test slug converter with various values."""
+        # Simple slug
+        response = self.client.get("/api/v1/posts/hello/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["slug"], "hello")
+
+        # Slug with numbers
+        response = self.client.get("/api/v1/posts/post-123/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["slug"], "post-123")
+
+        # Slug with multiple hyphens
+        response = self.client.get("/api/v1/posts/my-long-post-title/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["slug"], "my-long-post-title")
+
+    def test_api_reverse_with_int_parameter(self):
+        """Test api_reverse with int converter parameter."""
+        url = api_reverse("product-by-int", version=1, product_id=42)
+        self.assertEqual(url, "/api/v1/products/42/")
+
+    def test_api_reverse_with_slug_parameter(self):
+        """Test api_reverse with slug converter parameter."""
+        url = api_reverse("post-by-slug", version=1, slug="test-post")
+        self.assertEqual(url, "/api/v1/posts/test-post/")
+
+    # Tests for analytics overview (semantic nested functionality)
+    def test_analytics_overview_v1(self):
+        """Test analytics overview endpoint - v1 with basic metrics."""
+        response = self.client.get("/api/v1/analytics/overview/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertIn("metrics", data)
+        self.assertIn("users", data["metrics"])
+        self.assertIn("sessions", data["metrics"])
+        # v1 doesn't have bounce_rate
+        self.assertNotIn("bounce_rate", data["metrics"])
+
+    def test_analytics_overview_v2(self):
+        """Test analytics overview endpoint - v2 with detailed metrics."""
+        response = self.client.get("/api/v2/analytics/overview/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertIn("metrics", data)
+        self.assertIn("daily_active_users", data["metrics"])
+        self.assertIn("bounce_rate", data["metrics"])
+
+    def test_analytics_overview_v3_inherits_v2(self):
+        """Test that v3 analytics inherits from v2."""
+        response = self.client.get("/api/v3/analytics/overview/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # Should inherit v2 response
+        self.assertEqual(data["version"], 2)
+        self.assertIn("bounce_rate", data["metrics"])
+
+    def test_api_reverse_analytics_overview(self):
+        """Test api_reverse for analytics endpoints."""
+        url_v1 = api_reverse("analytics-overview", version=1)
+        self.assertEqual(url_v1, "/api/v1/analytics/overview/")
+
+        url_v2 = api_reverse("analytics-overview-v2", version=2)
+        self.assertEqual(url_v2, "/api/v2/analytics/overview/")
+
 
 def run_integration_tests():
     """Run the integration test suite."""

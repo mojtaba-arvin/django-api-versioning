@@ -365,3 +365,57 @@ def status_endpoint(request):
         "status": "operational",
         "unversioned": True
     })
+
+
+# Nested/namespaced endpoints for testing URL inclusion patterns
+# These will be included in a nested URL configuration
+@endpoint("analytics/overview/", version=1, view_name="analytics-overview")
+@require_http_methods(["GET"])
+def analytics_overview_v1(request):
+    """Analytics overview - v1."""
+    return JsonResponse({
+        "version": 1,
+        "metrics": {
+            "users": 1000,
+            "sessions": 5000,
+        }
+    })
+
+
+@endpoint("analytics/overview/", version=2, view_name="analytics-overview-v2")
+@require_http_methods(["GET"])
+def analytics_overview_v2(request):
+    """Analytics overview - v2 with detailed metrics."""
+    return JsonResponse({
+        "version": 2,
+        "metrics": {
+            "daily_active_users": 500,
+            "weekly_active_users": 800,
+            "monthly_active_users": 1000,
+            "sessions": 5000,
+            "bounce_rate": 0.35
+        }
+    })
+
+
+# Test different path converters
+@endpoint("products/<int:product_id>/", version=1, view_name="product-by-int")
+@require_http_methods(["GET"])
+def product_by_int_v1(request, product_id):
+    """Product by integer ID - v1."""
+    return JsonResponse({
+        "version": 1,
+        "product_id": product_id,
+        "id_type": "integer"
+    })
+
+
+@endpoint("posts/<slug:slug>/", version=1, view_name="post-by-slug")
+@require_http_methods(["GET"])
+def post_by_slug_v1(request, slug):
+    """Post by slug - v1."""
+    return JsonResponse({
+        "version": 1,
+        "slug": slug,
+        "slug_type": "slug"
+    })
