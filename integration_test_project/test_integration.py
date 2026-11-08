@@ -1441,6 +1441,145 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         self.assertEqual(response_v2_put.status_code, 200)
 
 
+class QueryParameterAndHTTPMethodTestCase(TestCase):
+    """Test query parameters and additional HTTP methods per version."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        if APIClient is not None:
+            self.client = APIClient()
+        else:
+            self.client = Client()
+
+    def test_search_v1_with_query_parameter(self):
+        """Test v1 search endpoint with query parameter."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v1/search/?q=test")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["query"], "test")
+        self.assertEqual(data["limit"], 10)  # v1 default limit
+        self.assertEqual(len(data["results"]), 1)
+
+    def test_search_v1_with_limit_parameter(self):
+        """Test v1 search with limit parameter."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v1/search/?q=test&limit=5")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["limit"], 5)
+
+    def test_search_v2_with_query_parameter(self):
+        """Test v2 search endpoint with query parameter."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v2/search/?q=test")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["query"], "test")
+        self.assertEqual(data["limit"], 20)  # v2 default limit
+        self.assertEqual(data["offset"], 0)
+        self.assertEqual(len(data["results"]), 2)
+
+    def test_search_v2_with_pagination_parameters(self):
+        """Test v2 search with pagination parameters."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v2/search/?q=test&limit=50&offset=100")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["limit"], 50)
+        self.assertEqual(data["offset"], 100)
+        self.assertEqual(data["total"], 100)
+
+    def test_search_v2_with_filters(self):
+        """Test v2 search with filter parameter."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v2/search/?q=test&filters=category:tech")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["filters"], "category:tech")
+
+    def test_resources_v1_get_request(self):
+        """Test v1 resources GET request."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v1/resources/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+
+    def test_resources_v1_head_request(self):
+        """Test v1 resources HEAD request."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.head("/api/v1/resources/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('X-Total-Count', response)
+        self.assertEqual(response['X-Total-Count'], '42')
+
+    def test_resources_v1_options_request(self):
+        """Test v1 resources OPTIONS request."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.options("/api/v1/resources/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_resources_v2_get_request(self):
+        """Test v2 resources GET request."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.get("/api/v2/resources/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(len(data["resources"]), 2)
+
+    def test_resources_v2_head_request(self):
+        """Test v2 resources HEAD request."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.head("/api/v2/resources/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('X-Total-Count', response)
+        self.assertEqual(response['X-Total-Count'], '100')
+
+    def test_resources_v2_post_request(self):
+        """Test v2 resources POST request (create)."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.post("/api/v2/resources/", {}, format='json')
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["created"], True)
+
+    def test_resources_v2_options_request(self):
+        """Test v2 resources OPTIONS request."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        response = self.client.options("/api/v2/resources/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_version_specific_head_headers(self):
+        """Test that different versions have different HEAD headers."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        v1_response = self.client.head("/api/v1/resources/")
+        v2_response = self.client.head("/api/v2/resources/")
+        # Both should succeed
+        self.assertEqual(v1_response.status_code, 200)
+        self.assertEqual(v2_response.status_code, 200)
+        # But headers should reflect versions
+        self.assertEqual(v1_response['X-Total-Count'], '42')
+        self.assertEqual(v2_response['X-Total-Count'], '100')
+
+
 class AuthenticationAndPermissionTestCase(TestCase):
     """Test authentication and permission enforcement per version."""
 

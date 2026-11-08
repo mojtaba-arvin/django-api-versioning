@@ -834,5 +834,74 @@ try:
             "admin_user": getattr(request.user, 'username', 'none'),
         })
 
+    # Query parameter handling tests
+    @endpoint("search/", version=1, view_name="search-v1")
+    @api_view(["GET"])
+    @drf_permission_classes([])
+    def search_v1(request):
+        """Search endpoint - v1 with query parameters."""
+        query = request.query_params.get('q', '')
+        limit = request.query_params.get('limit', '10')
+        return Response({
+            "version": 1,
+            "query": query,
+            "limit": int(limit) if limit.isdigit() else 10,
+            "results": [{"id": 1, "title": f"Result for {query}"}] if query else []
+        })
+
+    @endpoint("search/", version=2, view_name="search-v2")
+    @api_view(["GET"])
+    @drf_permission_classes([])
+    def search_v2(request):
+        """Search endpoint - v2 with extended query parameters."""
+        query = request.query_params.get('q', '')
+        limit = request.query_params.get('limit', '20')
+        offset = request.query_params.get('offset', '0')
+        filters = request.query_params.get('filters', '')
+        return Response({
+            "version": 2,
+            "query": query,
+            "limit": int(limit) if limit.isdigit() else 20,
+            "offset": int(offset) if offset.isdigit() else 0,
+            "filters": filters,
+            "total": 100,
+            "results": [{"id": i, "title": f"Result {i} for {query}"} for i in range(1, 3)] if query else []
+        })
+
+    # HEAD/OPTIONS method testing
+    @endpoint("resources/", version=1, view_name="resources-v1")
+    @api_view(["GET", "HEAD", "OPTIONS"])
+    @drf_permission_classes([])
+    def resources_v1(request):
+        """Resources endpoint - v1 with HEAD/OPTIONS support."""
+        if request.method == "HEAD":
+            # HEAD should return same headers as GET but no body
+            response = Response({})
+            response['X-Total-Count'] = '42'
+            return response
+        return Response({
+            "version": 1,
+            "resources": [{"id": 1, "name": "Resource 1"}]
+        })
+
+    @endpoint("resources/", version=2, view_name="resources-v2")
+    @api_view(["GET", "HEAD", "OPTIONS", "POST"])
+    @drf_permission_classes([])
+    def resources_v2(request):
+        """Resources endpoint - v2 with additional methods."""
+        if request.method == "HEAD":
+            response = Response({})
+            response['X-Total-Count'] = '100'
+            return response
+        if request.method == "POST":
+            return Response(
+                {"version": 2, "created": True, "id": 999},
+                status=201
+            )
+        return Response({
+            "version": 2,
+            "resources": [{"id": i, "name": f"Resource {i}"} for i in range(1, 3)]
+        })
+
 except ImportError:
     pass
