@@ -73,7 +73,7 @@ Documentation = "https://github.com/mojtaba-arvin/django-api-versioning#readme"
 Changelog = "https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
-exclude = ["tests", "tests.*"]
+exclude = ["tests", "tests.*", "integration_test_project", "integration_test_project.*"]
 
 [tool.setuptools.package-data]
 django_api_versioning = ["py.typed"]
