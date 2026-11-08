@@ -8,7 +8,7 @@ version = "0.3.0"
 description = "Django API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint versioning, automatic URL registration, backward compatibility, and segment-based forward inheritance."
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = {text = "MIT"}
 authors = [
     { name = "Mojtaba Arvin", email = "ArvinDevDay@gmail.com" },
 ]
