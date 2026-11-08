@@ -21,6 +21,11 @@ from django_api_versioning.reverse import api_reverse
 from django_api_versioning.registry import registry
 from api import views
 
+try:
+    from rest_framework.test import APIClient
+except ImportError:
+    APIClient = None
+
 
 class BasicIntegrationTestCase(TestCase):
     """Test basic integration with Django."""
@@ -1176,6 +1181,149 @@ class DRFRouterIntegrationTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["version"], 1)
+
+
+class GenericAPIViewIntegrationTestCase(TestCase):
+    """Test DRF generic APIViews with versioning."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_retrieve_apiview_v1(self):
+        """Test RetrieveAPIView - v1."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        response = client.get("/api/v1/tasks/42/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 42)
+        self.assertIn("title", data)
+        self.assertIn("completed", data)
+
+    def test_create_apiview_v1_post(self):
+        """Test CreateAPIView - v1 POST request."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        payload = {"title": "New Task", "completed": False}
+        response = client.post(
+            "/api/v1/tasks/",
+            data=payload,
+            format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn("id", data)
+        self.assertEqual(data["title"], "New Task")
+        self.assertEqual(data["completed"], False)
+
+    def test_retrieve_update_destroy_apiview_v2_get(self):
+        """Test RetrieveUpdateDestroyAPIView - v2 GET request."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        response = client.get("/api/v2/tasks/42/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 42)
+        self.assertIn("title", data)
+
+    def test_retrieve_update_destroy_apiview_v2_put(self):
+        """Test RetrieveUpdateDestroyAPIView - v2 PUT request."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        payload = {"title": "Updated Task", "completed": True}
+        response = client.put(
+            "/api/v2/tasks/42/",
+            data=payload,
+            format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 42)
+        self.assertEqual(data["title"], "Updated Task")
+        self.assertEqual(data["completed"], True)
+
+    def test_retrieve_update_destroy_apiview_v2_patch(self):
+        """Test RetrieveUpdateDestroyAPIView - v2 PATCH request (partial update)."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        payload = {"title": "Partially Updated"}
+        response = client.patch(
+            "/api/v2/tasks/42/",
+            data=payload,
+            format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["title"], "Partially Updated")
+
+    def test_retrieve_update_destroy_apiview_v2_delete(self):
+        """Test RetrieveUpdateDestroyAPIView - v2 DELETE request."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+        response = client.delete("/api/v2/tasks/42/")
+        self.assertEqual(response.status_code, 204)
+
+    def test_retrieve_with_different_ids(self):
+        """Test RetrieveAPIView handles multiple task IDs correctly."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        for task_id in [1, 5, 999]:
+            response = client.get(f"/api/v1/tasks/{task_id}/")
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data["id"], task_id)
+            self.assertEqual(data["title"], f"Task {task_id}")
+
+    def test_create_and_retrieve_consistency(self):
+        """Test that CreateAPIView and RetrieveAPIView are consistent."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        # Create a task
+        create_payload = {"title": "Test Task", "completed": False}
+        create_response = client.post(
+            "/api/v1/tasks/",
+            data=create_payload,
+            format="json"
+        )
+        self.assertEqual(create_response.status_code, 201)
+        created_id = create_response.json()["id"]
+
+        # Retrieve the created task
+        retrieve_response = client.get(f"/api/v1/tasks/{created_id}/")
+        self.assertEqual(retrieve_response.status_code, 200)
+        retrieved_data = retrieve_response.json()
+        self.assertEqual(retrieved_data["id"], created_id)
+
+    def test_v1_create_v2_detail_endpoints_separate(self):
+        """Test that v1 and v2 task endpoints handle different methods."""
+        from rest_framework.test import APIClient
+        client = APIClient()
+
+        # V1 has POST for create
+        response_v1_post = client.post(
+            "/api/v1/tasks/",
+            data={"title": "Task", "completed": False},
+            format="json"
+        )
+        self.assertEqual(response_v1_post.status_code, 201)
+
+        # V1 GET with ID should get 404 (no retrieve-v1 at detail path, only retrieve-v1 without ID)
+        # Actually v1 has task-retrieve-v1, so GET should work
+        response_v1_get = client.get("/api/v1/tasks/42/")
+        self.assertEqual(response_v1_get.status_code, 200)
+
+        # V2 has full CRUD for detail path
+        response_v2_get = client.get("/api/v2/tasks/42/")
+        self.assertEqual(response_v2_get.status_code, 200)
+
+        response_v2_put = client.put(
+            "/api/v2/tasks/42/",
+            data={"title": "Updated", "completed": True},
+            format="json"
+        )
+        self.assertEqual(response_v2_put.status_code, 200)
 
 
 def run_integration_tests():

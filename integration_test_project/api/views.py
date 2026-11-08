@@ -593,5 +593,89 @@ try:
                 "timestamp": "2026-11-08T00:00:00Z"
             })
 
+    # Generic APIView tests (Retrieve, Create, Update, Destroy)
+    from rest_framework.generics import RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView
+    from rest_framework import status
+    from rest_framework.serializers import BooleanField
+
+    class TaskSerializer(Serializer):
+        """Task serializer for generic view tests."""
+        id = IntegerField(read_only=True)
+        title = CharField(max_length=100)
+        completed = BooleanField(default=False)
+
+    @endpoint("tasks/<int:task_id>/", version=1, view_name="task-retrieve-v1")
+    class TaskRetrieveV1(RetrieveAPIView):
+        """Retrieve a task - v1."""
+        serializer_class = TaskSerializer
+
+        def get_object(self):
+            """Mock task object retrieval."""
+            task_id = self.kwargs.get('task_id', 1)
+            return {
+                'id': task_id,
+                'title': f'Task {task_id}',
+                'completed': False
+            }
+
+    @endpoint("tasks/", version=1, view_name="task-create-v1")
+    class TaskCreateV1(CreateAPIView):
+        """Create a new task - v1."""
+        serializer_class = TaskSerializer
+
+        def create(self, request, *args, **kwargs):
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            return Response(
+                {'id': 1, **serializer.validated_data},
+                status=status.HTTP_201_CREATED
+            )
+
+    from rest_framework.generics import RetrieveUpdateDestroyAPIView
+
+    @endpoint("tasks/<int:task_id>/", version=2, view_name="task-detail-v2")
+    class TaskDetailV2(RetrieveUpdateDestroyAPIView):
+        """Retrieve, update, or delete a task - v2."""
+        serializer_class = TaskSerializer
+
+        def get_object(self):
+            """Mock task object retrieval."""
+            task_id = self.kwargs.get('task_id', 1)
+            return {
+                'id': task_id,
+                'title': f'Task {task_id}',
+                'completed': False
+            }
+
+        def update(self, request, *args, **kwargs):
+            """Handle PUT requests (full update)."""
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=False)
+            serializer.is_valid(raise_exception=True)
+            return Response({
+                'id': instance['id'],
+                'title': serializer.validated_data.get('title', instance['title']),
+                'completed': serializer.validated_data.get('completed', instance.get('completed', False))
+            })
+
+        def partial_update(self, request, *args, **kwargs):
+            """Handle PATCH requests (partial update)."""
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            return Response({
+                'id': instance['id'],
+                'title': serializer.validated_data.get('title', instance['title']),
+                'completed': serializer.validated_data.get('completed', instance.get('completed', False))
+            })
+
+        def destroy(self, request, *args, **kwargs):
+            """Handle DELETE requests."""
+            task_id = self.kwargs.get('task_id', 1)
+            return Response(
+                {'id': task_id, 'deleted': True},
+                status=status.HTTP_204_NO_CONTENT
+            )
+
 except ImportError:
     pass
