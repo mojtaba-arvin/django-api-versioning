@@ -474,18 +474,22 @@ Each will be addressed in a future release. This README documents only what work
 
 ## Migration from 0.2.0
 
-| 0.2.0 | 0.3.0 |
-| --- | --- |
-| `version=3` | `unchanged` |
-| `version=3, forward=False` | `versions=[3]` |
-| `version=5, backward=True` | `version=1` |
-| `version=3, backward=False, forward=False` | `versions=[3]` |
-| `version=3, backward=True, forward=False` | `versions=ver_range(1, 3)` |
+**Breaking change:** Version 0.3.0 removes the `forward` and `backward` parameters. The segment model is now the default behavior.
+
+| 0.2.0 Behavior | 0.3.0 Equivalent | Migration |
+| --- | --- | --- |
+| `@endpoint("x/", version=3)` (with `API_FORWARD_INHERITANCE=True`) | `@endpoint("x/", version=3)` | No change — segment now default |
+| `@endpoint("x/", version=3, forward=False)` (pinned to v3 only) | `@endpoint("x/", versions=[3])` | Use explicit `versions` list |
+| `@endpoint("x/", version=3, forward=True, backward=False)` | `@endpoint("x/", version=3)` | No change — segment now default |
+
+**Automated migration:**
 
 ```bash
 python manage.py migrate_endpoints --dry-run
 python manage.py migrate_endpoints
 ```
+
+The `migrate_endpoints` command rewrites 0.2.0 decorators to 0.3.0 syntax automatically.
 
 ## Requirements
 
