@@ -509,5 +509,89 @@ try:
                 "details": f"Item {item_uuid} details",
             })
 
+    # ViewSet examples (for router integration testing)
+    # Note: ViewSets with @endpoint decorator work with explicit as_view() calls
+    from rest_framework import viewsets
+    from rest_framework.decorators import action
+    from rest_framework.response import Response as DRFResponse
+
+    class BlogPostSerializer(Serializer):
+        """Blog post serializer."""
+        id = IntegerField()
+        title = CharField()
+        content = CharField(required=False)
+
+    class BlogPostViewSetV1(viewsets.ViewSet):
+        """Blog post viewset - v1 with basic fields."""
+
+        def list(self, request):
+            """List blog posts."""
+            return DRFResponse({
+                "version": 1,
+                "posts": [
+                    {"id": 1, "title": "Post 1"},
+                    {"id": 2, "title": "Post 2"},
+                ]
+            })
+
+        def retrieve(self, request, pk=None):
+            """Get a single blog post."""
+            return DRFResponse({
+                "version": 1,
+                "id": pk,
+                "title": f"Post {pk}"
+            })
+
+        @action(detail=True, methods=['post'])
+        def publish(self, request, pk=None):
+            """Publish a blog post."""
+            return DRFResponse({
+                "version": 1,
+                "status": "published",
+                "id": pk
+            })
+
+    class BlogPostViewSetV2(viewsets.ViewSet):
+        """Blog post viewset - v2 with extended fields."""
+
+        def list(self, request):
+            """List blog posts."""
+            return DRFResponse({
+                "version": 2,
+                "posts": [
+                    {"id": 1, "title": "Post 1", "content": "Content 1"},
+                    {"id": 2, "title": "Post 2", "content": "Content 2"},
+                ]
+            })
+
+        def retrieve(self, request, pk=None):
+            """Get a single blog post."""
+            return DRFResponse({
+                "version": 2,
+                "id": pk,
+                "title": f"Post {pk}",
+                "content": f"Content for post {pk}"
+            })
+
+        @action(detail=False, methods=['get'])
+        def recent(self, request):
+            """Get recent blog posts."""
+            return DRFResponse({
+                "version": 2,
+                "posts": [
+                    {"id": 1, "title": "Post 1", "content": "Content 1"},
+                ]
+            })
+
+        @action(detail=True, methods=['post'])
+        def publish(self, request, pk=None):
+            """Publish a blog post."""
+            return DRFResponse({
+                "version": 2,
+                "status": "published",
+                "id": pk,
+                "timestamp": "2026-11-08T00:00:00Z"
+            })
+
 except ImportError:
     pass

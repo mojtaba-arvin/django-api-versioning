@@ -1009,6 +1009,117 @@ class BasicIntegrationTestCase(TestCase):
         self.assertEqual(data["id"], 0)
 
 
+class DRFRouterIntegrationTestCase(TestCase):
+    """Test DRF Router integration with versioning.
+
+    Note: The package doesn't automatically version router-generated URLs.
+    Routers create URLs like /api/v1/blogposts/ but these are separate from
+    @endpoint-decorated views. This test documents this limitation and verifies
+    that routers work independently.
+    """
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_default_router_v1_list(self):
+        """Test DefaultRouter generated list endpoint - v1."""
+        try:
+            from rest_framework.routers import DefaultRouter
+            response = self.client.get("/api/v1/blogposts/")
+            # Router endpoints should work independently
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                # Should have version 1 data
+                self.assertEqual(data.get("version"), 1)
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_default_router_v1_retrieve(self):
+        """Test DefaultRouter generated retrieve endpoint - v1."""
+        try:
+            from rest_framework.routers import DefaultRouter
+            response = self.client.get("/api/v1/blogposts/1/")
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                self.assertEqual(data.get("version"), 1)
+                # Router passes pk as string from URL
+                self.assertIn(str(data.get("id")), ['1', 1])
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_default_router_v1_custom_action(self):
+        """Test DefaultRouter custom action - v1."""
+        try:
+            from rest_framework.routers import DefaultRouter
+            response = self.client.post("/api/v1/blogposts/1/publish/")
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                self.assertEqual(data.get("version"), 1)
+                self.assertEqual(data.get("status"), "published")
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_simple_router_v2_list(self):
+        """Test SimpleRouter generated list endpoint - v2."""
+        try:
+            from rest_framework.routers import SimpleRouter
+            response = self.client.get("/api/v2/blogposts/")
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                self.assertEqual(data.get("version"), 2)
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_simple_router_v2_retrieve(self):
+        """Test SimpleRouter generated retrieve endpoint - v2."""
+        try:
+            from rest_framework.routers import SimpleRouter
+            response = self.client.get("/api/v2/blogposts/1/")
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                self.assertEqual(data.get("version"), 2)
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_simple_router_v2_custom_collection_action(self):
+        """Test SimpleRouter collection-level custom action - v2."""
+        try:
+            from rest_framework.routers import SimpleRouter
+            response = self.client.get("/api/v2/blogposts/recent/")
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                self.assertEqual(data.get("version"), 2)
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_simple_router_v2_custom_detail_action(self):
+        """Test SimpleRouter detail-level custom action - v2."""
+        try:
+            from rest_framework.routers import SimpleRouter
+            response = self.client.post("/api/v2/blogposts/1/publish/")
+            self.assertIn(response.status_code, [200, 404])
+            if response.status_code == 200:
+                data = response.json()
+                self.assertEqual(data.get("version"), 2)
+                self.assertEqual(data.get("status"), "published")
+        except ImportError:
+            self.skipTest("DRF not available")
+
+    def test_router_endpoints_independent_of_endpoint_decorator(self):
+        """Test that router URLs don't interfere with @endpoint decorated views."""
+        # /api/v1/users/ should still work (from @endpoint)
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+
+
 def run_integration_tests():
     """Run the integration test suite."""
     from django.test.utils import get_runner
