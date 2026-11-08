@@ -36,7 +36,7 @@ DATABASES = {
 # API Versioning Settings
 API_BASE_PATH = "api/v{version}/"
 API_MIN_VERSION = 1
-API_MAX_VERSION = 3
+API_MAX_VERSION = 4
 API_VERSIONING_CHANNELS = ["path"]
 API_DEPRECATED_VERSIONS = {
     2: {

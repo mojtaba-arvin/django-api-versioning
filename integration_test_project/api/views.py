@@ -330,3 +330,38 @@ try:
     DRF_AVAILABLE = True
 except ImportError:
     DRF_AVAILABLE = False
+
+
+# Explicit version sets (only v2 and v4, v3 unavailable)
+@endpoint("premium-features/", versions=[2, 4], view_name="premium-features")
+@require_http_methods(["GET"])
+def premium_features(request):
+    """Feature available only in v2 and v4."""
+    return JsonResponse({
+        "feature": "premium",
+        "available_in_v2_and_v4_only": True
+    })
+
+
+# Bounded range (v1 through v3 only, then removed)
+from django_api_versioning.decorators import ver_range
+
+@endpoint("legacy-api/", versions=ver_range(1, 3), view_name="legacy-api")
+@require_http_methods(["GET"])
+def legacy_api(request):
+    """Legacy API available only in v1-v3."""
+    return JsonResponse({
+        "type": "legacy",
+        "available_v1_through_v3_only": True
+    })
+
+
+# Unversioned endpoint (no version prefix, omit version parameter)
+@endpoint("status/", view_name="status-check")
+@require_http_methods(["GET"])
+def status_endpoint(request):
+    """Unversioned status endpoint."""
+    return JsonResponse({
+        "status": "operational",
+        "unversioned": True
+    })

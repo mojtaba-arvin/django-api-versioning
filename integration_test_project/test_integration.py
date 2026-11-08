@@ -431,8 +431,8 @@ class BasicIntegrationTestCase(TestCase):
 
     def test_version_mismatch_returns_404(self):
         """Test that requesting undefined version returns 404."""
-        # Users endpoint goes to v3, v4+ should return 404
-        response = self.client.get("/api/v4/users/")
+        # Users endpoint goes to v3, API_MAX_VERSION is 4, so v5+ should return 404
+        response = self.client.get("/api/v5/users/")
         self.assertEqual(response.status_code, 404)
 
     def test_posts_segment_with_different_versions(self):
@@ -517,6 +517,79 @@ class BasicIntegrationTestCase(TestCase):
         v3 = self.client.get("/api/v3/comments/")
         self.assertEqual(v3.status_code, 200)
         self.assertEqual(v3.json()["version"], 2)
+
+    # Tests for explicit version sets
+    def test_explicit_versions_set_v2_available(self):
+        """Test that explicit version set: v2 is available."""
+        response = self.client.get("/api/v2/premium-features/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available_in_v2_and_v4_only"])
+
+    def test_explicit_versions_set_v4_available(self):
+        """Test that explicit version set: v4 is available."""
+        response = self.client.get("/api/v4/premium-features/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available_in_v2_and_v4_only"])
+
+    def test_explicit_versions_set_v3_not_available(self):
+        """Test that explicit version set: v3 is NOT available (skipped)."""
+        response = self.client.get("/api/v3/premium-features/")
+        # v3 is skipped, so we get 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_explicit_versions_set_v1_not_available(self):
+        """Test that explicit version set: v1 is NOT available (before range)."""
+        response = self.client.get("/api/v1/premium-features/")
+        self.assertEqual(response.status_code, 404)
+
+    # Tests for bounded ranges
+    def test_bounded_range_v1_available(self):
+        """Test that bounded range: v1 is available."""
+        response = self.client.get("/api/v1/legacy-api/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available_v1_through_v3_only"])
+
+    def test_bounded_range_v2_available(self):
+        """Test that bounded range: v2 is available."""
+        response = self.client.get("/api/v2/legacy-api/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available_v1_through_v3_only"])
+
+    def test_bounded_range_v3_available(self):
+        """Test that bounded range: v3 is available."""
+        response = self.client.get("/api/v3/legacy-api/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["available_v1_through_v3_only"])
+
+    def test_bounded_range_v4_not_available(self):
+        """Test that bounded range: v4 is NOT available (after range)."""
+        response = self.client.get("/api/v4/legacy-api/")
+        # v4 is beyond the bounded range v1-v3
+        self.assertEqual(response.status_code, 404)
+
+    # Tests for unversioned endpoints
+    def test_unversioned_endpoint_accessible(self):
+        """Test that unversioned endpoint is accessible without version."""
+        response = self.client.get("/status/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["unversioned"])
+
+    def test_unversioned_endpoint_not_in_version_path(self):
+        """Test that unversioned endpoint is NOT available under version path."""
+        response = self.client.get("/api/v1/status/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_unversioned_endpoint_reverse(self):
+        """Test that api_reverse works for unversioned endpoints."""
+        from django_api_versioning.reverse import api_reverse
+        url = api_reverse("status-check")
+        self.assertEqual(url, "/status/")
 
 
 def run_integration_tests():
