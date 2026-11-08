@@ -868,6 +868,38 @@ try:
             "results": [{"id": i, "title": f"Result {i} for {query}"} for i in range(1, 3)] if query else []
         })
 
+    # Form data and multipart handling tests
+    @endpoint("upload/", version=1, view_name="upload-v1")
+    @api_view(["POST"])
+    @drf_permission_classes([])
+    def upload_v1(request):
+        """Upload endpoint - v1."""
+        name = request.data.get('name', 'unnamed')
+        description = request.data.get('description', '')
+        return Response({
+            "version": 1,
+            "uploaded": True,
+            "name": name,
+            "description": description,
+        }, status=201)
+
+    @endpoint("upload/", version=2, view_name="upload-v2")
+    @api_view(["POST"])
+    @drf_permission_classes([])
+    def upload_v2(request):
+        """Upload endpoint - v2 with metadata."""
+        name = request.data.get('name', 'unnamed')
+        description = request.data.get('description', '')
+        tags = request.data.get('tags', '')
+        return Response({
+            "version": 2,
+            "uploaded": True,
+            "name": name,
+            "description": description,
+            "tags": tags.split(',') if tags else [],
+            "timestamp": "2024-01-01T00:00:00Z",
+        }, status=201)
+
     # HEAD/OPTIONS method testing
     @endpoint("resources/", version=1, view_name="resources-v1")
     @api_view(["GET", "HEAD", "OPTIONS"])

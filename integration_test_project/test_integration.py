@@ -1441,6 +1441,206 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         self.assertEqual(response_v2_put.status_code, 200)
 
 
+class ConcurrencyAndFormDataTestCase(TestCase):
+    """Test concurrent requests and form data handling per version."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        if APIClient is not None:
+            self.client = APIClient()
+        else:
+            self.client = Client()
+
+    def test_upload_v1_form_data(self):
+        """Test v1 upload with form data."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        data = {
+            'name': 'test_file.txt',
+            'description': 'A test file'
+        }
+        response = self.client.post("/api/v1/upload/", data, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        result = response.json()
+        self.assertEqual(result["version"], 1)
+        self.assertEqual(result["name"], 'test_file.txt')
+        self.assertEqual(result["description"], 'A test file')
+
+    def test_upload_v2_form_data(self):
+        """Test v2 upload with form data."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        data = {
+            'name': 'test_file.txt',
+            'description': 'A test file',
+            'tags': 'important,archive'
+        }
+        response = self.client.post("/api/v2/upload/", data, format='multipart')
+        self.assertEqual(response.status_code, 201)
+        result = response.json()
+        self.assertEqual(result["version"], 2)
+        self.assertEqual(result["name"], 'test_file.txt')
+        self.assertEqual(result["tags"], ['important', 'archive'])
+        self.assertIn('timestamp', result)
+
+    def test_upload_v1_json_data(self):
+        """Test v1 upload with JSON data."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        data = {
+            'name': 'test.json',
+            'description': 'JSON file'
+        }
+        response = self.client.post("/api/v1/upload/", data, format='json')
+        self.assertEqual(response.status_code, 201)
+        result = response.json()
+        self.assertEqual(result["version"], 1)
+
+    def test_upload_v2_json_data(self):
+        """Test v2 upload with JSON data."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        data = {
+            'name': 'test.json',
+            'description': 'JSON file',
+            'tags': 'test'
+        }
+        response = self.client.post("/api/v2/upload/", data, format='json')
+        self.assertEqual(response.status_code, 201)
+        result = response.json()
+        self.assertEqual(result["version"], 2)
+
+    def test_concurrent_requests_same_version(self):
+        """Test multiple concurrent requests to same version endpoint."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        import threading
+        results = []
+        errors = []
+
+        def make_request(version):
+            try:
+                response = self.client.get(f"/api/v{version}/users/")
+                results.append((version, response.status_code))
+            except Exception as e:
+                errors.append(str(e))
+
+        threads = []
+        for _ in range(5):
+            # Make 5 concurrent requests to v1
+            t = threading.Thread(target=make_request, args=(1,))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+
+        # All requests should succeed
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(results), 5)
+        self.assertTrue(all(code == 200 for _, code in results))
+
+    def test_concurrent_requests_different_versions(self):
+        """Test concurrent requests to different version endpoints."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        import threading
+        results = []
+        errors = []
+
+        def make_request(version):
+            try:
+                response = self.client.get(f"/api/v{version}/users/")
+                data = response.json()
+                results.append((version, response.status_code, data['version']))
+            except Exception as e:
+                errors.append(str(e))
+
+        threads = []
+        for v in [1, 2, 3, 1, 2]:
+            t = threading.Thread(target=make_request, args=(v,))
+            threads.append(t)
+            t.start()
+
+        for t in threads:
+            t.join()
+
+        # All requests should succeed
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(results), 5)
+        # Verify version returned matches requested version
+        for req_version, status, resp_version in results:
+            self.assertEqual(status, 200)
+            self.assertEqual(req_version, resp_version)
+
+    def test_concurrent_authenticated_requests(self):
+        """Test concurrent authenticated requests."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        from django.contrib.auth.models import User
+        import threading
+
+        user = User.objects.create_user(username='concurrent_user', password='testpass')
+        results = []
+        errors = []
+
+        def make_auth_request(version):
+            try:
+                client = APIClient()
+                client.force_authenticate(user=user)
+                response = client.get(f"/api/v{version}/secure-data/")
+                results.append((version, response.status_code))
+            except Exception as e:
+                errors.append(str(e))
+
+        threads = []
+        for _ in range(3):
+            for v in [1, 2]:
+                t = threading.Thread(target=make_auth_request, args=(v,))
+                threads.append(t)
+                t.start()
+
+        for t in threads:
+            t.join()
+
+        # All requests should succeed
+        self.assertEqual(len(errors), 0)
+        self.assertEqual(len(results), 6)
+        self.assertTrue(all(code == 200 for _, code in results))
+
+    def test_request_idempotency_same_version(self):
+        """Test that repeated requests to same endpoint return consistent results."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        responses = []
+        for _ in range(3):
+            response = self.client.get("/api/v2/users/")
+            self.assertEqual(response.status_code, 200)
+            responses.append(response.json())
+
+        # All responses should be identical
+        for resp in responses[1:]:
+            self.assertEqual(resp, responses[0])
+
+    def test_request_isolation_different_versions(self):
+        """Test that different versions maintain isolation."""
+        if APIClient is None:
+            self.skipTest("DRF not installed")
+        v1_response = self.client.get("/api/v1/users/")
+        v2_response = self.client.get("/api/v2/users/")
+
+        v1_data = v1_response.json()
+        v2_data = v2_response.json()
+
+        # v1 should have basic fields only
+        self.assertEqual(v1_data["version"], 1)
+        self.assertNotIn('email', v1_data["users"][0])
+
+        # v2 should have email field
+        self.assertEqual(v2_data["version"], 2)
+        self.assertIn('email', v2_data["users"][0])
+
+
 class QueryParameterAndHTTPMethodTestCase(TestCase):
     """Test query parameters and additional HTTP methods per version."""
 
