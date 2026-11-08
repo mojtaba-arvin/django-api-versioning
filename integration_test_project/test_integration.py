@@ -1014,6 +1014,121 @@ class BasicIntegrationTestCase(TestCase):
         self.assertEqual(data["id"], 0)
 
 
+class NamespacedAPIViewIntegrationTestCase(TestCase):
+    """Test versioned endpoints with app_name (namespace) support."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_admin_reports_summary_v1(self):
+        """Test admin namespaced endpoint - v1."""
+        response = self.client.get("/api/v1/admin/reports/summary/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["namespace"], "admin")
+        self.assertEqual(data["endpoint"], "reports/summary")
+        self.assertIn("data", data)
+
+    def test_admin_reports_summary_v2(self):
+        """Test admin namespaced endpoint - v2 with extended fields."""
+        response = self.client.get("/api/v2/admin/reports/summary/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["namespace"], "admin")
+        self.assertIn("premium_count", data["data"])
+        self.assertIn("new_signups_today", data["data"])
+
+    def test_admin_reports_users_v1(self):
+        """Test admin users report - v1."""
+        response = self.client.get("/api/v1/admin/reports/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["namespace"], "admin")
+        self.assertEqual(len(data["users"]), 2)
+        self.assertNotIn("status", data["users"][0])
+
+    def test_admin_reports_users_v2(self):
+        """Test admin users report - v2 with status field."""
+        response = self.client.get("/api/v2/admin/reports/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(len(data["users"]), 2)
+        self.assertIn("status", data["users"][0])
+        self.assertEqual(data["users"][0]["status"], "active")
+        self.assertEqual(data["users"][1]["status"], "inactive")
+
+    def test_admin_config_v1(self):
+        """Test admin config endpoint - v1."""
+        response = self.client.get("/api/v1/admin/config/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["config"]["max_users"], 5000)
+        self.assertNotIn("max_api_calls_per_day", data["config"])
+
+    def test_admin_config_v2_get(self):
+        """Test admin config endpoint - v2 GET with extra fields."""
+        response = self.client.get("/api/v2/admin/config/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["config"]["max_users"], 10000)
+        self.assertEqual(data["config"]["max_storage"], 5000000)
+        self.assertIn("max_api_calls_per_day", data["config"])
+
+    def test_admin_config_v2_post(self):
+        """Test admin config endpoint - v2 POST support."""
+        response = self.client.post("/api/v2/admin/config/", data={})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["status"], "config_updated")
+
+    def test_forward_inheritance_namespaced_v3(self):
+        """Test that v3 inherits from v2 in namespaced endpoint."""
+        response = self.client.get("/api/v3/admin/reports/summary/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # v3 should inherit v2 implementation (forward inheritance)
+        self.assertEqual(data["version"], 2)
+        self.assertIn("premium_count", data["data"])
+
+    def test_version_isolation_namespaced(self):
+        """Test that versions are isolated within namespace."""
+        v1_response = self.client.get("/api/v1/admin/config/")
+        v2_response = self.client.get("/api/v2/admin/config/")
+
+        v1_data = v1_response.json()
+        v2_data = v2_response.json()
+
+        # Ensure they return different data
+        self.assertEqual(v1_data["version"], 1)
+        self.assertEqual(v2_data["version"], 2)
+        self.assertEqual(v1_data["config"]["max_users"], 5000)
+        self.assertEqual(v2_data["config"]["max_users"], 10000)
+
+    def test_namespaced_vs_non_namespaced(self):
+        """Test that namespaced endpoints are separate from non-namespaced."""
+        # Non-namespaced endpoint
+        non_ns_response = self.client.get("/api/v1/analytics/overview/")
+        self.assertEqual(non_ns_response.status_code, 200)
+        non_ns_data = non_ns_response.json()
+
+        # Namespaced endpoint
+        ns_response = self.client.get("/api/v1/admin/reports/summary/")
+        self.assertEqual(ns_response.status_code, 200)
+        ns_data = ns_response.json()
+
+        # They should be different
+        self.assertIn("metrics", non_ns_data)
+        self.assertIn("data", ns_data)
+        self.assertNotEqual(non_ns_data, ns_data)
+
+
 class NestedURLPatternTestCase(TestCase):
     """Test nested and included URL patterns with versioning.
 

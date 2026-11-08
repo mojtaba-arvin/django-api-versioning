@@ -679,3 +679,101 @@ try:
 
 except ImportError:
     pass
+
+# Namespaced endpoint views for testing namespace integration
+# Note: app_name="admin" adds "admin/" to the path, so we don't duplicate it in postfix
+@endpoint("reports/summary/", version=1, view_name="reports-summary-v1", app_name="admin")
+@require_http_methods(["GET"])
+def admin_reports_summary_v1(request):
+    """Admin reports summary - v1."""
+    return JsonResponse({
+        "version": 1,
+        "namespace": "admin",
+        "endpoint": "reports/summary",
+        "data": {
+            "total_users": 1000,
+            "active_sessions": 50,
+        }
+    })
+
+
+@endpoint("reports/summary/", version=2, view_name="reports-summary-v2", app_name="admin")
+@require_http_methods(["GET"])
+def admin_reports_summary_v2(request):
+    """Admin reports summary - v2 with extended metrics."""
+    return JsonResponse({
+        "version": 2,
+        "namespace": "admin",
+        "endpoint": "reports/summary",
+        "data": {
+            "total_users": 1050,
+            "active_sessions": 55,
+            "new_signups_today": 12,
+            "premium_count": 150,
+        }
+    })
+
+
+@endpoint("reports/users/", version=1, view_name="reports-users-v1", app_name="admin")
+@require_http_methods(["GET"])
+def admin_reports_users_v1(request):
+    """Admin user reports - v1."""
+    return JsonResponse({
+        "version": 1,
+        "namespace": "admin",
+        "endpoint": "reports/users",
+        "users": [
+            {"id": 1, "email": "user1@example.com"},
+            {"id": 2, "email": "user2@example.com"},
+        ]
+    })
+
+
+@endpoint("reports/users/", version=2, view_name="reports-users-v2", app_name="admin")
+@require_http_methods(["GET"])
+def admin_reports_users_v2(request):
+    """Admin user reports - v2 with status."""
+    return JsonResponse({
+        "version": 2,
+        "namespace": "admin",
+        "endpoint": "reports/users",
+        "users": [
+            {"id": 1, "email": "user1@example.com", "status": "active"},
+            {"id": 2, "email": "user2@example.com", "status": "inactive"},
+        ]
+    })
+
+
+@endpoint("config/", version=1, view_name="config-v1", app_name="admin")
+@require_http_methods(["GET"])
+def admin_config_v1(request):
+    """Admin configuration - v1."""
+    return JsonResponse({
+        "version": 1,
+        "namespace": "admin",
+        "config": {
+            "max_users": 5000,
+            "max_storage": 1000000,
+        }
+    })
+
+
+@endpoint("config/", version=2, view_name="config-v2", app_name="admin")
+@require_http_methods(["GET", "POST"])
+def admin_config_v2(request):
+    """Admin configuration - v2 with update support."""
+    if request.method == 'POST':
+        return JsonResponse({
+            "version": 2,
+            "namespace": "admin",
+            "status": "config_updated"
+        })
+    return JsonResponse({
+        "version": 2,
+        "namespace": "admin",
+        "config": {
+            "max_users": 10000,
+            "max_storage": 5000000,
+            "max_api_calls_per_day": 100000,
+        }
+    })
