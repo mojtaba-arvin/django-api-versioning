@@ -71,5 +71,6 @@ def _diff(expected: dict, current: dict) -> str:
             e = exp.get(version, "<missing>")
             c = cur.get(version, "<missing>")
             if e != c:
-                lines.append(f"    v{version}: {e} -> {c}")
+                label = version if version == "unversioned" else f"v{version}"
+                lines.append(f"    {label}: {e} -> {c}")
     return "\n".join(lines)
