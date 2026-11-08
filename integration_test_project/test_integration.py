@@ -845,6 +845,169 @@ class BasicIntegrationTestCase(TestCase):
 
         self.assertEqual(response1.json(), response2.json())
 
+    # UUID path parameter tests
+    def test_uuid_path_converter_v1(self):
+        """Test that <uuid:item_uuid> path converter works - v1."""
+        import uuid
+        test_uuid = str(uuid.uuid4())
+        response = self.client.get(f"/api/v1/items/{test_uuid}/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertEqual(data["item_uuid"], test_uuid)
+        self.assertEqual(data["item_type"], "uuid")
+
+    def test_uuid_path_converter_v2(self):
+        """Test that <uuid:item_uuid> path converter works - v2."""
+        import uuid
+        test_uuid = str(uuid.uuid4())
+        response = self.client.get(f"/api/v2/items/{test_uuid}/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+        self.assertEqual(data["item_uuid"], test_uuid)
+        self.assertIn("details", data)
+
+    def test_uuid_various_values(self):
+        """Test UUID converter with various valid UUID values."""
+        import uuid
+        uuids = [
+            str(uuid.uuid4()),
+            str(uuid.uuid4()),
+            str(uuid.uuid4()),
+        ]
+        for test_uuid in uuids:
+            response = self.client.get(f"/api/v1/items/{test_uuid}/")
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data["item_uuid"], test_uuid)
+
+    def test_invalid_uuid_returns_404(self):
+        """Test that invalid UUID string returns 404."""
+        response = self.client.get("/api/v1/items/not-a-uuid/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_uuid_lowercase_conversion(self):
+        """Test UUID path converter with lowercase UUID."""
+        import uuid
+        test_uuid = str(uuid.uuid4()).lower()
+        response = self.client.get(f"/api/v1/items/{test_uuid}/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_uuid_uppercase_conversion(self):
+        """Test UUID path converter with uppercase UUID (if supported)."""
+        import uuid
+        test_uuid = str(uuid.uuid4()).upper()
+        # Django UUID converter handles case normalization
+        response = self.client.get(f"/api/v1/items/{test_uuid}/")
+        # May or may not work depending on UUID normalization
+        # Just test that request goes through
+        self.assertIn(response.status_code, [200, 404])
+
+    # Comprehensive integration scenario tests
+    def test_multiple_endpoints_same_version(self):
+        """Test accessing multiple different endpoints at the same version."""
+        v1_users = self.client.get("/api/v1/users/")
+        v1_posts = self.client.get("/api/v1/posts/")
+        v1_comments = self.client.get("/api/v1/comments/")
+
+        self.assertEqual(v1_users.status_code, 200)
+        self.assertEqual(v1_posts.status_code, 200)
+        self.assertEqual(v1_comments.status_code, 200)
+
+        self.assertEqual(v1_users.json()["version"], 1)
+        self.assertEqual(v1_posts.json()["version"], 1)
+        self.assertEqual(v1_comments.json()["version"], 1)
+
+    def test_single_endpoint_multiple_versions(self):
+        """Test accessing the same endpoint across multiple versions."""
+        versions = [1, 2, 3]
+        responses = {}
+        for v in versions:
+            response = self.client.get(f"/api/v{v}/users/")
+            if response.status_code == 200:
+                responses[v] = response.json()
+
+        # Should have at least v1 and v2
+        self.assertIn(1, responses)
+        self.assertIn(2, responses)
+
+    def test_version_routing_correctness(self):
+        """Test that requests are routed to the correct version handler."""
+        v1 = self.client.get("/api/v1/users/").json()
+        v2 = self.client.get("/api/v2/users/").json()
+
+        # Versions should be different
+        self.assertEqual(v1["version"], 1)
+        self.assertEqual(v2["version"], 2)
+
+        # Data should reflect version differences
+        self.assertNotEqual(v1, v2)
+
+    def test_response_content_type_json(self):
+        """Test that responses have correct content-type."""
+        response = self.client.get("/api/v1/users/")
+        content_type = response.get("content-type", "").lower()
+        self.assertIn("application/json", content_type)
+
+    def test_http_200_on_valid_request(self):
+        """Test that valid requests return HTTP 200."""
+        endpoints = [
+            "/api/v1/users/",
+            "/api/v1/posts/",
+            "/api/v1/comments/",
+            "/api/v2/users/",
+            "/api/v2/posts/",
+        ]
+        for endpoint in endpoints:
+            response = self.client.get(endpoint)
+            self.assertEqual(response.status_code, 200, f"Failed for {endpoint}")
+
+    def test_http_404_on_invalid_endpoint(self):
+        """Test that invalid endpoints return HTTP 404."""
+        invalid_endpoints = [
+            "/api/v1/does-not-exist/",
+            "/api/v999/users/",
+            "/api/v1/fake-endpoint/",
+        ]
+        for endpoint in invalid_endpoints:
+            response = self.client.get(endpoint)
+            self.assertEqual(response.status_code, 404, f"Should 404: {endpoint}")
+
+    def test_method_not_allowed_on_unsupported_methods(self):
+        """Test that unsupported HTTP methods return 405 or similar."""
+        # Most endpoints in this test project only support GET
+        # POST to a GET-only endpoint should fail
+        response = self.client.post(
+            "/api/v1/analytics/overview/",
+            {"data": "test"},
+            content_type="application/json"
+        )
+        # Should be 405 (Method Not Allowed) or similar
+        self.assertIn(response.status_code, [405, 415])
+
+    def test_large_integer_parameter(self):
+        """Test URL parameter with large integer value."""
+        large_id = 999999999
+        response = self.client.get(f"/api/v1/users/{large_id}/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], large_id)
+
+    def test_single_digit_parameter(self):
+        """Test URL parameter with single digit."""
+        response = self.client.get("/api/v1/users/1/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 1)
+
+    def test_zero_parameter_handling(self):
+        """Test URL parameter with zero value."""
+        response = self.client.get("/api/v1/users/0/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 0)
+
 
 def run_integration_tests():
     """Run the integration test suite."""

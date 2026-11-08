@@ -451,6 +451,7 @@ try:
     # Serializer-based versioning views
     from rest_framework.serializers import Serializer, CharField, IntegerField
     from rest_framework.generics import ListAPIView
+    import uuid
 
     class ProductV1Serializer(Serializer):
         """v1 product serializer - basic fields only."""
@@ -485,6 +486,28 @@ try:
                 {"id": 1, "name": "Product 1", "description": "First product", "price": 100},
                 {"id": 2, "name": "Product 2", "description": "Second product", "price": 200},
             ]
+
+    # UUID path converter tests
+    @endpoint("items/<uuid:item_uuid>/", version=1, view_name="item-by-uuid-v1")
+    class ItemByUUIDV1(APIView):
+        """Get item by UUID - v1."""
+        def get(self, request, item_uuid):
+            return Response({
+                "version": 1,
+                "item_uuid": str(item_uuid),
+                "item_type": "uuid",
+            })
+
+    @endpoint("items/<uuid:item_uuid>/", version=2, view_name="item-by-uuid-v2")
+    class ItemByUUIDV2(APIView):
+        """Get item by UUID - v2 with extended info."""
+        def get(self, request, item_uuid):
+            return Response({
+                "version": 2,
+                "item_uuid": str(item_uuid),
+                "item_type": "uuid",
+                "details": f"Item {item_uuid} details",
+            })
 
 except ImportError:
     pass
