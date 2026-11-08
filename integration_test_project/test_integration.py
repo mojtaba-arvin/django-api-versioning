@@ -1441,6 +1441,92 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         self.assertEqual(response_v2_put.status_code, 200)
 
 
+class EdgeCasesAndErrorHandlingTestCase(TestCase):
+    """Test edge cases and error handling per version."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.client = Client()
+
+    def test_very_large_version_number(self):
+        """Test that very large version numbers are rejected or handled."""
+        response = self.client.get("/api/v999999999/users/")
+        # Should return 404 as version doesn't exist
+        self.assertEqual(response.status_code, 404)
+
+    def test_negative_version_in_url_not_matched(self):
+        """Test that negative version numbers don't match URL patterns."""
+        response = self.client.get("/api/v-1/users/")
+        # Should return 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_float_version_not_matched(self):
+        """Test that float version numbers don't match URL patterns."""
+        response = self.client.get("/api/v1.5/users/")
+        # Should return 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_missing_version_placeholder(self):
+        """Test accessing versioned endpoint without version."""
+        response = self.client.get("/api/users/")
+        # Should return 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_extra_path_segment_after_endpoint(self):
+        """Test handling of extra path segments."""
+        response = self.client.get("/api/v1/users/extra/segment/")
+        # Should return 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_case_sensitivity_in_endpoints(self):
+        """Test that endpoint paths are case-sensitive."""
+        response = self.client.get("/api/v1/Users/")  # capital U
+        # Should return 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_trailing_slash_requirement(self):
+        """Test trailing slash handling."""
+        # Without trailing slash
+        response = self.client.get("/api/v1/users")
+        # Depending on Django config, this might redirect or 404
+        self.assertIn(response.status_code, [301, 404, 200])
+
+    def test_version_zero_not_allowed(self):
+        """Test that version 0 is not allowed."""
+        response = self.client.get("/api/v0/users/")
+        # Should return 404
+        self.assertEqual(response.status_code, 404)
+
+    def test_special_characters_in_url_parameter(self):
+        """Test URL parameters with special characters."""
+        response = self.client.get("/api/v1/users/123%2F456/")
+        # Should handle encoded special characters
+        self.assertIn(response.status_code, [200, 404])
+
+    def test_unicode_in_url_parameter(self):
+        """Test URL parameters with unicode characters."""
+        response = self.client.get("/api/v1/items/test-üñíçødé/")
+        # Should return 404 since slug pattern won't match unicode
+        self.assertEqual(response.status_code, 404)
+
+    def test_empty_path_parameter(self):
+        """Test handling of empty path parameters."""
+        response = self.client.get("/api/v1/users//")
+        # Should return 404 - double slash is invalid
+        self.assertEqual(response.status_code, 404)
+
+    def test_method_not_allowed_on_correct_version(self):
+        """Test that correct version enforces method restrictions."""
+        # v1 users only allows GET
+        response = self.client.post("/api/v1/users/", {})
+        self.assertEqual(response.status_code, 405)
+
+    def test_nonexistent_version_returns_404_not_default(self):
+        """Test that nonexistent version returns 404, not default."""
+        response = self.client.get("/api/v99/users/")
+        self.assertEqual(response.status_code, 404)
+
+
 class ConcurrencyAndFormDataTestCase(TestCase):
     """Test concurrent requests and form data handling per version."""
 
