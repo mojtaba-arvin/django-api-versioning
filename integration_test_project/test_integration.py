@@ -1009,6 +1009,64 @@ class BasicIntegrationTestCase(TestCase):
         self.assertEqual(data["id"], 0)
 
 
+class NestedURLPatternTestCase(TestCase):
+    """Test nested and included URL patterns with versioning.
+
+    Tests the package's behavior when using Django's path() include()
+    with versioned endpoints.
+    """
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_unversioned_status_endpoint_accessible(self):
+        """Test that unversioned endpoints work with includes."""
+        response = self.client.get("/status/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["unversioned"], True)
+
+    def test_versioned_users_endpoint_v1(self):
+        """Test versioned endpoint accessible through include."""
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+
+    def test_versioned_users_endpoint_v2(self):
+        """Test different version of same endpoint."""
+        response = self.client.get("/api/v2/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 2)
+
+    def test_nested_analytics_endpoint(self):
+        """Test nested endpoint path (analytics/overview)."""
+        response = self.client.get("/api/v1/analytics/overview/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["version"], 1)
+        self.assertIn("metrics", data)
+
+    def test_multiple_path_levels(self):
+        """Test that path() include() works with multiple levels."""
+        # Users/123/ is two levels deep
+        response = self.client.get("/api/v1/users/123/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], 123)
+
+    def test_nested_include_url_resolution(self):
+        """Test that url reversal works for nested includes."""
+        from django_api_versioning.reverse import api_reverse
+
+        url = api_reverse("user-list-v1", version=1)
+        self.assertEqual(url, "/api/v1/users/")
+
+        url_with_params = api_reverse("user-detail-v1", version=1, user_id=42)
+        self.assertEqual(url_with_params, "/api/v1/users/42/")
+
+
 class DRFRouterIntegrationTestCase(TestCase):
     """Test DRF Router integration with versioning.
 
