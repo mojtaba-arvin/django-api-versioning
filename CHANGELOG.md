@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-10
+
+### Fixed
+
+- **PyPI Package Classifiers:** Updated to include all tested Django versions (4.2, 5.0, 5.1) in PyPI metadata. Previous v0.3.1 was published with incomplete Django version classifiers. This patch release ensures PyPI shows complete compatibility: Django 4.2, 5.0, 5.1, 5.2, 6.0, and 6.1.
+
 ## [0.3.1] - 2026-11-08
 
 ### Added
@@ -15,7 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Comprehensive Integration Testing:** 222+ integration tests covering DRF APIView, GenericAPIView, ViewSets, routers, custom actions, authentication, permissions, and Django-native views.
 - **Enhanced Testing Infrastructure:** Management command tests for `check_versions` and version matrix validation.
 - **Feature Verification Matrix:** Complete traceability matrix documenting 90+ features verified against implementation.
-- **Compatibility Report:** Comprehensive Python 3.10+, Django 5.2–6.1, and DRF 3.14+ compatibility matrix with test results.
+- **Compatibility Report:** Comprehensive Python 3.10+, Django 4.2–6.1, and DRF 3.14+ compatibility matrix with test results.
+
+### Changed
+
+- **Clarified Django support:** Documentation now correctly lists Django 4.2 as minimum supported version (verified working). Previous documentation incorrectly listed Django 5.2 as minimum. Tested versions: Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1.
 
 ### Fixed
 

@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/django-api-versioning.svg)](https://badge.fury.io/py/django-api-versioning)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![Build Status](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions)
-[![Django versions](https://img.shields.io/badge/django-5.2%20%7C%206.0%20%7C%206.1-blue)](https://www.djangoproject.com/)
+[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.x%20%7C%206.x-blue)](https://www.djangoproject.com/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -78,8 +78,10 @@ Install [Django API Versioning](https://pypi.org/project/django-api-versioning/)
 pip install django-api-versioning
 ```
 
-Requires **Django >= 5.2** and **Python >= 3.10**.  
+Requires **Django >= 4.2** and **Python >= 3.10**.
 Django REST Framework is optional and auto-detected.
+
+**Tested Versions**: Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (all verified working)
 
 ## Quick Start
 
@@ -493,12 +495,18 @@ The `migrate_endpoints` command rewrites 0.2.0 decorators to 0.3.0 syntax automa
 
 ## Requirements
 
-| Django | Python |
-| --- | --- |
-| 5.2 (LTS, until April 2028) | 3.10+ |
-| 6.0 | 3.10+ |
-| 6.1 | 3.10+ |
-Django 5.2 is the minimum supported release; Django 4.2 reached end-of-life in April 2026. DRF is optional. The package reads `request.version`, which is what DRF's `URLPathVersioning`, `AcceptHeaderVersioning`, `NamespaceVersioning`, and `QueryParameterVersioning` set.
+| Django | Python | Status |
+| --- | --- | --- |
+| 4.2 (LTS) | 3.10+ | ✅ Supported |
+| 5.0 | 3.10+ | ✅ Supported |
+| 5.1 | 3.10+ | ✅ Supported |
+| 5.2 (LTS, until April 2028) | 3.10+ | ✅ Supported |
+| 6.0 | 3.10+ | ✅ Supported |
+| 6.1 | 3.10+ | ✅ Supported |
+
+**Minimum requirements:** Django >= 4.2, Python >= 3.10.
+
+DRF is optional. The package reads `request.version`, which is what DRF's `URLPathVersioning`, `AcceptHeaderVersioning`, `NamespaceVersioning`, and `QueryParameterVersioning` set.
 
 ---
 
@@ -536,7 +544,7 @@ docker run --rm dapi:py311
 
 1. Bump `version` in `pyproject.toml` and update `CHANGELOG.md`
 2. Commit, push to `main`
-3. `git tag v0.3.1 && git push origin v0.3.1` → CI publishes to PyPI
+3. `git tag vX.Y.Z && git push origin vX.Y.Z` → CI publishes to PyPI
 
 ## Reporting issues
 
