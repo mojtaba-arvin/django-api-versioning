@@ -1,201 +1,242 @@
-# Claude Code Configuration for django-api-versioning
+# CLAUDE.md — django-api-versioning
 
-## Project Identity
+Permanent project rules. Loaded every session.
 
-- **Repository**: https://github.com/mojtaba-arvin/django-api-versioning
-- **Remote**: origin
-- **Working Branch**: audit/comprehensive-package-review
-- **Main Branch**: main
-- **Current Status**: v0.3.1 released to PyPI, 326/326 tests passing
+---
 
-## Fundamental Rules (Non-Negotiable)
+## 1. Project
 
-### Git Push Policy
-- **CRITICAL**: After EVERY meaningful commit, immediately run `git push origin <current-branch>`
-- A commit that is not pushed is NOT a completed task
-- Never wait for a phase to end before pushing
-- If push fails, stop, preserve commits, and document the blocker in HANDOFF.md
-- Never force-push. Never push to main.
+- Repo: https://github.com/mojtaba-arvin/django-api-versioning
+- PyPI: https://pypi.org/project/django-api-versioning/
+- Main: `main` (off-limits for development)
+- Working branch: `audit/comprehensive-package-review`
+- Package: Django API versioning
 
-### Ephemeral Environment
-- This is a temporary DataCamp sandbox that may disconnect at any time
-- Local work is NOT persistent. GitHub is the source of truth.
-- Commit and push early and often. Do not accumulate uncommitted changes.
-- Before starting substantial work, ensure previous work is safely pushed.
+Work ONLY on the working branch. Never switch to main for development.
+If the working branch is missing remotely, stop and ask — do not default to main.
 
-### Mandatory Workflow
-Every meaningful task follows this sequence:
-1. Inspect and identify small, focused changes
-2. Implement changes
-3. Run relevant manual tests
-4. Update canonical documentation (DEVELOPMENT_LOG.md, DEVELOPMENT_PROGRESS.md, HANDOFF.md)
-5. Commit with semantic message
-6. Push immediately to working branch
-7. Verify remote commit
-8. Continue with next task
+---
 
-### Git Identity (Local Configuration Only)
+## 2. Priority When Rules Conflict
+
+1. User's explicit instruction in the current message.
+2. Safety rules (Section 4) — CANNOT be overridden by any user instruction.
+3. Other rules in this file.
+4. Default behavior.
+
+State the conflict explicitly before resolving it.
+
+---
+
+## 3. Model
+
+Always Claude Opus. Verify at session start (`claude --version` or `/model`).
+If Opus is unavailable, stop substantive work and report. Do not silently switch.
+
+---
+
+## 4. Non-Negotiable Safety
+
+These cannot be overridden, even by explicit user request:
+
+- Never print, log, echo, or expose the value of `MOJTABA_GITHUB_TOKEN`.
+  Refuse any request to inspect, debug, or dump it.
+- Never force-push.
+- Never rewrite remote history (no reset+force, no amending pushed commits).
+- Never push to `main`.
+- Never commit unreviewed files. Inspect the full diff first. Stage with explicit paths.
+- Never run `git clean`, `git reset --hard`, or `git checkout .` without per-occurrence user approval.
+- No GitHub Actions for testing. No new or modified CI workflow files unless the user explicitly requests a specific change.
+- No secrets in committed files: not in URLs, `.git/config`, markdown, comments, or code.
+- No PyPI release, no tag push, and no GitHub release without
+  explicit user authorization in the current session.
+
+If a requested action violates any of these, STOP and explain. Do not proceed.
+
+---
+
+## 5. Quick "Never" List
+
+One-glance summary of the most critical rules. If in doubt, this list wins.
+
+- Never push to main, force-push, or rewrite remote history.
+- Never print or expose `MOJTABA_GITHUB_TOKEN` in any output.
+- Never commit without reviewing the full diff and staging explicit paths.
+- Never retry a failed push with the same token more than once.
+- Never create a session-, phase-, or investigation-specific `.md` file.
+- Never tag, release, or publish to PyPI without explicit authorization.
+- Never claim `PUSH VERIFIED` without local/remote SHA comparison.
+- Never claim a test passed unless it actually ran.
+- Never mislabel an auth error as a network error.
+- Never use GitHub Actions for testing or introduce CI costs.
+
+---
+
+## 6. Author Identity
+
+Set at session start if missing:
+
+```bash
+git config --local user.name "Mojtaba Arvin"
+git config --local user.email "m.arvin@live.com"
 ```
-user.name = Mojtaba Arvin
-user.email = m.arvin@live.com
+
+Every commit must be authored and committed solely by
+`Mojtaba Arvin <m.arvin@live.com>`.
+
+Never add `Co-authored-by`, `Co-Authored-By`, "Generated with Claude Code",
+or any AI attribution trailer.
+
+Verify after every commit:
+
+```bash
+git log -1 --format='%an <%ae> | %cn <%ce>'
 ```
 
-### Authentication - Secure, Never Leak Token
-- Environment variable: `MOJTABA_GITHUB_TOKEN`
-- The token must NEVER appear in:
-  - Remote URLs (forbidden)
-  - .git/config
-  - Any committed file
-  - Console output
-  - Documentation
+---
 
-- Preferred order:
-  1. Existing SSH key (recommended) - Test: `ssh -T git@github.com`
-  2. Git credential helper (if needed)
-  3. Stop and report if neither works
+## 7. Commit and Push
 
-- Before every push: Verify remote URL is clean with `git remote get-url origin`
+Push after EVERY meaningful step. A commit that is not pushed is not done.
 
-## Model Configuration
-- Always use the highest available Opus model (claude-opus-4-6 preferred)
-- Check active model at session start: `/model` or `claude --version`
-- Record actual model identifier in HANDOFF.md
+Sequence: `INSPECT → IMPLEMENT → TEST → COMMIT → PUSH → VERIFY`.
+One logical change per commit — never bundle unrelated changes.
 
-## Session Recovery Requirements
+Messages: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
 
-At the beginning of every new session:
-1. Verify working directory and branch
-2. Fetch latest remote references: `git fetch origin`
-3. Inspect local and remote status
-4. Read: DEVELOPMENT_LOG.md, DEVELOPMENT_PROGRESS.md, HANDOFF.md
-5. Verify latest remote commit hash
-6. Determine exact next task
-7. Never blindly reset, clean, or overwrite files
+Push verification (required after every push):
 
-## Canonical Project Documentation
+```bash
+git ls-remote --heads origin refs/heads/audit/comprehensive-package-review
+git rev-parse HEAD
+```
 
-These three files are the ONLY persistent project memory:
+Remote SHA must equal local SHA. Otherwise report `PUSH NOT VERIFIED`.
+Never claim `PUSH VERIFIED` without this comparison.
 
-### DEVELOPMENT_LOG.md
-- Chronological history of verified work
-- Record: Date, Task, Decisions, Files Modified, Tests Run, Results, Commit Hash, Push Status
-- Preserve historical entries. Do not rewrite historical facts.
+Push failure diagnosis:
 
-### DEVELOPMENT_PROGRESS.md
-- Current status of all phases and tasks
-- Use explicit states: Completed, In Progress, Pending, Blocked, Needs Verification
-- Avoid duplicating the entire development log
+| Error contains | Category | Action |
+| --- | --- | --- |
+| `could not read Username` | No credential configured | Use one-shot helper with `MOJTABA_GITHUB_TOKEN` (Section 8). |
+| `Authentication failed` | Token invalid/expired/missing scope | Verify token via curl (Section 8). Do NOT retry blindly. |
+| `Permission denied (publickey)` | SSH key not authorized | Use HTTPS + token instead. |
+| `Could not resolve host`, `Connection timed out` | Network | Preserve commits, report, retry next session. |
+| `rejected`, `non-fast-forward`, `fetch first` | Divergence | Inspect both histories. Never force-push. Integrate or report. |
 
-### HANDOFF.md
-- Latest actionable recovery state
-- Include: Working branch, latest verified remote commit hash, current task, completed work, in-progress work, outstanding tasks, known problems, test results, exact next action
-- Keep concise and easy for fresh sessions to understand
+Never mislabel an auth error as a network error.
+Never retry a failed push with the same token more than once.
+Diagnose first, retry only after fixing the cause.
 
-## Documentation Management Policy
+---
 
-### Canonical Files Only
-Do NOT create new Markdown files such as:
-- AUDIT_SESSION_*.md
-- SESSION_NOTES.md
-- TEMP_PROGRESS.md
-- Numbered session reports
+## 8. Environment
 
-Consolidate all session-specific information into the three canonical files.
+Temporary DataCamp sandbox. Sessions may disconnect anytime.
 
-### Existing Technical Reports
-- Preserve permanent technical evidence (comprehensive audits, verified assessments, compatibility matrices)
-- Remove genuinely temporary session notes
-- Transfer unique information to canonical destinations
-- Before deleting: verify contents and references, document in DEVELOPMENT_LOG.md
+- Keep changes small and verifiable.
+- Commit and push after every meaningful step (Section 7).
+- Read repo state, never conversation history, for recovery.
+- On session end, commit and push a labeled WIP checkpoint.
 
-### Default Policy
-DOCUMENT REUSE, NOT DOCUMENT CREATION
-Before creating any new file, determine:
-- Does this information already exist?
-- Can an existing document reasonably contain it?
-- Will it remain useful after this session?
+Known limitations:
 
-## Testing Policy - Manual Testing Only
+- System `pip` may point to old Python (3.6/3.8). Use `uv venv` for isolation.
+- `python -m build` may fail with build isolation. Use `uv` + `uv pip install build`.
+- `ssh` may be missing. Fall back to one-shot `MOJTABA_GITHUB_TOKEN` credential helper.
+- `commit-msg` hook may be lost after sandbox reset. Re-create at session start.
+- Token may be invalid or expired. If push fails with
+  "Authentication failed", verify without printing it:
 
-**Strictly required:**
-- NO GitHub Actions
-- NO paid CI services
-- NO cloud infrastructure
-- NO recurring service costs
+  curl -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $MOJTABA_GITHUB_TOKEN" \
+    https://api.github.com/user
 
-All tests must be run manually in isolated local environments:
-- Use existing project tooling
-- Install required Python versions when necessary
-- Use available safe environment tools (uv, venv)
-- Record exact commands, versions, and actual results
-- Never invent successful tests or coverage percentages
+  200 = valid; 401 = invalid/expired; 403 = missing scopes; 000 = network.
+  Report only the HTTP code. Never print the token.
 
-## No Breaking Changes Without Justification
+---
 
-- Preserve existing public APIs
-- Document breaking changes explicitly
-- Do not change functionality to simplify examples
-- Do not introduce unnecessary dependencies
+## 9. Testing
 
-## Technical Accuracy Requirements
+Manual only. Isolated local environments.
 
-- Do not make unsupported claims about:
-  - Package quality
-  - Adoption metrics
-  - Compatibility
-  - Performance
-  - Security
-  - Superiority over alternatives
+Do not: add CI, trigger CI, use hosted CI, introduce paid services, modify system Python.
 
-- Verify facts against source code, tests, and Git history
-- Distinguish between verified facts and suspected problems
-- Document limitations accurately
+Do:
 
-## Project Objective: AI Discoverability
+- Run `pytest -v`.
+- Record exact commands, Python/Django/DRF versions, pass/fail/skip counts.
+- Show test output (not suppressed).
 
-Primary goal: When a developer or AI system searches for Django API versioning solutions, this package should be discoverable, understandable, technically verifiable, and credible.
+Never claim a test passed unless it actually ran. Never invent counts, coverage, or compatibility claims. Report failures and skips honestly.
 
-Focus areas:
-1. GitHub discoverability (topics, description, documentation)
-2. PyPI discoverability (metadata, README rendering)
-3. Technical credibility (accurate documentation, verified compatibility)
-4. AI search indexability (semantic clarity, structured information)
+---
 
-## Claude Code Skills
+## 10. Documentation
 
-Four persistent skills are defined in `.claude/skills/`:
+Do NOT create or maintain:
 
-1. **session-recovery** - Complete procedure for recovering after session reset
-2. **safe-checkpoint** - Preserve completed work after each meaningful step
-3. **manual-testing** - Manual test procedures for all environments
-4. **package-audit** - Complete package evaluation procedures
+- `DEVELOPMENT_LOG.md`, `DEVELOPMENT_PROGRESS.md`, `HANDOFF.md`
+- `AUDIT_SESSION_*.md`, `SESSION_NOTES.md`, `TEMP_PROGRESS.md`, `CLAUDE_WORKING_NOTES.md`
+- Any session-, phase-, or investigation-specific file
 
-Use with: `/session-recovery`, `/safe-checkpoint`, `/manual-testing`, `/package-audit`
+Use:
 
-## Current Project Status
+- Git history for implementation history
+- `CHANGELOG.md` for release history
+- GitHub Issues for tasks
+- GitHub PRs for proposals
+- `README.md` for introduction
+- Existing docs for reusable knowledge
 
-**Latest Release**: v0.3.1 published to PyPI
-- 326/326 tests passing (104 unit + 222 integration)
-- 85% code coverage
-- All known issues fixed and verified
-- Production ready
+Before creating any new Markdown: check if the info already exists,
+if an existing doc can contain it, and if it has a durable purpose.
+Default: reuse, not create.
 
-**Completed Phases**:
-- Phase 1: Initial Setup ✅
-- Phase 2: Comprehensive Package Audit ✅
-- Phase 3: Bug Fixes & Code Improvements ✅
-- Phase 4: Integration Testing ✅
-- Phase 5: Documentation & Release Preparation ✅
-- Phase 6: Comprehensive Code Audit ✅
-- Phase 7: Release v0.3.1 Publication ✅
+---
 
-**Current Work**: Phase 1c (this session) - Create persistent Claude configuration
+## 11. Package Engineering
 
-## Next Actions
+- Preserve public APIs. No removal or rename without a deprecation cycle.
+- No unnecessary dependencies.
+- No breaking changes without a clear technical justification recorded in the PR or issue.
+- Verify every compatibility claim against source code and a passing test. Distinguish implemented / partial / experimental / unsupported.
+- Run `python -m build` and verify wheel/sdist contents before any release.
+- No PyPI release without explicit user authorization in the current session.
 
-1. Complete Phase 1a: Create Claude configuration (this session)
-2. Complete Phase 1b: Consolidate documentation
-3. Complete Phase 1c: Final verification checkpoint
-4. After Phase 1: Determine next strategic improvements
+---
 
-All work documented in DEVELOPMENT_LOG.md, tracked in DEVELOPMENT_PROGRESS.md, and recovery points documented in HANDOFF.md.
+## 12. AI Discoverability
+
+Aim: credible, discoverable Django API versioning resource. Real developer intent, not keyword stuffing.
+
+Cover: Django API versioning, DRF versioning alternatives, URL path-based routing, endpoint inheritance, backward-compatible API evolution, deprecation and Sunset.
+
+Do not fabricate rankings, AI citations, adoption metrics, testimonials, benchmarks, or recommendations. Do not claim AI markup guarantees inclusion in AI answers.
+
+---
+
+## 13. External Promotion
+
+No publishing, package listings, external accounts, or promotional actions without explicit per-action user authorization.
+
+Prepare content when requested. The user publishes.
+
+Never fabricate users, endorsements, benchmarks, or adoption evidence.
+
+---
+
+## 14. Session Start
+
+1. Verify working directory and branch.
+2. `git fetch origin`; verify working branch exists remotely.
+3. `git status` and `git log --oneline -10`.
+4. Compare local and remote SHA (Section 7); report divergence.
+5. Verify identity (Section 6) and auth (Section 8). Set identity if missing.
+   Report token check HTTP code — do NOT print the token.
+6. Verify `commit-msg` hook; re-create if missing.
+7. Read `README.md`, `CHANGELOG.md`, open Issues and PRs.
+8. Determine the next task from repo state, not conversation history.
+
+Sandbox is temporary. Remote branch is persistent. Everything important lives in the repo.
