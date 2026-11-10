@@ -1130,3 +1130,111 @@ PyPI package metadata published with incomplete Django version classifiers:
 
 **Note**: PyPI publication requires explicit authorization per CLAUDE.md Section 0 and CLAUDE.md Section 5.
 This phase prepares the release but does not publish without authorization.
+
+---
+
+## Session 9 (Continued): Phase 6a - Search Intent Coverage Audit
+
+### Objective
+Audit existing README and documentation to verify coverage of key developer search intents that would naturally lead users to this package via AI search or semantic discovery.
+
+### Phase 6a Audit Results
+
+**Search Intents Evaluated** (from CLAUDE.md Section 14):
+
+#### ✅ Intent 1: "Django API versioning"
+- **Coverage**: Comprehensive
+- **Location**: Title (line 1), opening statement (line 11), entire README
+- **Content Quality**: Excellent - problem statement with real code example (lines 13-45)
+- **Status**: WELL COVERED
+
+#### ✅ Intent 2: "Django REST Framework API versioning"
+- **Coverage**: Good
+- **Location**: Section "Why not just use DRF's built-in versioning?" (lines 51-71)
+- **Content Quality**: Excellent - explicit comparison table (lines 55-69) showing what DRF does vs doesn't do
+- **Status**: WELL COVERED - Could be better discoverable with dedicated section
+
+#### ✅ Intent 3: "URL-based API versioning in Django"
+- **Coverage**: Excellent
+- **Location**: Multiple sections:
+  - Quick Start (lines 86-153)
+  - Before/After comparison (lines 155-216)
+  - Four syntaxes (lines 256-329)
+- **Content Quality**: Very high - shows both manual approach and package approach
+- **Status**: EXCELLENT COVERAGE
+
+#### ✅ Intent 4: "Version-specific Django views"
+- **Coverage**: Excellent
+- **Location**: Problem statement (lines 13-45), Quick Start (lines 128-151), Four syntaxes (lines 256-329)
+- **Content Quality**: Good - multiple practical examples
+- **Status**: WELL COVERED
+
+#### ✅ Intent 5: "Managing multiple API versions"
+- **Coverage**: Comprehensive
+- **Location**: Before/After comparison (lines 155-216), Segment resolution (lines 330-352)
+- **Content Quality**: Excellent - shows complexity comparison
+- **Status**: WELL COVERED
+
+#### ✅ Intent 6: "Backward-compatible Django APIs"
+- **Coverage**: Excellent
+- **Location**: Problem statement title: "I need to change the response. v1 clients must not break" (line 13)
+- **Content Quality**: Excellent - direct answer to this specific intent
+- **Status**: EXCELLENT COVERAGE - Core value proposition
+
+#### ✅ Intent 7: "Inheriting endpoints between API versions"
+- **Coverage**: Excellent
+- **Location**: Segment explanation (lines 330-352), Four syntaxes #1 (lines 260-275)
+- **Content Quality**: Excellent - detailed explanation with examples
+- **Status**: EXCELLENT COVERAGE - Well explained
+
+#### ✅ Intent 8: "Different endpoint implementations per API version"
+- **Coverage**: Excellent
+- **Location**: Multiple sections:
+  - Quick Start example (lines 128-151)
+  - Four syntaxes (lines 256-329)
+  - Segment resolution (lines 330-352)
+- **Content Quality**: Very high - practical examples
+- **Status**: EXCELLENT COVERAGE
+
+#### ✅ Intent 9: "API deprecation and Sunset policies"
+- **Coverage**: Good
+- **Location**: "Deprecation and sunset headers" section (lines 396-424)
+- **Content Quality**: Good - shows settings and resulting HTTP headers
+- **Status**: COVERED - Could have more examples or earlier prominence
+
+### Coverage Summary
+
+| Intent | Covered | Quality | Notes |
+|--------|---------|---------|-------|
+| Django API versioning | ✅ | Excellent | Entire README |
+| DRF API versioning | ✅ | Excellent | Comparison table present |
+| URL-based versioning | ✅ | Excellent | Multiple sections |
+| Version-specific views | ✅ | Excellent | Good examples |
+| Managing multiple versions | ✅ | Excellent | Before/after comparison |
+| Backward-compatible APIs | ✅ | Excellent | Core value prop |
+| Endpoint inheritance | ✅ | Excellent | Well explained |
+| Different implementations | ✅ | Excellent | Multiple examples |
+| Deprecation/Sunset | ✅ | Good | Present but could be more prominent |
+
+### Key Findings
+
+**Strengths**:
+1. All 9 search intents are addressed in current README
+2. Most have multiple sections covering them
+3. Examples are practical and runnable
+4. Code examples are correct and up-to-date (verified in Phase 3)
+5. Real-world problem statement effective ("I need to change the response...")
+
+**Opportunities for Phase 6b (Documentation Enhancement)**:
+1. Deprecation/Sunset section could be moved earlier and expanded
+2. Each of the 9 search intents could have dedicated subsection headings
+3. Could add more explicit cross-linking between related intents
+4. Search-intent FAQ section could be added
+5. More complex use case examples (multi-tenant, large versions, etc.)
+
+**No Critical Gaps Identified**: All essential developer problems are addressed.
+
+### Status: Phase 6a COMPLETE ✅
+
+All 9 search intents verified as covered in existing documentation.
+Ready for Phase 6b (if documentation enhancement desired) or proceed to Phase 7.
