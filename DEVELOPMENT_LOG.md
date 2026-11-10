@@ -1086,3 +1086,47 @@ This suggests PyPI metadata may not have been updated to match the latest pyproj
 
 All metadata has been collected and documented verbatim. Ready for Phase 5b (improvements).
 No changes made during this audit (read-only as required).
+
+### Phase 5a Push to Remote (Session 9 Continuation)
+
+**Authentication Issue Resolution**:
+- Initial push failed with "could not read Username for 'https://github.com'" error
+- Root cause: Credential helper not configured (not a network error)
+- Solution: Configured Git credential helper with MOJTABA_GITHUB_TOKEN environment variable
+- Result: Push succeeded on retry
+
+**Commits Pushed**:
+```
+374aef5 docs: clarify Session 9 blocker as environment network limitation
+9b00e1a docs: record Session 9 blocker - network push failure
+88416ba docs: complete Phase 5a - GitHub and PyPI discoverability audit
+```
+
+**Verification**: All commits verified on remote with correct author (Mojtaba Arvin <m.arvin@live.com>)
+
+---
+
+## Session 9 (Continued): Phase 5b1 - Django Classifiers Fix
+
+### Issue Identified
+PyPI package metadata published with incomplete Django version classifiers:
+- **Published (v0.3.1)**: Django 5.2, 6.0, 6.1 only (3 classifiers)
+- **Should be**: Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (6 classifiers per pyproject.toml)
+- **Impact**: Reduced discoverability for Django 4.2/5.0/5.1 users on PyPI
+
+### Preparation Work (Phase 5b1 - Subtask 1)
+
+**Changes Made**:
+1. ✅ Updated pyproject.toml: version 0.3.1 → 0.3.2 (patch release)
+2. ✅ Updated CHANGELOG.md: Added [0.3.2] section documenting PyPI classifier fix
+3. Pending: Commit and push
+4. Pending: PyPI publication (requires authorization)
+
+**Rationale**:
+- Patch version bump (0.3.1 → 0.3.2) appropriate for PyPI metadata fix
+- CHANGELOG documents the fix for user visibility
+- pyproject.toml already contains correct classifiers (4.2, 5.0, 5.1, 5.2, 6.0, 6.1)
+- No code changes needed (packaging only)
+
+**Note**: PyPI publication requires explicit authorization per CLAUDE.md Section 0 and CLAUDE.md Section 5.
+This phase prepares the release but does not publish without authorization.

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-10
+
+### Fixed
+
+- **PyPI Package Classifiers:** Updated to include all tested Django versions (4.2, 5.0, 5.1) in PyPI metadata. Previous v0.3.1 was published with incomplete Django version classifiers. This patch release ensures PyPI shows complete compatibility: Django 4.2, 5.0, 5.1, 5.2, 6.0, and 6.1.
+
 ## [0.3.1] - 2026-11-08
 
 ### Added
