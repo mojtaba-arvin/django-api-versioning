@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/django-api-versioning.svg)](https://badge.fury.io/py/django-api-versioning)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![Build Status](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions)
-[![Django versions](https://img.shields.io/badge/django-5.2%20%7C%206.0%20%7C%206.1-blue)](https://www.djangoproject.com/)
+[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.x%20%7C%206.x-blue)](https://www.djangoproject.com/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -78,8 +78,10 @@ Install [Django API Versioning](https://pypi.org/project/django-api-versioning/)
 pip install django-api-versioning
 ```
 
-Requires **Django >= 5.2** and **Python >= 3.10**.  
+Requires **Django >= 4.2** and **Python >= 3.10**.
 Django REST Framework is optional and auto-detected.
+
+**Tested Versions**: Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (all verified working)
 
 ## Quick Start
 
