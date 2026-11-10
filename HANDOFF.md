@@ -370,6 +370,19 @@ Phase 3 focuses on verifying technical capabilities match claims and improving c
 
 ## EXACT NEXT ACTION FOR NEXT SESSION
 
+**Session 9 Status**: ✅ Phase 5a COMPLETE (GitHub and PyPI metadata audit)
+
+**Phase 5a Summary**:
+- Audited GitHub repository metadata: description, files, releases, tags
+- Audited PyPI package metadata: version, classifiers, keywords, URLs
+- Collected PyPI JSON data for comprehensive analysis
+- Identified 3 minor issues requiring Phase 5b resolution:
+  1. Django classifiers mismatch on PyPI (missing 4.2, 5.0, 5.1)
+  2. Repository topics require manual verification
+  3. Missing explicit homepage URL (minor)
+- All findings documented verbatim in DEVELOPMENT_LOG.md
+- No changes made (read-only audit as required)
+
 **Phase 3 Status**: ✅ COMPLETE (Verified baseline tests, metadata review)
 
 **Phase 4 Status**: ✅ COMPLETE
@@ -418,7 +431,7 @@ Phase 3 focuses on verifying technical capabilities match claims and improving c
 1. Use `/session-recovery` skill to re-establish context
 2. Run: git fetch origin && git log origin/audit/comprehensive-package-review -5
 3. Read DEVELOPMENT_LOG.md, DEVELOPMENT_PROGRESS.md, HANDOFF.md
-4. Verify latest remote commit hash (should be 709ff7a)
+4. Verify latest remote commit hash (should be f2fa9ae)
 5. Verify working branch: git branch --show-current (should be audit/comprehensive-package-review)
 6. Extract exact next action from this section
 7. Perform ONLY that one action
@@ -428,3 +441,48 @@ Phase 3 focuses on verifying technical capabilities match claims and improving c
 - CLAUDE.md: Project instructions and rules
 - .claude/ directory: Persistent Skills and settings
 - These provide guidance for recovery after DataCamp sandbox resets
+
+---
+
+## EXACT NEXT ACTION FOR SESSION 10 (and continuation sessions)
+
+**Current Status**: Phase 5a (read-only audit) COMPLETE ✅
+
+**Next Action**: Phase 5b - GitHub and PyPI Discoverability Improvements
+
+**Phase 5b Task Details** (from CLAUDE.md Section 13.2):
+Implement improvements identified in Phase 5a audit, one at a time:
+
+1. **Priority 1 - Django Classifiers Update** (HIGHEST PRIORITY):
+   - Issue: PyPI published with incomplete Django classifiers
+   - Current PyPI: Django 5.2, 6.0, 6.1 only (3 classifiers)
+   - Should be: Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (6 classifiers from pyproject.toml)
+   - Action: Rebuild package from current pyproject.toml and republish to PyPI
+   - Note: This requires a new release (v0.3.2 patch version recommended)
+   - Implementation: Would require building wheel/sdist and publishing to PyPI
+
+2. **Priority 2 - Repository Topics** (MANUAL ACTION REQUIRED):
+   - Issue: Cannot modify from CLI; requires GitHub web interface
+   - Current: 20 topics (some flagged as vague/generic)
+   - Recommended: django, api-versioning, drf, decorator, backward-compatibility, path-based-versioning
+   - Action: User to access GitHub repository settings and update topics manually
+   - Note: This is a UI-only operation, cannot be done via git commits
+
+3. **Priority 3 - Homepage URL** (OPTIONAL, LOW PRIORITY):
+   - Issue: No explicit Homepage URL field on PyPI
+   - Action: Consider adding homepage URL to pyproject.toml project.urls
+   - Impact: Low (URLs already properly configured)
+
+**Recommended Approach for Next Session**:
+- Perform Phase 5b1 (Django classifiers fix) as a new release
+- Document findings and rationale
+- Commit and push
+- Request user to perform Phase 5b2 (repository topics) manually
+- Proceed to Phase 6 after Phase 5 complete
+
+**Alternative if PyPI release not authorized**:
+- Document findings in DEVELOPMENT_LOG.md
+- Proceed to Phase 6 (AI semantic discoverability) without release
+- Mark Phase 5 as "requires authorization for completion"
+
+**Type of Next Action**: Implementation (requires code/configuration changes)
