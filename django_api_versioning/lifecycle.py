@@ -96,9 +96,10 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
     prefix = re.escape(parts[0])
     suffix = re.escape(parts[1])
 
-    # Create anchored pattern to match only at the beginning of the relevant path
-    # The pattern captures one or more digits as the version
-    pattern = f"^{prefix}(\\d+){suffix}"
+    # Create anchored pattern to match only at the beginning of the relevant path.
+    # The pattern may have a leading slash (from request.path_info), but API_BASE_PATH
+    # typically doesn't, so we allow an optional leading slash.
+    pattern = f"^/?{prefix}(\\d+){suffix}"
 
     try:
         regex_match = re.match(pattern, path)
