@@ -22,7 +22,9 @@ INSTALLED_APPS = [
     "api",
 ]
 
-MIDDLEWARE = []
+MIDDLEWARE = [
+    "django_api_versioning.lifecycle.LifecycleMiddleware",
+]
 
 ROOT_URLCONF = "project.urls"
 
@@ -44,6 +46,9 @@ API_DEPRECATED_VERSIONS = {
         "sunset_date": "2026-06-01",
     }
 }
+# Lifecycle configuration - empty by default so existing tests pass.
+# Individual tests can override this via monkeypatch or test-specific configuration.
+API_VERSION_LIFECYCLE = {}
 
 TEMPLATES = []
 

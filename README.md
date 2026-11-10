@@ -421,7 +421,12 @@ Every /api/v1/* request returns:
 HTTP/1.1 410 Gone
 ```
 
-The middleware reads request.version (set by DRF) or `resolver_match.kwargs["version"]`. Path-based versioning is fully supported.
+The middleware extracts the version using this priority:
+1. `request.version` (set by DRF)
+2. `resolver_match.kwargs["version"]` (from URL parameters)
+3. Static URL path (version extracted from the actual request URL path)
+
+This fallback approach ensures Deprecation/Sunset headers and retired version enforcement work correctly even when the version isn't explicitly set in the request or route parameters.
 
 ## Configuration reference
 
