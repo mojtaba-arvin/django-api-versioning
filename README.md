@@ -544,7 +544,7 @@ docker run --rm dapi:py311
 
 1. Bump `version` in `pyproject.toml` and update `CHANGELOG.md`
 2. Commit, push to `main`
-3. `git tag v0.3.1 && git push origin v0.3.1` → CI publishes to PyPI
+3. `git tag vX.Y.Z && git push origin vX.Y.Z` → CI publishes to PyPI
 
 ## Reporting issues
 
