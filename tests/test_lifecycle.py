@@ -265,3 +265,206 @@ class TestVersionExtraction:
         request.resolver_match.kwargs = {}
         version = _extract_version(request)
         assert version == 1
+
+
+# Tests for override_settings compatibility
+class TestOverrideSettingsCompatibility:
+    """Regression tests for override_settings compatibility (Bug: LifecycleMiddleware ignores override_settings)."""
+
+    def test_override_settings_lifecycle_active_version(self):
+        """override_settings(API_VERSION_LIFECYCLE) should affect middleware behavior."""
+        from django.test import override_settings
+
+        with override_settings(API_VERSION_LIFECYCLE={1: {"status": "active"}}):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("1"))
+
+            assert response.status_code == 200
+            assert "Deprecation" not in response
+
+    def test_override_settings_lifecycle_deprecated_version(self):
+        """override_settings should apply deprecated status and Sunset header."""
+        from django.test import override_settings
+
+        with override_settings(
+            API_VERSION_LIFECYCLE={2: {"status": "deprecated", "sunset": FUTURE}}
+        ):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("2"))
+
+            assert response.status_code == 200
+            assert response["Deprecation"] == "true"
+            assert "Sunset" in response
+
+    def test_override_settings_lifecycle_retired_past_sunset(self):
+        """override_settings with past sunset should return 410."""
+        from django.test import override_settings
+
+        with override_settings(
+            API_VERSION_LIFECYCLE={1: {"status": "retired", "sunset": PAST}}
+        ):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("1"))
+
+            assert response.status_code == 410
+
+    def test_override_settings_lifecycle_retired_future_sunset(self):
+        """override_settings with future sunset should serve normally."""
+        from django.test import override_settings
+
+        with override_settings(
+            API_VERSION_LIFECYCLE={1: {"status": "retired", "sunset": FUTURE}}
+        ):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("1"))
+
+            assert response.status_code == 200
+            assert "Deprecation" not in response
+
+    def test_override_settings_lifecycle_empty_dict(self):
+        """override_settings with empty lifecycle should pass through."""
+        from django.test import override_settings
+
+        with override_settings(API_VERSION_LIFECYCLE={}):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("1"))
+
+            assert response.status_code == 200
+            assert "Deprecation" not in response
+
+    def test_override_settings_lifecycle_removed(self):
+        """After override_settings context ends, behavior should revert."""
+        from django.test import override_settings
+
+        # First, with override_settings: version 1 is retired
+        with override_settings(
+            API_VERSION_LIFECYCLE={1: {"status": "retired", "sunset": PAST}}
+        ):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("1"))
+            assert response.status_code == 410
+
+        # Then, outside context: version 1 uses cached settings (no lifecycle entry)
+        middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+        response = middleware(_request("1"))
+        assert response.status_code == 200
+        assert "Deprecation" not in response
+
+    def test_override_settings_base_path_extraction(self):
+        """override_settings(API_BASE_PATH) should affect version extraction."""
+        from django.test import override_settings
+        from django_api_versioning.lifecycle import _extract_version_from_path
+
+        with override_settings(API_BASE_PATH="svc/v{version}/"):
+            request = RequestFactory().get("/svc/v2/things/")
+            request.version = None
+            version = _extract_version_from_path(request)
+            assert version == 2
+
+    def test_override_settings_base_path_extraction_custom_format(self):
+        """override_settings with custom base path format should work."""
+        from django.test import override_settings
+        from django_api_versioning.lifecycle import _extract_version_from_path
+
+        with override_settings(API_BASE_PATH="api/version-{version}/"):
+            request = RequestFactory().get("/api/version-3/users/")
+            request.version = None
+            version = _extract_version_from_path(request)
+            assert version == 3
+
+    def test_override_settings_base_path_unchanged_outside_context(self):
+        """Version extraction should revert after override_settings context."""
+        from django.test import override_settings
+        from django_api_versioning.lifecycle import _extract_version_from_path
+
+        # With override_settings, custom path works
+        with override_settings(API_BASE_PATH="svc/v{version}/"):
+            request = RequestFactory().get("/svc/v2/things/")
+            request.version = None
+            version = _extract_version_from_path(request)
+            assert version == 2
+
+        # Outside override_settings, custom path doesn't match
+        request = RequestFactory().get("/svc/v2/things/")
+        request.version = None
+        version = _extract_version_from_path(request)
+        assert version is None  # Uses default api/v{version}/, doesn't match svc/
+
+    def test_override_settings_lifecycle_multiple_versions(self):
+        """override_settings with multiple lifecycle entries should work."""
+        from django.test import override_settings
+
+        with override_settings(
+            API_VERSION_LIFECYCLE={
+                1: {"status": "retired", "sunset": PAST},
+                2: {"status": "deprecated", "sunset": FUTURE},
+                3: {"status": "active"},
+            }
+        ):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+
+            # Version 1: retired with past sunset -> 410
+            response = middleware(_request("1"))
+            assert response.status_code == 410
+
+            # Version 2: deprecated with future sunset -> 200 with headers
+            response = middleware(_request("2"))
+            assert response.status_code == 200
+            assert response["Deprecation"] == "true"
+
+            # Version 3: active -> 200 with no headers
+            response = middleware(_request("3"))
+            assert response.status_code == 200
+            assert "Deprecation" not in response
+
+    def test_override_settings_with_extract_version_precedence(self):
+        """Version extraction precedence should work with override_settings."""
+        from django.test import override_settings
+        from django_api_versioning.lifecycle import _extract_version
+        from unittest.mock import Mock
+
+        with override_settings(API_BASE_PATH="custom/v{version}/"):
+            # request.version takes precedence even with custom base path
+            request = RequestFactory().get("/custom/v1/things/")
+            request.version = "5"
+            request.resolver_match = None
+            version = _extract_version(request)
+            assert version == 5
+
+            # Falls back to custom path when request.version is None
+            request.version = None
+            version = _extract_version(request)
+            assert version == 1
+
+    def test_override_settings_deprecated_without_sunset(self):
+        """override_settings with deprecated status but no sunset."""
+        from django.test import override_settings
+
+        with override_settings(API_VERSION_LIFECYCLE={2: {"status": "deprecated"}}):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+            response = middleware(_request("2"))
+
+            assert response.status_code == 200
+            assert response["Deprecation"] == "true"
+            assert "Sunset" not in response
+
+    def test_override_settings_lifecycle_and_base_path_together(self):
+        """override_settings with both lifecycle and base path changes."""
+        from django.test import override_settings
+        from django_api_versioning.lifecycle import _extract_version
+
+        with override_settings(
+            API_BASE_PATH="svc/v{version}/",
+            API_VERSION_LIFECYCLE={2: {"status": "retired", "sunset": PAST}},
+        ):
+            middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+
+            # Extract version from overridden base path
+            request = RequestFactory().get("/svc/v2/things/")
+            request.version = None
+            version = _extract_version(request)
+            assert version == 2
+
+            # Check lifecycle with extracted version
+            response = middleware(request)
+            assert response.status_code == 410

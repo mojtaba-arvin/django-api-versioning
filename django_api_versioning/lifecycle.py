@@ -1,13 +1,37 @@
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Callable
+from typing import Any, Callable
 
+from django.conf import settings as django_settings
 from django.http import HttpRequest, HttpResponse, HttpResponseGone
 
-from .settings import api_settings as settings
+from .settings import api_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _get_api_setting(name: str, default: Any = None) -> Any:
+    """
+    Get API setting from django.conf.settings at request time.
+
+    This ensures that override_settings in tests affects middleware behavior.
+    For backward compatibility with monkeypatch-based tests, also checks
+    the cached api_settings object if the setting is not found in django.conf.settings.
+
+    Falls back to default if setting is not configured in either location.
+    """
+    # First, check if the setting exists in django.conf.settings
+    # This handles override_settings() and other dynamic setting changes
+    if hasattr(django_settings, name):
+        return getattr(django_settings, name)
+
+    # Fall back to cached api_settings for backward compatibility with tests
+    # that use monkeypatch to modify api_settings directly
+    if hasattr(api_settings, name):
+        return getattr(api_settings, name)
+
+    return default
 
 
 class LifecycleMiddleware:
@@ -31,7 +55,8 @@ class LifecycleMiddleware:
         if version is None:
             return self.get_response(request)
 
-        meta = settings.API_VERSION_LIFECYCLE.get(version)
+        lifecycle = _get_api_setting("API_VERSION_LIFECYCLE", {})
+        meta = lifecycle.get(version)
         if not meta:
             return self.get_response(request)
 
@@ -79,7 +104,7 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
 
     Returns None if no valid version is found.
     """
-    api_base_path = settings.API_BASE_PATH
+    api_base_path = _get_api_setting("API_BASE_PATH", "api/v{version}/")
     if not api_base_path or "{version}" not in api_base_path:
         return None
 
