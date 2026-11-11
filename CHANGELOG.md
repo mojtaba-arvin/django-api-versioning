@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-11-11
+
 ### Fixed
 
 - **LifecycleMiddleware ignoring `override_settings`:** Fixed critical bug where `LifecycleMiddleware` and version extraction functions read from a globally cached settings object initialized at module import time. Now reads `API_VERSION_LIFECYCLE` and `API_BASE_PATH` from `django.conf.settings` at request time, allowing `override_settings` in tests and runtime configuration changes to work correctly. Maintains backward compatibility with existing monkeypatch-based tests by falling back to cached settings when needed.
