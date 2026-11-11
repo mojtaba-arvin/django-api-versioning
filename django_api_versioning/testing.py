@@ -10,6 +10,12 @@ def build_version_matrix() -> dict:
     Build a serializable matrix of ``{route: {version: callback_name}}``.
 
     ``version`` is the string ``"unversioned"`` for routes without a version.
+
+    Note:
+        This reads the live registry, which is populated by ``@endpoint``
+        decorators at module import time. Call this only after all endpoint
+        modules have been imported (e.g., after ``django.setup()`` in a test
+        context). If called earlier, the returned matrix will be empty.
     """
     matrix = {}
     for route, versions in registry.get_version_matrix().items():
@@ -36,6 +42,12 @@ def assert_version_matrix(
 
         def test_version_matrix():
             assert_version_matrix(snapshot=".version_matrix.json")
+
+    Note:
+        Same import requirement as ``build_version_matrix`` — call after all
+        ``@endpoint``-decorated modules have been imported. If the snapshot is
+        generated before imports complete, it will be empty and later test runs
+        that do import the modules will fail against it.
     """
     current = build_version_matrix()
     if snapshot is None:
