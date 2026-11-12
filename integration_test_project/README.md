@@ -43,8 +43,8 @@ integration_test_project/
 ## Running the Tests
 
 ### Prerequisites
-- Python 3.10+ (tested with 3.12)
-- Django 5.2+
+- Python 3.10+
+- Django 4.2+
 - django-api-versioning package installed
 
 ### Execution
@@ -85,7 +85,10 @@ The project demonstrates the recommended configuration:
 API_BASE_PATH = "api/v{version}/"      # URL pattern with "v" prefix
 API_MIN_VERSION = 1                      # Earliest supported version
 API_MAX_VERSION = 3                      # Latest supported version
-API_VERSIONING_CHANNELS = ["path"]      # Path-based versioning only
+# Version extraction configuration.
+# Endpoint registration is handled separately through @endpoint
+# and the package URL configuration.
+API_VERSIONING_CHANNELS = ["path"]
 API_DEPRECATED_VERSIONS = {
     2: {
         "deprecated_date": "2026-01-01",
@@ -135,7 +138,7 @@ When a client requests `/api/v3/users/` but only v1 and v2 are defined, v2 is se
 
 - Tested with Python 3.12.16
 - Tested with Django 6.1.3
-- Requires django-api-versioning 0.3.0+
+- Requires django-api-versioning 0.3.5
 
 ## Extending the Tests
 

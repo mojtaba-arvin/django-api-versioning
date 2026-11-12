@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-11-12
+
+### Documentation
+
+- Reworked the README to clarify the package's purpose, demonstrate version-specific endpoint registration, and improve installation and integration guidance.
+- Added a canonical routing contract covering public imports, version identifiers, URL construction, registration semantics, route precedence, URL reversal, and supported view types.
+
 ## [0.3.4] - 2026-11-11
 
 ### Fixed
@@ -85,7 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ All documented features implemented and tested
 - ✅ Zero critical defects found
 - ✅ 326/326 tests passing (100%): 104 unit tests + 222 integration tests
-- ✅ Complete DRF integration (APIView, GenericAPIView, ViewSets, routers, custom actions)
+- ✅ DRF APIView and GenericAPIView integration through `@endpoint`
+- ✅ DRF ViewSet and router coexistence through explicit URL configuration; automatic router registration is not provided
 - ✅ Complete Django integration (FBV, CBV, generic views)
 - ✅ URL reversal with `api_reverse()` deterministic behavior
 - ✅ Version inheritance and segment resolution

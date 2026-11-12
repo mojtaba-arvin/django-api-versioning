@@ -60,7 +60,9 @@
 | Namespaced routes | - | - | NamespacedAPIViewIntegrationTestCase | ✅ VERIFIED |
 | Nested URL includes | - | - | NestedURLPatternTestCase | ✅ VERIFIED |
 
-### ✅ 7. Django REST Framework Integration
+### ✅ 7. Django REST Framework (DRF) Router Coexistence
+DRF routers generate their own URL patterns and remain separate from the package's endpoint registry. These tests verify their coexistence in the integration project; they do not establish automatic ViewSet registration through `@endpoint`.
+
 | Feature | Implementation | Unit Test | Integration Test | Status |
 |---------|----------------|-----------|-----------------|--------|
 | APIView | - | - | NamespacedAPIViewIntegrationTestCase | ✅ VERIFIED |
@@ -137,7 +139,7 @@
 | Matrix diff output | testing.py:58-75 | test_testing_utils.py | - | ✅ VERIFIED |
 | Unversioned label fix | testing.py:73 | test_testing_utils.py | - | ✅ VERIFIED |
 
-### ✅ 14. LifecycleMiddleware (v0.3.3)
+### ✅ 14. LifecycleMiddleware (v0.3.5)
 | Feature | Implementation | Unit Test | Integration Test | Status |
 |---------|----------------|-----------|-----------------|--------|
 | Version extraction from request.version | lifecycle.py:45-50 | test_lifecycle.py | LifecycleHeaderTestCase | ✅ VERIFIED |

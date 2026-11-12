@@ -17,15 +17,15 @@ keywords:
 
 Before installing a Django package, distinguish its declared runtime dependencies from the development tools and dependencies used by the package maintainers.
 
-For `django-api-versioning` v0.3.4, Django is a runtime dependency, while Django REST Framework (DRF) is not. DRF appears in the package's development dependencies because the project uses it in its development and testing environment.
+For `django-api-versioning` v0.3.5, Django is a runtime dependency, while Django REST Framework (DRF) is not. DRF appears in the package's development dependencies because the project uses it in its development and testing environment.
 
-The package is maintained by the author of this article; implementation and metadata details below refer to v0.3.4.
+The package is maintained by the author of this article; implementation and metadata details below refer to v0.3.5.
 
 This article examines the package's declared requirements, its package classifiers, and the environment used by its CI workflow. These represent different aspects of compatibility and should not be treated as interchangeable.
 
 ## Runtime Requirements
 
-The runtime requirements declared by `django-api-versioning` v0.3.4 are:
+The runtime requirements declared by `django-api-versioning` v0.3.5 are:
 
 | Requirement | Declared value |
 | --- | --- |
@@ -46,7 +46,7 @@ Django REST Framework is not included in the package's runtime dependencies.
 
 If your application uses DRF, install it as an application dependency. Its required version depends on your application's needs and the compatibility of the DRF release with your Django version.
 
-See the [v0.3.4 package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/pyproject.toml).
+See the [v0.3.5 package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/pyproject.toml).
 
 ## Runtime Dependencies vs. Development Dependencies
 
@@ -148,9 +148,9 @@ Package metadata and automated test configuration answer different questions:
 - Package metadata declares minimum runtime requirements and classifiers.
 - CI configuration describes the environment in which automated tests are executed.
 
-The v0.3.4 repository contains a GitHub Actions workflow that builds a Docker image and runs the test suite inside it.
+The v0.3.5 repository contains a GitHub Actions workflow that builds a Docker image and runs the test suite inside it.
 
-The [v0.3.4 CI workflow](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/.github/workflows/tests.yml) does not define a separate matrix of Python, Django, and DRF versions.
+The [v0.3.5 CI workflow](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/.github/workflows/tests.yml) does not define a separate matrix of Python, Django, and DRF versions.
 
 The repository's Dockerfile defines the Python version using:
 
@@ -216,10 +216,10 @@ The DRF check is optional because `django-api-versioning` does not require DRF a
 
 The published package is available on [PyPI](https://pypi.org/project/django-api-versioning/).
 
-Install v0.3.4 with pip:
+Install v0.3.5 with pip:
 
 ```bash
-python -m pip install django-api-versioning==0.3.4
+python -m pip install django-api-versioning==0.3.5
 ```
 
 Pip reads the package metadata and resolves its declared runtime dependencies, including Django.
@@ -239,7 +239,7 @@ Choose a DRF version compatible with the Django version used by your application
 For an application that uses `django-api-versioning` but does not use Django REST Framework, a minimal `requirements.txt` can be:
 
 ```text
-django-api-versioning==0.3.4
+django-api-versioning==0.3.5
 ```
 
 Pip resolves the package's declared runtime dependencies, including Django.
@@ -247,14 +247,14 @@ Pip resolves the package's declared runtime dependencies, including Django.
 If your application also uses DRF, declare it separately:
 
 ```text
-django-api-versioning==0.3.4
+django-api-versioning==0.3.5
 djangorestframework
 ```
 
 You can specify an explicit DRF constraint based on your application's compatibility requirements:
 
 ```text
-django-api-versioning==0.3.4
+django-api-versioning==0.3.5
 djangorestframework>=3.18
 ```
 
@@ -267,20 +267,20 @@ A version constraint controls which package releases pip may select.
 ### Exact version
 
 ```text
-django-api-versioning==0.3.4
+django-api-versioning==0.3.5
 ```
 
-Requests the `0.3.4` release of the package.
+Requests the `0.3.5` release of the package.
 
 This constraint does not pin Django or other transitive dependencies.
 
 ### Compatible release
 
 ```text
-django-api-versioning~=0.3.4
+django-api-versioning~=0.3.5
 ```
 
-Allows compatible releases starting from `0.3.4` within the `0.3.x` series, excluding `0.4.0`.
+Allows compatible releases starting from `0.3.5` within the `0.3.x` series, excluding `0.4.0`.
 
 ### Version range
 
@@ -338,7 +338,7 @@ Then test the public imports:
 from django_api_versioning import endpoint, ver_range, api_reverse
 ```
 
-These are the public imports exposed by v0.3.4. For the package's routing behavior and configuration semantics, see the [versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+These are the public imports exposed by v0.3.5. For the package's routing behavior and configuration semantics, see the [versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Important Compatibility Considerations
 
@@ -348,7 +348,7 @@ When evaluating compatibility, keep these distinctions in mind:
 - **Django requirement:** The package declares Django `>=4.2`.
 - **DRF dependency:** DRF is not a runtime dependency of the package. It is included in the development dependencies.
 - **Package classifiers:** Listed Python and Django versions are metadata, not proof of automated test coverage.
-- **CI configuration:** The v0.3.4 test workflow builds a Docker image using Python `3.15` by default. It does not define a multi-version compatibility matrix.
+- **CI configuration:** The v0.3.5 test workflow builds a Docker image using Python `3.15` by default. It does not define a multi-version compatibility matrix.
 - **Dependency resolution:** Minimum-version constraints do not guarantee that every future build uses the same dependency versions.
 
 Meeting the declared minimum requirements is necessary, but it does not prove that every possible combination of newer dependency versions has been tested.
@@ -357,7 +357,7 @@ For production deployments, verify the dependency combination used by your appli
 
 ## Conclusion
 
-For `django-api-versioning` v0.3.4, the declared runtime requirements are:
+For `django-api-versioning` v0.3.5, the declared runtime requirements are:
 
 - Python `3.10` or newer.
 - Django `4.2` or newer.

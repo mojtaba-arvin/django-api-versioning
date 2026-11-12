@@ -14,7 +14,7 @@ keywords:
 
 # Django API versioning: choosing a routing model
 
-> **Assessment:** Package behavior in this article is verified against `django-api-versioning` 0.3.4 on 2026-11-12. The author is also the package maintainer; package-specific claims link to the source and canonical contract reference.
+> **Assessment:** Package behavior in this article is verified against `django-api-versioning` 0.3.5 on 2026-11-12. The author is also the package maintainer; package-specific claims link to the source and canonical contract reference.
 
 ## The architectural question
 
@@ -200,7 +200,7 @@ This behavior does not merge Python classes, serializers, permissions, or respon
 
 There is also a material trade-off: if an endpoint contract changes and the team forgets to register an override, the previous implementation continues to serve later versions. That can unintentionally expose an old contract and make version-by-version differences harder to see. Inspect the registered version matrix and test behavior—not just route existence—across the versions you support.
 
-**ViewSet limitation:** DRF ViewSet classes cannot be decorated directly with `@endpoint` in 0.3.4. The registry calls `as_view()` without the `actions` mapping that a ViewSet requires. Use DRF's `DefaultRouter` or `SimpleRouter` and mount its generated URLs separately. That is router-based DRF routing, not automatic ViewSet registration or inheritance by this package. A manually configured `ViewSet.as_view({"get": "list"})` callable represents a specific route and does not replace router generation for the full action set.
+**ViewSet limitation:** DRF ViewSet classes cannot be decorated directly with `@endpoint` in 0.3.5. The registry calls `as_view()` without the `actions` mapping that a ViewSet requires. Use DRF's `DefaultRouter` or `SimpleRouter` and mount its generated URLs separately. That is router-based DRF routing, not automatic ViewSet registration or inheritance by this package. A manually configured `ViewSet.as_view({"get": "list"})` callable represents a specific route and does not replace router generation for the full action set.
 
 ## Compare the trade-offs
 
@@ -221,7 +221,7 @@ No option is universally best. Manual routing remains appropriate when the route
 
 For the package, the trade-off is between fewer repeated route declarations and more implicit routing behavior. The team must understand the segment rule, import order, collision precedence, and the risk of a missed override. It should test the route matrix and contract behavior for each supported version. Do not infer lower runtime latency or performance from a smaller URLconf; this is a code-organization and routing-registration choice, not a benchmark result.
 
-**Maturity snapshot (2026-11-12):** The repository identifies release 0.3.4 as Beta. Package metadata requires Python 3.10 or later and Django 4.2 or later; DRF is an optional development extra, not a core runtime dependency. The 0.3.4 changelog reports 131 tests passing during release verification, and the GitHub Actions workflow builds and runs the test container. These are project-reported facts, not independent adoption evidence or a published DRF compatibility matrix. See the [changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md), [test workflow](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/.github/workflows/tests.yml), and [test suite](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/tests).
+**Maturity snapshot (2026-11-12):** The repository identifies release 0.3.5 as Beta. Package metadata requires Python 3.10 or later and Django 4.2 or later; DRF is an optional development extra, not a core runtime dependency. The 0.3.5 changelog reports 131 tests passing during release verification, and the GitHub Actions workflow builds and runs the test container. These are project-reported facts, not independent adoption evidence or a published DRF compatibility matrix. See the [changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md), [test workflow](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/.github/workflows/tests.yml), and [test suite](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/tests).
 
 ## When the benefit is smaller
 

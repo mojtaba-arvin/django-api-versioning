@@ -63,7 +63,7 @@
 | UpdateAPIView | ✅ VERIFIED | GenericAPIViewIntegrationTestCase |
 | DestroyAPIView | ✅ VERIFIED | GenericAPIViewIntegrationTestCase |
 | ViewSet | ✅ VERIFIED | DRFRouterIntegrationTestCase |
-| ModelViewSet | ✅ VERIFIED | (not used in tests but supported) |
+| ModelViewSet | ⚠️ PARTIAL | Configured `as_view(actions)` callables can be registered individually; direct class decoration is not supported. Standard router registration remains separate from the package registry. |
 | DefaultRouter | ✅ VERIFIED | DRFRouterIntegrationTestCase |
 | SimpleRouter | ✅ VERIFIED | DRFRouterIntegrationTestCase |
 | @action decorator | ✅ VERIFIED | DRFRouterIntegrationTestCase |
@@ -270,6 +270,6 @@ All compatibility requirements met. Package is safe for production deployment wi
 
 ---
 
-**Last Updated**: 2026-11-10 (v0.3.3)
+**Documentation Reviewed**: 2026-11-12 (v0.3.5)
 **Verified By**: Comprehensive Testing Suite
 **Status**: ✅ COMPLETE

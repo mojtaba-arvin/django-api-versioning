@@ -469,7 +469,7 @@ can be registered with `@endpoint` for a specific route. It is not a replacement
 
 DRF's `@action` decorator is intended for ViewSets and relies on router-based action mapping. It does not provide the same mechanism for `GenericAPIView` subclasses. For additional generic-view endpoints, define separate view classes and register each at its starting version.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
 
 This follows the package's canonical ViewSet and Router boundary described earlier.
 

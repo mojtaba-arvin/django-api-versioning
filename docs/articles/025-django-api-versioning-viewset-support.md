@@ -15,7 +15,7 @@ keywords:
 
 # django-api-versioning ViewSet Support and Limitations
 
-`django-api-versioning` v0.3.4 supports versioned registration of configured DRF ViewSet callables, but it does not accept `ModelViewSet` classes directly in `@endpoint`.
+`django-api-versioning` v0.3.5 supports versioned registration of configured DRF ViewSet callables, but it does not accept `ModelViewSet` classes directly in `@endpoint`.
 
 The distinction matters because DRF ViewSets require an explicit action mapping when converted into callable views. The package's decorator does not infer that mapping. However, a configured `ModelViewSet.as_view({...})` callable can be registered through `@endpoint`, allowing ViewSet-based handlers to participate in the package's version registry.
 
@@ -58,7 +58,7 @@ API_BASE_PATH = "api/v{version}/"
 
 The package combines this base path with the `postfix` supplied to `@endpoint`. For example, `version=1` and `postfix="products/"` produce `/api/v1/products/`.
 
-The `postfix` argument is the route suffix, not the complete URL. The complete URL construction and version-registration rules are documented in the [canonical v0.3.4 routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+The `postfix` argument is the route suffix, not the complete URL. The complete URL construction and version-registration rules are documented in the [canonical v0.3.5 routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 The router-based pattern shown later uses explicit URL prefixes. Those router-generated routes are separate from the package's registry, so the package's version settings do not determine which ViewSet callable a router registers.
 
@@ -1029,9 +1029,9 @@ For a project that wants the package's version registry while retaining ViewSet-
 
 ## Next steps
 
-For the decorator's implementation, see the [v0.3.4 decorators source](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/django_api_versioning/decorators.py).
+For the decorator's implementation, see the [v0.3.5 decorators source](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/django_api_versioning/decorators.py).
 
-For the integration project's URL configuration and import order, see the [v0.3.4 integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/integration_test_project/project/urls.py).
+For the integration project's URL configuration and import order, see the [v0.3.5 integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/integration_test_project/project/urls.py).
 
 For the underlying ViewSet behavior, consult the official DRF documentation on [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/).
 

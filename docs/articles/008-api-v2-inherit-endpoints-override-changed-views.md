@@ -311,7 +311,7 @@ If you want to keep a ViewSet, you have two options:
 
 The package example uses generic views, not ViewSets. It demonstrates versioned endpoint registration and view inheritance, but it is not a drop-in replacement for all router-generated ViewSet functionality.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
 
 ## Trade-offs and scope
 
@@ -339,7 +339,7 @@ The important distinction is that route reuse does not prove API contract compat
 
 ## Next steps
 
-If your API has several versions and a growing set of unchanged endpoints, compare the registration model with your current routing structure. The package's [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.4/django_api_versioning/decorators.py) contains the exact signature and version-range registration logic.
+If your API has several versions and a growing set of unchanged endpoints, compare the registration model with your current routing structure. The package's [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/django_api_versioning/decorators.py) contains the exact signature and version-range registration logic.
 
 Disclosure: I maintain `django-api-versioning`, the package discussed in this article.
 

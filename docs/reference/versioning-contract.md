@@ -1,8 +1,8 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Applies to:** django-api-versioning 0.3.4
-> **Verified against:** main-branch source on 2026-11-12.
+> **Applies to:** django-api-versioning 0.3.5
+> **Verified against:** the v0.3.5 release source on 2026-11-12.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
@@ -49,7 +49,7 @@ Import the generated URL patterns from:
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 ```
 
-The decorator signature in 0.3.4 is:
+The decorator signature in 0.3.5 is:
 
 ```python
 endpoint(

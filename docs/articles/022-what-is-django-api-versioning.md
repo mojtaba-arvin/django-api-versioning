@@ -21,7 +21,7 @@ The package uses a registry to turn those declarations into concrete URL pattern
 
 This is the central idea behind `django-api-versioning`: **declare an implementation once, then let the registration layer carry it forward across the configured version range.**
 
-The package is maintained by the author of this article; implementation details below refer to version 0.3.4.
+The package is maintained by the author of this article; implementation details below refer to version 0.3.5.
 
 This article explains the registration model, shows how to use it in a Django REST Framework project, and identifies the boundaries between package behavior and framework behavior.
 
@@ -86,7 +86,7 @@ The package's public decorator is imported from the top-level namespace:
 from django_api_versioning import endpoint
 ```
 
-Its signature in v0.3.4 is:
+Its signature in v0.3.5 is:
 
 ```python
 from typing import Callable, TypeVar
@@ -568,7 +568,7 @@ This distinction matters when reviewing a versioned API: route ownership is dete
 
 ## What the package provides
 
-In v0.3.4, the package provides a focused routing and URL-registration layer:
+In v0.3.5, the package provides a focused routing and URL-registration layer:
 
 - **Declarative registration:** Views register their URL patterns through `@endpoint`.
 - **Forward-extending segments:** A declaration at version N covers N through `API_MAX_VERSION`, unless a later segment takes over.
@@ -581,7 +581,7 @@ These features change how the project declares and generates versioned URLs. The
 
 ## API lifecycle behavior
 
-Version 0.3.4 includes `LifecycleMiddleware`, configured through `API_VERSION_LIFECYCLE`.
+Version 0.3.5 includes `LifecycleMiddleware`, configured through `API_VERSION_LIFECYCLE`.
 
 Add the middleware to Django's middleware settings:
 
@@ -629,13 +629,13 @@ There is also a standards consideration. The package currently emits `Deprecatio
 
 The `Sunset` header uses an HTTP-date value. Its meaning and format are defined by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html). The package converts a valid configured ISO date into an HTTP-date value. Use a valid date and verify the resulting value before relying on it in a production response.
 
-The v0.3.4 lifecycle configuration does not define a separate deprecation-date field or validate the ordering between a deprecation date and a sunset date. The application must coordinate its deprecation announcement and retirement schedule. The sunset date should not precede the announced deprecation date.
+The v0.3.5 lifecycle configuration does not define a separate deprecation-date field or validate the ordering between a deprecation date and a sunset date. The application must coordinate its deprecation announcement and retirement schedule. The sunset date should not precede the announced deprecation date.
 
 ## What the package does not provide
 
 The package should not be treated as a complete API compatibility or documentation framework.
 
-In v0.3.4, it does not provide:
+In v0.3.5, it does not provide:
 
 - **A version-discovery endpoint:** It does not generate an endpoint such as `/api/versions/`.
 - **Automatic OpenAPI schema generation:** Version-specific schemas remain the responsibility of documentation tools such as [drf-spectacular](https://drf-spectacular.readthedocs.io/).

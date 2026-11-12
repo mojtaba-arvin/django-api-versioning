@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-api-versioning"
-version = "0.3.4"
-description = "Django API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint versioning, automatic URL registration, backward compatibility, and segment-based forward inheritance."
+version = "0.3.5"
+description = "API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint registration, automatic URL routing, version-specific views, and forward inheritance for backward-compatible API evolution."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
