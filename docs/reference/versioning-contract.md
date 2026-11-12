@@ -15,15 +15,21 @@ Do not copy DRF examples using string identifiers such as "v1" or "1.0" into thi
 
 ## 2. Canonical imports and public API
 
-Import the decorator and helper from the module that defines them:
+The package exposes `endpoint` and `ver_range` from its top-level namespace.
+
+Use the public import path:
+
+    from django_api_versioning import endpoint, ver_range
+
+The decorators are implemented in `django_api_versioning.decorators`, so importing directly from that module also works:
 
     from django_api_versioning.decorators import endpoint, ver_range
+
+For application code and documentation examples, prefer the top-level import path. It is the package's public API and avoids coupling consumers to the internal module structure.
 
 Import the generated URL patterns from:
 
     from django_api_versioning.urls import urlpatterns as api_urlpatterns
-
-The package does not expose endpoint from the top-level django_api_versioning namespace. Do not document or use an import from django_api_versioning import endpoint.
 
 The decorator signature in 0.3.4 is:
 
@@ -92,7 +98,7 @@ versions=[...] registers the implementation only for the listed versions:
 
 This registers v1, v3, and v4, but not v2. Use ver_range(start, end) when a bounded inclusive set is clearer:
 
-    from django_api_versioning.decorators import endpoint, ver_range
+    from django_api_versioning import endpoint, ver_range
 
     @endpoint("legacy/", versions=ver_range(1, 3))
     def legacy(request):
