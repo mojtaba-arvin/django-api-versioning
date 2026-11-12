@@ -8,13 +8,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
-**Django API Versioning** is a Python package for [API versioning in Django](https://github.com/mojtaba-arvin/django-api-versioning) and Django REST Framework (DRF) projects. Declare an endpoint once with `@endpoint`, and the registry registers every versioned URL for you — no manual `path()` in `urls.py`, no `if request.version` in views.
+**Django API Versioning** is a Python package for [API versioning in Django](https://github.com/mojtaba-arvin/django-api-versioning) and Django REST Framework (DRF) projects. Declare an endpoint with `@endpoint`, and the registry generates its versioned URL patterns automatically — no manual `path()` declarations for individual API versions, and no `if request.version` in views.
 
 ## "I need to change the response. v1 clients must not break."
 
 You shipped v1 with a string amount. Now the team needs integer cents and an explicit currency code. Changing the view breaks every v1 client in production.
 
-Two contracts, two decorators, **zero changes to `urls.py`**:
+Two contracts, two decorators, **no manual URL entries for individual versions**:
 
 ```python
 # apps/orders/views.py
@@ -30,7 +30,9 @@ def order_list_v2(request):
     return JsonResponse({"total": 1999, "currency": "USD"})
 ```
 
-That is the entire change. **Nothing goes in** `urls.py`. The package's URLconf — which you include once during setup — picks both routes up automatically.
+Both declarations are registered when `apps.orders.views` is imported. During the initial project setup, make sure this module is imported before the package's URL patterns are loaded (see Quick Start below).
+
+Once the module is included in that setup, adding or changing endpoint declarations inside it does not require adding individual `path()` entries to `urls.py`.
 
 ```text
 GET /api/v1/orders/  →  {"total": "19.99"}
@@ -83,6 +85,7 @@ Django REST Framework is optional and auto-detected.
 
 **Tested Versions**: Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (all verified working)
 
+
 ## Quick Start
 
 ### 1. Configure Django settings
@@ -101,20 +104,40 @@ API_MAX_VERSION = 3
 
 `API_BASE_PATH` **must** contain the `{version}` placeholder.
 
-### 2. Include the generated URL patterns
+### 2. Define your API endpoints
 
-If your project doesn't have a root URLconf yet:
+Create a view and decorate it with `@endpoint`.
+
+For example, in your application's `views.py`:
 
 ```python
-# settings.py
-ROOT_URLCONF = "django_api_versioning.urls"
+# your_app/views.py
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from django_api_versioning.decorators import endpoint
+
+
+@endpoint("invoices/<int:invoice_id>/", version=2, view_name="invoice-detail")
+class InvoiceDetailView(APIView):
+    def get(self, request, invoice_id):
+        return Response({"id": invoice_id, "status": "paid"})
 ```
 
-If it does, include them:
+The decorator registers the endpoint when this module is imported.
+
+### 3. Import your endpoint modules and include the generated URLs
+
+Django does not automatically import your application's `views.py` modules. You must import every module containing `@endpoint` declarations before importing the package's URL patterns.
+
+In your project's root URL configuration:
 
 ```python
 # project/urls.py
 from django.urls import include, path
+
+from your_app import views  # noqa: F401
+
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 urlpatterns = [
@@ -123,34 +146,25 @@ urlpatterns = [
 ]
 ```
 
-After this one-time setup, you never touch urls.py again. Every @endpoint registers its own routes.
+Replace `your_app` with the actual Python package name of your Django application.
 
-### 3. Decorate your views
+If your endpoint declarations are spread across multiple modules, import each module in the same way, before importing `api_urlpatterns`.
 
-Example for DRF's APIView:
+The imported modules do not need to be referenced elsewhere. Their imports execute the decorators and register the endpoints.
 
-```python
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from django_api_versioning.decorators import endpoint
+**Important:** Import order matters. Import endpoint modules first, then import `api_urlpatterns`.
 
-@endpoint("invoices/<int:invoice_id>/", version=2, view_name="invoice-detail")
-class InvoiceDetailView(APIView):
-    def get(self, request, invoice_id):
-        return Response({"id": invoice_id, "status": "paid"})
-```
+You do not need to write individual `path()` entries for versioned endpoints. The package generates those URL patterns from the registered declarations.
 
-That's it. You now have:
+You now have:
 
 ```text
 GET /api/v1/invoices/42/  →  404    # endpoint introduced in v2
 GET /api/v2/invoices/42/  →  {"id": 42, "status": "paid"}
 GET /api/v3/invoices/42/  →  {"id": 42, "status": "paid"}
-GET /api/v4/invoices/42/  →  {"id": 42, "status": "paid"}
-GET /api/v5/invoices/42/  →  {"id": 42, "status": "paid"}
 ```
 
-path() converters (<int:pk>, <slug:name>) work as expected.
+Path converters such as `<int:pk>` and `<slug:name>` work as expected.
 
 ## Before and after
 
@@ -194,8 +208,13 @@ def order_list(request):
 ```
 
 ```python
-# project/urls.py — written once, never edited when a version is added
+# project/urls.py — configured once
 from django.urls import include, path
+
+# Import modules containing @endpoint declarations.
+from apps.users import views as _user_views  # noqa: F401
+from apps.orders import views as _order_views  # noqa: F401
+
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 urlpatterns = [
@@ -212,7 +231,7 @@ The two `urls.py` blocks above produce the same routing. The difference is what 
 | Unchanged endpoint in v3 | New `path()`, new view function | Nothing — segment extends |
 | Find which view serves v3 | Search three files | `python manage.py check_versions` |
 | Two teams add routes | Merge conflict in `urls.py` | Each team edits its own `views.py` |
-| File size after 5 versions × 150 endpoints | ~750 `path()` entries | 3-line `urls.py` |
+| URL configuration | ~750 `path()` entries | One URL include plus endpoint-module imports |
 
 Verify the routing:
 
@@ -437,7 +456,6 @@ This fallback approach ensures Deprecation/Sunset headers and retired version en
 | `API_BASE_PATH` | `"api/v{version}/"` | `Prefix template. Must contain {version}.` |
 | `API_MIN_VERSION` | `1` | `Lowest valid version.` |
 | `API_MAX_VERSION` | Required | `Highest valid version. Required setting with no default.` |
-| `ROOT_URLCONF` | `None` (see note) | `Optional. Set to "django_api_versioning.urls" only if your project has no existing root URLconf. Otherwise use include() in your urls.py.` |
 | `API_VERSION_LIFECYCLE` | `{}` | `Per-version status and sunset.` |
 | `API_VERSIONING_CHANNELS` | `["path"]` | `Reserved. Only path is currently honored.` |
 | `API_EFFECTIVE_VERSION_RESOLVER` | `None` | `Reserved. Not yet wired into routing.` |
