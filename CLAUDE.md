@@ -118,39 +118,34 @@ Token diagnostic (run first if push fails):
 
 ## 7. Testing
 
-Two modes. Never use system `python3` (3.8.10).
+Three modes. `tox.ini` defines the supported Python × Django matrix.
+Never modify `tox.ini` to add a Django version without updating
+`pyproject.toml` first.
 
 ### Quick — after EVERY file change
 
-Run only the touched test file. Seconds.
+    python -m pytest <touched_test_file> -v
 
-    pytest <touched_test_file> -v
+### Single — Phase 1 baseline
 
-If no venv is active, use the closest recent one:
+One Python, unit + integration. Full instructions in `/manual-testing`.
 
-    /tmp/env-3.12/bin/python -m pytest <file> -v
+### Full — Phase 10 and before `/release`
 
-### Full — after a logical batch, before any release
+    tox
 
-`/manual-testing` Full mode. Runs BOTH `tests/` (unit) and
-`integration_test_project/tests/` (integration) across
-Python 3.10–3.15.
+Runs every env in `tox.ini` envlist (13 envs: Django 5.2, 6.0, 6.1
+across py310-py315, plus lint). tox handles venv creation, Django
+pinning, pytest-cov, and lint. Do not reimplement it.
 
-Trigger Full after:
-- All bugs of a batch fixed
-- All tests of a batch written
-- Before `/release`
-
-### Compatibility matrix — before release only
-
-`/compat-matrix`. Python × Django, unit + integration per cell.
-Long (~60 min). Never inside a normal work session.
+`tox` output is authoritative. Do not redirect it away. Do not
+append `-q` to ad-hoc pytest calls outside tox.
 
 ### Never
-- Never claim a test passed unless pytest printed `PASSED`.
+- Never claim a test passed unless exit code is 0.
 - Never fabricate counts, coverage, or compatibility claims.
-- Never skip integration tests in Full mode.
-- Never suppress output.
+- Never run `tox` in Phase 1 — that is Single's job.
+- Never reimplement the matrix manually; `tox.ini` is the source.
 
 ## 8. Documentation
 - Allowed: `README.md`, `CHANGELOG.md`, `CLAUDE.md`,
