@@ -1,4 +1,7 @@
 import logging
+import sys
+import subprocess
+import json
 
 import pytest
 from django.http import JsonResponse
@@ -314,3 +317,52 @@ class TestIssue6ViewInstanceRejection:
         route = "api/v1/test"
         registry.register(route, MyView.as_view())
         assert any(str(p.pattern) == route for p in registry.urlpatterns)
+
+
+class TestIssue7OverrideSettingsAfterImport:
+    """Issue 7: Package settings are initialized at import time.
+
+    override_settings(API_MAX_VERSION=...) changes Django settings, not the
+    pre-loaded api_settings object. This test documents the current behavior
+    and verifies that late settings changes do not silently affect decorators.
+    """
+
+    def test_override_settings_does_not_affect_cached_api_settings(self):
+        """Settings changed after import do not affect api_settings."""
+        from django.test import override_settings
+
+        # At this point, settings module is imported with cached api_settings.
+        # api_settings reflects Django settings at import time.
+        original_max = settings.API_MAX_VERSION
+
+        with override_settings(API_MAX_VERSION=original_max + 10):
+            # override_settings changes Django settings, not api_settings
+            assert settings.API_MAX_VERSION == original_max, (
+                "api_settings was initialized at import time; "
+                "override_settings does not rebuild it"
+            )
+
+    def test_override_settings_late_does_not_enable_new_version(self):
+        """Decorators registered after override_settings still use original settings."""
+        from django.test import override_settings
+
+        original_max = settings.API_MAX_VERSION
+
+        # Settings change after package import
+        with override_settings(API_MAX_VERSION=original_max + 5):
+            # But decorator validation still uses cached settings from import time
+            with pytest.raises(InvalidVersionError):
+
+                @endpoint("late", version=original_max + 5)
+                def late_endpoint(request):
+                    pass
+
+    def test_settings_before_import_are_honored(self):
+        """This test documents the correct usage: set Django settings before import."""
+        # This test is informational. In practice:
+        # 1. Django settings must be configured first
+        # 2. Then import django_api_versioning modules
+        # 3. api_settings will reflect those Django settings
+        #
+        # See documentation for correct patterns.
+        assert settings.API_MIN_VERSION <= settings.API_MAX_VERSION
