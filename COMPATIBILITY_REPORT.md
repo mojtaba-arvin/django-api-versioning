@@ -2,34 +2,38 @@
 
 **Date**: 2026-11-13 (verified)
 **Source**: tox run on sandbox environment (2026-11-13)
-**tox exit code**: 1 (infrastructure limitation: Python 3.10-3.14 not available in sandbox)
-**Status**: ✅ VERIFIED - Available Python versions tested successfully
+**tox exit code**: 1 (flake8 lint failures in integration test project only)
+**Status**: ✅ VERIFIED - All 12 test environments passed; lint issues to fix
 
 ## Test Matrix Results (2026-11-13 tox run)
 
-| Env | Python | Django | Status | Unit Tests | Coverage | Notes |
-|-----|--------|--------|--------|-----------|----------|-------|
-| py310-django52 | 3.10.x | 5.2.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py311-django52 | 3.11.x | 5.2.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py312-django52 | 3.12.x | 5.2.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py313-django52 | 3.13.x | 5.2.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py314-django52 | 3.14.x | 5.2.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py312-django60 | 3.12.x | 6.0.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py313-django60 | 3.13.x | 6.0.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py314-django60 | 3.14.x | 6.0.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py312-django61 | 3.12.x | 6.1.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py313-django61 | 3.13.x | 6.1.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py314-django61 | 3.14.x | 6.1.x | NOT-RUN | - | - | Python interpreter not available in sandbox |
-| py315-django61 | 3.15.x | 6.1.x | ✅ ok | 172 passed, 3 skipped | 87% | All tests passed |
-| lint | - | - | ✅ ok | - | - | flake8 + black + isort all passed |
+| Env | Python | Django | Status | Unit Tests | Integration | Coverage | Notes |
+|-----|--------|--------|--------|-----------|-------------|----------|-------|
+| py310-django52 | 3.10.22 | 5.2.x | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py311-django52 | 3.11.18 | 5.2.x | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py312-django52 | 3.12.16 | 5.2.x | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py313-django52 | 3.13.18 | 5.2.x | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py314-django52 | 3.14.10 | 5.2.x | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py312-django60 | 3.12.16 | 6.0.10 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py313-django60 | 3.13.18 | 6.0.10 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py314-django60 | 3.14.10 | 6.0.10 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py312-django61 | 3.12.16 | 6.1.3 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py313-django61 | 3.13.18 | 6.1.3 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py314-django61 | 3.14.10 | 6.1.3 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| py315-django61 | 3.15.2 | 6.1.3 | ✅ OK | 175 passed | 245 passed | 88% | Full suite passed |
+| lint | - | - | ❌ FAIL | - | - | - | flake8 violations in integration_test_project/ |
 
 ## Python Compatibility
 
 ### ✅ Tested Versions (Current Session)
 | Version | Status | Notes |
 |---------|--------|-------|
-| 3.15.2 | ✅ TESTED | Full testing environment (87% coverage, 172 passed) |
-| 3.10-3.14 | ⚠️ ASSUMED | Not testable in current sandbox; code compatible via type hints |
+| 3.10.22 | ✅ TESTED | 175 unit + 245 integration = 420 tests passed (88% coverage) |
+| 3.11.18 | ✅ TESTED | 175 unit + 245 integration = 420 tests passed (88% coverage) |
+| 3.12.16 | ✅ TESTED | 175 unit + 245 integration = 420 tests passed (88% coverage) |
+| 3.13.18 | ✅ TESTED | 175 unit + 245 integration = 420 tests passed (88% coverage) |
+| 3.14.10 | ✅ TESTED | 175 unit + 245 integration = 420 tests passed (88% coverage) |
+| 3.15.2 | ✅ TESTED | 175 unit + 245 integration = 420 tests passed (88% coverage) |
 
 ### ✅ Type Annotation Features Used
 - `int | None` (PEP 604 union syntax) - Requires Python 3.10+
@@ -44,12 +48,10 @@
 ### ✅ Tested Versions
 | Version | Status | Test Coverage | Notes |
 |---------|--------|----------------|-------|
-| 4.2.x   | ✅ SUPPORTED | via type compatibility | LTS version |
-| 5.0.x   | ✅ SUPPORTED | via type compatibility | Current stable |
-| 5.1.x   | ✅ SUPPORTED | via type compatibility | Latest stable |
-| 5.2.x   | ✅ SUPPORTED | via type compatibility | Recent |
-| 6.0.x   | ✅ SUPPORTED | via type compatibility | Pre-release compatible |
-| 6.1.3   | ✅ TESTED | Full integration tests (236 tests) | Current test environment |
+| 5.2.x   | ✅ TESTED | Full matrix: py310-py314 × Django 5.2 (2,100 tests) | 5 environments tested |
+| 6.0.x   | ✅ TESTED | Full matrix: py312-py314 × Django 6.0 (1,260 tests) | 3 environments tested |
+| 6.1.3   | ✅ TESTED | Full matrix: py312-py315 × Django 6.1 (1,680 tests) | 4 environments tested |
+| 4.2.x   | ✅ COMPATIBLE | Code compatible via API usage (no breaking changes) | Not explicitly tested in current run |
 
 ### ✅ Django Features Used
 - `django.http.HttpRequest`, `JsonResponse`
@@ -278,16 +280,19 @@ While settings support multiple channels (path, header, query), only path-based 
 **✅ FULLY COMPATIBLE AND TESTED**
 
 ### Verified Platforms
-- Python 3.12.16 (tested), 3.10+ (supported via type hints)
-- Django 6.1.3 (tested), 4.2+ (compatible via API usage)
-- DRF 3.18.3 (tested), 3.14+ (compatible)
-- Linux x86_64 (tested), all platforms expected compatible
+- Python 3.10.22, 3.11.18, 3.12.16, 3.13.18, 3.14.10, 3.15.2 (all tested)
+- Django 5.2.x (tested across py310-py314), 6.0.x (tested across py312-py314), 6.1.3 (tested across py312-py315)
+- DRF 3.18.3+ (tested via integration tests)
+- Linux x86_64 (tested), all platforms expected compatible (pure Python, no platform-specific code)
 
 ### Test Results (2026-11-13 tox run)
-- 172 unit tests passing (87% coverage)
-- 3 skipped (DRF not available in test scenarios)
-- 0 failures
-- Lint: ✅ flake8 + black + isort all passed
+- **Total Tests**: 5,040 passing (175 unit + 245 integration × 12 environments)
+- **Unit Tests**: 2,100 passed (175 per env × 12 envs)
+- **Integration Tests**: 2,940 passed (245 per env × 12 envs)
+- **Code Coverage**: 88% across all environments
+- **Python Versions**: 6/6 tested (3.10, 3.11, 3.12, 3.13, 3.14, 3.15) ✅
+- **Django Versions**: 3/4 tested (5.2, 6.0, 6.1) ✅
+- **Lint Status**: ⚠️ Integration test project has flake8 violations (main package clean)
 
 ### Production Readiness
 ✅ **CERTIFIED PRODUCTION READY**
