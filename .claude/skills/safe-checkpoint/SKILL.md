@@ -58,6 +58,14 @@ Only intended files, no secrets.
 
 ### 5. Commit
 
+Before writing the message, verify:
+- Subject describes WHAT changed, not WHERE it came from.
+- No spec numbers, no "as specified", no "requirement N".
+- A future reader with no access to the original task can
+  understand the change from the message alone.
+
+Then:
+
 ```bash
 git commit -m "<type>: <short description>"
 ```
@@ -90,3 +98,7 @@ Exit 0 = verified. Non-zero = STOP, diagnose, do not edit another file.
 - Never run `/manual-testing` Full here — Quick only.
 - Never batch multiple file changes into one commit unless coherent
   (see CLAUDE.md Section 4).
+- Never reference internal task-spec numbering in the commit
+  message ("Issue N", "Phase N", "Bug N", "ERR N"). Describe
+  the behavior in domain terms. See CLAUDE.md Section 4
+  "Commit message content rules".

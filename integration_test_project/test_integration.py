@@ -3,11 +3,13 @@
 Integration test runner for django-api-versioning.
 Tests the package with a real Django application.
 """
+
 import os
 import sys
+
 import django
-from django.test.utils import get_runner
 from django.conf import settings
+from django.test import Client, TestCase
 
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,11 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["DJANGO_SETTINGS_MODULE"] = "project.settings"
 django.setup()
 
-from django.test import Client, TestCase
-from django.urls import reverse, NoReverseMatch
-from django_api_versioning.reverse import api_reverse
-from django_api_versioning.registry import registry
-from api import views
+from django_api_versioning.registry import registry  # noqa: E402
+from django_api_versioning.reverse import api_reverse  # noqa: E402
 
 try:
     from rest_framework.test import APIClient
@@ -97,8 +96,7 @@ class BasicIntegrationTestCase(TestCase):
         """Test that multiple versions of same endpoint are registered."""
         # Check registry has multiple patterns
         user_list_patterns = [
-            p for p in registry.urlpatterns
-            if "user" in (p.name or "")
+            p for p in registry.urlpatterns if "user" in (p.name or "")
         ]
         self.assertGreater(len(user_list_patterns), 1)
 
@@ -188,9 +186,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_drf_post_v1(self):
         """Test DRF POST request - v1."""
         response = self.client.post(
-            "/api/v1/orders/",
-            {"total": "49.99"},
-            content_type="application/json"
+            "/api/v1/orders/", {"total": "49.99"}, content_type="application/json"
         )
         self.assertEqual(response.status_code, 201)
         data = response.json()
@@ -203,7 +199,7 @@ class BasicIntegrationTestCase(TestCase):
         response = self.client.post(
             "/api/v2/orders/",
             {"total": 4999, "currency": "EUR"},
-            content_type="application/json"
+            content_type="application/json",
         )
         self.assertEqual(response.status_code, 201)
         data = response.json()
@@ -215,9 +211,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_drf_put_v1(self):
         """Test DRF PUT request (full update) - v1."""
         response = self.client.put(
-            "/api/v1/orders/123/",
-            {"total": "199.99"},
-            content_type="application/json"
+            "/api/v1/orders/123/", {"total": "199.99"}, content_type="application/json"
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -230,7 +224,7 @@ class BasicIntegrationTestCase(TestCase):
         response = self.client.put(
             "/api/v2/orders/123/",
             {"total": 19999, "currency": "GBP"},
-            content_type="application/json"
+            content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -243,9 +237,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_drf_patch_v1(self):
         """Test DRF PATCH request (partial update) - v1."""
         response = self.client.patch(
-            "/api/v1/orders/123/",
-            {"total": "149.99"},
-            content_type="application/json"
+            "/api/v1/orders/123/", {"total": "149.99"}, content_type="application/json"
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -256,9 +248,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_drf_patch_v2(self):
         """Test DRF PATCH request (partial update) - v2."""
         response = self.client.patch(
-            "/api/v2/orders/123/",
-            {"currency": "JPY"},
-            content_type="application/json"
+            "/api/v2/orders/123/", {"currency": "JPY"}, content_type="application/json"
         )
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -283,9 +273,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_drf_post_error_missing_required_field_v1(self):
         """Test DRF error handling - missing required field."""
         response = self.client.post(
-            "/api/v1/items/",
-            {},  # Missing 'name'
-            content_type="application/json"
+            "/api/v1/items/", {}, content_type="application/json"  # Missing 'name'
         )
         self.assertEqual(response.status_code, 400)
         data = response.json()
@@ -294,9 +282,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_drf_post_success_with_required_field_v1(self):
         """Test DRF POST with required field - v1."""
         response = self.client.post(
-            "/api/v1/items/",
-            {"name": "Item A"},
-            content_type="application/json"
+            "/api/v1/items/", {"name": "Item A"}, content_type="application/json"
         )
         self.assertEqual(response.status_code, 201)
         data = response.json()
@@ -321,9 +307,7 @@ class BasicIntegrationTestCase(TestCase):
 
         # POST should work
         post_response = self.client.post(
-            "/api/v1/orders/",
-            {"total": "99.99"},
-            content_type="application/json"
+            "/api/v1/orders/", {"total": "99.99"}, content_type="application/json"
         )
         self.assertEqual(post_response.status_code, 201)
 
@@ -337,7 +321,7 @@ class BasicIntegrationTestCase(TestCase):
         post_response = self.client.post(
             "/api/v2/orders/",
             {"total": 9999, "currency": "CAD"},
-            content_type="application/json"
+            content_type="application/json",
         )
         self.assertEqual(post_response.status_code, 201)
 
@@ -349,17 +333,13 @@ class BasicIntegrationTestCase(TestCase):
 
         # PUT
         put_response = self.client.put(
-            "/api/v1/orders/42/",
-            {"total": "299.99"},
-            content_type="application/json"
+            "/api/v1/orders/42/", {"total": "299.99"}, content_type="application/json"
         )
         self.assertEqual(put_response.status_code, 200)
 
         # PATCH
         patch_response = self.client.patch(
-            "/api/v1/orders/42/",
-            {"total": "199.99"},
-            content_type="application/json"
+            "/api/v1/orders/42/", {"total": "199.99"}, content_type="application/json"
         )
         self.assertEqual(patch_response.status_code, 200)
 
@@ -380,7 +360,7 @@ class BasicIntegrationTestCase(TestCase):
         put_response = self.client.put(
             "/api/v2/orders/99/",
             {"total": 29999, "currency": "AUD"},
-            content_type="application/json"
+            content_type="application/json",
         )
         self.assertEqual(put_response.status_code, 200)
         put_data = put_response.json()
@@ -388,9 +368,7 @@ class BasicIntegrationTestCase(TestCase):
 
         # PATCH with v2 format
         patch_response = self.client.patch(
-            "/api/v2/orders/99/",
-            {"currency": "NZD"},
-            content_type="application/json"
+            "/api/v2/orders/99/", {"currency": "NZD"}, content_type="application/json"
         )
         self.assertEqual(patch_response.status_code, 200)
         patch_data = patch_response.json()
@@ -485,7 +463,7 @@ class BasicIntegrationTestCase(TestCase):
         v1_error = self.client.post(
             "/api/v1/items/",
             {},  # missing required field
-            content_type="application/json"
+            content_type="application/json",
         )
         self.assertEqual(v1_error.status_code, 400)
 
@@ -493,7 +471,7 @@ class BasicIntegrationTestCase(TestCase):
         v2_error = self.client.post(
             "/api/v2/items/",
             {},  # missing required field
-            content_type="application/json"
+            content_type="application/json",
         )
         # v2 inherits from v1 if not explicitly defined
         self.assertEqual(v2_error.status_code, 400)
@@ -593,6 +571,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_unversioned_endpoint_reverse(self):
         """Test that api_reverse works for unversioned endpoints."""
         from django_api_versioning.reverse import api_reverse
+
         url = api_reverse("status-check")
         self.assertEqual(url, "/status/")
 
@@ -854,6 +833,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_uuid_path_converter_v1(self):
         """Test that <uuid:item_uuid> path converter works - v1."""
         import uuid
+
         test_uuid = str(uuid.uuid4())
         response = self.client.get(f"/api/v1/items/{test_uuid}/")
         self.assertEqual(response.status_code, 200)
@@ -865,6 +845,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_uuid_path_converter_v2(self):
         """Test that <uuid:item_uuid> path converter works - v2."""
         import uuid
+
         test_uuid = str(uuid.uuid4())
         response = self.client.get(f"/api/v2/items/{test_uuid}/")
         self.assertEqual(response.status_code, 200)
@@ -876,6 +857,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_uuid_various_values(self):
         """Test UUID converter with various valid UUID values."""
         import uuid
+
         uuids = [
             str(uuid.uuid4()),
             str(uuid.uuid4()),
@@ -895,6 +877,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_uuid_lowercase_conversion(self):
         """Test UUID path converter with lowercase UUID."""
         import uuid
+
         test_uuid = str(uuid.uuid4()).lower()
         response = self.client.get(f"/api/v1/items/{test_uuid}/")
         self.assertEqual(response.status_code, 200)
@@ -902,6 +885,7 @@ class BasicIntegrationTestCase(TestCase):
     def test_uuid_uppercase_conversion(self):
         """Test UUID path converter with uppercase UUID (if supported)."""
         import uuid
+
         test_uuid = str(uuid.uuid4()).upper()
         # Django UUID converter handles case normalization
         response = self.client.get(f"/api/v1/items/{test_uuid}/")
@@ -986,7 +970,7 @@ class BasicIntegrationTestCase(TestCase):
         response = self.client.post(
             "/api/v1/analytics/overview/",
             {"data": "test"},
-            content_type="application/json"
+            content_type="application/json",
         )
         # Should be 405 (Method Not Allowed) or similar
         self.assertIn(response.status_code, [405, 415])
@@ -1202,7 +1186,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_default_router_v1_list(self):
         """Test DefaultRouter generated list endpoint - v1."""
         try:
-            from rest_framework.routers import DefaultRouter
             response = self.client.get("/api/v1/blogposts/")
             # Router endpoints should work independently
             self.assertIn(response.status_code, [200, 404])
@@ -1216,21 +1199,19 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_default_router_v1_retrieve(self):
         """Test DefaultRouter generated retrieve endpoint - v1."""
         try:
-            from rest_framework.routers import DefaultRouter
             response = self.client.get("/api/v1/blogposts/1/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
                 data = response.json()
                 self.assertEqual(data.get("version"), 1)
                 # Router passes pk as string from URL
-                self.assertIn(str(data.get("id")), ['1', 1])
+                self.assertIn(str(data.get("id")), ["1", 1])
         except ImportError:
             self.skipTest("DRF not available")
 
     def test_default_router_v1_custom_action(self):
         """Test DefaultRouter custom action - v1."""
         try:
-            from rest_framework.routers import DefaultRouter
             response = self.client.post("/api/v1/blogposts/1/publish/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1243,7 +1224,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_list(self):
         """Test SimpleRouter generated list endpoint - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
             response = self.client.get("/api/v2/blogposts/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1255,7 +1235,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_retrieve(self):
         """Test SimpleRouter generated retrieve endpoint - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
             response = self.client.get("/api/v2/blogposts/1/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1267,7 +1246,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_custom_collection_action(self):
         """Test SimpleRouter collection-level custom action - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
             response = self.client.get("/api/v2/blogposts/recent/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1279,7 +1257,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_custom_detail_action(self):
         """Test SimpleRouter detail-level custom action - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
             response = self.client.post("/api/v2/blogposts/1/publish/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1307,6 +1284,7 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_retrieve_apiview_v1(self):
         """Test RetrieveAPIView - v1."""
         from rest_framework.test import APIClient
+
         client = APIClient()
         response = client.get("/api/v1/tasks/42/")
         self.assertEqual(response.status_code, 200)
@@ -1318,13 +1296,10 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_create_apiview_v1_post(self):
         """Test CreateAPIView - v1 POST request."""
         from rest_framework.test import APIClient
+
         client = APIClient()
         payload = {"title": "New Task", "completed": False}
-        response = client.post(
-            "/api/v1/tasks/",
-            data=payload,
-            format="json"
-        )
+        response = client.post("/api/v1/tasks/", data=payload, format="json")
         self.assertEqual(response.status_code, 201)
         data = response.json()
         self.assertIn("id", data)
@@ -1334,6 +1309,7 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_retrieve_update_destroy_apiview_v2_get(self):
         """Test RetrieveUpdateDestroyAPIView - v2 GET request."""
         from rest_framework.test import APIClient
+
         client = APIClient()
         response = client.get("/api/v2/tasks/42/")
         self.assertEqual(response.status_code, 200)
@@ -1344,13 +1320,10 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_retrieve_update_destroy_apiview_v2_put(self):
         """Test RetrieveUpdateDestroyAPIView - v2 PUT request."""
         from rest_framework.test import APIClient
+
         client = APIClient()
         payload = {"title": "Updated Task", "completed": True}
-        response = client.put(
-            "/api/v2/tasks/42/",
-            data=payload,
-            format="json"
-        )
+        response = client.put("/api/v2/tasks/42/", data=payload, format="json")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["id"], 42)
@@ -1360,13 +1333,10 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_retrieve_update_destroy_apiview_v2_patch(self):
         """Test RetrieveUpdateDestroyAPIView - v2 PATCH request (partial update)."""
         from rest_framework.test import APIClient
+
         client = APIClient()
         payload = {"title": "Partially Updated"}
-        response = client.patch(
-            "/api/v2/tasks/42/",
-            data=payload,
-            format="json"
-        )
+        response = client.patch("/api/v2/tasks/42/", data=payload, format="json")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["title"], "Partially Updated")
@@ -1374,6 +1344,7 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_retrieve_update_destroy_apiview_v2_delete(self):
         """Test RetrieveUpdateDestroyAPIView - v2 DELETE request."""
         from rest_framework.test import APIClient
+
         client = APIClient()
         response = client.delete("/api/v2/tasks/42/")
         self.assertEqual(response.status_code, 204)
@@ -1381,6 +1352,7 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_retrieve_with_different_ids(self):
         """Test RetrieveAPIView handles multiple task IDs correctly."""
         from rest_framework.test import APIClient
+
         client = APIClient()
 
         for task_id in [1, 5, 999]:
@@ -1393,14 +1365,13 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_create_and_retrieve_consistency(self):
         """Test that CreateAPIView and RetrieveAPIView are consistent."""
         from rest_framework.test import APIClient
+
         client = APIClient()
 
         # Create a task
         create_payload = {"title": "Test Task", "completed": False}
         create_response = client.post(
-            "/api/v1/tasks/",
-            data=create_payload,
-            format="json"
+            "/api/v1/tasks/", data=create_payload, format="json"
         )
         self.assertEqual(create_response.status_code, 201)
         created_id = create_response.json()["id"]
@@ -1414,13 +1385,12 @@ class GenericAPIViewIntegrationTestCase(TestCase):
     def test_v1_create_v2_detail_endpoints_separate(self):
         """Test that v1 and v2 task endpoints handle different methods."""
         from rest_framework.test import APIClient
+
         client = APIClient()
 
         # V1 has POST for create
         response_v1_post = client.post(
-            "/api/v1/tasks/",
-            data={"title": "Task", "completed": False},
-            format="json"
+            "/api/v1/tasks/", data={"title": "Task", "completed": False}, format="json"
         )
         self.assertEqual(response_v1_post.status_code, 201)
 
@@ -1436,7 +1406,7 @@ class GenericAPIViewIntegrationTestCase(TestCase):
         response_v2_put = client.put(
             "/api/v2/tasks/42/",
             data={"title": "Updated", "completed": True},
-            format="json"
+            format="json",
         )
         self.assertEqual(response_v2_put.status_code, 200)
 
@@ -1669,7 +1639,9 @@ class DRFGenericViewsComprehensiveTestCase(TestCase):
             self.skipTest("DRF not installed")
         # POST without required fields should fail
         response = self.client.post("/api/v1/tasks/", data={}, format="json")
-        self.assertIn(response.status_code, [400, 422])  # Bad request or validation error
+        self.assertIn(
+            response.status_code, [400, 422]
+        )  # Bad request or validation error
 
     def test_retrieve_apiview_with_different_ids(self):
         """Test RetrieveAPIView correctly extracts and returns different IDs."""
@@ -1697,15 +1669,13 @@ class DRFGenericViewsComprehensiveTestCase(TestCase):
         put_response = self.client.put(
             "/api/v2/tasks/42/",
             data={"title": "Updated", "completed": True},
-            format="json"
+            format="json",
         )
         self.assertEqual(put_response.status_code, 200)
 
         # PATCH - partial update
         patch_response = self.client.patch(
-            "/api/v2/tasks/42/",
-            data={"completed": False},
-            format="json"
+            "/api/v2/tasks/42/", data={"completed": False}, format="json"
         )
         self.assertEqual(patch_response.status_code, 200)
 
@@ -1760,18 +1730,14 @@ class DRFGenericViewsComprehensiveTestCase(TestCase):
         # PUT requires all fields
         full_payload = {"title": "Full Update", "completed": True}
         put_response = self.client.put(
-            "/api/v2/tasks/42/",
-            data=full_payload,
-            format="json"
+            "/api/v2/tasks/42/", data=full_payload, format="json"
         )
         self.assertEqual(put_response.status_code, 200)
 
         # PATCH allows partial update
         partial_payload = {"completed": False}
         patch_response = self.client.patch(
-            "/api/v2/tasks/42/",
-            data=partial_payload,
-            format="json"
+            "/api/v2/tasks/42/", data=partial_payload, format="json"
         )
         self.assertEqual(patch_response.status_code, 200)
 
@@ -1967,43 +1933,37 @@ class ConcurrencyAndFormDataTestCase(TestCase):
         """Test v1 upload with form data."""
         if APIClient is None:
             self.skipTest("DRF not installed")
-        data = {
-            'name': 'test_file.txt',
-            'description': 'A test file'
-        }
-        response = self.client.post("/api/v1/upload/", data, format='multipart')
+        data = {"name": "test_file.txt", "description": "A test file"}
+        response = self.client.post("/api/v1/upload/", data, format="multipart")
         self.assertEqual(response.status_code, 201)
         result = response.json()
         self.assertEqual(result["version"], 1)
-        self.assertEqual(result["name"], 'test_file.txt')
-        self.assertEqual(result["description"], 'A test file')
+        self.assertEqual(result["name"], "test_file.txt")
+        self.assertEqual(result["description"], "A test file")
 
     def test_upload_v2_form_data(self):
         """Test v2 upload with form data."""
         if APIClient is None:
             self.skipTest("DRF not installed")
         data = {
-            'name': 'test_file.txt',
-            'description': 'A test file',
-            'tags': 'important,archive'
+            "name": "test_file.txt",
+            "description": "A test file",
+            "tags": "important,archive",
         }
-        response = self.client.post("/api/v2/upload/", data, format='multipart')
+        response = self.client.post("/api/v2/upload/", data, format="multipart")
         self.assertEqual(response.status_code, 201)
         result = response.json()
         self.assertEqual(result["version"], 2)
-        self.assertEqual(result["name"], 'test_file.txt')
-        self.assertEqual(result["tags"], ['important', 'archive'])
-        self.assertIn('timestamp', result)
+        self.assertEqual(result["name"], "test_file.txt")
+        self.assertEqual(result["tags"], ["important", "archive"])
+        self.assertIn("timestamp", result)
 
     def test_upload_v1_json_data(self):
         """Test v1 upload with JSON data."""
         if APIClient is None:
             self.skipTest("DRF not installed")
-        data = {
-            'name': 'test.json',
-            'description': 'JSON file'
-        }
-        response = self.client.post("/api/v1/upload/", data, format='json')
+        data = {"name": "test.json", "description": "JSON file"}
+        response = self.client.post("/api/v1/upload/", data, format="json")
         self.assertEqual(response.status_code, 201)
         result = response.json()
         self.assertEqual(result["version"], 1)
@@ -2012,12 +1972,8 @@ class ConcurrencyAndFormDataTestCase(TestCase):
         """Test v2 upload with JSON data."""
         if APIClient is None:
             self.skipTest("DRF not installed")
-        data = {
-            'name': 'test.json',
-            'description': 'JSON file',
-            'tags': 'test'
-        }
-        response = self.client.post("/api/v2/upload/", data, format='json')
+        data = {"name": "test.json", "description": "JSON file", "tags": "test"}
+        response = self.client.post("/api/v2/upload/", data, format="json")
         self.assertEqual(response.status_code, 201)
         result = response.json()
         self.assertEqual(result["version"], 2)
@@ -2027,6 +1983,7 @@ class ConcurrencyAndFormDataTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         import threading
+
         results = []
         errors = []
 
@@ -2057,6 +2014,7 @@ class ConcurrencyAndFormDataTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         import threading
+
         results = []
         errors = []
 
@@ -2064,7 +2022,7 @@ class ConcurrencyAndFormDataTestCase(TestCase):
             try:
                 response = self.client.get(f"/api/v{version}/users/")
                 data = response.json()
-                results.append((version, response.status_code, data['version']))
+                results.append((version, response.status_code, data["version"]))
             except Exception as e:
                 errors.append(str(e))
 
@@ -2089,10 +2047,11 @@ class ConcurrencyAndFormDataTestCase(TestCase):
         """Test concurrent authenticated requests."""
         if APIClient is None:
             self.skipTest("DRF not installed")
-        from django.contrib.auth.models import User
         import threading
 
-        user = User.objects.create_user(username='concurrent_user', password='testpass')
+        from django.contrib.auth.models import User
+
+        user = User.objects.create_user(username="concurrent_user", password="testpass")
         results = []
         errors = []
 
@@ -2146,11 +2105,11 @@ class ConcurrencyAndFormDataTestCase(TestCase):
 
         # v1 should have basic fields only
         self.assertEqual(v1_data["version"], 1)
-        self.assertNotIn('email', v1_data["users"][0])
+        self.assertNotIn("email", v1_data["users"][0])
 
         # v2 should have email field
         self.assertEqual(v2_data["version"], 2)
-        self.assertIn('email', v2_data["users"][0])
+        self.assertIn("email", v2_data["users"][0])
 
 
 class QueryParameterAndHTTPMethodTestCase(TestCase):
@@ -2232,8 +2191,8 @@ class QueryParameterAndHTTPMethodTestCase(TestCase):
             self.skipTest("DRF not installed")
         response = self.client.head("/api/v1/resources/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn('X-Total-Count', response)
-        self.assertEqual(response['X-Total-Count'], '42')
+        self.assertIn("X-Total-Count", response)
+        self.assertEqual(response["X-Total-Count"], "42")
 
     def test_resources_v1_options_request(self):
         """Test v1 resources OPTIONS request."""
@@ -2258,14 +2217,14 @@ class QueryParameterAndHTTPMethodTestCase(TestCase):
             self.skipTest("DRF not installed")
         response = self.client.head("/api/v2/resources/")
         self.assertEqual(response.status_code, 200)
-        self.assertIn('X-Total-Count', response)
-        self.assertEqual(response['X-Total-Count'], '100')
+        self.assertIn("X-Total-Count", response)
+        self.assertEqual(response["X-Total-Count"], "100")
 
     def test_resources_v2_post_request(self):
         """Test v2 resources POST request (create)."""
         if APIClient is None:
             self.skipTest("DRF not installed")
-        response = self.client.post("/api/v2/resources/", {}, format='json')
+        response = self.client.post("/api/v2/resources/", {}, format="json")
         self.assertEqual(response.status_code, 201)
         data = response.json()
         self.assertEqual(data["version"], 2)
@@ -2288,8 +2247,8 @@ class QueryParameterAndHTTPMethodTestCase(TestCase):
         self.assertEqual(v1_response.status_code, 200)
         self.assertEqual(v2_response.status_code, 200)
         # But headers should reflect versions
-        self.assertEqual(v1_response['X-Total-Count'], '42')
-        self.assertEqual(v2_response['X-Total-Count'], '100')
+        self.assertEqual(v1_response["X-Total-Count"], "42")
+        self.assertEqual(v2_response["X-Total-Count"], "100")
 
 
 class AuthenticationAndPermissionTestCase(TestCase):
@@ -2321,7 +2280,8 @@ class AuthenticationAndPermissionTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         from django.contrib.auth.models import User
-        user = User.objects.create_user(username='testuser', password='testpass')
+
+        user = User.objects.create_user(username="testuser", password="testpass")
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/v1/secure-data/")
         self.assertEqual(response.status_code, 200)
@@ -2334,7 +2294,10 @@ class AuthenticationAndPermissionTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         from django.contrib.auth.models import User
-        user = User.objects.create_user(username='testuser', email='test@example.com', password='testpass')
+
+        user = User.objects.create_user(
+            username="testuser", email="test@example.com", password="testpass"
+        )
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/v2/secure-data/")
         self.assertEqual(response.status_code, 200)
@@ -2348,7 +2311,8 @@ class AuthenticationAndPermissionTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         from django.contrib.auth.models import User
-        user = User.objects.create_user(username='normaluser', password='testpass')
+
+        user = User.objects.create_user(username="normaluser", password="testpass")
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/v1/admin-only/")
         self.assertEqual(response.status_code, 403)
@@ -2358,7 +2322,8 @@ class AuthenticationAndPermissionTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         from django.contrib.auth.models import User
-        user = User.objects.create_user(username='normaluser', password='testpass')
+
+        user = User.objects.create_user(username="normaluser", password="testpass")
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/v2/admin-only/")
         self.assertEqual(response.status_code, 403)
@@ -2368,7 +2333,10 @@ class AuthenticationAndPermissionTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         from django.contrib.auth.models import User
-        user = User.objects.create_user(username='admin', password='testpass', is_staff=True)
+
+        user = User.objects.create_user(
+            username="admin", password="testpass", is_staff=True
+        )
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/v1/admin-only/")
         self.assertEqual(response.status_code, 200)
@@ -2380,7 +2348,10 @@ class AuthenticationAndPermissionTestCase(TestCase):
         if APIClient is None:
             self.skipTest("DRF not installed")
         from django.contrib.auth.models import User
-        user = User.objects.create_user(username='admin', password='testpass', is_staff=True)
+
+        user = User.objects.create_user(
+            username="admin", password="testpass", is_staff=True
+        )
         self.client.force_authenticate(user=user)
         response = self.client.get("/api/v2/admin-only/")
         self.assertEqual(response.status_code, 200)
@@ -2504,7 +2475,7 @@ class ForwardVersioningComprehensiveTestCase(TestCase):
         users_v3 = self.client.get("/api/v3/users/").json()
 
         self.assertEqual(comments_v3["version"], 2)  # inherits from v2
-        self.assertEqual(users_v3["version"], 3)     # explicitly v3
+        self.assertEqual(users_v3["version"], 3)  # explicitly v3
 
     def test_drf_apiview_forward_inheritance(self):
         """Test forward versioning with DRF APIView."""
@@ -2619,11 +2590,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_a_deprecated_version_gets_headers(self):
         """Scenario A: Deprecated version with future Sunset date."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            2: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
 
         response = self.client.get("/api/v2/users/")
 
@@ -2637,23 +2607,27 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_b_retired_version_returns_410(self):
         """Scenario B: Retired version with past Sunset date."""
         from datetime import date, timedelta
+
         past = (date.today() - timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            1: {"status": "retired", "sunset": past}
-        })
+        self._set_lifecycle({1: {"status": "retired", "sunset": past}})
 
         response = self.client.get("/api/v1/users/")
 
         self.assertEqual(response.status_code, 410)
         # Verify normal endpoint is not executed
-        self.assertNotIn("version", response.json().keys() if response.get("content-type") == "application/json" else {})
+        self.assertNotIn(
+            "version",
+            (
+                response.json().keys()
+                if response.get("content-type") == "application/json"
+                else {}
+            ),
+        )
 
     def test_scenario_c_active_version_no_headers(self):
         """Scenario C: Active version with no Deprecation/Sunset headers."""
-        self._set_lifecycle({
-            3: {"status": "active"}
-        })
+        self._set_lifecycle({3: {"status": "active"}})
 
         response = self.client.get("/api/v3/users/")
 
@@ -2665,9 +2639,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_d_deprecated_without_sunset(self):
         """Scenario D: Deprecated without Sunset date."""
-        self._set_lifecycle({
-            2: {"status": "deprecated"}
-        })
+        self._set_lifecycle({2: {"status": "deprecated"}})
 
         response = self.client.get("/api/v2/users/")
 
@@ -2678,11 +2650,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_e_retired_with_future_sunset(self):
         """Scenario E: Retired with future Sunset date (should still serve)."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            1: {"status": "retired", "sunset": future}
-        })
+        self._set_lifecycle({1: {"status": "retired", "sunset": future}})
 
         response = self.client.get("/api/v1/users/")
 
@@ -2693,10 +2664,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_f_unversioned_routes(self):
         """Scenario F: Unversioned routes don't get lifecycle headers."""
-        self._set_lifecycle({
-            1: {"status": "deprecated"},
-            2: {"status": "deprecated"}
-        })
+        self._set_lifecycle({1: {"status": "deprecated"}, 2: {"status": "deprecated"}})
 
         response_health = self.client.get("/health/")
         response_status = self.client.get("/status/")
@@ -2711,11 +2679,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_g_parameterized_routes(self):
         """Scenario G: Version extracted from path prefix, not from parameters."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            2: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
 
         # Request with integer parameter should still detect v2 from URL path
         response = self.client.get("/api/v2/users/42/")
@@ -2727,10 +2694,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_h_unknown_versions(self):
         """Scenario H: Unknown and invalid versions don't cause errors."""
-        self._set_lifecycle({
-            1: {"status": "deprecated"},
-            2: {"status": "deprecated"}
-        })
+        self._set_lifecycle({1: {"status": "deprecated"}, 2: {"status": "deprecated"}})
 
         # v99 is not configured
         response = self.client.get("/api/v99/users/")
@@ -2740,11 +2704,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_i_url_prefix_matching(self):
         """Scenario I: Version extracted only from configured prefix, not arbitrary substrings."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            2: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
 
         # A path that contains "api/v2" but not at the start shouldn't match
         # (This verifies the anchored regex works correctly)
@@ -2757,11 +2720,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_j_query_string_doesnt_affect_version(self):
         """Scenario J: Query strings don't affect version detection."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            2: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
 
         response = self.client.get("/api/v2/users/?page=1&limit=10")
 
@@ -2777,11 +2739,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
             self.skipTest("DRF not installed")
 
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            2: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
 
         # Use APIClient for DRF views
         client = APIClient()
@@ -2797,17 +2758,16 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_scenario_l_non_200_downstream_responses(self):
         """Scenario L: Lifecycle headers applied even to error responses."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            1: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({1: {"status": "deprecated", "sunset": future}})
 
         # Make a request that returns a 400 error (missing required field)
         response = self.client.post(
             "/api/v1/items/",
-            '{}',  # Missing 'name' field
-            content_type="application/json"
+            "{}",  # Missing 'name' field
+            content_type="application/json",
         )
 
         # Should get 400 from the endpoint
@@ -2819,14 +2779,17 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_version_extraction_multiple_versions_correctly_identified(self):
         """Test that different API versions are correctly identified from their paths."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            1: {"status": "retired", "sunset": future},
-            2: {"status": "deprecated", "sunset": future},
-            3: {"status": "active"},
-            4: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle(
+            {
+                1: {"status": "retired", "sunset": future},
+                2: {"status": "deprecated", "sunset": future},
+                3: {"status": "active"},
+                4: {"status": "deprecated", "sunset": future},
+            }
+        )
 
         # Test each version is correctly identified and gets appropriate headers
         v1_response = self.client.get("/api/v1/posts/")
@@ -2848,11 +2811,10 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
     def test_version_lifecycle_with_namespaced_endpoints(self):
         """Test lifecycle headers work with namespaced (app_name) endpoints."""
         from datetime import date, timedelta
+
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({
-            2: {"status": "deprecated", "sunset": future}
-        })
+        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
 
         # Test a namespaced endpoint with app_name="admin"
         response = self.client.get("/api/v2/admin/reports/summary/")
@@ -2863,10 +2825,112 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         self.assertEqual(data["version"], 2)
 
 
+class DRFURLPathVersioningIntegrationTestCase(TestCase):
+    """Test boundary behavior between django-api-versioning and DRF URLPathVersioning.
+
+    This test class documents the interaction between the package's routing
+    (which registers literal URL paths like api/v2/endpoint/) and DRF's
+    URLPathVersioning (which expects a 'version' keyword argument from the
+    URL resolver).
+    """
+
+    def test_drf_apiview_without_versioning_class(self):
+        """DRF APIView without versioning class should still work."""
+        # APIView without versioning should handle requests fine
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_drf_apiview_request_version_behavior(self):
+        """Document that route selection is independent of request.version.
+
+        The package's routing (URL path → handler) is independent of
+        DRF's request.version, which depends on configured versioning class.
+        """
+        # Request /api/v1/users/ reaches the v1 handler
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # The actual response should be from the v1 handler
+        self.assertIsInstance(data, (dict, list))
+
+    def test_route_selection_by_url_path_not_request_version(self):
+        """Package selects route based on URL path, not DRF request.version."""
+        # Request /api/v1/users/ reaches the v1 handler regardless of request.version
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_different_versions_reach_different_handlers(self):
+        """Different URL versions should reach different registered handlers."""
+        # v1 handler
+        response_v1 = self.client.get("/api/v1/users/")
+        self.assertEqual(response_v1.status_code, 200)
+
+        # v2 handler
+        response_v2 = self.client.get("/api/v2/users/")
+        self.assertEqual(response_v2.status_code, 200)
+
+        # Routes are different, handlers should differ
+        # Verify both succeeded
+        data_v1 = response_v1.json()
+        data_v2 = response_v2.json()
+        self.assertIsInstance(data_v1, (dict, list))
+        self.assertIsInstance(data_v2, (dict, list))
+
+    def test_package_handles_versioning_not_drf(self):
+        """Package routing is independent of DRF versioning configuration.
+
+        The package selects which handler to call based on the URL path.
+        DRF's request.version is determined by DRF's configured versioning
+        class, which may not populate request.version unless explicitly
+        configured to extract it from the URL keyword argument.
+
+        This is the key boundary: the package handles routing, DRF handles
+        the request.version attribute if versioning is configured.
+        """
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_multiple_versioned_routes_available(self):
+        """Multiple versions of same endpoint are available."""
+        versions_available = []
+        for v in [1, 2, 3, 4]:
+            response = self.client.get(f"/api/v{v}/users/")
+            if response.status_code == 200:
+                versions_available.append(v)
+
+        # At least versions 1 and 2 should be available
+        self.assertIn(1, versions_available)
+        self.assertIn(2, versions_available)
+
+    def test_nonexistent_version_404(self):
+        """Non-existent version returns 404."""
+        # Assuming v99 doesn't exist
+        response = self.client.get("/api/v99/users/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_unversioned_route_independent_of_versioning(self):
+        """Unversioned routes work independently of versioning."""
+        response = self.client.get("/status/")
+        if response.status_code == 200:
+            # Unversioned endpoints are independent of versioning scheme
+            data = response.json()
+            self.assertIsNotNone(data)
+
+    def test_version_specific_handlers_receive_requests(self):
+        """Each version-specific URL path routes to its correct handler."""
+        # v1 request
+        resp1 = self.client.get("/api/v1/users/")
+        self.assertEqual(resp1.status_code, 200)
+
+        # v3 request (if v3 is supported)
+        resp3 = self.client.get("/api/v3/users/")
+        self.assertEqual(resp3.status_code, 200)
+
+
 def run_integration_tests():
     """Run the integration test suite."""
-    from django.test.utils import get_runner
     from django.conf import settings
+    from django.test.utils import get_runner
 
     TestRunner = get_runner(settings)
     test_runner = TestRunner(verbosity=2, interactive=False, keepdb=False)

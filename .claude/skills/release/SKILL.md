@@ -31,34 +31,30 @@ echo "OLD=$OLD_VERSION NEW=$NEW_VERSION"
 If `$OLD_VERSION` is empty, stop and report — pyproject.toml has
 no `version` line.
 
-### 2. Full test on Python 3.15 (unit + integration)
+### 2. Full test suite via tox
 
 ```bash
-V=3.15
-uv venv /tmp/rel --python $V
-uv pip install --python /tmp/rel/bin/python \
-  -e . pytest pytest-django djangorestframework
-
-/tmp/rel/bin/python --version
-/tmp/rel/bin/python -m pytest tests/ -v --tb=short 2>&1 | tee /tmp/rel-unit.log
-/tmp/rel/bin/python -m pytest integration_test_project/tests/ -v --tb=short 2>&1 | tee /tmp/rel-integ.log
-
-rm -rf /tmp/rel
+set -o pipefail
+PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-release.log
+TOX_EXIT=${PIPESTATUS[0]}
+echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-Record: Python version, Django version, DRF version, unit
-passed/failed, integration passed/failed.
+On the user's local machine (tox already installed): `tox 2>&1 | tee /tmp/tox-release.log`
 
-If any test fails, STOP. Do not bump version. Do not tag.
+If `/tmp/tox/bin/tox` does not exist, install first:
 
-For the full Python × Django matrix, this skill does NOT run it.
-If the user wants the release to carry a verified matrix, ask:
+```bash
+uv venv /tmp/tox --python 3.15
+uv pip install --python /tmp/tox/bin/python tox
+```
 
-> "Run `/compat-matrix` first? It takes ~60 min."
+If `TOX_EXIT` is non-zero, STOP. Parse `/tmp/tox-release.log` for
+failing envs. Do not bump version. Do not tag. Report the failing
+env names.
 
-If yes: run `/compat-matrix` before Step 3.
-If no: proceed and state in the release notes that only
-Python 3.15 was tested for this release.
+Do NOT run `/compat-matrix` — that skill was removed. tox is the
+only matrix.
 
 ### 3. Bump `pyproject.toml`
 

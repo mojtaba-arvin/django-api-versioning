@@ -15,6 +15,10 @@ ViewT = TypeVar("ViewT", bound=Callable)
 
 def ver_range(start: int, end: int) -> list[int]:
     """Inclusive range of API versions, e.g. ver_range(1, 3) -> [1, 2, 3]."""
+    if isinstance(start, bool) or not isinstance(start, int):
+        raise VersionTypeError("ver_range start must be an integer.")
+    if isinstance(end, bool) or not isinstance(end, int):
+        raise VersionTypeError("ver_range end must be an integer.")
     if start > end:
         raise VersionRangeError(f"ver_range start ({start}) must be <= end ({end}).")
     return list(range(start, end + 1))
@@ -71,6 +75,9 @@ def endpoint(
 
         app_name_part: str = f"{app_name}/" if app_name else ""
 
+        # Calculate logical endpoint ID from unversioned path
+        logical_endpoint = f"{app_name_part}{postfix}"
+
         def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
             if ver is None:
@@ -84,6 +91,7 @@ def endpoint(
                 view_name,
                 source_version=source_version,
                 route_version=ver,
+                logical_endpoint=logical_endpoint,
             )
 
         if version is not None:

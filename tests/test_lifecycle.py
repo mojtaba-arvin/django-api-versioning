@@ -123,8 +123,9 @@ class TestVersionExtraction:
 
     def test_extract_version_prefers_resolver_match_kwargs(self):
         """Version extraction prefers resolver_match.kwargs["version"] over path."""
-        from django_api_versioning.lifecycle import _extract_version
         from unittest.mock import Mock
+
+        from django_api_versioning.lifecycle import _extract_version
 
         request = RequestFactory().get("/api/v2/users/")
         request.version = None
@@ -245,8 +246,9 @@ class TestVersionExtraction:
 
     def test_extract_version_precedence_order(self):
         """Verifies version extraction precedence: request.version > kwargs > path."""
-        from django_api_versioning.lifecycle import _extract_version
         from unittest.mock import Mock
+
+        from django_api_versioning.lifecycle import _extract_version
 
         # When all three are set, request.version wins
         request = RequestFactory().get("/api/v1/users/")
@@ -353,6 +355,7 @@ class TestOverrideSettingsCompatibility:
     def test_override_settings_base_path_extraction(self):
         """override_settings(API_BASE_PATH) should affect version extraction."""
         from django.test import override_settings
+
         from django_api_versioning.lifecycle import _extract_version_from_path
 
         with override_settings(API_BASE_PATH="svc/v{version}/"):
@@ -364,6 +367,7 @@ class TestOverrideSettingsCompatibility:
     def test_override_settings_base_path_extraction_custom_format(self):
         """override_settings with custom base path format should work."""
         from django.test import override_settings
+
         from django_api_versioning.lifecycle import _extract_version_from_path
 
         with override_settings(API_BASE_PATH="api/version-{version}/"):
@@ -375,6 +379,7 @@ class TestOverrideSettingsCompatibility:
     def test_override_settings_base_path_unchanged_outside_context(self):
         """Version extraction should revert after override_settings context."""
         from django.test import override_settings
+
         from django_api_versioning.lifecycle import _extract_version_from_path
 
         # With override_settings, custom path works
@@ -420,8 +425,8 @@ class TestOverrideSettingsCompatibility:
     def test_override_settings_with_extract_version_precedence(self):
         """Version extraction precedence should work with override_settings."""
         from django.test import override_settings
+
         from django_api_versioning.lifecycle import _extract_version
-        from unittest.mock import Mock
 
         with override_settings(API_BASE_PATH="custom/v{version}/"):
             # request.version takes precedence even with custom base path
@@ -451,6 +456,7 @@ class TestOverrideSettingsCompatibility:
     def test_override_settings_lifecycle_and_base_path_together(self):
         """override_settings with both lifecycle and base path changes."""
         from django.test import override_settings
+
         from django_api_versioning.lifecycle import _extract_version
 
         with override_settings(

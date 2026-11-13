@@ -1,3 +1,4 @@
+
 name: Publish to PyPI
 
 on:
@@ -7,18 +8,28 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+    environment:
+      name: pypi
+      url: https://pypi.org/p/django-api-versioning
 
-      - name: Build Docker image
-        run: docker build -t django-api-versioning-package .
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.15"
+
+      - name: Build and check
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check --strict dist/*
 
       - name: Publish to PyPI
-        run: |
-          docker run --rm -e TASK=publish -e PYPI_API_TOKEN=${{ secrets.PYPI_API_TOKEN }} django-api-versioning-package
+        uses: pypa/gh-action-pypi-publish@release/v1

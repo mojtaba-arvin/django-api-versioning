@@ -57,6 +57,35 @@ One-line subject.
 Verification (mandatory after every push): `.claude/push.sh` exit 0
 means local SHA == remote SHA. Exit non-zero means STOP.
 
+### Commit message content rules
+
+Describe the change in domain terms. Never reference internal
+task-spec numbering.
+
+Forbidden in any commit message, including body:
+- "Issue N", "Issues N-M", "Bug N", "ERR N", "Phase N",
+  "Scenario N" as the primary descriptor
+- "as specified in the task", "per the spec", "requirement N"
+- Any wording whose meaning depends on a document outside the repo
+
+If the change fixes a behavior, name the behavior:
+
+  ✅ test: reject boolean and string version values
+  ❌ test: add comprehensive validation tests for Issues 3-6
+
+  ✅ test: verify override_settings does not mutate loaded config
+  ❌ test: add regression tests for Issue 7
+
+  ✅ feat: group check_versions output by logical endpoint
+  ❌ feat: implement Phase 3 logical endpoint matrix
+
+  ✅ feat: reject unconfigured ViewSet with actionable error
+  ❌ feat: add ViewSet detection for Phase 6
+
+This applies to subject and body. If a behavior is genuinely
+hard to summarize in one line, use a descriptive subject and
+expand in the body — still without spec numbers.
+
 ## 5. Author Identity
 Set at session start if missing:
 
@@ -89,39 +118,77 @@ Token diagnostic (run first if push fails):
 
 ## 7. Testing
 
-Two modes. Never use system `python3` (3.8.10).
+Three modes. Never use system `python3` (3.8.10) for Single or Quick.
+`tox.ini` is the source of truth for the supported matrix.
+
+### Required tooling (must exist before Full)
+
+`tox-uv` bridges tox to uv-managed Pythons. Without it, tox only
+sees interpreters already in PATH and reports every other env as
+`NOT-RUN: interpreter not found` — which is a sandbox setup
+failure, not a code failure.
+
+Every session that will run Full must first verify:
+
+    which uv || pip install uv
+    export PATH="$HOME/.local/bin:$PATH"
+    uv --version
+
+    uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+    uv python list | grep -c 'cpython-'   # must print 6
+
+    uv venv /tmp/tox --python 3.15
+    uv pip install --python /tmp/tox/bin/python tox tox-uv
+
+    grep -q 'requires =' tox.ini && grep -q 'tox-uv' tox.ini \
+      || { echo "tox.ini missing tox-uv"; exit 1; }
+    
+    [ -f integration_test_project/pytest.ini ] \
+      || { echo "missing integration_test_project/pytest.ini";  exit 1; }
+
+If `uv python list` shows fewer than 6 versions, or `tox.ini` does
+not have `tox-uv`, do NOT run tox. Fix first. Do not fabricate a
+"NOT-RUN is infrastructure limitation" result.
 
 ### Quick — after EVERY file change
 
-Run only the touched test file. Seconds.
+    python -m pytest <touched_test_file> -v
 
-    pytest <touched_test_file> -v
+### Single — Phase 1 baseline
 
-If no venv is active, use the closest recent one:
+One Python, unit + integration. Full instructions in
+`/manual-testing`.
 
-    /tmp/env-3.12/bin/python -m pytest <file> -v
+### Full — Phase 10 and before `/release`
 
-### Full — after a logical batch, before any release
+    PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
 
-`/manual-testing` Full mode. Runs BOTH `tests/` (unit) and
-`integration_test_project/tests/` (integration) across
-Python 3.10–3.15.
+After run, check BEFORE believing the result:
 
-Trigger Full after:
-- All bugs of a batch fixed
-- All tests of a batch written
-- Before `/release`
+1. `grep -c 'commands succeeded' /tmp/tox-full.log` — must be 13.
+2. `grep -c 'interpreter not found' /tmp/tox-full.log` — must be 0.
+3. `grep -E '[0-9]+ passed' /tmp/tox-full.log | head -5` — each env
+   must show a count large enough to include both unit and integration
+   (300+ combined, not ~170).
+4. Each env's log section must contain two `passed` lines — one from
+   `pytest tests`, one from `pytest integration_test_project`.
+   `tox.ini` commands split them so each uses its own `pytest.ini`.
 
-### Compatibility matrix — before release only
-
-`/compat-matrix`. Python × Django, unit + integration per cell.
-Long (~60 min). Never inside a normal work session.
+If any check fails, the tox setup is broken — NOT the code. Report
+the failure; do not certify the package. Do not claim "sandbox
+limitation" as an excuse; the sandbox can install all Pythons via
+`uv python install`.
 
 ### Never
-- Never claim a test passed unless pytest printed `PASSED`.
-- Never fabricate counts, coverage, or compatibility claims.
-- Never skip integration tests in Full mode.
-- Never suppress output.
+
+- Never claim a test passed unless exit code is 0.
+- Never label a `NOT-RUN` env as `SUPPORTED` or `ASSUMED` or
+  "compatible via type hints".
+- Never write `CERTIFIED` or `PRODUCTION READY` if any env is
+  `NOT-RUN` or `FAIL`.
+- Never run `tox` before confirming 6 Pythons installed and
+  `tox-uv` present in `tox.ini`.
+- Never run `tox` in Phase 1 — that is Single's job.
 
 ## 8. Documentation
 - Allowed: `README.md`, `CHANGELOG.md`, `CLAUDE.md`,
