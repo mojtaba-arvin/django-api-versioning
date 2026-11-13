@@ -121,6 +121,8 @@ Token diagnostic (run first if push fails):
 Three modes. `tox.ini` defines the supported Python × Django matrix.
 Never modify `tox.ini` to add a Django version without updating
 `pyproject.toml` first.
+After every Full run (tox), update `COMPATIBILITY_REPORT.md` from
+the tox output. Do not leave verified results only in the log.
 
 ### Quick — after EVERY file change
 
