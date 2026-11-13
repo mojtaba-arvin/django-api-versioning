@@ -61,7 +61,10 @@ echo "UNIT_EXIT=$UNIT_EXIT INTEG_EXIT=$INTEG_EXIT"
 
 Note: the integration file is `integration_test_project/test_integration.py`
 — point pytest at the directory `integration_test_project/`, not a
-subpath `tests/` that does not exist.
+subpath `tests/` that does not exist. The integration directory has
+its own `pytest.ini` with its own `DJANGO_SETTINGS_MODULE`; do not
+run integration and unit in a single pytest invocation, because the
+root `pytest.ini` would override the integration settings.
 
 ## Full — all tox envs
 
@@ -71,8 +74,10 @@ Use for Phase 10 QA and before `/release`.
 
 tox cannot find Pythons installed by `uv python install` unless
 `tox-uv` is installed and `tox.ini` declares `requires = tox-uv`.
-Verify all of this BEFORE running tox. If any check fails, fix
-it. Do not proceed to "run anyway".
+Also, tox must run unit and integration as separate pytest
+invocations so each uses its own `pytest.ini`. Verify all of this
+BEFORE running tox. If any check fails, fix it. Do not proceed to
+"run anyway".
 
 ```bash
 # 1. uv available?
@@ -91,10 +96,19 @@ uv venv /tmp/tox --python 3.15
 uv pip install --python /tmp/tox/bin/python tox tox-uv
 /tmp/tox/bin/tox --version || { echo "TOX FAIL"; exit 1; }
 
-# 4. tox.ini has tox-uv and DRF and both test paths?
+# 4. tox.ini has tox-uv, DRF, and both test paths?
 grep -q 'tox-uv' tox.ini || { echo "TOX.INI MISSING tox-uv"; exit 1; }
 grep -q 'djangorestframework' tox.ini || { echo "TOX.INI MISSING DRF"; exit 1; }
 grep -q 'integration_test_project' tox.ini || { echo "TOX.INI MISSING INTEGRATION PATH"; exit 1; }
+
+# 5. integration has its own pytest.ini
+[ -f integration_test_project/pytest.ini ] \
+  || { echo "MISSING integration_test_project/pytest.ini"; exit 1; }
+
+# 6. tox.ini runs unit and integration as separate pytest calls
+grep -q 'pytest tests' tox.ini \
+  && grep -q 'pytest integration_test_project' tox.ini \
+  || { echo "TOX.INI must run pytest on both paths separately"; exit 1; }
 
 echo "Pre-flight OK"
 ```
@@ -118,22 +132,32 @@ echo "TOX_EXIT=$TOX_EXIT"
 ```bash
 SUCCEEDED=$(grep -c 'commands succeeded' /tmp/tox-full.log)
 NOTRUN=$(grep -c 'interpreter not found' /tmp/tox-full.log || true)
-echo "succeeded=$SUCCEEDED not-run=$NOTRUN"
+PASSED_LINES=$(grep -c 'passed' /tmp/tox-full.log)
+echo "succeeded=$SUCCEEDED not-run=$NOTRUN passed-lines=$PASSED_LINES"
 ```
 
-- `succeeded == 13` and `not-run == 0` → real result.
-- anything else → setup is broken. STOP. Do not report "sandbox
-  limitation". Do not certify. Report the failing env names and
-  the check that failed, then stop.
+Three conditions must ALL hold:
 
-For each env, the passed count must include both unit
-(`tests/`) and integration (`integration_test_project/`). If an
-env shows ~170 passed, integration was not collected — `tox.ini`
-commands are wrong.
+- `succeeded == 13`
+- `not-run == 0`
+- `passed-lines >= 26` — 13 envs × 2 pytest runs (unit + integration);
+  `lint` contributes none, so the minimum for 12 test envs is 24, but
+  allow 26 to catch extra summary lines. If `passed-lines < 24`,
+  some env only ran one pytest invocation — `tox.ini` commands are
+  wrong (probably still the old combined form).
+
+If any condition fails: setup is broken. STOP. Do not report
+"sandbox limitation". Do not certify. Report the failing env names
+and which condition failed, then stop.
+
+Per-env check: for each of the 12 test envs, the env's log section
+in `/tmp/tox-full.log` must contain two `passed` lines — one from
+the unit run, one from the integration run. If only one, integration
+did not run for that env.
 
 ### Update COMPATIBILITY_REPORT.md only on real results
 
-After `succeeded == 13` and `not-run == 0`, regenerate the report
+After all three acceptance conditions hold, regenerate the report
 from `/tmp/tox-full.log` per the structure documented in the
 "Update COMPATIBILITY_REPORT.md" section below.
 
@@ -178,9 +202,9 @@ Do not claim a test passed unless the exit code is 0.
 
 ## Update COMPATIBILITY_REPORT.md after Full
 
-After `tox` completes, update `COMPATIBILITY_REPORT.md` from
-`/tmp/tox-full.log`. Do not fabricate — every row must come from
-the actual tox output.
+After `tox` completes and all three acceptance conditions hold,
+update `COMPATIBILITY_REPORT.md` from `/tmp/tox-full.log`. Do not
+fabricate — every row must come from the actual tox output.
 
 ### Structure
 
@@ -193,27 +217,33 @@ the actual tox output.
 
 ## Supported matrix
 
-| Env | Python | Django | Status | Notes |
-|-----|--------|--------|--------|-------|
-| py310-django52 | 3.10.x | 5.2.x | ok / FAIL / not-run | from tox log |
-| py311-django52 | 3.11.x | 5.2.x | ... | |
-| py312-django52 | 3.12.x | 5.2.x | ... | |
-| py313-django52 | 3.13.x | 5.2.x | ... | |
-| py314-django52 | 3.14.x | 5.2.x | ... | |
-| py312-django60 | 3.12.x | 6.0.x | ... | |
-| py313-django60 | 3.13.x | 6.0.x | ... | |
-| py314-django60 | 3.14.x | 6.0.x | ... | |
-| py312-django61 | 3.12.x | 6.1.x | ... | |
-| py313-django61 | 3.13.x | 6.1.x | ... | |
-| py314-django61 | 3.14.x | 6.1.x | ... | |
-| py315-django61 | 3.15.x | 6.1.x | ... | |
-| lint | - | - | ok / FAIL | flake8 + black + isort |
+| Env | Python | Django | Status | Unit pass | Integ pass | Notes |
+|-----|--------|--------|--------|-----------|------------|-------|
+| py310-django52 | 3.10.x | 5.2.x | ok / FAIL / NOT-RUN | n | m | from tox log |
+| py311-django52 | 3.11.x | 5.2.x | ... | | | |
+| py312-django52 | 3.12.x | 5.2.x | ... | | | |
+| py313-django52 | 3.13.x | 5.2.x | ... | | | |
+| py314-django52 | 3.14.x | 5.2.x | ... | | | |
+| py312-django60 | 3.12.x | 6.0.x | ... | | | |
+| py313-django60 | 3.13.x | 6.0.x | ... | | | |
+| py314-django60 | 3.14.x | 6.0.x | ... | | | |
+| py312-django61 | 3.12.x | 6.1.x | ... | | | |
+| py313-django61 | 3.13.x | 6.1.x | ... | | | |
+| py314-django61 | 3.14.x | 6.1.x | ... | | | |
+| py315-django61 | 3.15.x | 6.1.x | ... | | | |
+| lint | - | - | ok / FAIL | - | - | flake8 + black + isort |
 
 ## Test suite composition
 
-- Unit tests: `tests/` (test count parsed from tox log)
-- Integration tests: `integration_test_project/test_integration.py`
+- Unit tests: `tests/` (count parsed from the first `passed` line in
+  each env's log section)
+- Integration tests: `integration_test_project/` (count parsed from
+  the second `passed` line in each env's log section)
 - Coverage: enforced by pytest-cov per pyproject addopts
+
+If an env's log section has only one `passed` line, report
+`integration: NOT COLLECTED` in the Integ pass column and mark the
+env as `FAIL`. Do not fabricate a count.
 
 ## Unsupported combinations
 
@@ -231,6 +261,9 @@ the table above.
 - If tox was not run in this session, do NOT touch the report.
 - Never carry over a previous report's numbers without a new tox run.
 - Never label a combination "SUPPORTED" if its row is not `ok`.
+- If any env has only one `passed` line, that env's Status is `FAIL`,
+  not `ok` — even if the pytest exit code was 0. Two runs are
+  required; one run is a setup defect.
 
 ### Commit
 
@@ -261,3 +294,7 @@ the matrix.
   `pyproject.toml` first.
 - Never use `.[dev]` — that extras group does not exist in this
   project's pyproject.toml.
+- Never run unit and integration in a single pytest invocation —
+  the root `pytest.ini` overrides integration settings.
+- Never certify a report if any env has only one `passed` line —
+  that means integration did not run.
