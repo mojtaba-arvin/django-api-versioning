@@ -1,7 +1,4 @@
 import logging
-import sys
-import subprocess
-import json
 
 import pytest
 from django.http import JsonResponse

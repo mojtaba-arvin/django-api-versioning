@@ -421,7 +421,6 @@ class TestOverrideSettingsCompatibility:
         """Version extraction precedence should work with override_settings."""
         from django.test import override_settings
         from django_api_versioning.lifecycle import _extract_version
-        from unittest.mock import Mock
 
         with override_settings(API_BASE_PATH="custom/v{version}/"):
             # request.version takes precedence even with custom base path

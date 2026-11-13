@@ -157,8 +157,8 @@ class UrlRegistry:
                 # Re-raise with better context if it's an actions-related error
                 if "actions" in str(e):
                     raise TypeError(
-                        f"ViewSet requires action configuration. "
-                        f"Use view.as_view({{'get': 'list', ...}}) with appropriate HTTP methods."
+                        "ViewSet requires action configuration. "
+                        "Use view.as_view({'get': 'list', ...}) with appropriate HTTP methods."
                     ) from e
                 raise
         return path(route, view, name=name)

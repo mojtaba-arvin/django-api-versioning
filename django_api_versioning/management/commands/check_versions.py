@@ -3,7 +3,6 @@ from collections import defaultdict
 from django.core.management.base import BaseCommand
 
 from ...registry import registry
-from ...settings import api_settings as settings
 
 
 class Command(BaseCommand):
