@@ -1,26 +1,39 @@
+---
+name: manual-testing
+description: Use to run tests — Quick after edits, Single for one Python version, Full via tox for all supported envs.
+---
+
 # Skill: Manual Testing - django-api-versioning
 
-Three modes — Quick, Single, Full. Never use system `python3` (3.8.10).
+Three modes. `tox.ini` is the source of truth for the supported matrix.
 
-`pyproject.toml` sets `addopts = "-ra --cov=django_api_versioning --cov-report=term-missing"`. That means `pytest-cov` is REQUIRED. Every install below includes it.
+## Matrix
 
-Reliable exit codes need `set -o pipefail` on every Bash call that uses `tee`. Without it, `tee` masks pytest's exit code.
+`tox.ini` envlist at the time of this skill:
+
+- py{310,311,312,313,314}-django52
+- py{312,313,314}-django60
+- py{312,313,314,315}-django61
+- lint
+
+13 envs total. Django 5.2, 6.0, 6.1 only. If `pyproject.toml` changes
+the minimum Django, update `tox.ini` first, not this skill.
 
 ## Quick — after EVERY file change
 
-Run only the touched test file. Seconds. Uses whatever venv is already in `/tmp/env-*`.
+Run only the touched test file. Seconds.
 
 ```bash
 set -o pipefail
-/tmp/env-3.15/bin/python -m pytest <touched_test_file> -v --tb=short
+python -m pytest <touched_test_file> -v --tb=short
 echo "exit=$?"
 ```
 
-If no `/tmp/env-*` exists, skip Quick and wait for the next Single or Full run.
+If no venv is active, skip Quick and rely on the next Single or Full.
 
-## Single — one Python version, both test suites
+## Single — one Python version, both test suites (baseline)
 
-Use for baseline in Phase 1. One version only.
+For Phase 1 baseline. Unit + integration on one Python. No tox.
 
 ```bash
 set -o pipefail
@@ -35,62 +48,94 @@ uv pip install --python /tmp/env-$V/bin/python \
 /tmp/env-$V/bin/python -c \
   "import django, rest_framework; print('Django:', django.get_version()); print('DRF:', rest_framework.VERSION)"
 
-/tmp/env-$V/bin/python -m pytest \
-  /home/repl/django-api-versioning/tests/ \
+/tmp/env-$V/bin/python -m pytest /home/repl/django-api-versioning/tests/ \
   -v --tb=short 2>&1 | tee /tmp/pytest-unit-$V.log
 UNIT_EXIT=${PIPESTATUS[0]}
 
-/tmp/env-$V/bin/python -m pytest \
-  /home/repl/django-api-versioning/integration_test_project/tests/ \
+/tmp/env-$V/bin/python -m pytest /home/repl/django-api-versioning/integration_test_project/ \
   -v --tb=short 2>&1 | tee /tmp/pytest-integ-$V.log
 INTEG_EXIT=${PIPESTATUS[0]}
 
 echo "UNIT_EXIT=$UNIT_EXIT INTEG_EXIT=$INTEG_EXIT"
 ```
 
-If `VENV FAIL` or `INSTALL FAIL`: report that separately from test results. Do not attempt to run pytest.
+Note: the integration file is `integration_test_project/test_integration.py`
+— point pytest at the directory `integration_test_project/`, not a
+subpath `tests/` that does not exist.
 
-If `UNIT_EXIT` or `INTEG_EXIT` is non-zero: report as test failure with the log path. Do not claim success based on the word "passed" in the log — rely on the exit code.
+## Full — all tox envs
 
-## Full — every Python version, both test suites
+Use for Phase 10 QA and before `/release`.
 
-Use only in Phase 10 (final QA) and before `/release`. Never for baseline.
+### Sandbox setup (once per session)
 
-Run the Single block six times with `V=3.10`, `V=3.11`, `V=3.12`, `V=3.13`, `V=3.14`, `V=3.15`. Each iteration is a separate Bash call so that a hang or failure on one version does not block the others.
+```bash
+uv venv /tmp/tox --python 3.15
+uv pip install --python /tmp/tox/bin/python tox
+```
 
-After all six complete, assemble the report:
+### Run
 
-| Python | Django | DRF | Unit exit | Unit pass | Unit fail | Integ exit | Integ pass | Integ fail |
-|--------|--------|-----|-----------|-----------|-----------|------------|------------|------------|
+```bash
+set -o pipefail
+PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
+TOX_EXIT=${PIPESTATUS[0]}
+echo "TOX_EXIT=$TOX_EXIT"
+```
 
-Parse counts from `/tmp/pytest-unit-$V.log` and `/tmp/pytest-integ-$V.log`. Parse Django/DRF from the version-check output of each run.
+On the user's local machine (tox already installed):
 
-If any install failed, mark the row `INSTALL FAIL` and do not fabricate test counts for it.
+```bash
+set -o pipefail
+tox 2>&1 | tee /tmp/tox-full.log
+TOX_EXIT=${PIPESTATUS[0]}
+echo "TOX_EXIT=$TOX_EXIT"
+```
+
+`tox` runs every env in the envlist. Each env installs its Django
+version, runs pytest across `tests/` and `integration_test_project/`
+from repo root, so both suites execute automatically. Lint env runs
+flake8, black --check, isort --check-only.
+
+`--maxfail=1` in tox.ini stops within each env on first failure, but
+tox continues to the next env. Per-env summary at end of log.
 
 ## Reporting rules
 
-State three separate categories:
+From `/tmp/tox-full.log`, parse the summary block:
 
-1. **Install failures** — `VENV FAIL` or `INSTALL FAIL`. Cannot be tested.
-2. **Collection failures** — pytest exit code 2/3/4, typically an import error. Report the traceback head.
-3. **Test failures** — pytest exit code 1, one or more assertions failed.
+```
+  py310-django52: commands succeeded
+  py311-django52: commands succeeded
+  ...
+  lint: commands succeeded
+```
 
-Never merge these. Never claim a version "passed" if its install failed.
+Report each env's status verbatim. Do not merge. Do not fabricate.
+
+`TOX_EXIT=0` means all envs passed. Non-zero means at least one
+failed — report the failing env names.
+
+Do not claim a test passed unless the exit code is 0.
 
 ## When to run which
 
 | Trigger | Mode |
 |---------|------|
 | Any file edited | Quick |
-| Phase 1 baseline | Single (`V=3.15`) |
-| Phase 10 QA | Full (all six) |
-| Before `/release` | Full + `/compat-matrix` |
+| Phase 1 baseline | Single (V=3.15) |
+| Phase 10 QA | Full (tox) |
+| Before `/release` | Full (tox) |
 
 ## Never
-- Never use system `python3` (3.8.10).
-- Never install without `pytest-cov` — pyproject's `addopts` requires it.
-- Never pipe to `tee` without `set -o pipefail` and `PIPESTATUS`.
-- Never claim a test passed unless the pytest exit code is 0.
+- Never use system `python3` (3.8.10) for Single or Quick.
+- Never install without `pytest-cov` — pyproject's addopts requires it.
+- Never pipe to `tee` without `set -o pipefail` and `${PIPESTATUS[0]}`.
+- Never claim a test passed unless the exit code is 0.
 - Never fabricate counts, versions, coverage.
-- Never skip integration tests in Single or Full.
-- Never run Full mode in Phase 1.
+- Never run Full (tox) in Phase 1.
+- Never modify `tox.ini` to add Django versions without updating
+  `pyproject.toml` first.
+- Never use `.[dev]` — that extras group does not exist in this
+  project's pyproject.toml.
+  
