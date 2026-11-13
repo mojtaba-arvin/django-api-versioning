@@ -181,11 +181,8 @@ class CommentListV2(View):
 # DRF APIViews
 try:  # noqa: C901
     from rest_framework import status, viewsets
-    from rest_framework.decorators import (
-        action,
-        api_view,
-        permission_classes as drf_permission_classes,
-    )
+    from rest_framework.decorators import action, api_view
+    from rest_framework.decorators import permission_classes as drf_permission_classes
     from rest_framework.generics import (
         CreateAPIView,
         ListAPIView,
