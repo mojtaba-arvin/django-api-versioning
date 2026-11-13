@@ -131,7 +131,36 @@ class UrlRegistry:
             )
 
         if isinstance(view, type) and callable(getattr(view, "as_view", None)):
-            view = view.as_view()
+            # Check if this is a DRF ViewSet (has actions in signature)
+            # ViewSets require an action dict to be passed to as_view()
+            try:
+                import inspect
+                sig = inspect.signature(view.as_view)
+                # If as_view has an 'actions' parameter, it's likely a ViewSet
+                if 'actions' in sig.parameters:
+                    actions_param = sig.parameters['actions']
+                    # If 'actions' has no default, it's required (ViewSet behavior)
+                    if actions_param.default == inspect.Parameter.empty:
+                        raise TypeError(
+                            f"ViewSet '{view.__name__}' cannot be registered directly. "
+                            f"Pass a configured callable like: "
+                            f"{view.__name__}.as_view({{'get': 'list', 'post': 'create'}})"
+                        )
+            except Exception:
+                # If inspection fails, try calling as_view() anyway
+                # to get the original error message if it is indeed a problem
+                pass
+
+            try:
+                view = view.as_view()
+            except TypeError as e:
+                # Re-raise with better context if it's an actions-related error
+                if "actions" in str(e):
+                    raise TypeError(
+                        f"ViewSet requires action configuration. "
+                        f"Use view.as_view({{'get': 'list', ...}}) with appropriate HTTP methods."
+                    ) from e
+                raise
         return path(route, view, name=name)
 
     def _sort_urlpatterns(self) -> None:

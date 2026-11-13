@@ -5,6 +5,16 @@ from django.views import View
 from django_api_versioning.registry import registry
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
+# Optional DRF imports
+try:
+    from rest_framework.views import APIView
+    from rest_framework.viewsets import ViewSet
+    HAS_DRF = True
+except ImportError:
+    HAS_DRF = False
+    APIView = None
+    ViewSet = None
+
 
 @pytest.fixture
 def clear_registry():
@@ -401,3 +411,53 @@ def test_reverse_uses_highest_version_for_duplicate_names(
         )
         == "/api/v3/users"
     )
+
+
+@pytest.mark.skipif(not HAS_DRF, reason="DRF not installed")
+class TestDRFViewSetRegistration:
+    """Test handling of DRF ViewSet registration."""
+
+    def test_viewset_without_actions_raises_clear_error(self, clear_registry):
+        """ViewSet without action configuration fails with actionable error."""
+
+        class UserViewSet(ViewSet):
+            def list(self, request):
+                return None
+
+        with pytest.raises(TypeError) as exc_info:
+            registry.register("api/v1/users", UserViewSet)
+
+        error_msg = str(exc_info.value)
+        # Error should mention ViewSet and suggest as_view() with actions
+        assert "ViewSet" in error_msg or "actions" in error_msg
+        assert "as_view" in error_msg
+
+    def test_viewset_with_actions_succeeds(self, clear_registry):
+        """ViewSet with action configuration via as_view() succeeds."""
+
+        class UserViewSet(ViewSet):
+            def list(self, request):
+                return None
+
+            def create(self, request):
+                return None
+
+        registry.register(
+            "api/v1/users",
+            UserViewSet.as_view({"get": "list", "post": "create"})
+        )
+
+        assert len(registry.urlpatterns) == 1
+        assert str(registry.urlpatterns[0].pattern) == "api/v1/users"
+
+    def test_apiview_still_works(self, clear_registry):
+        """DRF APIView should still register without issues."""
+
+        class UserAPIView(APIView):
+            def get(self, request):
+                return None
+
+        registry.register("api/v1/users", UserAPIView)
+        assert len(registry.urlpatterns) == 1
+        assert str(registry.urlpatterns[0].pattern) == "api/v1/users"
+        assert registry.urlpatterns[0].callback.view_class is UserAPIView
