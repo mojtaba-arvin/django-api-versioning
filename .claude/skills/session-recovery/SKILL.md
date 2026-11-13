@@ -1,155 +1,109 @@
 # Skill: Session Recovery - django-api-versioning
 
-Procedure to recover project state after a session reset in the temporary DataCamp sandbox.
+Re-establish state after a sandbox disconnect. Honest about what
+git can and cannot tell us.
 
-## Quick Summary
+## Procedure
 
-After every session interruption, follow this 12-step recovery procedure to re-establish context and identify the exact next task.
-
-## Recovery Steps
-
-### Step 1: Verify Working Directory and Git Setup
+### 1. Sync with remote
 
 ```bash
 pwd
-git branch --show-current
-git remote get-url origin
-```
-
-**Expected**: Working directory should contain .git/config, branch should be `audit/comprehensive-package-review`, remote should be clean HTTPS URL without credentials.
-
-### Step 2: Fetch Latest Remote References
-
-```bash
 git fetch origin
-```
-
-**Expected**: Latest commits downloaded from GitHub without errors.
-
-### Step 3: Verify Branch Status
-
-```bash
-git log --oneline -5
-git log origin/audit/comprehensive-package-review --oneline -5
-```
-
-**Expected**: Local and remote logs should show same or newer commits on working branch.
-
-### Step 4: Inspect Local Git Status
-
-```bash
 git status
-git diff --stat
-git diff
+git log --oneline -20
+git rev-parse HEAD
+git ls-remote --heads origin refs/heads/audit/comprehensive-package-review
 ```
 
-**Expected**: Working tree clean. If uncommitted changes exist, document them immediately in HANDOFF.md and preserve them before proceeding.
+- Local HEAD == remote SHA: no unpushed work. Proceed.
+- Local ahead: unpushed commits. Run `.claude/push.sh` NOW.
+- Diverged: STOP. Report before doing anything.
 
-### Step 5: List Untracked Files
+### 2. Re-create commit-msg hook if missing
 
 ```bash
-git ls-files --others --exclude-standard
+if [ ! -x .git/hooks/commit-msg ]; then
+  cat > .git/hooks/commit-msg <<'HOOK'
+#!/bin/sh
+TMP=$(mktemp)
+grep -v -E '^(Co-[Aa]uthored-[Bb]y:.*(Claude|Anthropic)|🤖 Generated with|Generated with .?Claude)' "$1" > "$TMP"
+mv "$TMP" "$1"
+HOOK
+  chmod +x .git/hooks/commit-msg
+fi
 ```
 
-**Expected**: No untracked files, or document any important ones in HANDOFF.md.
-
-### Step 6: Read Canonical Project Documentation
-
-Read these three files in order:
-1. `DEVELOPMENT_LOG.md` - Chronological history of completed work
-2. `DEVELOPMENT_PROGRESS.md` - Current status of all phases
-3. `HANDOFF.md` - Latest recovery state and exact next action
-
-### Step 7: Verify Latest Remote Commit Hash
-
-After reading HANDOFF.md, verify that the documented remote commit hash matches actual remote:
+### 3. Verify identity
 
 ```bash
-git rev-parse origin/audit/comprehensive-package-review
+git config --local user.name
+git config --local user.email
 ```
 
-**Expected**: Hash should match the value documented in HANDOFF.md under "Latest Verified Remote Commit Hash".
+Must be `Mojtaba Arvin` / `m.arvin@live.com`. Set if missing.
 
-### Step 8: Inspect Recent Commits
-
-Look at the most recent relevant commits:
+### 4. Verify auth
 
 ```bash
-git log --oneline -20 -- DEVELOPMENT_LOG.md DEVELOPMENT_PROGRESS.md HANDOFF.md
-git log --oneline -20 -- <relevant changed files>
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $DAV_GITHUB_TOKEN" \
+  https://api.github.com/user
 ```
 
-**Expected**: See the documented work history. Cross-reference with DEVELOPMENT_LOG.md.
+- 200: proceed.
+- 401/403: STOP, tell user to regenerate the PAT.
+- 000: network, report and stop.
 
-### Step 9: Identify Unfinished Work
+### 5. Detect in-progress task — with honest limitations
 
-Based on reading the three canonical files, identify:
-1. What work was completed and pushed?
-2. What work was in-progress?
-3. What work is pending?
-4. Are there any blockers or issues?
-5. What is the exact next task?
+**If `git status` is dirty:** an edit happened without commit+push.
+Commit and push via `/safe-checkpoint` FIRST, THEN resume.
 
-### Step 10: Reconcile Local and Remote State
+**If `git status` is clean:** read `git log --oneline -10` and
+match the pattern:
 
-If local branch has commits that remote doesn't have:
+| Last commit(s) | Likely state | Resume |
+|---|---|---|
+| `test: matrix PY=X DJ=Y ...` | Matrix partial or done | Re-run `/compat-matrix`. `row_done` skips done rows. |
+| `chore(release): prepare vX.Y.Z` + tag exists | Release mid-flight, tag not pushed | `.claude/push.sh --tag` then `/release` step 11+ |
+| `chore(release): prepare vX.Y.Z` + no tag | Release mid-flight, tag not created | `/release` step 8 (create tag) |
+| Single `fix: …` or `feat: …` | One fix done, maybe more planned | **Ask user** if more remained |
+| Sequence of `fix:` / `test:` commits | Likely a batch | **Ask user** for the original task list and remaining items |
+| `docs: …` | One doc change done | **Ask user** |
+| Only `chore: initialize persistent...` | Initial setup | Ask user for next phase |
+| Nothing beyond `main` merge | Idle | Ask user what to work on |
+| Untracked files only | Scratch | Inspect filenames. Add to a task or delete. Never delete blind. |
 
-```bash
-git log --oneline origin/audit/comprehensive-package-review..HEAD
-```
+### Critical limitation — state it explicitly
 
-**Expected**: Should be empty (all local work is pushed). If not, verify and push these commits.
+**Without an external tracker, this skill cannot know how many
+items were in the user's batch.** It sees what was done, not what
+was planned.
 
-### Step 11: Preserve All Valuable Work
+When the pattern suggests a batch (two or more `fix:`/`test:`
+commits in a row), STOP and ask the user:
 
-Before proceeding with any new work:
-- Never use `git reset --hard`, `git clean`, or `git checkout .`
-- Never blindly discard local commits or files
-- If there is untracked work, document it in HANDOFF.md
-- If there are uncommitted changes, decide whether to commit or preserve them
+> "I see these commits in the current session:
+> <list with hashes and subjects>
+> I cannot determine how many items were in the original task
+> list or which items remain. Please state the original list and
+> what is still pending."
 
-### Step 12: Determine Exact Next Action
+Do NOT assume the batch is complete just because the last commit
+looks self-contained. Do NOT guess remaining items. Do NOT invent
+a task list. The user must confirm.
 
-Based on documentation review:
-1. Identify the specific, actionable next task
-2. Document this in your working notes
-3. Begin implementation or investigation
-4. Follow the standard workflow: Implement → Test → Document → Commit → Push
+### 6. Report and resume
 
-## Verification Checklist
+State in one block: local SHA, remote SHA (match/diverge),
+detected pattern, files currently modified (if any), the user's
+confirmed next action. Then execute.
 
-After completing recovery steps, verify:
-- [ ] Working directory correct
-- [ ] Branch is audit/comprehensive-package-review
-- [ ] Remote URL is clean (no credentials)
-- [ ] Latest remote commit hash verified
-- [ ] All three canonical files read and understood
-- [ ] Local and remote state reconciled
-- [ ] All valuable work preserved or accounted for
-- [ ] Exact next task identified and documented
-
-## If Problems Detected
-
-If recovery reveals any of these situations:
-- **Diverged branches**: Inspect both histories before merging
-- **Uncommitted changes**: Document in HANDOFF.md with exact file paths
-- **Unpushed commits**: Verify all commits are on working branch, push immediately
-- **Remote changes not pulled**: Review diff carefully before pulling
-- **Merge conflicts**: Preserve all work, resolve conflicts manually
-- **Unknown files**: Inspect before deleting, document if valuable
-
-## When to Use This Skill
-
-- At the beginning of every new Claude session
-- After any interruption or context loss
-- When unsure about current project state
-- Before starting any new implementation task
-
-## Output
-
-After completing this skill, you should have:
-1. Clear understanding of current project state
-2. Latest remote commit hash verified
-3. Identification of any unfinished work
-4. Documentation of any blockers or issues
-5. Exact specification of the next actionable task
+## Never
+- Never assume prior work completed without git evidence.
+- Never read `DEVELOPMENT_LOG.md`, `HANDOFF.md`, `*_PROGRESS.md`
+  (they do not exist — CLAUDE.md Section 8).
+- Never `git reset --hard`, `git clean`, `git checkout .`.
+- Never start new work while unpushed commits exist.
+- Never pretend to know the remaining task list from git alone.
