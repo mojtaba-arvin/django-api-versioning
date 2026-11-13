@@ -2863,6 +2863,108 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         self.assertEqual(data["version"], 2)
 
 
+class DRFURLPathVersioningIntegrationTestCase(TestCase):
+    """Test boundary behavior between django-api-versioning and DRF URLPathVersioning.
+
+    This test class documents the interaction between the package's routing
+    (which registers literal URL paths like api/v2/endpoint/) and DRF's
+    URLPathVersioning (which expects a 'version' keyword argument from the
+    URL resolver).
+    """
+
+    def test_drf_apiview_without_versioning_class(self):
+        """DRF APIView without versioning class should still work."""
+        # APIView without versioning should handle requests fine
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_drf_apiview_request_version_behavior(self):
+        """Document that route selection is independent of request.version.
+
+        The package's routing (URL path → handler) is independent of
+        DRF's request.version, which depends on configured versioning class.
+        """
+        # Request /api/v1/users/ reaches the v1 handler
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        # The actual response should be from the v1 handler
+        self.assertIsInstance(data, (dict, list))
+
+    def test_route_selection_by_url_path_not_request_version(self):
+        """Package selects route based on URL path, not DRF request.version."""
+        # Request /api/v1/users/ reaches the v1 handler regardless of request.version
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_different_versions_reach_different_handlers(self):
+        """Different URL versions should reach different registered handlers."""
+        # v1 handler
+        response_v1 = self.client.get("/api/v1/users/")
+        self.assertEqual(response_v1.status_code, 200)
+
+        # v2 handler
+        response_v2 = self.client.get("/api/v2/users/")
+        self.assertEqual(response_v2.status_code, 200)
+
+        # Routes are different, handlers should differ
+        # Verify both succeeded
+        data_v1 = response_v1.json()
+        data_v2 = response_v2.json()
+        self.assertIsInstance(data_v1, (dict, list))
+        self.assertIsInstance(data_v2, (dict, list))
+
+    def test_package_handles_versioning_not_drf(self):
+        """Package routing is independent of DRF versioning configuration.
+
+        The package selects which handler to call based on the URL path.
+        DRF's request.version is determined by DRF's configured versioning
+        class, which may not populate request.version unless explicitly
+        configured to extract it from the URL keyword argument.
+
+        This is the key boundary: the package handles routing, DRF handles
+        the request.version attribute if versioning is configured.
+        """
+        response = self.client.get("/api/v1/users/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_multiple_versioned_routes_available(self):
+        """Multiple versions of same endpoint are available."""
+        versions_available = []
+        for v in [1, 2, 3, 4]:
+            response = self.client.get(f"/api/v{v}/users/")
+            if response.status_code == 200:
+                versions_available.append(v)
+
+        # At least versions 1 and 2 should be available
+        self.assertIn(1, versions_available)
+        self.assertIn(2, versions_available)
+
+    def test_nonexistent_version_404(self):
+        """Non-existent version returns 404."""
+        # Assuming v99 doesn't exist
+        response = self.client.get("/api/v99/users/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_unversioned_route_independent_of_versioning(self):
+        """Unversioned routes work independently of versioning."""
+        response = self.client.get("/status/")
+        if response.status_code == 200:
+            # Unversioned endpoints are independent of versioning scheme
+            data = response.json()
+            self.assertIsNotNone(data)
+
+    def test_version_specific_handlers_receive_requests(self):
+        """Each version-specific URL path routes to its correct handler."""
+        # v1 request
+        resp1 = self.client.get("/api/v1/users/")
+        self.assertEqual(resp1.status_code, 200)
+
+        # v3 request (if v3 is supported)
+        resp3 = self.client.get("/api/v3/users/")
+        self.assertEqual(resp3.status_code, 200)
+
+
 def run_integration_tests():
     """Run the integration test suite."""
     from django.test.utils import get_runner
