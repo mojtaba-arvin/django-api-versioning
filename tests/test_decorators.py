@@ -1,7 +1,4 @@
 import logging
-import sys
-import subprocess
-import json
 
 import pytest
 from django.http import JsonResponse
@@ -130,6 +127,7 @@ class TestIssue0VersionAboveMax:
 
     def test_version_equals_max_succeeds(self, versions_1_to_5):
         """version == API_MAX_VERSION must succeed and register exactly v5."""
+
         @endpoint("y", version=5)
         def y(request):
             return JsonResponse({})
@@ -364,7 +362,8 @@ class TestIssue6ViewInstanceRejection:
         registry.register("api/v1/myview", MyView)
         assert any(str(p.pattern) == "api/v1/myview" for p in registry.urlpatterns)
         assert any(
-            p.callback.view_class is MyView for p in registry.urlpatterns
+            p.callback.view_class is MyView
+            for p in registry.urlpatterns
             if hasattr(p.callback, "view_class")
         )
 

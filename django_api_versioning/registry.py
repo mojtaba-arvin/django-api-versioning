@@ -135,10 +135,11 @@ class UrlRegistry:
             # ViewSets require an action dict to be passed to as_view()
             try:
                 import inspect
+
                 sig = inspect.signature(view.as_view)
                 # If as_view has an 'actions' parameter, it's likely a ViewSet
-                if 'actions' in sig.parameters:
-                    actions_param = sig.parameters['actions']
+                if "actions" in sig.parameters:
+                    actions_param = sig.parameters["actions"]
                     # If 'actions' has no default, it's required (ViewSet behavior)
                     if actions_param.default == inspect.Parameter.empty:
                         raise TypeError(
@@ -157,8 +158,8 @@ class UrlRegistry:
                 # Re-raise with better context if it's an actions-related error
                 if "actions" in str(e):
                     raise TypeError(
-                        f"ViewSet requires action configuration. "
-                        f"Use view.as_view({{'get': 'list', ...}}) with appropriate HTTP methods."
+                        "ViewSet requires action configuration. "
+                        "Use view.as_view({'get': 'list', ...}) with appropriate HTTP methods."
                     ) from e
                 raise
         return path(route, view, name=name)

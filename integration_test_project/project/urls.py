@@ -4,12 +4,13 @@ URL configuration for integration test project.
 IMPORTANT: The views MUST be imported before django_api_versioning.urls
 so that the @endpoint decorators execute and register the routes.
 """
+
 # Import views first to trigger @endpoint decorator registration
 from api import views  # noqa: F401
+from django.urls import include, path
 
-from django.urls import path, include
-from django_api_versioning.urls import urlpatterns as api_urlpatterns
 from django_api_versioning.decorators import endpoint
+from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Router-based ViewSet configuration for testing
 try:
@@ -17,11 +18,11 @@ try:
 
     # DefaultRouter for v1
     router_v1 = DefaultRouter()
-    router_v1.register(r'blogposts', views.BlogPostViewSetV1, basename='blogpost-v1')
+    router_v1.register(r"blogposts", views.BlogPostViewSetV1, basename="blogpost-v1")
 
     # SimpleRouter for v2
     router_v2 = SimpleRouter()
-    router_v2.register(r'blogposts', views.BlogPostViewSetV2, basename='blogpost-v2')
+    router_v2.register(r"blogposts", views.BlogPostViewSetV2, basename="blogpost-v2")
 
     # Wrap router URLs with @endpoint decorator for versioning
     # Version 1
@@ -32,8 +33,8 @@ try:
     # Instead, we'll add the router URLs directly and test them separately.
 
     router_urls = [
-        path('api/v1/', include(router_v1.urls)),
-        path('api/v2/', include(router_v2.urls)),
+        path("api/v1/", include(router_v1.urls)),
+        path("api/v2/", include(router_v2.urls)),
     ]
 except ImportError:
     router_urls = []
