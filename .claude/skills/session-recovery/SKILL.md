@@ -71,6 +71,7 @@ match the pattern:
 | Single `fix: …` or `feat: …` | One fix done, maybe more planned | **Ask user** if more remained |
 | Sequence of `fix:` / `test:` commits | Likely a batch | **Ask user** for the original task list and remaining items |
 | `docs: …` | One doc change done | **Ask user** — unless the current user message contains a full task spec; in that case, proceed from the spec |
+| `chore: bump version to X.Y.Z` OR `docs: bump package version to X.Y.Z in articles` in the last 5 commits | Release preparation likely done, tag/push/verify may be pending | Check: `git ls-remote --tags origin "vX.Y.Z"` and `curl -s https://pypi.org/pypi/django-api-versioning/json \| grep '"version"'`. If tag missing OR PyPI version != X.Y.Z → invoke `/release` from the appropriate step. Do NOT start new work. |
 | Only `chore: initialize persistent...` | Initial setup | Ask user for next phase |
 | Nothing beyond `main` merge | Idle | Ask user what to work on |
 | Untracked files only | Scratch | Inspect filenames. Add to a task or delete. Never delete blind. |
@@ -115,4 +116,3 @@ confirmed next action. Then execute.
 - Never pretend to know the remaining task list from git alone.
 - Never ask the user for a task list if their current message
   already contains one.
-  
