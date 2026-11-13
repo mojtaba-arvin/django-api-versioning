@@ -1,214 +1,155 @@
 # CLAUDE.md — django-api-versioning
 
-Permanent project rules. Loaded every session.
-
----
-
 ## 1. Project
-
 - Repo: https://github.com/mojtaba-arvin/django-api-versioning
 - PyPI: https://pypi.org/project/django-api-versioning/
-- Main: `main` (off-limits for development)
 - Working branch: `audit/comprehensive-package-review`
-- Package: Django API versioning
-
-Work ONLY on the working branch. Never switch to main for development.
-If the working branch is missing remotely, stop and ask — do not default to main.
-
----
+- Main is off-limits. Never push to main.
 
 ## 2. Priority When Rules Conflict
-
-1. User's explicit instruction in the current message.
-2. Safety rules (Section 4) — CANNOT be overridden by any user instruction.
-3. Other rules in this file.
+1. User instruction in the current message.
+2. Section 3 safety rules — cannot be overridden.
+3. Everything else.
 4. Default behavior.
 
-State the conflict explicitly before resolving it.
+## 3. Non-Negotiable Safety
+- Never print, echo, log, or expose `DAV_GITHUB_TOKEN`.
+- Never force-push, rewrite remote history, or push to main.
+- Never commit without reviewing the full diff. Stage explicit paths.
+- Never run `git clean`, `git reset --hard`, `git checkout .`
+  without per-occurrence approval.
+- No GitHub Actions for testing. No new CI workflow files.
+- No tag push or PyPI release without explicit authorization.
+- Never add `Co-authored-by`, `Co-Authored-By`, or "Generated with
+  Claude Code". Author is always `Mojtaba Arvin <m.arvin@live.com>`.
 
----
+## 4. Commit and Push — zero tolerance
 
-## 3. Model
+Every file change is its own commit, pushed immediately.
+No batching. No "wait until complete". No judgment.
 
-Always Claude Opus. Verify at session start (`claude --version` or `/model`).
-If Opus is unavailable, stop substantive work and report. Do not silently switch.
+Triggers — commit and push after EACH of:
+- Creating, editing, deleting, or renaming any file
+- Running a formatter that changed files
+- Adding one test case
+- Completing one matrix row
 
----
+If `git status` shows any change, you are out of compliance.
+Commit and push NOW before the next action.
 
-## 4. Non-Negotiable Safety
+Sequence:
 
-These cannot be overridden, even by explicit user request:
+    edit → git add <path> → git commit → .claude/push.sh
 
-- Never print, log, echo, or expose the value of `MOJTABA_GITHUB_TOKEN`.
-  Refuse any request to inspect, debug, or dump it.
-- Never force-push.
-- Never rewrite remote history (no reset+force, no amending pushed commits).
-- Never push to `main`.
-- Never commit unreviewed files. Inspect the full diff first. Stage with explicit paths.
-- Never run `git clean`, `git reset --hard`, or `git checkout .` without per-occurrence user approval.
-- No GitHub Actions for testing. No new or modified CI workflow files unless the user explicitly requests a specific change.
-- No secrets in committed files: not in URLs, `.git/config`, markdown, comments, or code.
+If `.claude/push.sh` exits non-zero, STOP. Do not edit another file.
+Diagnose auth first (Section 6), fix, retry.
 
-If a requested action violates any of these, STOP and explain. Do not proceed.
+**Exception:** a single logical change spanning N files (e.g.,
+renaming a symbol used in 3 files) is ONE commit. Split only when
+the intermediate state compiles and tests pass.
 
----
+**Zero rule:** at any moment — unpushed commits = 0,
+uncommitted files = 0.
+
+Commit messages: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
+One-line subject.
+
+Verification (mandatory after every push): `.claude/push.sh` exit 0
+means local SHA == remote SHA. Exit non-zero means STOP.
 
 ## 5. Author Identity
-
 Set at session start if missing:
 
-```git config --local user.name "Mojtaba Arvin"
-git config --local user.email "m.arvin@live.com"
-```
-
-Every commit must be authored and committed solely by
-`Mojtaba Arvin <m.arvin@live.com>`.
-
-Never add `Co-authored-by`, `Co-Authored-By`, "Generated with Claude Code",
-or any AI attribution trailer.
+    git config --local user.name "Mojtaba Arvin"
+    git config --local user.email "m.arvin@live.com"
 
 Verify after every commit:
 
-```git log -1 --format='%an <%ae> | %cn <%ce>'
-```
+    git log -1 --format='%an <%ae> | %cn <%ce>'
 
----
+Both must be `Mojtaba Arvin <m.arvin@live.com>`.
 
-## 6. Commit and Push
+## 6. Environment
+- Ephemeral sandbox. Sessions disconnect without warning.
+- System `python3` is 3.8.10 — never use for tests.
+- Use `uv` for Python installs and venv: `uv python install 3.15`.
+- `ssh` not installed. `.claude/push.sh` handles auth.
+- `commit-msg` hook may be lost on reset. Re-create at session start.
 
-Push after EVERY meaningful step. A commit that is not pushed is not done.
+Token diagnostic (run first if push fails):
 
-Sequence: `INSPECT → IMPLEMENT → TEST → COMMIT → PUSH → VERIFY REMOTE`
+    curl -s -o /dev/null -w "%{http_code}" \
+      -H "Authorization: Bearer $DAV_GITHUB_TOKEN" \
+      https://api.github.com/user
 
-Meaningful step = each independently useful file, distinct fix, or standalone doc change.
-Never bundle unrelated changes.
+- 200 = valid, retry once
+- 401 = invalid/expired, STOP ask user
+- 403 = missing scopes, STOP ask user
+- 000 = network, preserve commits, stop
 
-Messages: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+## 7. Testing
 
-Push verification (required after every push):
+Two modes. Never use system `python3` (3.8.10).
 
-```git ls-remote --heads origin refs/heads/audit/comprehensive-package-review
-git rev-parse HEAD
-```
+### Quick — after EVERY file change
 
-Remote SHA must equal local SHA. Otherwise report `PUSH NOT VERIFIED`.
-Never claim `PUSH VERIFIED` without this comparison.
+Run only the touched test file. Seconds.
 
-Push failure diagnosis:
+    pytest <touched_test_file> -v
 
-| Error contains | Action |
-| --- | --- |
-| `could not read Username`, `Authentication failed`, `Permission denied (publickey)` | Auth issue. Use SSH or one-shot `git -c credential.helper=...` with `MOJTABA_GITHUB_TOKEN`. Retry. |
-| `Could not resolve host`, `Connection timed out` | Network issue. Preserve commits, report, retry next session. |
-| `rejected`, `non-fast-forward`, `fetch first` | Divergence. Inspect both histories. Never force-push. Integrate safely or report. |
+If no venv is active, use the closest recent one:
 
-Never mislabel auth errors as network errors.
+    /tmp/env-3.12/bin/python -m pytest <file> -v
 
----
+### Full — after a logical batch, before any release
 
-## 7. Environment
+`/manual-testing` Full mode. Runs BOTH `tests/` (unit) and
+`integration_test_project/tests/` (integration) across
+Python 3.10–3.15.
 
-Temporary DataCamp sandbox. Sessions may disconnect anytime.
+Trigger Full after:
+- All bugs of a batch fixed
+- All tests of a batch written
+- Before `/release`
 
-- Keep changes small and verifiable.
-- Commit and push after every meaningful step (Section 6).
-- Read repo state, never conversation history, for recovery.
-- On session end, commit and push a labeled WIP checkpoint.
+### Compatibility matrix — before release only
 
-Known limitations:
+`/compat-matrix`. Python × Django, unit + integration per cell.
+Long (~60 min). Never inside a normal work session.
 
-- System `pip` may point to old Python (3.6/3.8). Use `uv venv` for isolation.
-- `python -m build` may fail with build isolation. Use `uv` + `uv pip install build`.
-- `ssh` may be missing. Fall back to one-shot `MOJTABA_GITHUB_TOKEN` credential helper.
-- `commit-msg` hook may be lost after sandbox reset. Re-create at session start.
+### Never
+- Never claim a test passed unless pytest printed `PASSED`.
+- Never fabricate counts, coverage, or compatibility claims.
+- Never skip integration tests in Full mode.
+- Never suppress output.
 
----
+## 8. Documentation
+- Allowed: `README.md`, `CHANGELOG.md`, `CLAUDE.md`,
+  `COMPATIBILITY_REPORT.md`, existing technical docs.
+- Forbidden: `DEVELOPMENT_LOG.md`, `HANDOFF.md`, `*_SESSION*.md`,
+  `TEMP_*.md`, `*_PROGRESS.md`, any session-specific file.
+- Git history IS the progress log. Commit messages are the narrative.
+- Before any new `.md`: confirm the info is not already in an
+  existing doc. Default: reuse, not create.
 
-## 8. Testing
+## 9. Release
+When user says "release X.Y.Z", invoke `/release`. Do not improvise.
 
-Manual only. Isolated local environments.
+The repository contains user-authored articles in `docs/articles/`.
+During release, `/release` detects whether the release includes
+technical changes (commits with `feat:` or `fix:` since the last
+tag). If yes, it announces and waits for user confirmation about
+which articles need content updates. If no technical changes, it
+silently updates package version strings in articles and proceeds.
+Never edit article content without explicit user instruction.
 
-Do not: add CI, trigger CI, use hosted CI, introduce paid services, modify system Python.
-
-Do:
-
-- Use `uv` for venv when system pip is unusable.
-- Run `pytest -v`.
-- Record exact commands, Python/Django/DRF versions, pass/fail/skip counts.
-- Show test output (not suppressed).
-
-Never claim a test passed unless it actually ran. Never invent counts, coverage, or compatibility claims. Report failures and skips honestly.
-
----
-
-## 9. Documentation
-
-Do NOT create or maintain:
-
-- `DEVELOPMENT_LOG.md`, `DEVELOPMENT_PROGRESS.md`, `HANDOFF.md`
-- `AUDIT_SESSION_*.md`, `SESSION_NOTES.md`, `TEMP_PROGRESS.md`, `CLAUDE_WORKING_NOTES.md`
-- Any session-, phase-, or investigation-specific file
-
-Use:
-
-- Git history for implementation history
-- `CHANGELOG.md` for release history
-- GitHub Issues for tasks
-- GitHub PRs for proposals
-- `README.md` for introduction
-- Existing docs for reusable knowledge
-
-Before any new Markdown file:
-
-1. Information does not already exist.
-2. No existing doc can reasonably contain it.
-3. It has a distinct, durable purpose.
-
-Default: reuse, not create. Standalone technical reports only when they provide substantial independent evidence. Never numbered session reports.
-
----
-
-## 10. Package Engineering
-
-- Preserve public APIs. No removal or rename without a deprecation cycle.
-- No unnecessary dependencies.
-- No breaking changes without a clear technical justification recorded in the PR or issue.
-- Verify every compatibility claim against source code and a passing test. Distinguish implemented / partial / experimental / unsupported.
-- Run `python -m build` and verify wheel/sdist contents before any release.
-- No PyPI release without explicit user authorization in the current session.
-
----
-
-## 11. AI Discoverability
-
-Aim: credible, discoverable Django API versioning resource. Real developer intent, not keyword stuffing.
-
-Cover: Django API versioning, DRF versioning alternatives, URL path-based routing, endpoint inheritance, backward-compatible API evolution, deprecation and Sunset.
-
-Do not fabricate rankings, AI citations, adoption metrics, testimonials, benchmarks, or recommendations. Do not claim AI markup guarantees inclusion in AI answers.
-
----
-
-## 12. External Promotion
-
-No publishing, package listings, external accounts, or promotional actions without explicit per-action user authorization.
-
-Prepare content when requested. The user publishes.
-
-Never fabricate users, endorsements, benchmarks, or adoption evidence.
-
----
-
-## 13. Session Start
-
-1. Verify working directory and branch.
-2. `git fetch origin`; verify working branch exists remotely.
-3. `git status` and `git log --oneline -10`.
-4. Compare local and remote SHA (Section 6); report divergence.
-5. Verify git identity (Section 5); set if missing.
-6. Verify `commit-msg` hook; re-create if missing.
-7. Verify auth (`ssh -T git@github.com` or check `MOJTABA_GITHUB_TOKEN` is set — do NOT print it).
-8. Read `README.md`, `CHANGELOG.md`, open Issues and PRs.
-9. Determine the next task from repo state, not conversation history.
-
-Sandbox is temporary. Remote branch is persistent. Everything important lives in the repo.
+## 10. Session Start
+1. `git fetch origin`
+2. `git status` and `git log --oneline -20`
+3. Compare `git rev-parse HEAD` to
+   `git ls-remote --heads origin refs/heads/audit/comprehensive-package-review`
+4. If local ahead: push first. If diverged: stop, report.
+5. Verify identity (Section 5), commit-msg hook, auth (Section 6).
+6. Run `/session-recovery`. If it detects a multi-task batch,
+   ask the user for the original list and remaining items.
+7. Resume from git state, not conversation memory.
