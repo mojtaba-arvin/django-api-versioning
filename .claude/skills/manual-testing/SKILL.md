@@ -1,103 +1,96 @@
 # Skill: Manual Testing - django-api-versioning
 
-Two modes — Quick and Full. Never use system `python3` (3.8.10).
+Three modes — Quick, Single, Full. Never use system `python3` (3.8.10).
+
+`pyproject.toml` sets `addopts = "-ra --cov=django_api_versioning --cov-report=term-missing"`. That means `pytest-cov` is REQUIRED. Every install below includes it.
+
+Reliable exit codes need `set -o pipefail` on every Bash call that uses `tee`. Without it, `tee` masks pytest's exit code.
 
 ## Quick — after EVERY file change
 
-Run only the touched test file. Seconds.
+Run only the touched test file. Seconds. Uses whatever venv is already in `/tmp/env-*`.
 
 ```bash
-pytest <touched_test_file> -v
+set -o pipefail
+/tmp/env-3.15/bin/python -m pytest <touched_test_file> -v --tb=short
+echo "exit=$?"
 ```
 
-Examples:
+If no `/tmp/env-*` exists, skip Quick and wait for the next Single or Full run.
+
+## Single — one Python version, both test suites
+
+Use for baseline in Phase 1. One version only.
 
 ```bash
-pytest tests/test_decorators.py -v
-pytest tests/test_settings.py -v
-pytest integration_test_project/tests/test_drf_viewset.py -v
-```
-
-If no venv is active, use the closest recent one:
-
-```bash
-/tmp/env-3.12/bin/python -m pytest <file> -v
-```
-
-If unsure which test covers the change:
-
-```bash
-pytest tests/ -k "<keyword>" -v
-```
-
-If nothing matches, skip Quick and rely on the next Full run.
-
-Do NOT install a full matrix for Quick.
-
-## Full — after a logical batch, before any release
-
-Runs BOTH `tests/` (unit) and `integration_test_project/tests/`
-(integration) across Python 3.10–3.15.
-
-### 1. Install Pythons (idempotent)
-
-```bash
-for v in 3.10 3.11 3.12 3.13 3.14 3.15; do uv python install "$v"; done
-```
-
-### 2. Test each version — one Bash call per version
-
-```bash
-V=3.10
-uv venv /tmp/env-$V --python $V
+set -o pipefail
+V=3.15
+uv venv /tmp/env-$V --python $V || { echo "VENV FAIL $V"; exit 1; }
 uv pip install --python /tmp/env-$V/bin/python \
   -e /home/repl/django-api-versioning \
-  pytest pytest-django djangorestframework
+  pytest pytest-django pytest-cov djangorestframework \
+  || { echo "INSTALL FAIL $V"; exit 2; }
 
 /tmp/env-$V/bin/python --version
+/tmp/env-$V/bin/python -c \
+  "import django, rest_framework; print('Django:', django.get_version()); print('DRF:', rest_framework.VERSION)"
 
 /tmp/env-$V/bin/python -m pytest \
   /home/repl/django-api-versioning/tests/ \
   -v --tb=short 2>&1 | tee /tmp/pytest-unit-$V.log
+UNIT_EXIT=${PIPESTATUS[0]}
 
 /tmp/env-$V/bin/python -m pytest \
   /home/repl/django-api-versioning/integration_test_project/tests/ \
   -v --tb=short 2>&1 | tee /tmp/pytest-integ-$V.log
+INTEG_EXIT=${PIPESTATUS[0]}
 
-rm -rf /tmp/env-$V
+echo "UNIT_EXIT=$UNIT_EXIT INTEG_EXIT=$INTEG_EXIT"
 ```
 
-Repeat for 3.11, 3.12, 3.13, 3.14, 3.15.
+If `VENV FAIL` or `INSTALL FAIL`: report that separately from test results. Do not attempt to run pytest.
 
-If `pip install -e .` fails with build isolation, prepend
-`PYTHONPATH=/home/repl/django-api-versioning` to the pytest commands.
+If `UNIT_EXIT` or `INTEG_EXIT` is non-zero: report as test failure with the log path. Do not claim success based on the word "passed" in the log — rely on the exit code.
 
-### 3. Report
+## Full — every Python version, both test suites
 
-| Python | Django | Unit pass | Unit fail | Integ pass | Integ fail |
-|--------|--------|-----------|-----------|------------|------------|
+Use only in Phase 10 (final QA) and before `/release`. Never for baseline.
 
-Parse counts from `/tmp/pytest-unit-$V.log` and
-`/tmp/pytest-integ-$V.log`. Do not fabricate.
+Run the Single block six times with `V=3.10`, `V=3.11`, `V=3.12`, `V=3.13`, `V=3.14`, `V=3.15`. Each iteration is a separate Bash call so that a hang or failure on one version does not block the others.
 
-If any unit or integration test fails, include the traceback
-filename in a Notes column (verbatim, not paraphrased).
+After all six complete, assemble the report:
+
+| Python | Django | DRF | Unit exit | Unit pass | Unit fail | Integ exit | Integ pass | Integ fail |
+|--------|--------|-----|-----------|-----------|-----------|------------|------------|------------|
+
+Parse counts from `/tmp/pytest-unit-$V.log` and `/tmp/pytest-integ-$V.log`. Parse Django/DRF from the version-check output of each run.
+
+If any install failed, mark the row `INSTALL FAIL` and do not fabricate test counts for it.
+
+## Reporting rules
+
+State three separate categories:
+
+1. **Install failures** — `VENV FAIL` or `INSTALL FAIL`. Cannot be tested.
+2. **Collection failures** — pytest exit code 2/3/4, typically an import error. Report the traceback head.
+3. **Test failures** — pytest exit code 1, one or more assertions failed.
+
+Never merge these. Never claim a version "passed" if its install failed.
 
 ## When to run which
 
 | Trigger | Mode |
 |---------|------|
 | Any file edited | Quick |
-| Test file added | Quick |
-| Bug fixed | Quick (target file) |
-| All bugs of a batch fixed | Full |
-| All tests of a batch written | Full |
-| Before tagging a release | Full + `/compat-matrix` |
+| Phase 1 baseline | Single (`V=3.15`) |
+| Phase 10 QA | Full (all six) |
+| Before `/release` | Full + `/compat-matrix` |
 
 ## Never
 - Never use system `python3` (3.8.10).
-- Never rely on `source` persisting across Bash calls.
-- Never claim a test passed unless pytest printed `PASSED`.
+- Never install without `pytest-cov` — pyproject's `addopts` requires it.
+- Never pipe to `tee` without `set -o pipefail` and `PIPESTATUS`.
+- Never claim a test passed unless the pytest exit code is 0.
 - Never fabricate counts, versions, coverage.
-- Never skip integration tests in Full mode.
-- Never run Full mode after every file change.
+- Never skip integration tests in Single or Full.
+- Never run Full mode in Phase 1.
