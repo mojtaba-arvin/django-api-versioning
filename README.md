@@ -582,6 +582,47 @@ Prints registered routes, their route versions, and the associated callback name
 
 Use it to inspect the routing result after adding or changing endpoint declarations.
 
+**Output interpretation:**
+
+The command groups routes by their *logical endpoint* (the path without versioning), not by physical URL. This means:
+
+```text
+users/:
+  v1           → users_list_v1
+  v2           → users_list_v2
+  v3           → users_list_v2
+  v4           → users_list_v2
+```
+
+Even though physical URLs are `/api/v1/users/`, `/api/v2/users/`, etc., the command groups them under the logical endpoint `users`.
+
+**Callback name resolution:**
+
+The command resolves callback names intelligently:
+
+- **Function-based views:** Shows the function name (e.g., `my_view`)
+- **Django View classes:** Shows the class name (e.g., `MyView`)
+- **DRF APIView:** Shows the class name (e.g., `MyAPIView`)
+- **DRF ViewSet actions:** Shows the ViewSet class name (e.g., `MyViewSet`)
+
+**Gap detection:**
+
+The command warns about missing versions within an endpoint's span:
+
+```text
+users:
+  v1           → users_list_v1
+  v3           → users_list_v3
+  [users] v2 is not defined.
+```
+
+It does NOT warn about versions before an endpoint's introduction or after its final declaration:
+
+```text
+# No warning for v1 (starts at v2)
+# No warning for v4 (ends at v3)
+```
+
 ### `assert_version_matrix` — guard routing changes in CI
 
 The package provides a snapshot utility for detecting unintended changes to the registered route matrix.
@@ -776,7 +817,31 @@ A generic view must implement the HTTP handlers required by its registered route
 
 A DRF `ViewSet` class cannot be passed directly to `@endpoint` as a normal class-based view. Its `as_view()` method requires an action mapping, while the package invokes `as_view()` without one.
 
-Use DRF routers for standard ViewSet resource routing.
+To register a ViewSet action, pass a pre-configured callable:
+
+```python
+from rest_framework.viewsets import ViewSet
+from django_api_versioning import endpoint
+
+
+class MyViewSet(ViewSet):
+    def list(self, request):
+        return JsonResponse({})
+
+    def create(self, request):
+        return JsonResponse({})
+
+
+# ✓ Correct: pass a configured callable
+@endpoint("items/", version=1)
+def list_items(request):
+    return MyViewSet.as_view({"get": "list"})(request)
+
+# ✗ Incorrect: class without action mapping
+# @endpoint("items/", version=1, MyViewSet)  # TypeError!
+```
+
+For standard ViewSet resource routing (list, create, retrieve, update, destroy), use DRF routers separately.
 
 The package does not automatically generate router-style ViewSet routes.
 
@@ -790,12 +855,48 @@ It does not:
 - Select serializers based on a request version.
 - Replace DRF authentication or permission classes.
 - Replace DRF routers for ViewSet resource routing.
-- Automatically set `request.version`.
+- Automatically set `request.version` (DRF's concern).
 - Use `API_VERSIONING_CHANNELS` to select routes.
 - Use `API_EFFECTIVE_VERSION_RESOLVER` for tenant-specific route selection.
 - Validate response payload compatibility through route-matrix checks.
 
 Your application remains responsible for API contract design, serializer selection, authentication, permissions, business logic, and request-level compatibility tests.
+
+### Package vs. DRF: Division of responsibilities
+
+**Package responsibility: Route selection**
+
+The package registers literal URL paths (`/api/v1/endpoint`, `/api/v2/endpoint`) and selects the correct handler based on the URL path.
+
+**DRF responsibility: request.version**
+
+DRF's versioning classes (like `URLPathVersioning`) populate `request.version` if configured. However, DRF's `URLPathVersioning` uses a URL resolver keyword argument named `version`, which the package does not populate. This means:
+
+- The package successfully routes requests to version-specific handlers.
+- `request.version` may be `None` unless you configure a custom versioning class.
+
+If you need `request.version` populated, consider implementing a custom DRF versioning class that extracts the version from the URL path or adds a custom resolver keyword argument when registering routes.
+
+### Configuration timing
+
+Package settings (`API_MAX_VERSION`, `API_BASE_PATH`, etc.) are validated and loaded at module import time. Using Django's `override_settings` after the package has been imported will NOT affect already-loaded configuration:
+
+```python
+# ✓ Correct: configure before importing views
+os.environ["DJANGO_SETTINGS_MODULE"] = "myapp.settings"
+from django.conf import settings
+settings.API_MAX_VERSION = 5
+from myapp import views  # Package uses the configured API_MAX_VERSION
+
+# ✗ Incorrect: configure after importing
+from django_api_versioning import api_settings
+from django.test import override_settings
+with override_settings(API_MAX_VERSION=5):
+    # This does NOT affect api_settings (already loaded)
+    ...
+```
+
+Set all configuration in Django settings before importing modules containing `@endpoint` decorators.
 
 ## Migration from 0.2.0
 
