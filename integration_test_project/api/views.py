@@ -4,9 +4,10 @@ Tests various versioning scenarios.
 """
 
 from django.http import JsonResponse
+from django.views import View
 from django.views.decorators.http import require_http_methods
 
-from django_api_versioning.decorators import endpoint
+from django_api_versioning.decorators import endpoint, ver_range
 
 
 # Unversioned health check endpoint
@@ -147,9 +148,6 @@ def post_detail_v2(request, post_id):
 
 
 # Class-Based Views
-from django.views import View
-
-
 @endpoint("comments/", version=1, view_name="comment-list-v1-cbv")
 class CommentListV1(View):
     """CBV: List comments - v1 implementation."""
@@ -182,7 +180,19 @@ class CommentListV2(View):
 
 # DRF APIViews
 try:
+    from rest_framework import status, viewsets
+    from rest_framework.decorators import action, api_view, permission_classes as drf_permission_classes
+    from rest_framework.generics import (
+        CreateAPIView,
+        DestroyAPIView,
+        ListAPIView,
+        RetrieveAPIView,
+        RetrieveUpdateDestroyAPIView,
+        UpdateAPIView,
+    )
+    from rest_framework.permissions import AllowAny, IsAuthenticated
     from rest_framework.response import Response
+    from rest_framework.serializers import BooleanField, CharField, IntegerField, Serializer
     from rest_framework.views import APIView
 
     @endpoint("articles/", version=1, view_name="article-list-v1-drf")
@@ -214,8 +224,6 @@ try:
             )
 
     # DRF Generic Views
-    from rest_framework.generics import ListAPIView
-    from rest_framework.serializers import CharField, IntegerField, Serializer
 
     class ArticleSerializer(Serializer):
         id = IntegerField()
@@ -233,8 +241,6 @@ try:
             return [{"id": 1, "title": "Doc 1"}]
 
     # DRF APIViews with multiple HTTP methods
-    from rest_framework import status
-
     @endpoint("orders/", version=1, view_name="order-list-v1-drf-methods")
     class OrderListV1(APIView):
         """DRF APIView: Orders - v1 with POST support."""
@@ -378,9 +384,6 @@ def premium_features(request):
 
 
 # Bounded range (v1 through v3 only, then removed)
-from django_api_versioning.decorators import ver_range
-
-
 @endpoint("legacy-api/", versions=ver_range(1, 3), view_name="legacy-api")
 @require_http_methods(["GET"])
 def legacy_api(request):
@@ -448,12 +451,6 @@ def post_by_slug_v1(request, slug):
 
 # Permissions-based views (permission testing)
 try:
-    from rest_framework.decorators import (
-        api_view,
-    )
-    from rest_framework.decorators import permission_classes as drf_permission_classes
-    from rest_framework.permissions import AllowAny, IsAuthenticated
-
     @endpoint("protected-data/", version=1, view_name="protected-v1")
     @api_view(["GET"])
     @drf_permission_classes([AllowAny])  # v1 allows all
@@ -481,11 +478,6 @@ try:
         )
 
     # Serializer-based versioning views
-    import uuid
-
-    from rest_framework.generics import ListAPIView
-    from rest_framework.serializers import CharField, IntegerField, Serializer
-
     class ProductV1Serializer(Serializer):
         """v1 product serializer - basic fields only."""
 
@@ -564,10 +556,6 @@ try:
 
     # ViewSet examples (for router integration testing)
     # Note: ViewSets with @endpoint decorator work with explicit as_view() calls
-    from rest_framework import viewsets
-    from rest_framework.decorators import action
-    from rest_framework.response import Response as DRFResponse
-
     class BlogPostSerializer(Serializer):
         """Blog post serializer."""
 
@@ -580,7 +568,7 @@ try:
 
         def list(self, request):
             """List blog posts."""
-            return DRFResponse(
+            return Response(
                 {
                     "version": 1,
                     "posts": [
@@ -592,19 +580,19 @@ try:
 
         def retrieve(self, request, pk=None):
             """Get a single blog post."""
-            return DRFResponse({"version": 1, "id": pk, "title": f"Post {pk}"})
+            return Response({"version": 1, "id": pk, "title": f"Post {pk}"})
 
         @action(detail=True, methods=["post"])
         def publish(self, request, pk=None):
             """Publish a blog post."""
-            return DRFResponse({"version": 1, "status": "published", "id": pk})
+            return Response({"version": 1, "status": "published", "id": pk})
 
     class BlogPostViewSetV2(viewsets.ViewSet):
         """Blog post viewset - v2 with extended fields."""
 
         def list(self, request):
             """List blog posts."""
-            return DRFResponse(
+            return Response(
                 {
                     "version": 2,
                     "posts": [
@@ -616,7 +604,7 @@ try:
 
         def retrieve(self, request, pk=None):
             """Get a single blog post."""
-            return DRFResponse(
+            return Response(
                 {
                     "version": 2,
                     "id": pk,
@@ -628,7 +616,7 @@ try:
         @action(detail=False, methods=["get"])
         def recent(self, request):
             """Get recent blog posts."""
-            return DRFResponse(
+            return Response(
                 {
                     "version": 2,
                     "posts": [
@@ -640,7 +628,7 @@ try:
         @action(detail=True, methods=["post"])
         def publish(self, request, pk=None):
             """Publish a blog post."""
-            return DRFResponse(
+            return Response(
                 {
                     "version": 2,
                     "status": "published",
@@ -650,15 +638,6 @@ try:
             )
 
     # Generic APIView tests (Retrieve, Create, Update, Destroy)
-    from rest_framework import status
-    from rest_framework.generics import (
-        CreateAPIView,
-        DestroyAPIView,
-        RetrieveAPIView,
-        UpdateAPIView,
-    )
-    from rest_framework.serializers import BooleanField
-
     class TaskSerializer(Serializer):
         """Task serializer for generic view tests."""
 
@@ -689,8 +668,6 @@ try:
             return Response(
                 {"id": 1, **serializer.validated_data}, status=status.HTTP_201_CREATED
             )
-
-    from rest_framework.generics import RetrieveUpdateDestroyAPIView
 
     @endpoint("tasks/<int:task_id>/", version=2, view_name="task-detail-v2")
     class TaskDetailV2(RetrieveUpdateDestroyAPIView):

@@ -9,17 +9,13 @@ import sys
 
 import django
 from django.conf import settings
-from django.test.utils import get_runner
+from django.test import Client, TestCase
 
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "project.settings"
 django.setup()
-
-from api import views
-from django.test import Client, TestCase
-from django.urls import NoReverseMatch, reverse
 
 from django_api_versioning.registry import registry
 from django_api_versioning.reverse import api_reverse
@@ -1190,8 +1186,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_default_router_v1_list(self):
         """Test DefaultRouter generated list endpoint - v1."""
         try:
-            from rest_framework.routers import DefaultRouter
-
             response = self.client.get("/api/v1/blogposts/")
             # Router endpoints should work independently
             self.assertIn(response.status_code, [200, 404])
@@ -1234,8 +1228,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_list(self):
         """Test SimpleRouter generated list endpoint - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
-
             response = self.client.get("/api/v2/blogposts/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
