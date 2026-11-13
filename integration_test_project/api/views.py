@@ -179,16 +179,14 @@ class CommentListV2(View):
 
 
 # DRF APIViews
-try:
+try:  # noqa: C901
     from rest_framework import status, viewsets
     from rest_framework.decorators import action, api_view, permission_classes as drf_permission_classes
     from rest_framework.generics import (
         CreateAPIView,
-        DestroyAPIView,
         ListAPIView,
         RetrieveAPIView,
         RetrieveUpdateDestroyAPIView,
-        UpdateAPIView,
     )
     from rest_framework.permissions import AllowAny, IsAuthenticated
     from rest_framework.response import Response
@@ -450,7 +448,7 @@ def post_by_slug_v1(request, slug):
 
 
 # Permissions-based views (permission testing)
-try:
+try:  # noqa: C901
     @endpoint("protected-data/", version=1, view_name="protected-v1")
     @api_view(["GET"])
     @drf_permission_classes([AllowAny])  # v1 allows all
@@ -836,12 +834,7 @@ def admin_config_v2(request):
 
 # Authentication and Permission testing views
 try:
-    from rest_framework.decorators import (
-        api_view,
-    )
-    from rest_framework.decorators import permission_classes as drf_permission_classes
-    from rest_framework.permissions import BasePermission, IsAuthenticated
-    from rest_framework.response import Response
+    from rest_framework.permissions import BasePermission
 
     class IsAdminUser(BasePermission):
         """Custom permission for admin users."""

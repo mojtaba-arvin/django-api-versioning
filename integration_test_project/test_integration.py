@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["DJANGO_SETTINGS_MODULE"] = "project.settings"
 django.setup()
 
-from django_api_versioning.registry import registry
-from django_api_versioning.reverse import api_reverse
+from django_api_versioning.registry import registry  # noqa: E402
+from django_api_versioning.reverse import api_reverse  # noqa: E402
 
 try:
     from rest_framework.test import APIClient
@@ -1199,8 +1199,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_default_router_v1_retrieve(self):
         """Test DefaultRouter generated retrieve endpoint - v1."""
         try:
-            from rest_framework.routers import DefaultRouter
-
             response = self.client.get("/api/v1/blogposts/1/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1214,8 +1212,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_default_router_v1_custom_action(self):
         """Test DefaultRouter custom action - v1."""
         try:
-            from rest_framework.routers import DefaultRouter
-
             response = self.client.post("/api/v1/blogposts/1/publish/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1239,8 +1235,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_retrieve(self):
         """Test SimpleRouter generated retrieve endpoint - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
-
             response = self.client.get("/api/v2/blogposts/1/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1252,8 +1246,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_custom_collection_action(self):
         """Test SimpleRouter collection-level custom action - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
-
             response = self.client.get("/api/v2/blogposts/recent/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
@@ -1265,8 +1257,6 @@ class DRFRouterIntegrationTestCase(TestCase):
     def test_simple_router_v2_custom_detail_action(self):
         """Test SimpleRouter detail-level custom action - v2."""
         try:
-            from rest_framework.routers import SimpleRouter
-
             response = self.client.post("/api/v2/blogposts/1/publish/")
             self.assertIn(response.status_code, [200, 404])
             if response.status_code == 200:
