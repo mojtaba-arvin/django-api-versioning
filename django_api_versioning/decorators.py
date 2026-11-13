@@ -75,6 +75,9 @@ def endpoint(
 
         app_name_part: str = f"{app_name}/" if app_name else ""
 
+        # Calculate logical endpoint ID from unversioned path
+        logical_endpoint = f"{app_name_part}{postfix}"
+
         def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
             if ver is None:
@@ -88,6 +91,7 @@ def endpoint(
                 view_name,
                 source_version=source_version,
                 route_version=ver,
+                logical_endpoint=logical_endpoint,
             )
 
         if version is not None:

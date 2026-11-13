@@ -12,6 +12,7 @@ class UrlRegistry:
 
     _SOURCE_VERSION_ATTR = "_django_api_versioning_source_version"
     _ROUTE_VERSION_ATTR = "_django_api_versioning_route_version"
+    _LOGICAL_ENDPOINT_ATTR = "_django_api_versioning_logical_endpoint"
 
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
@@ -23,6 +24,7 @@ class UrlRegistry:
         name: str | None = None,
         source_version: int | None = None,
         route_version: int | None = None,
+        logical_endpoint: str | None = None,
     ) -> None:
         """Register a route, preferring definitions from newer source versions."""
         route_index = self._find_route_index(route)
@@ -36,6 +38,8 @@ class UrlRegistry:
         pattern = self._create_pattern(route, view, name)
         setattr(pattern, self._SOURCE_VERSION_ATTR, source_version)
         setattr(pattern, self._ROUTE_VERSION_ATTR, route_version)
+        if logical_endpoint is not None:
+            setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
 
         if route_index is None:
             self.urlpatterns.append(pattern)
@@ -56,6 +60,24 @@ class UrlRegistry:
             route = str(pattern.pattern)
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(route, {})[route_version] = pattern.callback
+        return matrix
+
+    def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
+        """
+        Return ``{logical_endpoint: {route_version: callback}}``.
+
+        Groups physical URLs by their logical endpoint identity. This is used
+        by check_versions to correctly identify gaps within each logical
+        endpoint's version span, avoiding false warnings.
+        """
+        matrix: dict[str, dict[int | None, Callable]] = {}
+        for pattern in self.urlpatterns:
+            # Use logical endpoint if available, else fall back to route pattern
+            logical_id = getattr(
+                pattern, self._LOGICAL_ENDPOINT_ATTR, str(pattern.pattern)
+            )
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            matrix.setdefault(logical_id, {})[route_version] = pattern.callback
         return matrix
 
     def _find_route_index(self, route: str) -> int | None:
