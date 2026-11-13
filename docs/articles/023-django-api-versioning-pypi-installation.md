@@ -795,12 +795,6 @@ The package is most useful when you want to manage individual endpoint implement
 
 ## Next steps
 
-For a practical migration from v1 to v2, including unchanged endpoints and route inheritance, see [How to migrate a Django REST API from v1 to v2 without duplicating routes](migrate-django-rest-api-v1-v2-without-duplicating-routes).
-
-For version-aware URL reversal, see [Reverse URL lookup for versioned Django API endpoints](reverse-url-lookup-versioned-api-endpoints-django).
-
-For deprecation lifecycle behavior, see [How to deprecate old Django REST API versions with Sunset headers](deprecate-old-django-api-versions-sunset-headers).
-
 Install `django-api-versioning`, configure the version range, import the endpoint declaration modules before the generated URL patterns, and test the route and response contract for each supported version. The package handles route registration and lifecycle enforcement; discovery and OpenAPI schema generation remain application-level or documentation-tool responsibilities.
 
 For the implementation and version-specific source, see the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).

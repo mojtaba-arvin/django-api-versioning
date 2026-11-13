@@ -396,8 +396,6 @@ The v0.3.5 behavior has important details:
 
 The middleware implements technical lifecycle behavior. The application team still owns the retirement policy, date selection, client communication, usage monitoring, and migration plan.
 
-For a more focused implementation discussion, see [How to deprecate old Django REST API versions with Sunset headers](/deprecate-old-django-api-versions-sunset-headers/).
-
 ## 8. Version discovery and API documentation
 
 A versioned routing system should not make clients guess which versions or endpoints are available.

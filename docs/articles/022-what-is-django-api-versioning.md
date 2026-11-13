@@ -714,10 +714,4 @@ The key decision is not simply how many API versions exist. It is whether the pr
 
 ## Next steps
 
-For a practical migration from per-version routing to declarative endpoint registration, see [How to migrate a Django REST API from v1 to v2 with fewer declarations](/migrate-django-rest-api-v1-v2-without-duplicating-routes/).
-
-For deprecation headers and retirement behavior, see [How to deprecate old Django API versions with Sunset headers](/deprecate-old-django-api-versions-sunset-headers/).
-
-For version-aware reverse lookup, see [Reverse URL lookup for versioned Django API endpoints](/reverse-url-lookup-versioned-api-endpoints-django/).
-
 `django-api-versioning` focuses on URL registration and reverse lookup. To evaluate its implementation and adopt the declarative registration model, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
