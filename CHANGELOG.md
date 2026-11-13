@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-11-13
+
+### Fixed
+
+- **Logical endpoint matrix grouping:** Fixed `check_versions` output grouping physical URL patterns by logical endpoint identity instead of individual versioned routes. Multiple versions of the same endpoint (e.g., `/api/v1/users/`, `/api/v2/users/`, `/api/v3/users/`) now appear under a single logical endpoint heading, eliminating false missing-version warnings for inherited routes.
+- **Class-based view callback names:** Fixed `check_versions` display of callback names for Django class-based views, DRF APIViews, and DRF ViewSets. Previously displayed generic "view" for all class-based views; now resolves `view_class.__name__` or `cls.__name__` to show meaningful class names.
+- **ViewSet registration error message:** Improved error handling for DRF ViewSet registration without action configuration. Now raises clear TypeError with actionable guidance (`ViewSet 'MyViewSet' cannot be registered directly. Pass a configured callable like: MyViewSet.as_view({'get': 'list', ...})`) instead of obscure raw DRF exception.
+
+### Added
+
+- **Improved management command tests:** Replaced weak assertions with meaningful test coverage: empty registry produces "No endpoints registered" message, registered endpoints display correctly with versions and callback names, logical endpoint grouping works without false gaps, internal version gaps are detected correctly.
+
+### Verified
+
+- ✅ All 160 unit tests passing across Python 3.10–3.15
+- ✅ All 236 integration tests passing across Python 3.10–3.15
+- ✅ No DRF runtime dependency (remains dev-only)
+- ✅ Backward compatibility with existing registry API maintained
+
 ## [0.3.5] - 2026-11-12
 
 ### Documentation
