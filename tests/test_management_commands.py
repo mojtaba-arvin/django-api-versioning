@@ -244,6 +244,66 @@ class TestLogicalEndpointMatrix:
         assert "api/v1/direct" in output
         assert "direct_view" in output
 
+    def test_logical_endpoint_extends_to_max_version(self, clear_registry_and_settings):
+        """Segment starting before max should extend through API_MAX_VERSION."""
+        @endpoint("extend", version=3)
+        def extend(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should register v3 and v4 (extending to max)
+        assert "extend" in output
+        assert "v3" in output
+        assert "v4" in output
+        # Should not report v1, v2 as missing (before segment starts)
+        assert "v1 is not defined" not in output
+        assert "v2 is not defined" not in output
+
+    def test_logical_endpoint_custom_api_base_path(self, clear_registry_and_settings):
+        """Logical endpoint identity should be independent of API_BASE_PATH."""
+        # Change API_BASE_PATH to a custom format
+        old_base_path = settings.API_BASE_PATH
+        settings.API_BASE_PATH = "api/version-{version}/"
+
+        @endpoint("custom", version=1)
+        def custom(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Logical endpoint should still be identified as "custom"
+        # even though physical URLs are different
+        assert "custom" in output
+        assert "v1" in output
+        assert "custom" in output
+
+        # Restore original base path
+        settings.API_BASE_PATH = old_base_path
+
+    def test_logical_endpoint_override_reverse_order(self, clear_registry_and_settings):
+        """Override behavior should work regardless of decorator order."""
+        @endpoint("override", version=3)
+        @endpoint("override", version=1)
+        def override(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # All versions should be grouped under same logical endpoint
+        assert "override" in output
+        assert "v1" in output
+        assert "v3" in output
+        assert "v4" in output
+        # No gaps should be reported (v1-2 from first, v3-4 from second)
+        assert "is not defined" not in output
+
 
 class TestMigrateEndpointsCommand:
     """Test the migrate_endpoints management command."""
