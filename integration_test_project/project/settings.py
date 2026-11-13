@@ -1,6 +1,7 @@
 """
 Django settings for integration test project.
 """
+
 import os
 import sys
 

@@ -9,6 +9,7 @@ from django_api_versioning.urls import urlpatterns as api_urlpatterns
 try:
     from rest_framework.views import APIView
     from rest_framework.viewsets import ViewSet
+
     HAS_DRF = True
 except ImportError:
     HAS_DRF = False
@@ -443,8 +444,7 @@ class TestDRFViewSetRegistration:
                 return None
 
         registry.register(
-            "api/v1/users",
-            UserViewSet.as_view({"get": "list", "post": "create"})
+            "api/v1/users", UserViewSet.as_view({"get": "list", "post": "create"})
         )
 
         assert len(registry.urlpatterns) == 1

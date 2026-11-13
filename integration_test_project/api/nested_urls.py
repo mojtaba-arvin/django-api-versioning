@@ -2,13 +2,14 @@
 Nested URL patterns for testing include() and namespacing.
 These are imported into the main urls.py via include().
 """
+
 from django.urls import path
 from . import views
 
 # This file demonstrates nested URL patterns
 # that work with @endpoint decorator versioning
 
-app_name = 'api'
+app_name = "api"
 
 # These views are decorated with @endpoint
 # So they register with django-api-versioning automatically

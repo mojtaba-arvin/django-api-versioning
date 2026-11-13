@@ -76,6 +76,7 @@ class TestApiReverse:
 
     def test_kwarg_with_backslash_not_treated_as_regex_escape(self):
         """Ensure parameters with backslashes don't trigger regex escape sequences."""
+
         @endpoint("docs/<slug>/", version=1, view_name="doc-detail")
         def doc_detail(request, slug):
             return JsonResponse({"slug": slug})
@@ -86,6 +87,7 @@ class TestApiReverse:
 
     def test_kwarg_with_dollar_sign_not_treated_as_regex_group(self):
         """Ensure parameters with $ don't trigger regex group references."""
+
         @endpoint("items/<name>/", version=1, view_name="item-detail")
         def item_detail(request, name):
             return JsonResponse({"name": name})
@@ -96,6 +98,7 @@ class TestApiReverse:
 
     def test_kwarg_with_regex_metacharacters(self):
         """Ensure all regex metacharacters are escaped in parameters."""
+
         @endpoint("search/<query>/", version=1, view_name="search-results")
         def search(request, query):
             return JsonResponse({"query": query})
