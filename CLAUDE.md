@@ -57,6 +57,35 @@ One-line subject.
 Verification (mandatory after every push): `.claude/push.sh` exit 0
 means local SHA == remote SHA. Exit non-zero means STOP.
 
+### Commit message content rules
+
+Describe the change in domain terms. Never reference internal
+task-spec numbering.
+
+Forbidden in any commit message, including body:
+- "Issue N", "Issues N-M", "Bug N", "ERR N", "Phase N",
+  "Scenario N" as the primary descriptor
+- "as specified in the task", "per the spec", "requirement N"
+- Any wording whose meaning depends on a document outside the repo
+
+If the change fixes a behavior, name the behavior:
+
+  ✅ test: reject boolean and string version values
+  ❌ test: add comprehensive validation tests for Issues 3-6
+
+  ✅ test: verify override_settings does not mutate loaded config
+  ❌ test: add regression tests for Issue 7
+
+  ✅ feat: group check_versions output by logical endpoint
+  ❌ feat: implement Phase 3 logical endpoint matrix
+
+  ✅ feat: reject unconfigured ViewSet with actionable error
+  ❌ feat: add ViewSet detection for Phase 6
+
+This applies to subject and body. If a behavior is genuinely
+hard to summarize in one line, use a descriptive subject and
+expand in the body — still without spec numbers.
+
 ## 5. Author Identity
 Set at session start if missing:
 
