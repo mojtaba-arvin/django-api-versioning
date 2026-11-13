@@ -70,7 +70,7 @@ match the pattern:
 | `chore(release): prepare vX.Y.Z` + no tag | Release mid-flight, tag not created | `/release` step 8 (create tag) |
 | Single `fix: …` or `feat: …` | One fix done, maybe more planned | **Ask user** if more remained |
 | Sequence of `fix:` / `test:` commits | Likely a batch | **Ask user** for the original task list and remaining items |
-| `docs: …` | One doc change done | **Ask user** |
+| `docs: …` | One doc change done | **Ask user** — unless the current user message contains a full task spec; in that case, proceed from the spec |
 | Only `chore: initialize persistent...` | Initial setup | Ask user for next phase |
 | Nothing beyond `main` merge | Idle | Ask user what to work on |
 | Untracked files only | Scratch | Inspect filenames. Add to a task or delete. Never delete blind. |
@@ -82,7 +82,8 @@ items were in the user's batch.** It sees what was done, not what
 was planned.
 
 When the pattern suggests a batch (two or more `fix:`/`test:`
-commits in a row), STOP and ask the user:
+commits in a row) AND the current user message does NOT contain a
+full task spec, STOP and ask the user:
 
 > "I see these commits in the current session:
 > <list with hashes and subjects>
@@ -93,6 +94,11 @@ commits in a row), STOP and ask the user:
 Do NOT assume the batch is complete just because the last commit
 looks self-contained. Do NOT guess remaining items. Do NOT invent
 a task list. The user must confirm.
+
+**Exception:** if the user's current message contains a complete
+task specification (a full list of phases, issues, or acceptance
+criteria), treat that as the authoritative task list. Do not ask
+for confirmation. Proceed from the spec.
 
 ### 6. Report and resume
 
@@ -107,3 +113,6 @@ confirmed next action. Then execute.
 - Never `git reset --hard`, `git clean`, `git checkout .`.
 - Never start new work while unpushed commits exist.
 - Never pretend to know the remaining task list from git alone.
+- Never ask the user for a task list if their current message
+  already contains one.
+  
