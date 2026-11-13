@@ -15,6 +15,10 @@ ViewT = TypeVar("ViewT", bound=Callable)
 
 def ver_range(start: int, end: int) -> list[int]:
     """Inclusive range of API versions, e.g. ver_range(1, 3) -> [1, 2, 3]."""
+    if isinstance(start, bool) or not isinstance(start, int):
+        raise VersionTypeError("ver_range start must be an integer.")
+    if isinstance(end, bool) or not isinstance(end, int):
+        raise VersionTypeError("ver_range end must be an integer.")
     if start > end:
         raise VersionRangeError(f"ver_range start ({start}) must be <= end ({end}).")
     return list(range(start, end + 1))
