@@ -117,6 +117,68 @@ class TestValidation:
                 pass
 
 
+class TestIssue0VersionAboveMax:
+    """Issue 1: Versions above API_MAX_VERSION must be rejected."""
+
+    def test_version_above_max_raises(self, versions_1_to_5):
+        """Single version above max must raise InvalidVersionError."""
+        with pytest.raises(InvalidVersionError, match="above the maximum allowed"):
+
+            @endpoint("x", version=6)
+            def x(request):
+                pass
+
+    def test_version_equals_max_succeeds(self, versions_1_to_5):
+        """version == API_MAX_VERSION must succeed and register exactly v5."""
+        @endpoint("y", version=5)
+        def y(request):
+            return JsonResponse({})
+
+        assert _routes() == {"api/v5/y"}
+
+    def test_versions_list_above_max_raises(self, versions_1_to_5):
+        """Explicit versions list with any version above max must raise."""
+        with pytest.raises(InvalidVersionError, match="above the maximum allowed"):
+
+            @endpoint("z", versions=[2, 3, 6])
+            def z(request):
+                pass
+
+    def test_invalid_versions_list_does_not_partially_register(self, versions_1_to_5):
+        """Failed registration with invalid versions must not leave partial routes."""
+        initial_count = len(registry.urlpatterns)
+
+        with pytest.raises(InvalidVersionError):
+
+            @endpoint("partial", versions=[2, 3, 6])
+            def partial(request):
+                pass
+
+        # Registry must not have any new routes
+        assert len(registry.urlpatterns) == initial_count
+
+
+class TestIssue0SimultaneousVersionAndVersions:
+    """Issue 2: Mutual exclusivity of 'version' and 'versions' parameters."""
+
+    def test_both_version_and_versions_raises_with_message(self):
+        """Providing both version and versions must raise VersionRangeError."""
+        with pytest.raises(
+            VersionRangeError, match="Use either 'version' or 'versions', not both"
+        ):
+            endpoint("x", version=1, versions=[2])
+
+    def test_registration_incomplete_after_mutual_exclusive_violation(self):
+        """Failed registration due to mutual exclusivity must leave no routes."""
+        initial_count = len(registry.urlpatterns)
+
+        with pytest.raises(VersionRangeError):
+            endpoint("x", version=1, versions=[2])
+
+        # Registry must not have any new routes
+        assert len(registry.urlpatterns) == initial_count
+
+
 class TestUnversioned:
     def test_unversioned_registers_single_route(self):
         @endpoint("health")

@@ -140,6 +140,110 @@ class TestLogicalEndpointMatrix:
         assert "test_view" in output
         assert "v1" in output
 
+    def test_logical_endpoint_explicit_versions_complete_no_gaps(self, clear_registry_and_settings):
+        """Explicit complete version list should not report gaps."""
+        @endpoint("complete", versions=[1, 2, 3, 4])
+        def complete(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should show all versions without gap warnings
+        assert "complete" in output
+        assert "v1" in output
+        assert "v4" in output
+        assert "is not defined" not in output
+
+    def test_logical_endpoint_single_version_no_false_gap(self, clear_registry_and_settings):
+        """Single-version endpoint should not report gaps for missing versions."""
+        @endpoint("single", versions=[2])
+        def single(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should show the endpoint and version without false gaps
+        assert "single" in output
+        assert "v2" in output
+        # Should not report v1 or v3 as missing (they're outside endpoint span)
+        lines = output.split('\n')
+        for line in lines:
+            if "single" in line and "is not defined" in line:
+                # If there are warnings for 'single', they should not be for v1 or v3
+                assert "v1 is not defined" not in line
+                assert "v3 is not defined" not in line
+
+    def test_logical_endpoint_with_app_name(self, clear_registry_and_settings):
+        """Endpoints with app_name should be grouped by logical endpoint including namespace."""
+        @endpoint("data", version=1, app_name="admin")
+        def admin_data(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should show the namespaced endpoint as single logical entity
+        assert "admin/data" in output
+        assert "v1" in output
+        assert "admin_data" in output
+
+    def test_logical_endpoint_unversioned(self, clear_registry_and_settings):
+        """Unversioned endpoints should be represented without version labels."""
+        @endpoint("status")
+        def status(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should show unversioned endpoint
+        assert "status" in output
+        assert "unversioned" in output
+
+    def test_logical_endpoint_repeated_decorator_revert(self, clear_registry_and_settings):
+        """Repeated decorators can revert changes (later source_version wins)."""
+        @endpoint("data", version=1)
+        @endpoint("data", version=3)  # This overrides v3-v4 from first decorator
+        def data(request):
+            return JsonResponse({})
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should group all versions under same logical endpoint "data"
+        assert "data" in output
+        assert "v1" in output
+        assert "v3" in output
+        assert "v4" in output
+        # v2 should use the version=1 implementation (v1, v2, and part of v3)
+        # v3-v4 should use the version=3 implementation
+        # Actually v2 comes from v1 segment extending, v3-v4 from v3 segment
+        # No gaps should be reported
+        assert "is not defined" not in output
+
+    def test_logical_endpoint_direct_registry_register(self, clear_registry_and_settings):
+        """Direct registry.register() calls without logical_endpoint should use fallback."""
+        def direct_view(request):
+            return JsonResponse({})
+
+        # Direct registration without logical endpoint metadata
+        registry.register("api/v1/direct", direct_view)
+
+        out = StringIO()
+        call_command('check_versions', stdout=out)
+        output = out.getvalue()
+
+        # Should still show the route and not crash
+        assert "api/v1/direct" in output
+        assert "direct_view" in output
+
 
 class TestMigrateEndpointsCommand:
     """Test the migrate_endpoints management command."""
