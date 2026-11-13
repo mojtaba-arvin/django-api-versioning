@@ -67,38 +67,54 @@ subpath `tests/` that does not exist.
 
 Use for Phase 10 QA and before `/release`.
 
-### Sandbox setup (once per session)
+### Prerequisite: install Pythons and tox-uv once per session
 
 ```bash
+uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+export PATH="$HOME/.local/bin:$PATH"
+
 uv venv /tmp/tox --python 3.15
-uv pip install --python /tmp/tox/bin/python tox
+uv pip install --python /tmp/tox/bin/python tox tox-uv
 ```
+
+`tox-uv` lets tox find uv-installed Pythons. Without it, tox only
+sees Pythons already in PATH and reports 3.10–3.14 as NOT-RUN —
+which is a lie about the code, not a finding.
+
+`~/.local/bin` must be in PATH for tox to see the shims that
+`uv python install` places there.
 
 ### Run
 
 ```bash
 set -o pipefail
+rm -rf .tox
 PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
 TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-On the user's local machine (tox already installed):
+On the user's local machine (tox + tox-uv already installed):
 
 ```bash
 set -o pipefail
+rm -rf .tox
 tox 2>&1 | tee /tmp/tox-full.log
 TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-`tox` runs every env in the envlist. Each env installs its Django
-version, runs pytest across `tests/` and `integration_test_project/`
-from repo root, so both suites execute automatically. Lint env runs
-flake8, black --check, isort --check-only.
+### Acceptance check before believing the result
 
-`--maxfail=1` in tox.ini stops within each env on first failure, but
-tox continues to the next env. Per-env summary at end of log.
+Parse `/tmp/tox-full.log` and verify:
+
+1. Every env in the envlist appears in the summary.
+2. No env reports `NOT-RUN` or `interpreter not found`. If any does,
+   tox-uv is not working or Pythons are not installed. Fix and re-run.
+3. The test count per env is meaningful (matches `tests/` + `integration_test_project/`). If it's only ~170, integration tests did not run — check that `tox.ini` commands point at both directories.
+4. No `skipped` lines mention DRF-not-installed. If they do, DRF is missing from `tox.ini` deps.
+
+Report all four checks before claiming success.
 
 ## Reporting rules
 
