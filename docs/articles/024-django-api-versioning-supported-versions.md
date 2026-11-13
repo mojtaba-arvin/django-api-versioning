@@ -219,7 +219,7 @@ The published package is available on [PyPI](https://pypi.org/project/django-api
 Install v0.3.5 with pip:
 
 ```bash
-python -m pip install django-api-versioning==0.3.5
+python -m pip install django-api-versioning==0.3.6
 ```
 
 Pip reads the package metadata and resolves its declared runtime dependencies, including Django.
@@ -239,7 +239,7 @@ Choose a DRF version compatible with the Django version used by your application
 For an application that uses `django-api-versioning` but does not use Django REST Framework, a minimal `requirements.txt` can be:
 
 ```text
-django-api-versioning==0.3.5
+django-api-versioning==0.3.6
 ```
 
 Pip resolves the package's declared runtime dependencies, including Django.
@@ -247,14 +247,14 @@ Pip resolves the package's declared runtime dependencies, including Django.
 If your application also uses DRF, declare it separately:
 
 ```text
-django-api-versioning==0.3.5
+django-api-versioning==0.3.6
 djangorestframework
 ```
 
 You can specify an explicit DRF constraint based on your application's compatibility requirements:
 
 ```text
-django-api-versioning==0.3.5
+django-api-versioning==0.3.6
 djangorestframework>=3.18
 ```
 
@@ -267,7 +267,7 @@ A version constraint controls which package releases pip may select.
 ### Exact version
 
 ```text
-django-api-versioning==0.3.5
+django-api-versioning==0.3.6
 ```
 
 Requests the `0.3.5` release of the package.
@@ -277,7 +277,7 @@ This constraint does not pin Django or other transitive dependencies.
 ### Compatible release
 
 ```text
-django-api-versioning~=0.3.5
+django-api-versioning~=0.3.6
 ```
 
 Allows compatible releases starting from `0.3.5` within the `0.3.x` series, excluding `0.4.0`.

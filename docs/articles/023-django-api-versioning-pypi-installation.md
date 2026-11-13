@@ -32,7 +32,7 @@ pip install django-api-versioning
 To install the exact version used in this guide:
 
 ```bash
-pip install django-api-versioning==0.3.5
+pip install django-api-versioning==0.3.6
 ```
 
 Check the installed version:

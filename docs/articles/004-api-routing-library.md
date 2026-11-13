@@ -26,7 +26,7 @@ A routing library can move that responsibility out of the project's URL configur
 
 This article explores that design through `django-api-versioning`, including its routing model, Python inheritance, trade-offs, and the situations where declarative registration provides value.
 
-**Package version:** `0.3.5`  
+**Package version:** `0.3.6`
 **Technical assessment date:** `2026-11-12`
 
 The examples target Django REST Framework class-based views and use path-based versioning.
