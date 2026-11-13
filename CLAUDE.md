@@ -142,6 +142,9 @@ Every session that will run Full must first verify:
 
     grep -q 'requires =' tox.ini && grep -q 'tox-uv' tox.ini \
       || { echo "tox.ini missing tox-uv"; exit 1; }
+    
+    [ -f integration_test_project/pytest.ini ] \
+      || { echo "missing integration_test_project/pytest.ini";  exit 1; }
 
 If `uv python list` shows fewer than 6 versions, or `tox.ini` does
 not have `tox-uv`, do NOT run tox. Fix first. Do not fabricate a
@@ -167,6 +170,9 @@ After run, check BEFORE believing the result:
 3. `grep -E '[0-9]+ passed' /tmp/tox-full.log | head -5` — each env
    must show a count large enough to include both unit and integration
    (300+ combined, not ~170).
+4. Each env's log section must contain two `passed` lines — one from
+   `pytest tests`, one from `pytest integration_test_project`.
+   `tox.ini` commands split them so each uses its own `pytest.ini`.
 
 If any check fails, the tox setup is broken — NOT the code. Report
 the failure; do not certify the package. Do not claim "sandbox
