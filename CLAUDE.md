@@ -118,11 +118,34 @@ Token diagnostic (run first if push fails):
 
 ## 7. Testing
 
-Three modes. `tox.ini` defines the supported Python × Django matrix.
-Never modify `tox.ini` to add a Django version without updating
-`pyproject.toml` first.
-After every Full run (tox), update `COMPATIBILITY_REPORT.md` from
-the tox output. Do not leave verified results only in the log.
+Three modes. Never use system `python3` (3.8.10) for Single or Quick.
+`tox.ini` is the source of truth for the supported matrix.
+
+### Required tooling (must exist before Full)
+
+`tox-uv` bridges tox to uv-managed Pythons. Without it, tox only
+sees interpreters already in PATH and reports every other env as
+`NOT-RUN: interpreter not found` — which is a sandbox setup
+failure, not a code failure.
+
+Every session that will run Full must first verify:
+
+    which uv || pip install uv
+    export PATH="$HOME/.local/bin:$PATH"
+    uv --version
+
+    uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+    uv python list | grep -c 'cpython-'   # must print 6
+
+    uv venv /tmp/tox --python 3.15
+    uv pip install --python /tmp/tox/bin/python tox tox-uv
+
+    grep -q 'requires =' tox.ini && grep -q 'tox-uv' tox.ini \
+      || { echo "tox.ini missing tox-uv"; exit 1; }
+
+If `uv python list` shows fewer than 6 versions, or `tox.ini` does
+not have `tox-uv`, do NOT run tox. Fix first. Do not fabricate a
+"NOT-RUN is infrastructure limitation" result.
 
 ### Quick — after EVERY file change
 
@@ -130,24 +153,36 @@ the tox output. Do not leave verified results only in the log.
 
 ### Single — Phase 1 baseline
 
-One Python, unit + integration. Full instructions in `/manual-testing`.
+One Python, unit + integration. Full instructions in
+`/manual-testing`.
 
 ### Full — Phase 10 and before `/release`
 
-    tox
+    PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
 
-Runs every env in `tox.ini` envlist (13 envs: Django 5.2, 6.0, 6.1
-across py310-py315, plus lint). tox handles venv creation, Django
-pinning, pytest-cov, and lint. Do not reimplement it.
+After run, check BEFORE believing the result:
 
-`tox` output is authoritative. Do not redirect it away. Do not
-append `-q` to ad-hoc pytest calls outside tox.
+1. `grep -c 'commands succeeded' /tmp/tox-full.log` — must be 13.
+2. `grep -c 'interpreter not found' /tmp/tox-full.log` — must be 0.
+3. `grep -E '[0-9]+ passed' /tmp/tox-full.log | head -5` — each env
+   must show a count large enough to include both unit and integration
+   (300+ combined, not ~170).
+
+If any check fails, the tox setup is broken — NOT the code. Report
+the failure; do not certify the package. Do not claim "sandbox
+limitation" as an excuse; the sandbox can install all Pythons via
+`uv python install`.
 
 ### Never
+
 - Never claim a test passed unless exit code is 0.
-- Never fabricate counts, coverage, or compatibility claims.
+- Never label a `NOT-RUN` env as `SUPPORTED` or `ASSUMED` or
+  "compatible via type hints".
+- Never write `CERTIFIED` or `PRODUCTION READY` if any env is
+  `NOT-RUN` or `FAIL`.
+- Never run `tox` before confirming 6 Pythons installed and
+  `tox-uv` present in `tox.ini`.
 - Never run `tox` in Phase 1 — that is Single's job.
-- Never reimplement the matrix manually; `tox.ini` is the source.
 
 ## 8. Documentation
 - Allowed: `README.md`, `CHANGELOG.md`, `CLAUDE.md`,

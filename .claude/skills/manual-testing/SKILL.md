@@ -67,54 +67,87 @@ subpath `tests/` that does not exist.
 
 Use for Phase 10 QA and before `/release`.
 
-### Prerequisite: install Pythons and tox-uv once per session
+### Hard prerequisite — fail-fast
+
+tox cannot find Pythons installed by `uv python install` unless
+`tox-uv` is installed and `tox.ini` declares `requires = tox-uv`.
+Verify all of this BEFORE running tox. If any check fails, fix
+it. Do not proceed to "run anyway".
 
 ```bash
-uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+# 1. uv available?
+which uv || pip install uv
 export PATH="$HOME/.local/bin:$PATH"
+uv --version || { echo "UV FAIL"; exit 1; }
 
+# 2. All six Pythons installed?
+uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+COUNT=$(uv python list 2>/dev/null | grep -c 'cpython-')
+echo "Pythons installed: $COUNT"
+[ "$COUNT" -ge 6 ] || { echo "PYTHON COUNT FAIL ($COUNT < 6)"; exit 1; }
+
+# 3. tox + tox-uv installed?
 uv venv /tmp/tox --python 3.15
 uv pip install --python /tmp/tox/bin/python tox tox-uv
+/tmp/tox/bin/tox --version || { echo "TOX FAIL"; exit 1; }
+
+# 4. tox.ini has tox-uv and DRF and both test paths?
+grep -q 'tox-uv' tox.ini || { echo "TOX.INI MISSING tox-uv"; exit 1; }
+grep -q 'djangorestframework' tox.ini || { echo "TOX.INI MISSING DRF"; exit 1; }
+grep -q 'integration_test_project' tox.ini || { echo "TOX.INI MISSING INTEGRATION PATH"; exit 1; }
+
+echo "Pre-flight OK"
 ```
 
-`tox-uv` lets tox find uv-installed Pythons. Without it, tox only
-sees Pythons already in PATH and reports 3.10–3.14 as NOT-RUN —
-which is a lie about the code, not a finding.
-
-`~/.local/bin` must be in PATH for tox to see the shims that
-`uv python install` places there.
+If any `FAIL`: STOP. Do not run tox. Report the failing check.
+Do not interpret a tox run with NOT-RUN envs as "infrastructure
+limitation" — it is a setup failure that this pre-flight prevents.
 
 ### Run
 
 ```bash
-set -o pipefail
 rm -rf .tox
+set -o pipefail
 PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
 TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-On the user's local machine (tox + tox-uv already installed):
+### Acceptance checks — mandatory before believing the log
 
 ```bash
-set -o pipefail
-rm -rf .tox
-tox 2>&1 | tee /tmp/tox-full.log
-TOX_EXIT=${PIPESTATUS[0]}
-echo "TOX_EXIT=$TOX_EXIT"
+SUCCEEDED=$(grep -c 'commands succeeded' /tmp/tox-full.log)
+NOTRUN=$(grep -c 'interpreter not found' /tmp/tox-full.log || true)
+echo "succeeded=$SUCCEEDED not-run=$NOTRUN"
 ```
 
-### Acceptance check before believing the result
+- `succeeded == 13` and `not-run == 0` → real result.
+- anything else → setup is broken. STOP. Do not report "sandbox
+  limitation". Do not certify. Report the failing env names and
+  the check that failed, then stop.
 
-Parse `/tmp/tox-full.log` and verify:
+For each env, the passed count must include both unit
+(`tests/`) and integration (`integration_test_project/`). If an
+env shows ~170 passed, integration was not collected — `tox.ini`
+commands are wrong.
 
-1. Every env in the envlist appears in the summary.
-2. No env reports `NOT-RUN` or `interpreter not found`. If any does,
-   tox-uv is not working or Pythons are not installed. Fix and re-run.
-3. The test count per env is meaningful (matches `tests/` + `integration_test_project/`). If it's only ~170, integration tests did not run — check that `tox.ini` commands point at both directories.
-4. No `skipped` lines mention DRF-not-installed. If they do, DRF is missing from `tox.ini` deps.
+### Update COMPATIBILITY_REPORT.md only on real results
 
-Report all four checks before claiming success.
+After `succeeded == 13` and `not-run == 0`, regenerate the report
+from `/tmp/tox-full.log` per the structure documented in the
+"Update COMPATIBILITY_REPORT.md" section below.
+
+If the acceptance checks fail, do NOT touch `COMPATIBILITY_REPORT.md`.
+Report the failure instead.
+
+## Never
+- Never run Full if the pre-flight check fails.
+- Never report `NOT-RUN` as "infrastructure limitation". It is a
+  setup failure that the pre-flight check was designed to catch.
+- Never claim `succeeded` without `grep -c 'commands succeeded'`
+  printing 13.
+- Never write `CERTIFIED` or `PRODUCTION READY` if any env is not
+  `ok`.
 
 ## Reporting rules
 
