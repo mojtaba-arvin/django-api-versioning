@@ -1,7 +1,8 @@
 """Tests for management commands."""
 
-import pytest
 from io import StringIO
+
+import pytest
 from django.core.management import call_command
 from django.http import JsonResponse
 

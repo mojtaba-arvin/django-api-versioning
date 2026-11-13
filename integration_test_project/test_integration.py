@@ -6,9 +6,10 @@ Tests the package with a real Django application.
 
 import os
 import sys
+
 import django
-from django.test.utils import get_runner
 from django.conf import settings
+from django.test.utils import get_runner
 
 # Add parent to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,11 +17,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["DJANGO_SETTINGS_MODULE"] = "project.settings"
 django.setup()
 
-from django.test import Client, TestCase
-from django.urls import reverse, NoReverseMatch
-from django_api_versioning.reverse import api_reverse
-from django_api_versioning.registry import registry
 from api import views
+from django.test import Client, TestCase
+from django.urls import NoReverseMatch, reverse
+
+from django_api_versioning.registry import registry
+from django_api_versioning.reverse import api_reverse
 
 try:
     from rest_framework.test import APIClient
@@ -2063,8 +2065,9 @@ class ConcurrencyAndFormDataTestCase(TestCase):
         """Test concurrent authenticated requests."""
         if APIClient is None:
             self.skipTest("DRF not installed")
-        from django.contrib.auth.models import User
         import threading
+
+        from django.contrib.auth.models import User
 
         user = User.objects.create_user(username="concurrent_user", password="testpass")
         results = []
@@ -2944,8 +2947,8 @@ class DRFURLPathVersioningIntegrationTestCase(TestCase):
 
 def run_integration_tests():
     """Run the integration test suite."""
-    from django.test.utils import get_runner
     from django.conf import settings
+    from django.test.utils import get_runner
 
     TestRunner = get_runner(settings)
     test_runner = TestRunner(verbosity=2, interactive=False, keepdb=False)

@@ -7,10 +7,10 @@ so that the @endpoint decorators execute and register the routes.
 
 # Import views first to trigger @endpoint decorator registration
 from api import views  # noqa: F401
+from django.urls import include, path
 
-from django.urls import path, include
-from django_api_versioning.urls import urlpatterns as api_urlpatterns
 from django_api_versioning.decorators import endpoint
+from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Router-based ViewSet configuration for testing
 try:

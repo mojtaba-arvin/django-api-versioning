@@ -5,6 +5,7 @@ Tests various versioning scenarios.
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+
 from django_api_versioning.decorators import endpoint
 
 
@@ -181,8 +182,8 @@ class CommentListV2(View):
 
 # DRF APIViews
 try:
-    from rest_framework.views import APIView
     from rest_framework.response import Response
+    from rest_framework.views import APIView
 
     @endpoint("articles/", version=1, view_name="article-list-v1-drf")
     class ArticleListV1(APIView):
@@ -214,7 +215,7 @@ try:
 
     # DRF Generic Views
     from rest_framework.generics import ListAPIView
-    from rest_framework.serializers import Serializer, IntegerField, CharField
+    from rest_framework.serializers import CharField, IntegerField, Serializer
 
     class ArticleSerializer(Serializer):
         id = IntegerField()
@@ -447,11 +448,11 @@ def post_by_slug_v1(request, slug):
 
 # Permissions-based views (permission testing)
 try:
-    from rest_framework.permissions import IsAuthenticated, AllowAny
     from rest_framework.decorators import (
         api_view,
-        permission_classes as drf_permission_classes,
     )
+    from rest_framework.decorators import permission_classes as drf_permission_classes
+    from rest_framework.permissions import AllowAny, IsAuthenticated
 
     @endpoint("protected-data/", version=1, view_name="protected-v1")
     @api_view(["GET"])
@@ -480,9 +481,10 @@ try:
         )
 
     # Serializer-based versioning views
-    from rest_framework.serializers import Serializer, CharField, IntegerField
-    from rest_framework.generics import ListAPIView
     import uuid
+
+    from rest_framework.generics import ListAPIView
+    from rest_framework.serializers import CharField, IntegerField, Serializer
 
     class ProductV1Serializer(Serializer):
         """v1 product serializer - basic fields only."""
@@ -648,13 +650,13 @@ try:
             )
 
     # Generic APIView tests (Retrieve, Create, Update, Destroy)
-    from rest_framework.generics import (
-        RetrieveAPIView,
-        CreateAPIView,
-        UpdateAPIView,
-        DestroyAPIView,
-    )
     from rest_framework import status
+    from rest_framework.generics import (
+        CreateAPIView,
+        DestroyAPIView,
+        RetrieveAPIView,
+        UpdateAPIView,
+    )
     from rest_framework.serializers import BooleanField
 
     class TaskSerializer(Serializer):
@@ -857,12 +859,12 @@ def admin_config_v2(request):
 
 # Authentication and Permission testing views
 try:
-    from rest_framework.permissions import IsAuthenticated, BasePermission
-    from rest_framework.response import Response
     from rest_framework.decorators import (
         api_view,
-        permission_classes as drf_permission_classes,
     )
+    from rest_framework.decorators import permission_classes as drf_permission_classes
+    from rest_framework.permissions import BasePermission, IsAuthenticated
+    from rest_framework.response import Response
 
     class IsAdminUser(BasePermission):
         """Custom permission for admin users."""

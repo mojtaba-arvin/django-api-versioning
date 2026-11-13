@@ -4,7 +4,7 @@ import pytest
 
 from django_api_versioning.exceptions import VersionMatrixError
 from django_api_versioning.registry import registry
-from django_api_versioning.testing import assert_version_matrix, _diff
+from django_api_versioning.testing import _diff, assert_version_matrix
 
 
 def test_matrix_snapshot_created(tmp_path):
