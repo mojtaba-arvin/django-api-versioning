@@ -181,7 +181,11 @@ class CommentListV2(View):
 # DRF APIViews
 try:  # noqa: C901
     from rest_framework import status, viewsets
-    from rest_framework.decorators import action, api_view, permission_classes as drf_permission_classes
+    from rest_framework.decorators import (
+        action,
+        api_view,
+        permission_classes as drf_permission_classes,
+    )
     from rest_framework.generics import (
         CreateAPIView,
         ListAPIView,
@@ -190,7 +194,12 @@ try:  # noqa: C901
     )
     from rest_framework.permissions import AllowAny, IsAuthenticated
     from rest_framework.response import Response
-    from rest_framework.serializers import BooleanField, CharField, IntegerField, Serializer
+    from rest_framework.serializers import (
+        BooleanField,
+        CharField,
+        IntegerField,
+        Serializer,
+    )
     from rest_framework.views import APIView
 
     @endpoint("articles/", version=1, view_name="article-list-v1-drf")
@@ -449,6 +458,7 @@ def post_by_slug_v1(request, slug):
 
 # Permissions-based views (permission testing)
 try:  # noqa: C901
+
     @endpoint("protected-data/", version=1, view_name="protected-v1")
     @api_view(["GET"])
     @drf_permission_classes([AllowAny])  # v1 allows all
