@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# .claude/push.sh — deterministic push for the DataCamp sandbox.
+# .claude/push.sh — deterministic push for the configured repository branch.
 # Usage: .claude/push.sh          push branch
 #        .claude/push.sh --tag    push branch + latest tag
 # Exit:  0 verified, 1 env, 2 push failed, 3 SHA mismatch
