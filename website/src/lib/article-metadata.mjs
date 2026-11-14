@@ -38,9 +38,9 @@ function nestedBlock(frontMatter, key) {
 function listValues(frontMatter, key) {
   const block = nestedBlock(frontMatter, key);
   return block
-    .split("\\n")
+    .split("\n")
     .map((line) => {
-      const match = /^[ \\t]+-\\s*(.*)$/.exec(line);
+      const match = /^[ \t]+-\s*(.*)$/.exec(line);
       return match ? unquote(match[1]) : "";
     })
     .filter(Boolean);
@@ -52,13 +52,13 @@ function listValues(frontMatter, key) {
  * @returns {{ id: string, title: string, description: string, slug: string, keywords: string[] }}
  */
 export function parseArticleMetadata(fileName, source) {
-  const id = fileName.replace(/\\.md$/, "");
-  if (!/^\\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
+  const id = fileName.replace(/\.md$/, "");
+  if (!/^\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
     fail(fileName, "file name must start with a three-digit article ID and use lowercase hyphenated words");
   }
 
   const text = Buffer.isBuffer(source) ? source.toString("utf8") : String(source);
-  const match = /^---\\s*\\n([\\s\\S]*?)\\n---(?:\\s*\\n|$)/.exec(text);
+  const match = /^---\s*\n([\s\S]*?)\n---(?:\s*\n|$)/.exec(text);
   if (!match) fail(fileName, "missing or malformed YAML front matter");
 
   const frontMatter = match[1];
@@ -75,14 +75,14 @@ export function parseArticleMetadata(fileName, source) {
   if (title.length > 70) fail(fileName, "title must be 70 characters or fewer");
   if (!description) fail(fileName, "description is required");
   if (description.length > 160) fail(fileName, "description must be 160 characters or fewer");
-  if (!/^\\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
+  if (!/^\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
     fail(fileName, "slug must be a lowercase hyphenated value of at most 100 characters and retain the article ID");
   }
   if (!slug.startsWith(id.slice(0, 3) + "-")) {
     fail(fileName, "slug numeric prefix must match the article file ID");
   }
 
-  const h1 = /^#\\s+(.+?)\\s*$/m.exec(body)?.[1];
+  const h1 = /^#\s+(.+?)\s*$/m.exec(body)?.[1];
   if (h1 !== title) fail(fileName, "the first H1 must match the front-matter title exactly");
 
   if (authorName !== "Mojtaba Arvin") {
