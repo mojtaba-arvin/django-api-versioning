@@ -22,6 +22,7 @@ FORBIDDEN_PARTS = {
     ".netlify",
 }
 PACKAGE_PREFIX = "django_api_versioning/"
+TYPED_MARKER = f"{PACKAGE_PREFIX}py.typed"
 
 
 def normalized_parts(name: str) -> tuple[str, ...]:
@@ -47,6 +48,8 @@ def check_wheel(path: Path) -> None:
     assert_no_repository_assets(names, path)
     if not any(name == f"{PACKAGE_PREFIX}__init__.py" for name in names):
         raise SystemExit(f"{path.name} does not contain {PACKAGE_PREFIX}__init__.py")
+    if TYPED_MARKER not in names:
+        raise SystemExit(f"{path.name} is missing the PEP 561 marker {TYPED_MARKER}")
     unexpected = [
         name
         for name in names
@@ -64,6 +67,8 @@ def check_sdist(path: Path) -> None:
     assert_no_repository_assets(names, path)
     if not any(name.endswith(f"/{PACKAGE_PREFIX}__init__.py") for name in names):
         raise SystemExit(f"{path.name} does not contain the Python package")
+    if not any(name.endswith(f"/{TYPED_MARKER}") for name in names):
+        raise SystemExit(f"{path.name} is missing the PEP 561 marker {TYPED_MARKER}")
     required = ("README.md", "LICENSE", "pyproject.toml", "MANIFEST.in")
     missing = [
         filename
