@@ -11,8 +11,6 @@ try:
 except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib
 
-from segment_lab.probe import callback_info
-
 from segment_lab.generate_routes import (
     PACKAGE_DIR,
     SCENARIOS,
@@ -20,6 +18,7 @@ from segment_lab.generate_routes import (
     provenance,
     source_refs,
 )
+from segment_lab.probe import callback_info
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
