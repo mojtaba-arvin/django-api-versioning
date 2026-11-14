@@ -17,9 +17,11 @@ keywords:
 
 When an API has multiple versions, retiring an old version requires more than removing its URL patterns. Clients need time to migrate, a clear deadline, and a reliable way to discover the replacement.
 
-The [`django-api-versioning` package](https://pypi.org/project/django-api-versioning/) registers versioned routes through `@endpoint`, but it does not implement a deprecation lifecycle. It has no built-in `sunset_date` configuration, automatic deprecation headers, or removal policy.
+The [`django-api-versioning` package](https://pypi.org/project/django-api-versioning/) provides version-level lifecycle handling through `LifecycleMiddleware` and the `API_VERSION_LIFECYCLE` setting. It can add deprecation and sunset response headers and return `410 Gone` after a configured sunset date.
 
-That separation is intentional: the package handles route registration, while the application controls response behavior and API lifecycle policies.
+However, its built-in lifecycle behavior is intentionally limited. It emits `Deprecation: true` rather than the date-valued Structured Field required by RFC 9745. It does not provide a separate deprecation-date setting, automatically generate migration links, or resolve resource-specific successor URLs.
+
+This article builds on that existing functionality and demonstrates application-level deprecation policies for cases that require date-valued deprecation metadata, migration links, resource-specific successor links, and additional retirement controls.
 
 This article shows how to deprecate routes registered with `@endpoint`, including:
 
@@ -217,6 +219,16 @@ The `removed` flag is an explicit operational decision. It is deliberately separ
 This configuration can be used by middleware to apply the same policy to every route belonging to v1.
 
 ## 4. Add version-wide headers with middleware
+
+**Integration with the package's built-in middleware**
+
+The package already provides `LifecycleMiddleware` for version-wide deprecation and sunset enforcement.
+
+The custom middleware below is an application-level alternative for requirements that the built-in implementation does not cover, such as a date-valued RFC 9745 `Deprecation` header and migration links.
+
+Do not enable both middleware implementations as independent owners of the same lifecycle policy without explicitly coordinating their response headers and retirement behavior. Otherwise, they may overwrite lifecycle headers or apply conflicting removal rules.
+
+If the custom middleware replaces the built-in policy for a version, remove the package's lifecycle middleware from that policy's execution path. Alternatively, extend the built-in behavior at the application level while keeping a single authoritative implementation for each response header and retirement decision.
 
 Middleware is useful when an entire API version shares the same deprecation policy.
 
@@ -706,15 +718,16 @@ Also remember that `Deprecation` and `Sunset` are response headers. If browser-b
 
 ## 10. Trade-offs and scope
 
-| Requirement | Middleware | View mixin |
-| --- | --- | --- |
-| Version-wide deprecation policy | Yes | Requires applying it to each view |
-| Per-endpoint deprecation | Requires additional configuration | Yes |
-| `Deprecation` and `Sunset` headers | Yes | Yes |
-| Migration documentation link | Yes | Yes |
-| Resource-specific successor link | Requires additional routing logic | Yes |
-| `410 Gone` enforcement | Yes, with the removal flag | Not included |
-| Depends on URL path structure | Yes, in this example | No, uses the package registry |
+| Requirement | Package LifecycleMiddleware | Custom middleware | View mixin |
+| --- | --- | --- | --- |
+| Version-wide deprecation policy | Yes | Yes | Requires applying it to each view |
+| Per-endpoint deprecation | No, version-wide configuration | Requires additional configuration | Yes |
+| `Deprecation` and `Sunset` headers | Yes | Yes | Yes |
+| RFC 9745 date-valued `Deprecation` | No | Yes, with the implementation shown | Yes, with the implementation shown |
+| Migration documentation link | No | Yes | Yes |
+| Resource-specific successor link | No | Requires additional routing logic | Yes |
+| `410 Gone` enforcement | Yes, after the configured sunset date | Yes, with the removal flag | Not included |
+| Depends on URL path structure | Uses package version extraction | Yes, in this example | No, uses the package registry |
 
 Use middleware when an entire API version shares one retirement policy and you want a centralized removal switch.
 
@@ -722,7 +735,7 @@ Use a mixin when deprecation is specific to selected endpoints or when clients n
 
 For a version-wide retirement with resource-specific migration links, combining the two is reasonable.
 
-**Scope: routing and response lifecycle.** `django-api-versioning` registers routes; it does not provide deprecation metadata, inject response headers, monitor client usage, or remove old versions automatically. Those responsibilities remain in the application.
+**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. Its built-in lifecycle support does not provide RFC 9745 date-valued deprecation metadata, migration links, resource-specific successor URLs, or client-usage monitoring. Those additional responsibilities remain with the application.
 
 The same HTTP headers can be used with other Django routing and DRF versioning approaches, but the package-specific part of this implementation is the explicit registration of old and new routes and the use of `api_reverse()` to resolve a successor route from the package registry.
 
