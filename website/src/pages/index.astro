@@ -9,6 +9,7 @@ import {
   scenarioNames,
   source,
   repoUrl,
+  pypiUrl,
 } from "../lib/data";
 
 const main = scenario("main");
@@ -435,7 +436,7 @@ const capabilities = [
       <p class="muted">
         This site describes the repository source snapshot shown in the header. Check
         the <a href={`${repoUrl}/releases`}>repository releases</a> and
-        <a href={data.source ? "https://pypi.org/project/django-api-versioning/" : "https://pypi.org/project/django-api-versioning/"}>PyPI project page</a>
+        <a href={pypiUrl}>PyPI project page</a>
         for published package versions.
       </p>
     </section>

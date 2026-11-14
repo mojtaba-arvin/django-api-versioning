@@ -1,0 +1,87 @@
+---
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import SourceLink from "../../components/SourceLink.astro";
+
+export async function getStaticPaths() {
+  const articles = (await getCollection("articles")).sort((a, b) =>
+    a.id.localeCompare(b.id, "en", { numeric: true }),
+  );
+  return articles.map((article, index) => ({
+    params: { id: article.id },
+    props: {
+      article,
+      previous: articles[index - 1] ?? null,
+      next: articles[index + 1] ?? null,
+    },
+  }));
+}
+
+const { article, previous, next } = Astro.props;
+const { Content, headings } = await render(article);
+const toc = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+const basePath = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
+const author = article.data.author?.name;
+---
+<Base
+  title={article.data.title}
+  description={article.data.description}
+  current="articles"
+  progress
+>
+  <div class="wrap">
+    <header class="article-header">
+      <p class="eyebrow">
+        <a href={withBase("/articles/")}>Articles</a>
+        <span aria-hidden="true">/</span>
+        {article.data.category ?? "Technical guide"}
+      </p>
+      <h1>{article.data.title}</h1>
+      <p class="lede">{article.data.description}</p>
+      <div class="article-meta">
+        {article.id}
+        {author && <span> · {author}</span>}
+        {article.data.updated && <span> · Updated {article.data.updated}</span>}
+      </div>
+      {article.data.keywords?.length > 0 && (
+        <div class="tag-row" aria-label="Article keywords">
+          {article.data.keywords.map((keyword) => <span class="tag">{keyword}</span>)}
+        </div>
+      )}
+    </header>
+
+    <div class="article-layout">
+      <article class="prose">
+        <Content />
+      </article>
+      {toc.length > 0 && (
+        <aside class="article-toc" aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            {toc.map((heading) => (
+              <li class:list={[heading.depth === 3 && "toc-subitem"]}>
+                <a href={`#${heading.slug}`}>{heading.text}</a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+    </div>
+
+    <nav class="article-pagination" aria-label="Article navigation">
+      {previous
+        ? <a class="btn" href={withBase(`/articles/${previous.id}/`)}>← {previous.data.title}</a>
+        : <span />}
+      {next
+        ? <a class="btn" href={withBase(`/articles/${next.id}/`)}>{next.data.title} →</a>
+        : <span />}
+    </nav>
+    <p class="muted article-source-note">
+      Canonical Markdown source: <code>docs/articles/{article.id}.md</code>.
+      <a href="https://github.com/mojtaba-arvin/django-api-versioning/tree/main/docs/articles" target="_blank" rel="noreferrer">Browse the source corpus</a>.
+    </p>
+  </div>
+</Base>
