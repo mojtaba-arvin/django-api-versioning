@@ -24,4 +24,11 @@ else
 
   echo "Running Django integration tests..."
   python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
+
+  echo "Building and validating PyPI artifacts..."
+  DIST_DIR="$(mktemp -d)"
+  trap 'rm -rf "$DIST_DIR"' EXIT
+  python -m build --outdir "$DIST_DIR"
+  python -m twine check --strict "$DIST_DIR"/*
+  python scripts/verify_distribution_contents.py "$DIST_DIR"
 fi
