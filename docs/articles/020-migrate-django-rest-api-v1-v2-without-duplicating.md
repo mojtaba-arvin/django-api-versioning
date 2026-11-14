@@ -15,6 +15,8 @@ keywords:
 
 # Migrate a Django REST API from v1 to v2 with Fewer Declarations
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 When introducing API v2, you usually need to keep v1 available while clients migrate. Both versions need their own runtime routes, but not every endpoint needs a new implementation.
 
 The challenge is avoiding repeated declarations for endpoints whose implementation and contract have not changed.
@@ -25,7 +27,7 @@ This means an endpoint introduced in v1 can remain available in v2 without a sec
 
 The package manages routing, not semantic API compatibility. You still decide whether a response, request schema, permission rule, or other behavior is compatible with older clients.
 
-I maintain `django-api-versioning`. The examples in this article demonstrate its endpoint registration and routing model. For the exact registration and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+The examples in this article demonstrate the package's endpoint registration and routing model. For the exact registration and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
 
 ## Register unchanged endpoints once
 
@@ -170,7 +172,7 @@ class ArticleTrendingViewV2(ListAPIView):
 
 The Python inheritance in `ArticleListViewV2` and `ArticleDetailViewV2` reuses view behavior. It is separate from the package's route-registration inheritance, which determines which implementation is attached to each versioned URL.
 
-Import the views before importing the generated URL patterns:
+Import the views during URLconf initialization so their decorators register routes before Django first resolves requests:
 
 ```python
 # project/urls.py
@@ -186,7 +188,7 @@ urlpatterns = [
 ]
 ```
 
-Importing `api.views` executes the decorators and populates the registry. Importing `api_urlpatterns` before the endpoint declarations have executed can leave the generated URL list incomplete.
+Importing `api.views` executes the decorators and populates the registry. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit during URLconf initialization and ensure registration is complete before request resolution.
 
 ## Understand the generated version matrix
 
@@ -286,13 +288,18 @@ Passing the version makes the intended route explicit. If multiple matching vers
 
 A route resolving successfully does not prove that the correct response contract is being served.
 
-Assuming the test database contains at least one `Article`, a DRF API test can check the fields returned by each version:
+A DRF API test should create its own data and mark database access explicitly. The following example assumes `category` and `likes` are sufficient to create an `Article`; supply any additional required model fields used by your project.
 
 ```python
+import pytest
 from rest_framework.test import APIClient
 
+from articles.models import Article
 
+
+@pytest.mark.django_db
 def test_article_list_contract_by_version():
+    Article.objects.create(category="news", likes=100)
     client = APIClient()
 
     response_v1 = client.get("/api/v1/articles/")
@@ -516,13 +523,14 @@ API_VERSION_LIFECYCLE = {
 
 For a version configured with `status="deprecated"`, the middleware adds a `Deprecation` header. If a sunset date is configured, it also adds a `Sunset` header.
 
-There is an important standards limitation: the package's lifecycle middleware currently emits `Deprecation: true`. RFC 9745 specifies a Structured Field Date value for this header, for example `Deprecation: @1688169599`. The emitted `true` value is not the RFC 9745 date format. Applications requiring RFC 9745 compliance need to provide the appropriate date-valued header themselves or use an implementation that supports it. Check the [current lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py) for the exact behavior.
+There is an important standards limitation: the package's lifecycle middleware currently emits `Deprecation: true`. RFC 9745 specifies a Structured Field Date value for this header, for example `Deprecation: @1688169599`. The emitted `true` value is not the RFC 9745 date format. Applications requiring RFC 9745 compliance need to provide the appropriate date-valued header themselves or use an implementation that supports it. Check the [current lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/lifecycle.py) for the exact behavior.
 
 The middleware also enforces the configured sunset date:
 
 - A sunset date in the past triggers `410 Gone`.
-- A `retired` status without a past sunset date does not, by itself, trigger `410 Gone`.
-- A future sunset date with `retired` status does not produce the same deprecation headers as `deprecated` status.
+- The accepted status values are `"active"` and `"deprecated"`; `"retired"` is not a valid status value.
+- The `sunset` date controls when the middleware returns `410 Gone`. A configured sunset date can trigger 410 after it passes, even when the status is `"active"`.
+- The `Deprecation` header is emitted only when the status is `"deprecated"`; an `"active"` version with a future sunset date can have a `Sunset` header without a `Deprecation` header.
 - The middleware does not generate a `Link` header pointing to migration documentation.
 
 If the application emits an RFC 9745 deprecation date separately, ensure that the `Sunset` date is not earlier than the deprecation date.
