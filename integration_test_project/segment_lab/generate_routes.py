@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import importlib
 import json
 import os
 import platform
@@ -28,14 +29,14 @@ import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
+from importlib import metadata
+from pathlib import Path
 
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib
-from datetime import datetime, timezone
-from importlib import metadata
-from pathlib import Path
 
 LAB_DIR = Path(__file__).resolve().parent
 INTEGRATION_ROOT = LAB_DIR.parent
@@ -48,9 +49,7 @@ PACKAGE = "django-api-versioning"
 
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(INTEGRATION_ROOT))
-from segment_lab.scenario_catalog import (
-    SCENARIOS,
-)  # noqa: E402  (plain dict, no Django import)
+SCENARIOS = importlib.import_module("segment_lab.scenario_catalog").SCENARIOS
 
 
 # --------------------------------------------------------------------------

@@ -4,12 +4,12 @@ import hashlib
 import importlib.util
 import os
 import subprocess
+from pathlib import Path
 
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib
-from pathlib import Path
 
 from segment_lab.generate_routes import (
     PACKAGE_DIR,
