@@ -25,11 +25,11 @@ export default defineConfig({
     processor: unified({
       remarkPlugins: [remarkArticleLinks],
       rehypePlugins: [rehypeHeadingAnchors],
-      shikiConfig: {
-        themes: { light: "github-light", dark: "github-dark" },
-        defaultColor: false,
-        wrap: false,
-      },
     }),
+    shikiConfig: {
+      themes: { light: "github-light", dark: "github-dark" },
+      defaultColor: false,
+      wrap: false,
+    },
   },
 });
