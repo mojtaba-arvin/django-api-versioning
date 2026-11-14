@@ -69,12 +69,10 @@ This skill provides a systematic framework for auditing the django-api-versionin
    DRF is not a separate tox matrix dimension. `tox.ini` installs `djangorestframework` without an exact pin; record the resolved version from the actual environment when available. Do not claim a DRF compatibility matrix unless one is separately configured and executed.
 
 2. **Test Integration Patterns**
-   - Function-based views (@endpoint on function)
-   - Class-based views (@endpoint on class method)
-   - DRF APIView subclasses
-   - DRF GenericAPIView subclasses
-   - DRF ViewSet classes
-   - DRF Router registration
+   - Function-based views decorated with `@endpoint`.
+   - Django class-based view classes decorated with `@endpoint` at the class level.
+   - DRF `APIView` and `GenericAPIView` classes registered through the package.
+   - DRF ViewSets and routers tested as separate routing mechanisms to verify coexistence only; do not imply that the package automatically registers ViewSets or creates router routes.
 
 3. **Execute Compatibility Tests**
    - Run unit tests with each Django version
@@ -84,7 +82,7 @@ This skill provides a systematic framework for auditing the django-api-versionin
 
 4. **Verify Settings Compatibility**
    - Test all documented settings options
-   - Verify deprecation warnings appear
+   - Verify `LifecycleMiddleware` response headers (`Deprecation`, `Sunset`) and configured sunset enforcement (`410 Gone`). Do not expect Python deprecation warnings from this middleware.
    - Check backward compatibility
 
 ### 3. Dependency Review
