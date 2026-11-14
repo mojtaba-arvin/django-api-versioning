@@ -55,18 +55,46 @@ jobs:
         run: |
           python integration_test_project/segment_lab/generate_routes.py
           python integration_test_project/segment_lab/generate_routes.py --check
-      - name: Commit generated evidence when changed
+      - name: Commit generated evidence against the latest branch head
         run: |
-          git diff --check
-          git add website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
-          if git diff --cached --quiet; then
-            echo "Generated evidence is already current."
-          else
-            git config user.name "Mojtaba Arvin"
-            git config user.email "m.arvin@live.com"
+          set -euo pipefail
+          git config user.name "Mojtaba Arvin"
+          git config user.email "m.arvin@live.com"
+
+          # The branch may advance while evidence is being generated. Never
+          # force-push or overwrite those commits: fetch, reset the disposable
+          # runner checkout, and regenerate evidence against the latest head.
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            remote_sha="$(git rev-parse FETCH_HEAD)"
+            current_sha="$(git rev-parse HEAD)"
+
+            if [ "$remote_sha" != "$current_sha" ]; then
+              git reset --hard "$remote_sha"
+              export SOURCE_COMMIT="$(git rev-parse HEAD)"
+              python integration_test_project/segment_lab/generate_routes.py
+              python integration_test_project/segment_lab/generate_routes.py --check
+            fi
+
+            git diff --check
+            git add website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
+
+            if git diff --cached --quiet; then
+              echo "Generated evidence is already current at $SOURCE_COMMIT."
+              exit 0
+            fi
+
             git commit -m "data: generate source-pinned Segment Lab evidence"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+
+            echo "Branch advanced during push attempt $attempt; retrying from its latest head."
+            git reset --hard "$remote_sha"
+          done
+
+          echo "Could not publish generated evidence after three concurrent-update retries." >&2
+          exit 1
       - name: Run website unit tests
         working-directory: website
         run: npm test
