@@ -151,10 +151,11 @@ If `uv python list` shows fewer than 6 versions, or `tox.ini` does
 not have `tox-uv`, do NOT run tox. Fix first. Do not fabricate a
 "NOT-RUN is infrastructure limitation" result.
 
-### Quick — after EVERY file change
+### Quick — after code or test changes
 
-    # Run only when the project's intended virtual environment is active.
-    python -m pytest <touched_test_file> -v
+Run the relevant test file(s) for the changed code, or the touched test file when changing tests. Documentation-only changes do not require pytest. Run Quick only when the project's intended virtual environment is active.
+
+    python -m pytest <relevant_test_file> -v
 
 ### Single — Phase 1 baseline
 
@@ -163,14 +164,17 @@ One Python, unit + integration. Full instructions in
 
 ### Full — Phase 10 and before `/release`
 
+    set -o pipefail
     PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
+    TOX_EXIT=${PIPESTATUS[0]}
+    echo "TOX_EXIT=$TOX_EXIT"
 
 After the run, inspect the actual `tox.ini` envlist and the complete log. At this branch's current configuration, expect 16 successful tox environments: 15 test environments and one lint environment.
 
 1. `grep -c 'commands succeeded' /tmp/tox-full.log` — must be 16 for the current matrix.
 2. `grep -c 'interpreter not found' /tmp/tox-full.log` — must be 0.
 3. Inspect each of the 15 test-environment log sections. Each must show two successful pytest invocations: `pytest tests` and `pytest integration_test_project`. The lint environment runs flake8, black, and isort; it does not produce pytest pass lines.
-4. Confirm the tox process exit code is 0. Do not infer success from summary counts alone.
+4. Confirm `TOX_EXIT == 0`. Do not infer success from summary counts alone.
 
 If an environment is `NOT-RUN` because an interpreter or dependency is unavailable, report an environment/setup problem. If pytest reports failures, report them as test/code failures. If the success count differs from 16, inspect the environment summary and do not classify the cause without evidence. Never certify the matrix from a partial run.
 
