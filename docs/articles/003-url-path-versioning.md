@@ -3,7 +3,7 @@ slug: "003-url-path-versioning"
 
 title: "URL path-based versioning: explicit routes and inheritance patterns"
 
-description: "Compare explicit Django URL patterns, DRF URLPathVersioning, and declarative route registration for APIs that evolve across URL versions."
+description: "Compare explicit Django routes, DRF URLPathVersioning, and declarative endpoint registration for APIs with multiple URL versions."
 
 author:
   name: "Mojtaba Arvin"
@@ -18,6 +18,8 @@ keywords:
 ---
 
 # URL path-based versioning: explicit routes and inheritance patterns
+
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
 
 URL path versioning makes the API version visible in the request URL:
 
@@ -211,7 +213,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from django_api_versioning.decorators import endpoint
+from django_api_versioning import endpoint
 
 
 User = get_user_model()
@@ -249,7 +251,7 @@ The function or class name is not used to construct the URL. The URL is derived 
 
 ### Include the generated patterns
 
-The endpoint modules must be imported before the package's URL patterns are evaluated. The decorators register endpoints when those modules are imported.
+Import the endpoint modules during URLconf initialization so their decorators register the routes before Django first resolves requests. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view modules does not permanently capture an empty snapshot; explicit initialization order still makes registration predictable.
 
 ```python
 # project/urls.py
@@ -273,7 +275,9 @@ With `API_BASE_PATH = "api/v{version}/"`, the resulting mapping is:
 
 The package applies a deterministic registration rule when multiple implementations target the same endpoint and version: the registration with the higher integer `source_version` takes precedence; if the source versions are equal, the last registration wins.
 
-For the full contract—including identifier types, URL construction, import order, registration precedence, and supported view types—see the [canonical versioning reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+The package uses its generated URL patterns to select the registered callable; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If view logic needs that attribute, configure DRF version identification separately and verify that the chosen scheme's URL keyword argument or namespace is actually present. In particular, the package's literal version path segments do not automatically satisfy DRF `URLPathVersioning`'s dynamic `version` keyword argument.
+
+For the full contract—including identifier types, URL construction, import behavior, registration precedence, and supported view types—see the [canonical versioning reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
 
 **Scope: routing only.** Registration inheritance determines which view is reachable at a versioned URL. It does not prove that the selected view's response remains semantically backward-compatible, nor does it manage serializer compatibility, database migrations, or OpenAPI schema evolution. Those remain application-level responsibilities.
 
@@ -303,7 +307,7 @@ api/
         users.py
 ```
 
-That is an application organization choice, not a package requirement. The package's role is to map the selected endpoint implementations to versioned routes; it does not impose a directory structure or discover modules from version-named folders. The project must still import the modules that contain the endpoint declarations before including the generated URL patterns.
+That is an application organization choice, not a package requirement. The package's role is to map the selected endpoint implementations to versioned routes; it does not impose a directory structure or discover modules from version-named folders. The project must import the modules that contain endpoint declarations during URLconf initialization and ensure the registry is populated before request resolution. The exported URL pattern list is shared with the registry, so importing that list first does not create a permanently empty snapshot.
 
 ## 5. Comparison
 
@@ -331,4 +335,4 @@ In return, the application can express the version-to-view mapping at the endpoi
 
 ## Getting started
 
-If your API has a growing set of URL-versioned endpoints and you want to declare only the implementations that change, explore [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
+If your API has a growing set of URL-versioned endpoints and you want to declare only the implementations that change, evaluate [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
