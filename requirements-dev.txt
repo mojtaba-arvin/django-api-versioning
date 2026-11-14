@@ -10,4 +10,4 @@ isort>=9.0.2
 mypy>=2.4.0
 twine>=7.0.0
 build>=1.6.1
-djangorestframework>=3.18.3
+djangorestframework>=3.18.3tomli>=2.0.1; python_version < "3.11"
