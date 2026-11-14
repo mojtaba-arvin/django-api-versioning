@@ -37,6 +37,7 @@ on:
       - "pytest.ini"
       - "requirements-build.txt"
       - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
       - ".github/workflows/package-artifacts.yml"
 
 permissions:
