@@ -202,7 +202,7 @@ Every feature proposal must state: user problem, current workaround, API surface
 ## Current execution queue
 
 1. Complete validation of the new article metadata gate in the actual website CI environment.
-2. Continue the A–MM review in article order; article 024 has received a targeted CI/compatibility correction but is not yet fully approved.
+2. Continue the A–MM review in article order; articles 024 and 025 have received targeted corrections, and article 025's configured ViewSet pattern now has request-level integration tests. Neither article is fully approved yet.
 3. Audit the remaining website article-sync and navigation behavior, then complete browser/accessibility/performance verification.
 4. Continue the package source audit with the remaining public APIs and edge cases, adding regression tests only for confirmed gaps.
 5. Re-run focused Python tests, the compatibility matrix, and artifact validation at a final immutable source SHA before any release decision.
