@@ -33,7 +33,6 @@ def main() -> None:
             f"pyproject version {expected_version}."
         )
 
-
     import django
     from django.conf import settings
 
