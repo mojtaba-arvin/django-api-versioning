@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T22:19:57+00:00",
+  "generated_at": "2026-11-14T22:22:21+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -7809,7 +7809,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "00062d84c6143e7a57d55448603abe909a23251e",
+    "commit": "d75ccd2bfe462a69046d46f0cb7e111781007cd8",
     "evidence_files": [
       {
         "file": "integration_test_project/api/__init__.py",
@@ -7969,7 +7969,7 @@
       },
       {
         "file": "tests/test_distribution_contents.py",
-        "sha256": "842e5288dfc1b95a45e7501ddf6d3da64f9b70d936b426e77bb59a736384ac0c"
+        "sha256": "af2d1c5b29f004724d7ffe0fb903ac6bd65dff87ac389ddbf091bbe06a5219c3"
       },
       {
         "file": "tests/test_exceptions.py",
@@ -8067,7 +8067,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/00062d84c6143e7a57d55448603abe909a23251e",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/d75ccd2bfe462a69046d46f0cb7e111781007cd8",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
