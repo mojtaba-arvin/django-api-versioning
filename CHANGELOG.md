@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Return a class-specific actionable error when a DRF ViewSet class is registered without its required action map.
 - Validate `API_BASE_PATH` as exactly one plain `{version}` format field, and reject malformed templates, non-string `ROOT_URLCONF` values, and non-string versioning-channel entries with configuration errors.
 - Avoid emitting no-op or unsafe `migrate_endpoints` rewrites when legacy flags are missing a literal value or use dynamic expressions.
+- Make the standalone channel extraction helper fall back from an invalid path match to `request.version` and reject repeated `v` prefixes.
 
 ## [0.3.7] - 2026-11-14
 
