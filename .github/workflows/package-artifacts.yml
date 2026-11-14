@@ -5,7 +5,7 @@ on:
   # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, audit/comprehensive-package-review]
     paths:
       - "django_api_versioning/**"
       - "pyproject.toml"
