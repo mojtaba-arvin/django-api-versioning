@@ -154,6 +154,7 @@ SYMBOLS = {
     "check_versions._warn_gaps": ("management/commands/check_versions.py", "Command._warn_gaps"),
     "LifecycleMiddleware.__call__": ("lifecycle.py", "LifecycleMiddleware.__call__"),
     "_extract_version_from_path": ("lifecycle.py", "_extract_version_from_path"),
+    "_parse_sunset": ("lifecycle.py", "_parse_sunset"),
     "build_version_matrix": ("testing.py", "build_version_matrix"),
     "assert_version_matrix": ("testing.py", "assert_version_matrix"),
     "APISettings.from_django_settings": ("settings.py", "APISettings.from_django_settings"),
@@ -178,7 +179,7 @@ LINES = {
     "matrix_key": ("registry.py", "route = str(pattern.pattern)"),
     "gap_warning": ("management/commands/check_versions.py", 'f"  [{endpoint}] v{v} is not defined."'),
     "callback_name": ("management/commands/check_versions.py", "callback_name = self._get_callback_name(versions[version])"),
-    "sunset_410": ("lifecycle.py", "if sunset and _is_past(sunset):"),
+    "sunset_410": ("lifecycle.py", "if sunset_date and _is_past(sunset_date):"),
     "deprecated_header": ("lifecycle.py", 'if meta.get("status") == "deprecated":'),
     "reverse_ambiguous": ("reverse.py", "if version is None and len(matches) > 1:"),
 }

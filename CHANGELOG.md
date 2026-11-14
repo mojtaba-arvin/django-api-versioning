@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Ignore invalid lifecycle sunset values instead of emitting invalid `Sunset` headers; normalize timezone-aware sunset timestamps to UTC before enforcement and formatting.
+
 ## [0.3.7] - 2026-11-14
 
 ### Changed
