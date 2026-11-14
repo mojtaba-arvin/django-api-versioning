@@ -132,7 +132,9 @@ urlpatterns = [
 ]
 ```
 
-The package registers the routes. It does not decide whether a registered version is deprecated or whether its responses should include lifecycle headers.
+The package also provides version-level lifecycle handling through `LifecycleMiddleware`. It reads `API_VERSION_LIFECYCLE`, adds `Deprecation` and `Sunset` headers when applicable, and returns `410 Gone` after a configured sunset date.
+
+The following sections extend this built-in behavior with application-level policies for requirements such as RFC 9745 date-valued deprecation metadata, migration links, and resource-specific successor URLs.
 
 ## 2. Understand the deprecation headers
 
