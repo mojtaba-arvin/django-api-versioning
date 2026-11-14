@@ -84,7 +84,7 @@ The latest focused Python workflow on the active audit branch completed successf
 
 The package artifact workflow completed successfully at source `46399121b551f45301d73ff7e53100f5f39d69ef` ([run 43642742970](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43642742970)); wheel/sdist creation, Twine validation, and package-content checks passed.
 
-The latest recorded website checkpoint on implementation commit `330a9553310ae4c9d44fb9787f607ac2ba0c114a` ([GitHub Actions run 43638777904](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43638777904)) passed:
+The latest website build and dependency verification completed in [GitHub Actions run 43643275918](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43643275918), triggered by package configuration commit `417ee4a14878f9e6e29bba5c6c203dcb65f317df` and using generated lockfile commit `f2a6afc07ba7a1a955f75afb886908b6fc93c89c`. It passed:
 - 20 Node tests;
 - Astro check with zero errors, warnings, and hints;
 - `npm audit --audit-level=high`;
