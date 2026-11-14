@@ -2,10 +2,11 @@ name: Website build and static verification
 
 on:
   # Run once when a PR enters review; use workflow_dispatch for later checkpoints.
-  # Main remains automatically validated after relevant website/content changes.
+  # Main and the active long-lived audit branch are validated after relevant
+  # website/content changes; use workflow_dispatch for deliberate checkpoints.
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, audit/comprehensive-package-review]
     paths:
       - "website/**"
       - "!website/package.json"
