@@ -9,7 +9,7 @@ The workflows are deliberately separate:
 | Workflow | What it validates | Trigger scope |
 |---|---|---|
 | `Python tests` | Package unit tests and the existing Django integration project, including Segment Lab | Package source, tests, integration project, Python runtime/test requirements, pytest configuration |
-| `Python package artifacts` | Wheel and sdist creation, Twine metadata validation, and forbidden-content checks | Package source and packaging inputs |
+| `Python package artifacts` | Wheel and sdist creation, Twine metadata validation, and forbidden-content checks | Package source plus every tracked sdist input, including tests, README, Changelog, license, requirements, and pytest configuration |
 | Future website workflow | Astro checks, static build, and built-site smoke tests | `website/**` and `docs/articles/**` |
 
 Documentation-only edits under `docs/website/`, root agent instructions, and other editorial material must not invoke Python tests or package builds. The website workflow is intentionally deferred until the Astro application and its static-output checks are complete.
@@ -52,12 +52,12 @@ The root `Dockerfile` and `entrypoint.sh` remain available for the complete loca
 
 The first native-Python run on this branch completed successfully:
 
-- Unit tests: 185 passed in 0.99 seconds.
-- Integration tests: 249 passed in 13.91 seconds.
-- Python test workflow wall time: approximately 42 seconds, including runner setup and dependency installation.
-- Package artifact workflow: approximately 22 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
+- Unit tests: 195 passed in 0.56 seconds (89% package coverage).
+- Integration tests: 249 passed in 13.23 seconds.
+- Python test workflow wall time: 34 seconds, including runner setup and dependency installation.
+- Package artifact workflow: 21 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
 
-These are one-run observations, not a guaranteed future duration. The pip cache should reduce repeated dependency download cost on subsequent runs. The previous Docker-based workflow took approximately 143 seconds for one combined run.
+These are one-run observations from the latest checkpoint at commit `0afbd590974e6203a1c85fe654088f3e23c83765`, not guaranteed future durations. The pip cache should reduce repeated dependency download cost on subsequent runs. The previous Docker-based workflow took approximately 143 seconds for one combined run.
 
 ## Website workflow acceptance criteria
 

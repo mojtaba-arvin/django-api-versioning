@@ -8,10 +8,15 @@ on:
     branches: [main, audit/comprehensive-package-review]
     paths:
       - "django_api_versioning/**"
+      - "tests/**"
       - "pyproject.toml"
       - "MANIFEST.in"
       - "README.md"
+      - "CHANGELOG.md"
       - "LICENSE*"
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
       - "requirements-build.txt"
       - "scripts/verify_distribution_contents.py"
       - ".github/workflows/package-artifacts.yml"

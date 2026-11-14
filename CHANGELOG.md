@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Ignore invalid lifecycle sunset values instead of emitting invalid `Sunset` headers; normalize timezone-aware sunset timestamps to UTC before enforcement and formatting.
+- Return a class-specific actionable error when a DRF ViewSet class is registered without its required action map.
+- Validate `API_BASE_PATH` as exactly one plain `{version}` format field, and reject malformed templates, non-string `ROOT_URLCONF` values, and non-string versioning-channel entries with configuration errors.
 
 ## [0.3.7] - 2026-11-14
 
