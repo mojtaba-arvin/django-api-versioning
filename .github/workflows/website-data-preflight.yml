@@ -1,0 +1,25 @@
+name: Website data preflight
+
+on:
+  push:
+    branches: [audit/comprehensive-package-review]
+    paths:
+      - ".github/workflows/website-data-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.12.0"
+      - name: Validate generated-data scripts and Node tests
+        working-directory: website
+        run: |
+          node --check scripts/sync-articles.mjs
+          node --check scripts/sync-evidence.mjs
+          npm test
