@@ -75,25 +75,32 @@ class LifecycleMiddleware:
         return response
 
 
+def _coerce_version(value: Any) -> int | None:
+    """Accept integer versions without truncating booleans or other numeric types."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdecimal():
+        return int(value)
+    return None
+
+
 def _extract_version(request: HttpRequest) -> int | None:
     # Path-based: request.version is set by DRF or by URLPathVersioning.
-    if hasattr(request, "version") and request.version is not None:
-        try:
-            return int(request.version)
-        except (TypeError, ValueError):
-            pass
-    # Fallback: parse from resolver_match kwargs.
-    match = getattr(request, "resolver_match", None)
-    if match and "version" in match.kwargs:
-        try:
-            return int(match.kwargs["version"])
-        except (TypeError, ValueError):
-            pass
-    # Fallback: extract from static URL path using API_BASE_PATH pattern.
-    version = _extract_version_from_path(request)
+    version = _coerce_version(getattr(request, "version", None))
     if version is not None:
         return version
-    return None
+
+    # Fallback: parse from resolver_match kwargs.
+    match = getattr(request, "resolver_match", None)
+    if match:
+        version = _coerce_version(match.kwargs.get("version"))
+        if version is not None:
+            return version
+
+    # Fallback: extract from static URL path using API_BASE_PATH pattern.
+    return _extract_version_from_path(request)
 
 
 def _extract_version_from_path(request: HttpRequest) -> int | None:
