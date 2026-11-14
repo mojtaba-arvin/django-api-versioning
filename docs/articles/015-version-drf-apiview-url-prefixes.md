@@ -23,7 +23,7 @@ This is useful when most endpoints remain unchanged between releases and only a 
 
 This article uses `APIView` subclasses and compares package-based registration with two DRF-only alternatives: separate view classes with manually maintained URL patterns, and shared base classes with version-specific subclasses.
 
-The package is maintained by the author. Its responsibility is URL registration and routing—not DRF request-version negotiation or API contract compatibility.
+The author is the creator, owner, and maintainer of `django-api-versioning`. The package's responsibility is URL registration and routing—not DRF request-version negotiation or API contract compatibility.
 
 ## Registering APIView endpoints with django-api-versioning
 
@@ -179,14 +179,14 @@ class ArticleDetailV2(BaseArticleDetailView):
 
 ### Include the generated URL patterns
 
-Import the modules containing the endpoint declarations before importing the package's URL patterns.
+Import modules containing endpoint declarations during URLconf initialization so their decorators register routes before Django first resolves requests.
 
 ```python
 # urls.py
 
 from django.urls import include, path
 
-from . import views  # noqa: F401 — execute endpoint declarations first
+from . import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -196,9 +196,9 @@ urlpatterns = [
 ]
 ```
 
-The import of `views` is significant. The decorators register routes when their modules are imported. The package does not automatically discover application view modules.
+The import of `views` is significant. The decorators register routes when their modules are imported. The package does not automatically discover application view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
-If endpoint declarations are distributed across multiple modules, import all of them before reading `api_urlpatterns`.
+If endpoint declarations are distributed across multiple modules, import all of them during URLconf initialization.
 
 ### Resulting URL patterns
 
@@ -218,7 +218,7 @@ With `API_MIN_VERSION = 1` and `API_MAX_VERSION = 2`, the registrations produce 
 - Detail requests under v1 use `ArticleDetailV1`.
 - Detail requests under v2 use `ArticleDetailV2`, including comments and statistics.
 
-**Scope: routing only.** The package chooses which view callable is attached to each URL. It does not negotiate `request.version`, decide whether a response change is backward-compatible, or generate version-specific serializers and schemas.
+**Scope: routing only.** The package chooses which view callable is attached to each URL. It does not configure a DRF versioning class or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present. The package also does not decide whether a response change is backward-compatible or generate version-specific serializers and schemas.
 
 ### How route carry-forward works
 
@@ -251,7 +251,7 @@ This is route-registration inheritance, not Python class inheritance. The regist
 
 This behavior is useful when an implementation remains valid across later API releases. It also creates a responsibility: when an endpoint's contract changes, register a new implementation or deliberately choose an explicit version set. Otherwise, the previous implementation continues to serve later versions.
 
-For package-specific details—including collision precedence, version boundaries, URL construction, and import order—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For package-specific details—including collision precedence, version boundaries, URL construction, and import behavior—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
 
 ## DRF-only alternative 1: Separate APIView classes per version
 
@@ -605,7 +605,7 @@ can be registered as one explicitly configured route, but it is not a replacemen
 - The project uses `APIView` or `GenericAPIView` and has several versioned endpoints.
 - Most endpoints remain unchanged between releases.
 - The team wants route registration to live alongside the view declarations.
-- The team is comfortable with the package's import-order requirement and automatic carry-forward behavior.
+- The team is comfortable with explicit module imports during URLconf initialization, the package's automatic carry-forward behavior, and the fact that the package does not auto-discover decorated view modules.
 
 ### When the benefit of the package is smaller
 
