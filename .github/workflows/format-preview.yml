@@ -1,0 +1,23 @@
+name: Temporary Python formatting preview
+
+on:
+  push:
+    branches: [audit/comprehensive-package-review]
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.15"
+      - name: Install formatters
+        run: python -m pip install black==26.10.1 isort==9.0.2
+      - name: Show Black formatting diff
+        run: black --diff django_api_versioning tests integration_test_project scripts
+      - name: Show import sorting diff
+        run: isort --diff django_api_versioning tests integration_test_project scripts
