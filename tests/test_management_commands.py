@@ -383,9 +383,7 @@ class TestMigrateEndpointsRewriting:
 
     def test_preserves_escaped_quotes_and_commas_in_string_literals(self):
         args = r'"users, \"admin\"", version=3, backward=True, forward=False'
-        assert _rewrite_args(args) == (
-            r'"users, \"admin\"", versions=ver_range(1, 3)'
-        )
+        assert _rewrite_args(args) == (r'"users, \"admin\"", versions=ver_range(1, 3)')
 
     def test_suggest_ignores_modern_and_noop_declarations(self):
         source = '@endpoint("users", version=2)\n' '@endpoint("posts", forward=True)\n'
