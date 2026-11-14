@@ -142,11 +142,12 @@ The `@endpoint` decorator and `UrlRegistry` provide:
 `Deprecation: true`, not the date-valued Structured Field defined by RFC 9745.
 It does not automatically generate migration or successor-version Link headers.
 
-### Management Command (Implemented)
+### Management Commands (Implemented)
 
-- `check_versions` — displays the registered version matrix for inspection
+- `check_versions` — displays the registered version matrix for inspection.
+- `migrate_endpoints` — performs text-based migration suggestions for legacy `forward` and `backward` decorator arguments. It rewrites only literal integer versions and boolean flags, leaves dynamic flag expressions unchanged, and is explicitly not an AST-based semantic migration tool.
 
-**Status**: Implemented.
+**Status**: Both commands are implemented. The migration command has dedicated dry-run, write, migration-directory exclusion, string-literal preservation, and dynamic-expression regression tests.
 
 ### Django REST Framework Integration (Partial)
 
@@ -231,7 +232,6 @@ While helper functions exist to extract version from headers and query parameter
 | Implementation features | ✅ Verified | Inspected source code for channels, registry, decorators, lifecycle |
 | Routing integration | ✅ Path-based only | Confirmed in `registry.py` and `channels.py` usage patterns |
 | DRF integration | ⚠️ Partial (no native versioning) | Noted in README and reflected in code inspection |
-| Test execution | ✅ Verified | Focused Python tests, 15 tox environments, and lint passed at source revision `9b09d66`; GitHub Actions logs are linked in report metadata |
 
 ---
 
@@ -241,7 +241,7 @@ The following claims are explicitly **not** supported by evidence in this reposi
 
 - **Operating System compatibility** — No OS-specific tests exist. The package contains no platform-specific code and uses only cross-platform Python and Django APIs, but specific OS compatibility is not verified.
 - **Database compatibility** — The test suite uses SQLite in-memory databases. PostgreSQL, MySQL, MariaDB, Oracle, and other database compatibility is not verified, though the package does not include migrations or database-specific code.
-- **Independent reproduction of historical test results** — The project records a successful 2026-11-14 tox run across 15 test environments and one lint environment. However, raw per-environment logs and dependency-resolution records are not preserved, so those historical results cannot be independently reproduced from the repository alone.
+- **Long-term preservation of environment resolution** — GitHub Actions retains the linked raw run logs, but the repository does not commit a fully resolved dependency lock for every tox environment. A future rerun may resolve newer dependency versions.
 
 ---
 
@@ -264,7 +264,7 @@ The recorded run identifies DRF 3.18.3 as the resolved version. However, DRF is 
 
 The v0.3.6 CHANGELOG reports an earlier release verification result of 160 unit tests and 236 integration tests. These figures represent a different test-suite snapshot from the later tox run.
 
-The source-level test function counts are 176 unit functions and 245 integration functions. These are definitions in the repository, not execution counts.
+The pytest execution counts include parametrized cases and therefore are not equivalent to the number of source-level `def test_*` declarations.
 
 The implementation provides path-based versioned route registration, forward segment inheritance, lifecycle management, and partial DRF integration. Header and query version extraction helpers exist but are not integrated into route selection.
 
