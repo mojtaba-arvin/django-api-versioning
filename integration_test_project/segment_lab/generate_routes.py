@@ -53,7 +53,7 @@ SCENARIOS = importlib.import_module("segment_lab.scenario_catalog").SCENARIOS
 
 
 # --------------------------------------------------------------------------
-# Provenance: which commit is installed? (never guessed)
+# Provenance: which exact repository commit is inspected? (never guessed)
 # --------------------------------------------------------------------------
 def provenance() -> dict:
     """Describe the exact package source in this repository checkout."""
