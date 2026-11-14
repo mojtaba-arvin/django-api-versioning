@@ -722,6 +722,110 @@ try:  # noqa: C901
                 {"id": task_id, "deleted": True}, status=status.HTTP_204_NO_CONTENT
             )
 
+    # Configured ViewSet callables registered through @endpoint.
+    # These deliberately use plain methods (not @action) so the example tests
+    # the documented direct-as_view boundary without router-only metadata.
+    class ConfiguredProductViewSetV1(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"version": 1, "detail": self.detail})
+
+        def retrieve(self, request, pk=None):
+            return Response({"version": 1, "id": pk, "detail": self.detail})
+
+        def popular(self, request):
+            return Response(
+                {
+                    "version": 1,
+                    "action_url": self.reverse_action("popular-v1"),
+                    "detail": self.detail,
+                }
+            )
+
+    class ConfiguredProductViewSetV2(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"version": 2, "detail": self.detail})
+
+        def retrieve(self, request, pk=None):
+            return Response({"version": 2, "id": pk, "detail": self.detail})
+
+        def popular(self, request):
+            return Response(
+                {
+                    "version": 2,
+                    "action_url": self.reverse_action("popular-v2"),
+                    "detail": self.detail,
+                }
+            )
+
+    endpoint(
+        "configured-products/",
+        version=1,
+        view_name="configured-product-list-v1",
+    )(
+        ConfiguredProductViewSetV1.as_view(
+            {"get": "list"},
+            detail=False,
+            basename="configured-product",
+        )
+    )
+    endpoint(
+        "configured-products/",
+        version=2,
+        view_name="configured-product-list-v2",
+    )(
+        ConfiguredProductViewSetV2.as_view(
+            {"get": "list"},
+            detail=False,
+            basename="configured-product",
+        )
+    )
+
+    endpoint(
+        "configured-products/<int:pk>/",
+        version=1,
+        view_name="configured-product-detail-v1",
+    )(
+        ConfiguredProductViewSetV1.as_view(
+            {"get": "retrieve"},
+            detail=True,
+            basename="configured-product",
+        )
+    )
+    endpoint(
+        "configured-products/<int:pk>/",
+        version=2,
+        view_name="configured-product-detail-v2",
+    )(
+        ConfiguredProductViewSetV2.as_view(
+            {"get": "retrieve"},
+            detail=True,
+            basename="configured-product",
+        )
+    )
+
+    endpoint(
+        "configured-products/popular/",
+        version=1,
+        view_name="configured-product-popular-v1",
+    )(
+        ConfiguredProductViewSetV1.as_view(
+            {"get": "popular"},
+            detail=False,
+            basename="configured-product",
+        )
+    )
+    endpoint(
+        "configured-products/popular/",
+        version=2,
+        view_name="configured-product-popular-v2",
+    )(
+        ConfiguredProductViewSetV2.as_view(
+            {"get": "popular"},
+            detail=False,
+            basename="configured-product",
+        )
+    )
+
 except ImportError:
     pass
 
