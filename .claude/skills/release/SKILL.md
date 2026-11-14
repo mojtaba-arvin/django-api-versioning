@@ -328,7 +328,8 @@ creation, report the manual release URL, and continue to Step 12.
 ### 11. Create GitHub release
 
 ```bash
-GH_TOKEN="$DAV_GITHUB_TOKEN" "$HOME/.local/bin/gh" release create "v$NEW_VERSION" \
+GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
+GH_TOKEN="$DAV_GITHUB_TOKEN" "$GH_BIN" release create "v$NEW_VERSION" \
   --title "v$NEW_VERSION" \
   --generate-notes
 ```
@@ -336,7 +337,8 @@ GH_TOKEN="$DAV_GITHUB_TOKEN" "$HOME/.local/bin/gh" release create "v$NEW_VERSION
 Verify:
 
 ```bash
-GH_TOKEN="$DAV_GITHUB_TOKEN" "$HOME/.local/bin/gh" release view "v$NEW_VERSION" \
+GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
+GH_TOKEN="$DAV_GITHUB_TOKEN" "$GH_BIN" release view "v$NEW_VERSION" \
   --json tagName,isDraft,url
 ```
 
