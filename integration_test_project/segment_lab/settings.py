@@ -19,7 +19,7 @@ SECRET_KEY = "segment-lab-local-test-only"
 DEBUG = True
 ALLOWED_HOSTS = ["*", "testserver", "localhost", "127.0.0.1"]
 
-INSTALLED_APPS = list(INSTALLED_APPS)
+INSTALLED_APPS = list(project_settings.INSTALLED_APPS)
 if "rest_framework" not in INSTALLED_APPS:
     INSTALLED_APPS.append("rest_framework")
 
