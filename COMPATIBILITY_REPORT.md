@@ -2,11 +2,14 @@
 
 ## Report Metadata
 
-**Report Last Updated**: 2026-11-14 (this document)
+**Report Last Updated**: 2026-11-14
 **Package Version**: 0.3.6
-**Current Repository HEAD**: febc13c (docs: audit and correct compatibility report for accuracy and evidence-based claims)
-**Test Execution Status**: NOT VERIFIED — No execution logs found in working directory
-**Report Purpose**: Document declared requirements, official compatibility ranges, tox configuration, and implementation features vs routing integration status
+**Audited Branch**: `audit/comprehensive-package-review`
+**Audited Source Revision**: `bb8e512a1ea89cc1eccdc4c5c27b8c93b7d0b9be`
+**Recorded Test Run**: 2026-11-14, source commit `06f2867`
+**Recorded Test Result**: tox exit code 0; 15 test environments and 1 lint environment passed
+**Evidence Qualification**: The test results are recorded in the project compatibility report. Raw per-environment execution logs are not retained in the repository.
+**Report Purpose**: Document declared requirements, official compatibility ranges, configured test environments, recorded test results, and implementation boundaries.
 
 ---
 
@@ -28,12 +31,12 @@ The package declares the following requirements:
 
 The following ranges are based on official Django documentation and represent the combinations officially supported by Django itself:
 
-| Django Version | Official Python Range | Package Tests This Range |
-|---|---|---|
-| 4.2 | 3.8–3.12 | 3.10–3.12 only |
-| 5.2 | 3.10–3.14 | 3.10–3.14 tested |
-| 6.0 | 3.12–3.14 | 3.12–3.14 tested |
-| 6.1 | 3.12–3.15 | 3.12–3.15 tested |
+| Django Version | Official Python Range | Configured tox Python Versions |
+| --- | --- | --- |
+| 4.2 | 3.8–3.12 | 3.10–3.12 |
+| 5.2 | 3.10–3.14 | 3.10–3.14 |
+| 6.0 | 3.12–3.14 | 3.12–3.14 |
+| 6.1 | 3.12–3.15 | 3.12–3.15 |
 
 **Note**: Django 4.2 supports Python 3.8–3.12 officially, but this package requires Python >= 3.10. The package does not test Django 4.2 with Python 3.8–3.9 because the minimum declared requirement (Python 3.10) excludes them. Django 5.0 and 5.1 are not declared as supported by this package.
 
@@ -73,13 +76,26 @@ The following test environments are defined in `tox.ini` and represent what has 
 
 ---
 
-## Test Counts
+## Test Counts and Execution Evidence
 
 Based on inspection of test source code:
+
 - **Unit tests**: 176 test functions across 12 test files in `tests/`
 - **Integration tests**: 245 test functions in `integration_test_project/test_integration.py`
 
-These numbers represent the test functions defined in the source code, not the result of any particular test execution. Each test may contain parametrization or assertions that increase the count of individual assertions executed.
+These numbers represent test functions defined in the source code. They are not execution results.
+
+The recorded 2026-11-14 tox run reports the following results for each test environment:
+
+- **Unit tests**: 175 passed
+- **Integration tests**: 245 passed
+- **Code coverage**: 88%
+
+The source-level unit test function count and the reported unit test execution count differ by one. The repository does not preserve the detailed pytest collection, skip, or deselection output needed to reconcile this difference.
+
+The v0.3.6 CHANGELOG separately reports 160 unit tests and 236 integration tests during release verification. Those figures describe an earlier release verification record and must not be combined with the later tox matrix results.
+
+The recorded tox run completed with exit code 0 across 15 test environments and one lint environment. Raw per-environment execution logs are not retained in the repository, so the historical results cannot be independently reproduced from committed logs alone.
 
 ---
 
@@ -119,10 +135,15 @@ The `@endpoint` decorator and `UrlRegistry` provide:
 
 ### Lifecycle Management (Implemented)
 
-- Version lifecycle metadata (sunset dates, deprecation warnings)
-- `LifecycleMiddleware` for injecting X-API-Lifecycle headers
+- Version lifecycle metadata through `API_VERSION_LIFECYCLE`
+- `LifecycleMiddleware` for version-level deprecation and sunset handling
+- `Deprecation: true` response header for deprecated versions
+- `Sunset` response header when a sunset date is configured
+- `410 Gone` response when the configured sunset date has passed
 
-**Status**: Fully implemented.
+**Status**: Implemented. The middleware emits the legacy boolean value
+`Deprecation: true`, not the date-valued Structured Field defined by RFC 9745.
+It does not automatically generate migration or successor-version Link headers.
 
 ### Management Command (Implemented)
 
@@ -145,7 +166,13 @@ The `@endpoint` decorator and `UrlRegistry` provide:
 - Direct decoration of ViewSet classes with `@endpoint` — use explicit `as_view()` calls or router registration
 - Combination with DRF's native versioning strategies (URLPathVersioning, HeaderVersioning, QueryParameterVersioning, AcceptHeaderVersioning, HostNameVersioning)
 
-**Status**: Tested with DRF 3.18.3 for integrated endpoints. Native DRF versioning is not tested for compatibility with this package.
+**Status**: DRF integration was included in the recorded 2026-11-14 tox run, which reports DRF 3.18.3 as the resolved version.
+
+The `tox.ini` configuration does not pin DRF to an exact version. It installs DRF as a development dependency without an exact version constraint, so later executions may resolve a different release.
+
+The repository does not preserve per-environment dependency-resolution logs needed to independently confirm the resolved DRF version for every historical environment.
+
+Compatibility with DRF's native versioning strategies has not been established by the available test evidence.
 
 ---
 
@@ -207,7 +234,7 @@ While helper functions exist to extract version from headers and query parameter
 | Implementation features | ✅ Verified | Inspected source code for channels, registry, decorators, lifecycle |
 | Routing integration | ✅ Path-based only | Confirmed in `registry.py` and `channels.py` usage patterns |
 | DRF integration | ⚠️ Partial (no native versioning) | Noted in README and reflected in code inspection |
-| Test execution | ❌ NOT VERIFIED | No execution logs, output files, or timestamps in repository |
+| Test execution | ⚠️ Historically reported | The 2026-11-14 tox report records 15 passing test environments and 1 passing lint environment; raw per-environment logs are not retained |
 
 ---
 
@@ -217,17 +244,33 @@ The following claims are explicitly **not** supported by evidence in this reposi
 
 - **Operating System compatibility** — No OS-specific tests exist. The package contains no platform-specific code and uses only cross-platform Python and Django APIs, but specific OS compatibility is not verified.
 - **Database compatibility** — The test suite uses SQLite in-memory databases. PostgreSQL, MySQL, MariaDB, Oracle, and other database compatibility is not verified, though the package does not include migrations or database-specific code.
-- **Exact test execution results** — No logs, coverage reports, or execution timestamps are preserved in the repository to verify test execution status across all 16 environments (15 test + 1 lint).
+- **Independent reproduction of historical test results** — The project records a successful 2026-11-14 tox run across 15 test environments and one lint environment. However, raw per-environment logs and dependency-resolution records are not preserved, so those historical results cannot be independently reproduced from the repository alone.
 
 ---
 
 ## Summary
 
-The package declares support for Python 3.10–3.15 and Django 4.2, 5.2–6.1. The tox matrix is configured to test six Python versions (3.10–3.15) against four Django versions (4.2, 5.2, 6.0, 6.1), resulting in 15 test environments plus a lint environment.
+The package declares support for Python 3.10–3.15 and Django 4.2, 5.2, 6.0, and 6.1.
 
-The implementation is feature-complete for path-based versioning, route registration, lifecycle management, and partial DRF integration. Helper functions exist for header and query version extraction but are not integrated into route selection.
+The tox matrix configures six Python versions across four Django versions, resulting in 15 test environments plus one lint environment.
 
-**Test execution status cannot be verified from available repository evidence.** The tox configuration defines the intended test coverage, but actual execution results are not logged or preserved in the repository.
+The recorded 2026-11-14 tox run reports:
+
+- All 15 test environments passed.
+- The lint environment passed.
+- 175 unit tests and 245 integration tests passed in each test environment.
+- 88% code coverage was reported.
+- The tox process exited with code 0.
+
+The recorded run identifies DRF 3.18.3 as the resolved version. However, DRF is not pinned to an exact version in `tox.ini`, so future executions may resolve a different release.
+
+The v0.3.6 CHANGELOG reports an earlier release verification result of 160 unit tests and 236 integration tests. These figures represent a different test-suite snapshot from the later tox run.
+
+The source-level test function counts are 176 unit functions and 245 integration functions. These are definitions in the repository, not execution counts.
+
+The implementation provides path-based versioned route registration, forward segment inheritance, lifecycle management, and partial DRF integration. Header and query version extraction helpers exist but are not integrated into route selection.
+
+**Evidence limitation:** The successful historical tox run is recorded by the project, but raw per-environment logs and resolved dependency records are not retained for independent reproduction.
 
 ---
 
