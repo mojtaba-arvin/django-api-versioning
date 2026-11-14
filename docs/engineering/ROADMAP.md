@@ -201,7 +201,7 @@ Every feature proposal must state: user problem, current workaround, API surface
 
 ## Current execution queue
 
-1. Complete validation of the new article metadata gate in the actual website CI environment.
+1. The new article metadata gate is validated by website CI at source `ee71279c929bd5e4d8765e67ed3ed6238d05bb88`: 31 Node tests passed, all 25 canonical articles synchronized, Astro check was clean, and both static builds passed. Continue monitoring the source-evidence workflow's concurrency-safe commit step.
 2. Continue the A–MM review in article order; articles 024 and 025 have received targeted corrections, and article 025's configured ViewSet pattern now has request-level integration tests. Neither article is fully approved yet.
 3. Audit the remaining website article-sync and navigation behavior, then complete browser/accessibility/performance verification.
 4. Continue the package source audit with the remaining public APIs and edge cases, adding regression tests only for confirmed gaps.
