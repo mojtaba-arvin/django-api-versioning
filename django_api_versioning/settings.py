@@ -135,7 +135,7 @@ class APISettings:
         if not isinstance(self.API_VERSIONING_CHANNELS, list):
             raise VersioningError("API_VERSIONING_CHANNELS must be a list.")
         for channel in self.API_VERSIONING_CHANNELS:
-            if channel not in allowed:
+            if not isinstance(channel, str) or channel not in allowed:
                 raise VersioningError(
                     f"Unknown versioning channel {channel!r}. "
                     f"Allowed: {sorted(allowed)}."
