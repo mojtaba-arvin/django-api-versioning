@@ -10,9 +10,8 @@ Triggered by "release X.Y.Z". Do exactly this. No improvisation.
 
 ## Environment
 - `DAV_GITHUB_TOKEN` set in the sandbox.
-- `gh` is NOT pre-installed. Install at Step 11.
-- Each Bash call runs in a fresh shell. Use full paths:
-  `$HOME/.local/bin/gh`.
+- Check whether `gh` is installed with `command -v gh`; do not assume an OS or architecture.
+- Each Bash call runs in a fresh shell. Re-establish required PATH entries in every call.
 
 ## Steps
 
@@ -49,14 +48,25 @@ TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-If `/tmp/tox/bin/tox` does not exist, install first:
+Before running Full, use the current `tox.ini` as the source of truth. Verify that it declares `tox-uv`, that the integration test settings file exists, and that every Python interpreter required by the matrix is installed. The current matrix requires Python 3.10–3.15:
 
 ```bash
-uv python install 3.15
-uv venv /tmp/tox --python 3.15
-uv pip install --python /tmp/tox/bin/python tox tox-uv
-grep -q 'tox-uv' tox.ini || { echo "tox.ini does not declare tox-uv"; exit 1; }
+command -v uv >/dev/null || { echo "uv is required"; exit 1; }
+uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+for v in 3.10 3.11 3.12 3.13 3.14 3.15; do
+  uv python list | grep -q "cpython-$v" || { echo "missing Python $v"; exit 1; }
+done
+grep -q 'requires = tox-uv' tox.ini || { echo "tox.ini does not declare tox-uv"; exit 1; }
+[ -f integration_test_project/pytest.ini ] || { echo "missing integration_test_project/pytest.ini"; exit 1; }
+
+if [ ! -x /tmp/tox/bin/tox ]; then
+  uv venv /tmp/tox --python 3.15
+  uv pip install --python /tmp/tox/bin/python tox tox-uv
+fi
+/tmp/tox/bin/tox --version
 ```
+
+Do not start tox if any interpreter or prerequisite is missing. Do not accept a partial matrix or `NOT-RUN` environments as a successful release test. Re-read `tox.ini` and derive the expected environment count from its current envlist rather than hardcoding an old count.
 
 If `TOX_EXIT` is non-zero, STOP. Parse `/tmp/tox-release.log` for
 failing envs. Do not bump version. Do not tag. Report the failing
@@ -79,9 +89,11 @@ If `.claude/push.sh` exits non-zero: STOP. Do not continue.
 
 ### 4. Update `CHANGELOG.md`
 
-Add a dated section for `X.Y.Z`. Include Added / Changed / Fixed /
-Removed. Include the unit and integration test counts recorded
-in Step 2.
+Add a dated section for `X.Y.Z`. Use only the Keep a Changelog
+categories that actually apply; do not add empty headings merely
+to include every category. Record the unit and integration test
+counts observed in the successful Step 2 log. Never infer or reuse
+historical counts.
 
 ```bash
 git add CHANGELOG.md
@@ -99,20 +111,25 @@ If push fails: STOP.
 LAST_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
 if [ -z "$LAST_TAG" ]; then
   TECH=yes
-  REASON="no previous tag — assuming full impact"
+  REASON="no previous tag — inspect the full release diff"
 else
-  N=$(git log --oneline "$LAST_TAG"..HEAD \
-    | grep -cE '^(feat|fix)(\(|:)' || true)
-  if [ "$N" -gt 0 ]; then
-    TECH=yes
-    REASON="$N feat/fix commits since $LAST_TAG"
-  else
-    TECH=no
-    REASON="no feat/fix commits since $LAST_TAG"
-  fi
+  echo "Commits since $LAST_TAG:"
+  git log --oneline "$LAST_TAG"..HEAD
+  echo "Changed paths since $LAST_TAG:"
+  git diff --name-status "$LAST_TAG"..HEAD
 fi
-echo "TECH=$TECH REASON=$REASON"
 ```
+
+Do not decide technical impact from commit prefixes alone. Inspect the
+actual diffs for every `feat:` and `fix:` commit and any other
+package-facing changes. Set `TECH=yes` only when package runtime
+behavior, public API, supported configuration, or user-facing
+integration examples changed. Test-only changes, import cleanup,
+formatting, CI changes, and documentation-only corrections do not
+by themselves make `TECH=yes`. Record the relevant commits and
+the evidence for the classification. If there is no previous tag,
+inspect the complete diff and default to asking rather than silently
+assuming that all articles need content changes.
 
 #### 5b. If TECH=yes: STOP and ask
 
@@ -260,6 +277,19 @@ git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 
 If exit != 0: STOP. Do not create GitHub release.
 
+Verify that the annotated tag object was pushed to the remote:
+
+```bash
+LOCAL_TAG_SHA=$(git rev-parse "refs/tags/v$NEW_VERSION")
+REMOTE_TAG_SHA=$(git ls-remote origin "refs/tags/v$NEW_VERSION" | awk '{print $1}')
+echo "LOCAL_TAG_SHA=$LOCAL_TAG_SHA REMOTE_TAG_SHA=$REMOTE_TAG_SHA"
+[ -n "$REMOTE_TAG_SHA" ] && [ "$LOCAL_TAG_SHA" = "$REMOTE_TAG_SHA" ] || {
+  echo "Tag push verification failed"; exit 1;
+}
+```
+
+Do not proceed if the remote tag is absent or its SHA differs.
+
 ### 10. Install `gh` if missing (best-effort)
 
 ```bash
@@ -309,9 +339,9 @@ Tag push triggers `.github/workflows/publish.yml` (trigger:
 ```bash
 for i in $(seq 1 6); do
   sleep 30
-  V=$(curl -s https://pypi.org/pypi/django-api-versioning/json \
-    | python3 -c "import sys,json;print(json.load(sys.stdin)['info']['version'])")
-  echo "attempt $i: PyPI shows $V"
+  V=$(curl -fsS "https://pypi.org/pypi/django-api-versioning/$NEW_VERSION/json" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['info']['version'])") || V=""
+  echo "attempt $i: PyPI release endpoint shows ${V:-not available}"
   [ "$V" = "$NEW_VERSION" ] && break
 done
 ```
@@ -320,8 +350,10 @@ If after 3 minutes PyPI does not show `$NEW_VERSION`, report:
 
     https://github.com/mojtaba-arvin/django-api-versioning/actions
 
-Do NOT claim publication success unless the curl output shows
-`$NEW_VERSION`.
+Do NOT claim publication success unless the version-specific PyPI
+endpoint returns `$NEW_VERSION`. Checking only the package's
+latest-version endpoint is insufficient because a later release
+could already have become the latest.
 
 ### 13. Report
 
