@@ -117,8 +117,9 @@ def error_info(exc: BaseException) -> dict:
 
 def callback_info(callback) -> dict:
     view_class = getattr(callback, "view_class", None) or getattr(callback, "cls", None)
+    callback_name = getattr(callback, "__name__", None) or type(callback).__name__
     return {
-        "callback": getattr(callback, "__name__", repr(callback)),
+        "callback": callback_name,
         "view_class": view_class.__name__ if view_class else None,
         "actions": getattr(callback, "actions", None),
     }
