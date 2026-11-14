@@ -14,7 +14,7 @@ Continue on `audit/comprehensive-package-review`. This is a final review of an e
 
 ### Framework security exception
 
-The original brief requested Astro 6. The Astro 6.4.8 baseline is no longer acceptable for a release candidate: current advisories include critical issues fixed only in later Astro 7 releases. The branch therefore intentionally targets Astro 7.4.12, with patched `esbuild` 0.28.1 and `sharp` 0.35.5 overrides. Do not downgrade to Astro 6 merely to match the original version line; any framework-major change must be justified by current security advisories and verified by the full website workflow.
+The original brief requested Astro 6. The Astro 6.4.8 baseline is no longer acceptable for a release candidate: current advisories include critical issues fixed only in later Astro 7 releases. The branch therefore intentionally targets Astro 7.4.12. Its locked dependency tree resolves the patched `sharp` 0.35.5 release; no forced dependency overrides are needed. Do not downgrade to Astro 6 merely to match the original version line; any framework-major change must be justified by current security advisories and verified by the full website workflow.
 
 
 Use this file together with the repository-root `AGENTS.md` and `architecture.md`.
