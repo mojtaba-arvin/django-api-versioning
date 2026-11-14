@@ -137,29 +137,30 @@ class UrlRegistry:
                 import inspect
 
                 sig = inspect.signature(view.as_view)
-                # If as_view has an 'actions' parameter, it's likely a ViewSet
-                if "actions" in sig.parameters:
-                    actions_param = sig.parameters["actions"]
-                    # If 'actions' has no default, it's required (ViewSet behavior)
-                    if actions_param.default == inspect.Parameter.empty:
-                        raise TypeError(
-                            f"ViewSet '{view.__name__}' cannot be registered directly. "
-                            f"Pass a configured callable like: "
-                            f"{view.__name__}.as_view({{'get': 'list', 'post': 'create'}})"
-                        )
-            except Exception:
-                # If inspection fails, try calling as_view() anyway
-                # to get the original error message if it is indeed a problem
-                pass
+            except (TypeError, ValueError):
+                # Some extension-backed callables do not expose a signature.
+                # Calling as_view() below remains the authoritative check.
+                sig = None
+
+            if sig is not None and "actions" in sig.parameters:
+                actions_param = sig.parameters["actions"]
+                if actions_param.default is inspect.Parameter.empty:
+                    raise TypeError(
+                        f"ViewSet '{view.__name__}' cannot be registered directly. "
+                        f"Pass a configured callable like: "
+                        f"{view.__name__}.as_view({{'get': 'list', 'post': 'create'}})"
+                    )
 
             try:
                 view = view.as_view()
             except TypeError as e:
-                # Re-raise with better context if it's an actions-related error
+                # DRF ViewSetMixin exposes actions=None but rejects a missing map
+                # when called. Preserve that runtime signal and add class context.
                 if "actions" in str(e):
                     raise TypeError(
-                        "ViewSet requires action configuration. "
-                        "Use view.as_view({'get': 'list', ...}) with appropriate HTTP methods."
+                        f"ViewSet '{view.__name__}' cannot be registered directly. "
+                        f"Pass a configured callable like: "
+                        f"{view.__name__}.as_view({{'get': 'list', 'post': 'create'}})"
                     ) from e
                 raise
         return path(route, view, name=name)
