@@ -152,6 +152,15 @@ class TestVersionExtraction:
         version = _extract_version(request)
         assert version == 3
 
+    def test_extract_version_accepts_integer_request_version(self):
+        """Integer request.version values are accepted without coercion."""
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/unrelated/")
+        request.version = 3
+
+        assert _extract_version(request) == 3
+
     def test_extract_version_prefers_resolver_match_kwargs(self):
         """Version extraction prefers resolver_match.kwargs["version"] over path."""
         from unittest.mock import Mock
