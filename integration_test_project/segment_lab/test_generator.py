@@ -11,6 +11,8 @@ try:
 except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib
 
+from segment_lab.probe import callback_info
+
 from segment_lab.generate_routes import (
     PACKAGE_DIR,
     SCENARIOS,
@@ -128,3 +130,18 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
 
     assert scenarios["drf_viewset_class"]["urlconf_import"]["ok"] is False
     assert scenarios["order_reversed"]["matrix_equal_to"]["equal"] is True
+
+
+
+def test_callback_info_uses_stable_names_for_callable_instances() -> None:
+    class CallableView:
+        def __call__(self, request):
+            return None
+
+    result = callback_info(CallableView())
+
+    assert result == {
+        "callback": "CallableView",
+        "view_class": None,
+        "actions": None,
+    }
