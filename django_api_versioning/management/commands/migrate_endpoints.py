@@ -61,7 +61,7 @@ def _normalize_argument_spacing(args: str) -> str:
             result.append(char)
             if escaped:
                 escaped = False
-            elif char == "\\\\":
+            elif char == "\\":
                 escaped = True
             elif char == quote:
                 quote = None
