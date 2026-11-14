@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { resolveStaticFile } from "../scripts/serve-dist.mjs";
+import { resolveStaticFile } from "../src/lib/static-path.mjs";
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), "dav-static-"));

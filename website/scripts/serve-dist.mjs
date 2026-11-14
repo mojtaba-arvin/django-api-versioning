@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /** Serve the generated static artifact, including clean URLs and project-site bases. */
 import { createReadStream } from "node:fs";
-import { realpath, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeBasePath, resolveStaticFile } from "../src/lib/static-path.mjs";
 
 const websiteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.resolve(process.env.DIST_DIR ?? path.join(websiteRoot, "dist"));
@@ -24,73 +25,30 @@ const types = {
   ".xml": "application/xml; charset=utf-8",
 };
 
-function normalizeBasePath(value = "/") {
-  const parts = value.split("/").filter(Boolean);
-  return parts.length ? `/${parts.join("/")}` : "";
-}
-
-/** Resolve a request path to a regular file contained by the static output root. */
-export async function resolveStaticFile(rootDirectory, pathname, configuredBasePath = "/") {
-  let decoded;
-  try { decoded = decodeURIComponent(pathname); } catch { return null; }
-  if (decoded.includes("\\") || decoded.includes("\0")) return null;
-
-  const rootDirectoryPath = path.resolve(rootDirectory);
-  const basePrefix = normalizeBasePath(configuredBasePath);
-  if (basePrefix) {
-    if (decoded === basePrefix) decoded = "/";
-    else if (decoded.startsWith(basePrefix + "/")) decoded = decoded.slice(basePrefix.length);
-    else return null;
-  }
-
-  const relative = decoded.replace(/^\/+/, "");
-  const candidate = path.resolve(rootDirectoryPath, relative);
-  if (candidate !== rootDirectoryPath && !candidate.startsWith(rootDirectoryPath + path.sep)) return null;
-
-  let file = candidate;
-  try {
-    const candidateInfo = await stat(file);
-    if (candidateInfo.isDirectory()) file = path.join(file, "index.html");
-  } catch {
-    if (!path.extname(file)) file = path.join(file, "index.html");
-  }
-
-  try {
-    const [fileInfo, realRoot, realFile] = await Promise.all([
-      stat(file),
-      realpath(rootDirectoryPath),
-      realpath(file),
-    ]);
-    if (!fileInfo.isFile()) return null;
-    if (realFile !== realRoot && !realFile.startsWith(realRoot + path.sep)) return null;
-    return realFile;
-  } catch {
-    return null;
-  }
-}
-
-const server = createServer(async (request, response) => {
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    response.writeHead(405, { Allow: "GET, HEAD" }).end();
-    return;
-  }
-  const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
-  const file = await resolveStaticFile(root, pathname, basePath);
-  if (!file) {
-    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Not found\n");
-    return;
-  }
-  const info = await stat(file);
-  response.writeHead(200, {
-    "Content-Type": types[path.extname(file)] ?? "application/octet-stream",
-    "Content-Length": info.size,
-    "X-Content-Type-Options": "nosniff",
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const server = createServer(async (request, response) => {
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      response.writeHead(405, { Allow: "GET, HEAD" }).end();
+      return;
+    }
+    const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+    const file = await resolveStaticFile(root, pathname, basePath);
+    if (!file) {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Not found\\n");
+      return;
+    }
+    const info = await stat(file);
+    response.writeHead(200, {
+      "Content-Type": types[path.extname(file)] ?? "application/octet-stream",
+      "Content-Length": info.size,
+      "X-Content-Type-Options": "nosniff",
+    });
+    if (request.method === "HEAD") response.end();
+    else createReadStream(file).pipe(response);
   });
-  if (request.method === "HEAD") response.end();
-  else createReadStream(file).pipe(response);
-});
 
-server.listen(port, host, () => {
-  const mount = normalizeBasePath(basePath);
-  console.log(`Serving ${root} at http://${host}:${port}${mount}/`);
-});
+  server.listen(port, host, () => {
+    const mount = normalizeBasePath(basePath);
+    console.log(`Serving ${root} at http://${host}:${port}${mount}/`);
+  });
+}
