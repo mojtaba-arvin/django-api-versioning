@@ -65,11 +65,13 @@ All 25 files are being reviewed against the canonical front matter and the packa
 | 010 | Author LinkedIn URL contains a spelling error in the profile slug |
 | 014 | Description is 167 characters |
 | 019 | Description is 165 characters |
-| 024 | Description is 167 characters |
+| 024 | Resolved 2026-11-15: corrected description length, replaced obsolete Docker-based CI description with the native GitHub Actions workflow, and updated recorded test counts/coverage to the verified v0.3.7 checkpoint |
 
 Canonical front matter requires valid YAML; a slug beginning with the article ID and followed by a lowercase hyphenated suffix (maximum 100 characters); a title matching the H1 (maximum 70); one accurate description (maximum 160); author Mojtaba Arvin with the plain LinkedIn URL; and 2–5 relevant keywords of at most 40 characters each.
 
 The full review must also verify package-first positioning, exactly one appropriate package CTA where required, author relationship disclosure, code/import/URL correctness, inheritance and routing semantics, DRF boundaries, lifecycle/deprecation claims, reverse behavior, canonical links, and cross-article consistency. Preserve the established positive patterns and do not approve a later article while an earlier blocking/process gate remains unresolved.
+
+**Targeted review completed — article 024:** On 2026-11-15, the article's metadata and compatibility/CI explanation were reconciled with the current branch's `.github/workflows/tests.yml`, `.github/workflows/compatibility.yml`, `tox.ini`, `pyproject.toml`, and `COMPATIBILITY_REPORT.md`. The obsolete Docker-based GitHub Actions description and historical 175/245 test counts were replaced with the observed native-runner workflow and the 211-unit/249-integration, 96%-coverage checkpoint at `9b09d66c931f6e99687664da7442ddf9198595cb`. This is a targeted correction, not a claim that article 024 has passed the complete A–MM review or that the website checks were rerun for this edit.
 
 ## 5. Delivery phases and acceptance gates
 
