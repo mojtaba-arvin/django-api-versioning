@@ -40,6 +40,10 @@ class TestBasePathValidation:
         with pytest.raises(VersioningError):
             APISettings(API_BASE_PATH=123)
 
+    def test_leading_slash_is_rejected(self):
+        with pytest.raises(VersioningError, match="must not start with"):
+            APISettings(API_BASE_PATH="/api/v{version}/")
+
     def test_adds_trailing_slash(self):
         s = APISettings(API_BASE_PATH="api/v{version}")
         assert s.API_BASE_PATH == "api/v{version}/"
