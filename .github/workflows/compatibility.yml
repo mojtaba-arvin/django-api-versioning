@@ -4,6 +4,7 @@ on:
   # Expensive cross-version validation is an explicit release/review checkpoint.
   # Keep it manual to avoid running the matrix on every synchronization commit.
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
