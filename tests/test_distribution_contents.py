@@ -57,6 +57,7 @@ def test_wheel_rejects_repository_only_assets(
         wheel,
         [
             "django_api_versioning/__init__.py",
+            "django_api_versioning/py.typed",
             "django_api_versioning-0.3.7.dist-info/METADATA",
             forbidden_path,
         ],
@@ -66,7 +67,39 @@ def test_wheel_rejects_repository_only_assets(
         check_wheel(wheel)
 
 
+def test_wheel_requires_pep561_marker(tmp_path: Path) -> None:
+    wheel = tmp_path / "django_api_versioning-0.3.7-py3-none-any.whl"
+    _write_wheel(
+        wheel,
+        [
+            "django_api_versioning/__init__.py",
+            "django_api_versioning-0.3.7.dist-info/METADATA",
+        ],
+    )
+
+    with pytest.raises(SystemExit, match="PEP 561 marker"):
+        check_wheel(wheel)
+
+
 def test_sdist_accepts_required_source_files(tmp_path: Path) -> None:
+    sdist = tmp_path / "django_api_versioning-0.3.7.tar.gz"
+    root = "django-api-versioning-0.3.7"
+    _write_sdist(
+        sdist,
+        [
+            f"{root}/django_api_versioning/__init__.py",
+            f"{root}/django_api_versioning/py.typed",
+            f"{root}/README.md",
+            f"{root}/LICENSE",
+            f"{root}/pyproject.toml",
+            f"{root}/MANIFEST.in",
+        ],
+    )
+
+    check_sdist(sdist)
+
+
+def test_sdist_requires_pep561_marker(tmp_path: Path) -> None:
     sdist = tmp_path / "django_api_versioning-0.3.7.tar.gz"
     root = "django-api-versioning-0.3.7"
     _write_sdist(
@@ -80,7 +113,8 @@ def test_sdist_accepts_required_source_files(tmp_path: Path) -> None:
         ],
     )
 
-    check_sdist(sdist)
+    with pytest.raises(SystemExit, match="PEP 561 marker"):
+        check_sdist(sdist)
 
 
 @pytest.mark.parametrize(
