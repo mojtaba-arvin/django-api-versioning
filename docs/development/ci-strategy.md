@@ -11,7 +11,7 @@ CI is a set of scoped quality gates, not a command that rebuilds every environme
 | `Python tests` | Package unit tests and the existing Django integration project | Package source, tests, integration project, Python runtime/test requirements, pytest configuration |
 | `Python package artifacts` | Wheel/sdist creation, Twine metadata validation, and forbidden-content checks | Package source plus every tracked sdist input |
 | `Compatibility matrix` | Full tox matrix: 15 Python/Django combinations plus lint | Manual `workflow_dispatch` checkpoint |
-| `Website build and static verification` | Locked npm install, dependency audit, Node tests, Astro checks, root and project-base builds, static-output smoke tests | PR review-start checkpoint and relevant pushes to `main`; manual checkpoints |
+| `Website build and static verification` | Locked npm install, dependency audit, Node tests, Astro checks, root and project-base builds, static-output smoke tests | Relevant pushes to `main` and `audit/comprehensive-package-review`, PR review-start checkpoint, and manual checkpoints |
 | `Generate source-pinned website evidence` | Segment Lab generation/check, source provenance, website tests, Astro checks, and both static builds | Package source, integration project, `pyproject.toml`, Python requirements, or evidence workflow |
 | `Generate website npm lockfile and verify the site` | Lockfile generation, `npm ci`, dependency audit, Node/Astro checks, and both static builds | `website/package.json` or lock workflow |
 
@@ -29,7 +29,7 @@ Documentation-only edits under `docs/website/`, root agent instructions, and oth
 - Concurrency groups cancel obsolete in-progress runs for the same branch/ref.
 - Python and website PR workflows run when review starts (`opened`, `reopened`, `ready_for_review`), not for every synchronization commit. Use explicit `workflow_dispatch` checkpoints after a meaningful batch.
 - These PR runs are review checkpoints, not a green status for every later commit SHA. Do not mark them as required merge checks unless a per-synchronization gate or final-SHA manual checkpoint is introduced.
-- Pushes to `main` remain automatic and path-filtered.
+- Pushes to `main` and the active `audit/comprehensive-package-review` branch remain automatic and path-filtered for relevant website/article changes.
 - The full compatibility matrix is manual-only; run it at deliberate compatibility/release checkpoints rather than on every commit.
 - The website preflight does not run on every documentation correction in a long-lived review branch. Its PR checkpoint validates the reviewed snapshot; the `main` push validates merged website/article changes.
 
