@@ -876,7 +876,11 @@ If you need `request.version` populated, consider implementing a custom DRF vers
 
 ### Configuration timing
 
-Package settings (`API_MAX_VERSION`, `API_BASE_PATH`, etc.) are validated and loaded at module import time. Using Django's `override_settings` after the package has been imported will NOT affect already-loaded configuration:
+Route-registry settings, such as `API_MAX_VERSION` and `API_BASE_PATH`, are loaded when the package modules and endpoint declarations are imported. Changing these settings with `override_settings` after endpoint registration does not rebuild the existing URL patterns.
+
+`LifecycleMiddleware` is different: it reads `API_VERSION_LIFECYCLE` and `API_BASE_PATH` from `django.conf.settings` at request time. This allows lifecycle behavior to respond to runtime setting overrides, but it does not make the already-registered URL patterns dynamic.
+
+Configure route-registry settings before importing modules containing `@endpoint` declarations:
 
 ```python
 # ✓ Correct: configure before importing views
@@ -972,8 +976,28 @@ pre-commit install
 
 ### Running tests
 
+Run the unit tests:
+
 ```bash
-pytest
+python -m pytest tests
+```
+
+Run the integration tests:
+
+```bash
+python -m pytest integration_test_project
+```
+
+Run the complete configured Python/Django test matrix:
+
+```bash
+python -m pip install tox
+tox
+```
+
+Run pre-commit checks:
+
+```bash
 pre-commit run --all-files
 ```
 
@@ -986,10 +1010,10 @@ and delegates execution to `entrypoint.sh`.
 # Build the Docker image
 docker build -t dapi .
 
-# Run the test suite
+# Run the default test command (unit tests)
 docker run --rm dapi
 
-# Run pre-commit checks followed by the test suite
+# Run pre-commit checks followed by the unit tests
 docker run --rm -e RUN_PRE_COMMIT=true dapi
 
 # Build and run with a specific Python version
@@ -1009,8 +1033,8 @@ docker run --rm dapi:py315
    ```
 
 Pushing a `v*` tag triggers GitHub Actions to build the package, validate
-the distribution with `twine check`, and publish it to PyPI using
-the `PYPI_API_TOKEN` repository secret.
+the distribution with `twine check --strict`, and publish it to PyPI
+using PyPI Trusted Publishing (GitHub Actions OIDC).
 
 ### Reporting issues
 
