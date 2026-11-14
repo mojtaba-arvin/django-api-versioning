@@ -96,6 +96,9 @@ def provenance() -> dict:
                 "pyproject.toml",
                 "pytest.ini",
                 "requirements-ci.txt",
+                "requirements.txt",
+                "scripts/verify_distribution_contents.py",
+                "scripts/smoke_installed_wheel.py",
                 "integration_test_project",
             ],
             cwd=REPO_ROOT,
@@ -126,6 +129,9 @@ def provenance() -> dict:
         REPO_ROOT / "pyproject.toml",
         REPO_ROOT / "pytest.ini",
         REPO_ROOT / "requirements-ci.txt",
+        REPO_ROOT / "requirements.txt",
+        REPO_ROOT / "scripts" / "verify_distribution_contents.py",
+        REPO_ROOT / "scripts" / "smoke_installed_wheel.py",
     ]
     evidence_inputs.extend(sorted((REPO_ROOT / "tests").rglob("*.py")))
     evidence_inputs.extend(INTEGRATION_ROOT.rglob("*.py"))
