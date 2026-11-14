@@ -6,7 +6,7 @@ Triggered by "release X.Y.Z". Do exactly this. No improvisation.
 - Working tree clean (`git status`).
 - On `audit/comprehensive-package-review`.
 - User has authorized a PyPI release for THIS version.
-- `docs/articles/` exists (25 user-authored articles).
+- `docs/articles/` exists; enumerate the current article files at execution time rather than assuming a fixed count.
 
 ## Environment
 - `DAV_GITHUB_TOKEN` set in the sandbox.
@@ -40,13 +40,22 @@ TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-On the user's local machine (tox already installed): `tox 2>&1 | tee /tmp/tox-release.log`
+On the user's local machine, first verify `tox` and the `tox-uv` plugin are available. Preserve the tox exit code when piping output:
+
+```bash
+set -o pipefail
+tox 2>&1 | tee /tmp/tox-release.log
+TOX_EXIT=${PIPESTATUS[0]}
+echo "TOX_EXIT=$TOX_EXIT"
+```
 
 If `/tmp/tox/bin/tox` does not exist, install first:
 
 ```bash
+uv python install 3.15
 uv venv /tmp/tox --python 3.15
-uv pip install --python /tmp/tox/bin/python tox
+uv pip install --python /tmp/tox/bin/python tox tox-uv
+grep -q 'tox-uv' tox.ini || { echo "tox.ini does not declare tox-uv"; exit 1; }
 ```
 
 If `TOX_EXIT` is non-zero, STOP. Parse `/tmp/tox-release.log` for
@@ -121,8 +130,8 @@ Report:
 
 Ask exactly this:
 
-> "The release includes technical changes. These 25 articles
-> reference the package: <list>. I will update package version
+> "The release includes technical changes. These are the current article files
+> that reference the package: <list>. I will update package version
 > strings in all articles. If any article needs CONTENT updates
 > (examples, API, behavior), tell me which article and what to
 > change. Otherwise reply 'proceed' and I will only update
