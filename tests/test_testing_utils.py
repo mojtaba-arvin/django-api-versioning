@@ -83,7 +83,6 @@ class TestDiffFormatting:
         assert "<missing>" in diff
 
 
-
 def test_build_version_matrix_supports_callable_instances():
     class CallableView:
         def __call__(self, request):
