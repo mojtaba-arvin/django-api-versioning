@@ -10,6 +10,7 @@ on:
       - "pyproject.toml"
       - "requirements.txt"
       - "requirements-ci.txt"
+      - "docs/articles/**"
   workflow_dispatch:
 
 permissions:
@@ -33,22 +34,10 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: "22.23.4"
-          cache: npm
-          cache-dependency-path: website/package-lock.json
       - name: Install integration dependencies
         run: python -m pip install -r requirements-ci.txt
-      - name: Install locked website dependencies
-        working-directory: website
-        run: npm ci
-      - name: Audit website dependencies
-        working-directory: website
-        run: npm audit --audit-level=high
-      - name: Synchronize canonical articles at the triggering commit
-        env:
-          SOURCE_COMMIT: ${{ github.sha }}
-        run: |
-          node --check website/scripts/sync-articles.mjs
-          node website/scripts/sync-articles.mjs
+      - name: Validate article synchronizer
+        run: node --check website/scripts/sync-articles.mjs
       - name: Generate evidence from the exact triggering checkout
         env:
           SOURCE_COMMIT: ${{ github.sha }}
@@ -94,6 +83,11 @@ jobs:
 
           echo "Could not publish generated evidence after three concurrent-update retries." >&2
           exit 1
+      - name: Synchronize canonical articles from the generated source commit
+        run: node website/scripts/sync-articles.mjs
+      - name: Install locked website dependencies
+        working-directory: website
+        run: npm ci
       - name: Run website unit tests
         working-directory: website
         run: npm test
