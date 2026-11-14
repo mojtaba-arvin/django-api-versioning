@@ -4,6 +4,7 @@
 lab/urls.py places ``urlpatterns_before_registry`` in front of the
 package's generated patterns.
 """
+
 from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework import viewsets

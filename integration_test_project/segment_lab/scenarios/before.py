@@ -3,6 +3,7 @@
 
 API_MIN_VERSION = 1, API_MAX_VERSION = 2.
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

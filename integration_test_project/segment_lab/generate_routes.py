@@ -15,6 +15,7 @@ Nothing in the output is typed by hand: every behavioural value comes from
 the repository package source (registry, management command, test client,
 api_reverse), and source references are parsed from that same checkout.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,6 +28,7 @@ import re
 import subprocess
 import sys
 import tempfile
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10
@@ -46,7 +48,9 @@ PACKAGE = "django-api-versioning"
 
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(INTEGRATION_ROOT))
-from segment_lab.scenario_catalog import SCENARIOS  # noqa: E402  (plain dict, no Django import)
+from segment_lab.scenario_catalog import (
+    SCENARIOS,
+)  # noqa: E402  (plain dict, no Django import)
 
 
 # --------------------------------------------------------------------------
@@ -65,7 +69,9 @@ def provenance() -> dict:
     checkout_commit = head.stdout.strip() if head.returncode == 0 else None
 
     if supplied_commit and not re.fullmatch(r"[0-9a-f]{40}", supplied_commit):
-        raise SystemExit(f"SOURCE_COMMIT must be a full Git SHA, got {supplied_commit!r}.")
+        raise SystemExit(
+            f"SOURCE_COMMIT must be a full Git SHA, got {supplied_commit!r}."
+        )
     if supplied_commit and checkout_commit and supplied_commit != checkout_commit:
         raise SystemExit(
             f"SOURCE_COMMIT {supplied_commit} does not match checkout HEAD {checkout_commit}."
@@ -154,14 +160,23 @@ SYMBOLS = {
     "UrlRegistry.get_version_matrix": ("registry.py", "UrlRegistry.get_version_matrix"),
     "UrlRegistry._find_route_index": ("registry.py", "UrlRegistry._find_route_index"),
     "api_reverse": ("reverse.py", "api_reverse"),
-    "check_versions.handle": ("management/commands/check_versions.py", "Command.handle"),
-    "check_versions._warn_gaps": ("management/commands/check_versions.py", "Command._warn_gaps"),
+    "check_versions.handle": (
+        "management/commands/check_versions.py",
+        "Command.handle",
+    ),
+    "check_versions._warn_gaps": (
+        "management/commands/check_versions.py",
+        "Command._warn_gaps",
+    ),
     "LifecycleMiddleware.__call__": ("lifecycle.py", "LifecycleMiddleware.__call__"),
     "_extract_version_from_path": ("lifecycle.py", "_extract_version_from_path"),
     "_parse_sunset": ("lifecycle.py", "_parse_sunset"),
     "build_version_matrix": ("testing.py", "build_version_matrix"),
     "assert_version_matrix": ("testing.py", "assert_version_matrix"),
-    "APISettings.from_django_settings": ("settings.py", "APISettings.from_django_settings"),
+    "APISettings.from_django_settings": (
+        "settings.py",
+        "APISettings.from_django_settings",
+    ),
     "extract_version (channels)": ("channels.py", "extract_version"),
 }
 
@@ -173,16 +188,34 @@ LINES = {
     "below_min_return": ("decorators.py", "return view"),
     "below_min_warning": ("decorators.py", '"No routes will be registered."'),
     "newer_wins": ("registry.py", "return source_version >= existing_version"),
-    "none_wins": ("registry.py", "if existing_version is None or source_version is None:"),
+    "none_wins": (
+        "registry.py",
+        "if existing_version is None or source_version is None:",
+    ),
     "as_view_call": ("registry.py", "view = view.as_view()"),
     "instance_check": ("registry.py", "if isinstance(view, View):"),
     "route_string": ("decorators.py", 'route = f"{base_path}{app_name_part}{postfix}"'),
-    "api_settings_singleton": ("settings.py", "api_settings = APISettings.from_django_settings()"),
-    "settings_read_in_decorator": ("decorators.py", "max_version: int = settings.API_MAX_VERSION"),
-    "registry_urlpatterns": ("urls.py", "urlpatterns: list[URLPattern] = registry.urlpatterns"),
+    "api_settings_singleton": (
+        "settings.py",
+        "api_settings = APISettings.from_django_settings()",
+    ),
+    "settings_read_in_decorator": (
+        "decorators.py",
+        "max_version: int = settings.API_MAX_VERSION",
+    ),
+    "registry_urlpatterns": (
+        "urls.py",
+        "urlpatterns: list[URLPattern] = registry.urlpatterns",
+    ),
     "matrix_key": ("registry.py", "route = str(pattern.pattern)"),
-    "gap_warning": ("management/commands/check_versions.py", 'f"  [{endpoint}] v{v} is not defined."'),
-    "callback_name": ("management/commands/check_versions.py", "callback_name = self._get_callback_name(versions[version])"),
+    "gap_warning": (
+        "management/commands/check_versions.py",
+        'f"  [{endpoint}] v{v} is not defined."',
+    ),
+    "callback_name": (
+        "management/commands/check_versions.py",
+        "callback_name = self._get_callback_name(versions[version])",
+    ),
     "sunset_410": ("lifecycle.py", "if sunset_date and _is_past(sunset_date):"),
     "deprecated_header": ("lifecycle.py", 'if meta.get("status") == "deprecated":'),
     "reverse_ambiguous": ("reverse.py", "if version is None and len(matches) > 1:"),
@@ -223,7 +256,11 @@ def source_refs(package_dir: Path) -> dict:
     for key, (rel, dotted) in SYMBOLS.items():
         tree, _ = load(rel)
         start, end = _symbol_lines(tree, dotted)
-        refs["symbols"][key] = {"file": f"django_api_versioning/{rel}", "start": start, "end": end}
+        refs["symbols"][key] = {
+            "file": f"django_api_versioning/{rel}",
+            "start": start,
+            "end": end,
+        }
     for key, (rel, needle) in LINES.items():
         _, lines = load(rel)
         hits = [i + 1 for i, line in enumerate(lines) if needle in line]
@@ -236,7 +273,11 @@ def source_refs(package_dir: Path) -> dict:
         }
 
     # Where are the two non-routing settings referenced? (AST, whole package)
-    usage: dict[str, list] = {"API_VERSIONING_CHANNELS": [], "API_EFFECTIVE_VERSION_RESOLVER": [], "channels_module_imported_by": []}
+    usage: dict[str, list] = {
+        "API_VERSIONING_CHANNELS": [],
+        "API_EFFECTIVE_VERSION_RESOLVER": [],
+        "channels_module_imported_by": [],
+    }
     for path in sorted(package_dir.rglob("*.py")):
         rel = path.relative_to(package_dir.parent).as_posix()
         text = path.read_text()
@@ -250,15 +291,32 @@ def source_refs(package_dir: Path) -> dict:
             elif isinstance(node, ast.Constant) and isinstance(node.value, str):
                 names.append(node.value)
             for name in names:
-                if name in ("API_VERSIONING_CHANNELS", "API_EFFECTIVE_VERSION_RESOLVER"):
+                if name in (
+                    "API_VERSIONING_CHANNELS",
+                    "API_EFFECTIVE_VERSION_RESOLVER",
+                ):
                     usage[name].append({"file": rel, "line": node.lineno})
-            if isinstance(node, ast.ImportFrom) and node.module and node.module.endswith("channels"):
-                usage["channels_module_imported_by"].append({"file": rel, "line": node.lineno})
-            if isinstance(node, ast.Import) and any(a.name.endswith(".channels") for a in node.names):
-                usage["channels_module_imported_by"].append({"file": rel, "line": node.lineno})
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and node.module.endswith("channels")
+            ):
+                usage["channels_module_imported_by"].append(
+                    {"file": rel, "line": node.lineno}
+                )
+            if isinstance(node, ast.Import) and any(
+                a.name.endswith(".channels") for a in node.names
+            ):
+                usage["channels_module_imported_by"].append(
+                    {"file": rel, "line": node.lineno}
+                )
     for key in usage:
         seen = set()
-        usage[key] = [u for u in usage[key] if not ((u["file"], u["line"]) in seen or seen.add((u["file"], u["line"])))]
+        usage[key] = [
+            u
+            for u in usage[key]
+            if not ((u["file"], u["line"]) in seen or seen.add((u["file"], u["line"])))
+        ]
     refs["non_routing_settings_usage"] = usage
     return refs
 
@@ -295,7 +353,12 @@ def _sanitize(text: str) -> str:
 def run_check_versions(scenario: str, extra: list[str]) -> dict:
     cmd = [sys.executable, "manage.py", "check_versions", *extra]
     proc = subprocess.run(
-        cmd, cwd=INTEGRATION_ROOT, env=_env(scenario), capture_output=True, text=True, timeout=120
+        cmd,
+        cwd=INTEGRATION_ROOT,
+        env=_env(scenario),
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
     stderr = _sanitize(proc.stderr)
     stderr_lines = stderr.strip().splitlines()
@@ -331,7 +394,9 @@ def logical_matrix(registry: list[dict]) -> dict:
     """{postfix: {version|"unversioned": callback}} derived from registry rows."""
     matrix: dict = {}
     for row in registry:
-        key = "unversioned" if row["route_version"] is None else str(row["route_version"])
+        key = (
+            "unversioned" if row["route_version"] is None else str(row["route_version"])
+        )
         label = row["view_class"] or row["callback"]
         matrix.setdefault(row["postfix"], {})[key] = {
             "callback": label,
@@ -374,8 +439,14 @@ def build() -> tuple[dict, str]:
         "source": prov,
         "environment": environment(),
         "source_refs": source_refs(package_dir),
-        "lab_settings_file": {"file": "integration_test_project/segment_lab/settings.py", "code": (LAB_DIR / "settings.py").read_text()},
-        "lab_urls_file": {"file": "integration_test_project/segment_lab/urls.py", "code": (LAB_DIR / "urls.py").read_text()},
+        "lab_settings_file": {
+            "file": "integration_test_project/segment_lab/settings.py",
+            "code": (LAB_DIR / "settings.py").read_text(),
+        },
+        "lab_urls_file": {
+            "file": "integration_test_project/segment_lab/urls.py",
+            "code": (LAB_DIR / "urls.py").read_text(),
+        },
         "scenarios": {},
     }
     main_stdout = ""
@@ -392,7 +463,9 @@ def build() -> tuple[dict, str]:
             "question": spec["question"],
             "views_module": spec["views"],
             "views_source": read_views_source(spec["views"]),
-            "settings_overrides": json.loads(json.dumps(spec["settings"], default=repr)),
+            "settings_overrides": json.loads(
+                json.dumps(spec["settings"], default=repr)
+            ),
             "matrix": logical_matrix(probe["registry"]),
             "check_versions": cv,
             **probe,
@@ -413,8 +486,12 @@ def _strip_volatile(data: dict) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--check", action="store_true", help="exit 1 if outputs are stale")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="exit 1 if outputs are stale"
+    )
     args = parser.parse_args()
 
     data, main_stdout = build()
@@ -422,7 +499,10 @@ def main() -> None:
     if args.check:
         current = json.loads(ROUTES_JSON.read_text()) if ROUTES_JSON.exists() else {}
         stale = _strip_volatile(current) != _strip_volatile(json.loads(text))
-        stale |= not CHECK_VERSIONS_TXT.exists() or CHECK_VERSIONS_TXT.read_text() != main_stdout
+        stale |= (
+            not CHECK_VERSIONS_TXT.exists()
+            or CHECK_VERSIONS_TXT.read_text() != main_stdout
+        )
         print("stale" if stale else "up to date")
         raise SystemExit(1 if stale else 0)
 

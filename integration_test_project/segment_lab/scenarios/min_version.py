@@ -2,6 +2,7 @@
 "min_version": API_MIN_VERSION is raised to 2 (API_MAX_VERSION = 3) while
 declarations that start at v1 are still in the code.
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

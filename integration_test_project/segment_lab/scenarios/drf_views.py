@@ -4,6 +4,7 @@
 The same module is imported under three REST_FRAMEWORK configurations
 (see lab/scenarios.py). Every view reports what DRF sees at request time.
 """
+
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response

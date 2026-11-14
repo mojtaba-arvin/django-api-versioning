@@ -3,6 +3,7 @@ Main scenario: the /users/ contract changes in v3.
 
 API_MIN_VERSION = 1, API_MAX_VERSION = 3 (lab/settings.py).
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

@@ -2,6 +2,7 @@
 "order_reversed": the same declarations as catalog/views.py, but the v3
 declaration is imported BEFORE the v1 declaration.
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

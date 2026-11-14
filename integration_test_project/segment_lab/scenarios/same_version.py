@@ -2,6 +2,7 @@
 "same_version": two different views declare the same route with the same
 starting version.
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

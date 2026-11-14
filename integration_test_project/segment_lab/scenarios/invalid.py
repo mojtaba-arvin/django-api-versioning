@@ -5,6 +5,7 @@ Each case runs in its own try/except so one module import can record all of
 them; without the try/except, the first error aborts the import (and with
 it the whole URLconf). API_MIN_VERSION = 1, API_MAX_VERSION = 3.
 """
+
 from django.http import JsonResponse
 from django.test import override_settings
 from django.views import View

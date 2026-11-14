@@ -2,6 +2,7 @@
 "lifecycle": LifecycleMiddleware enabled (see lab/scenarios.py for
 API_VERSION_LIFECYCLE). The routes themselves are ordinary @endpoint routes.
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

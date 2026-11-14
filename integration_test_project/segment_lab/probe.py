@@ -8,6 +8,7 @@ Usage (normally invoked by generate_routes.py):
 Runs in its own interpreter because the package keeps a process-global
 registry and reads its settings once, at import time.
 """
+
 import json
 import logging
 import os
@@ -212,7 +213,7 @@ def run(out_path: str) -> None:
             {
                 "index": index,
                 "route": route,
-                "postfix": route[len(prefix):] if route.startswith(prefix) else route,
+                "postfix": route[len(prefix) :] if route.startswith(prefix) else route,
                 "name": pattern.name,
                 "route_version": route_version,
                 "source_version": source_version,
@@ -249,7 +250,10 @@ def run(out_path: str) -> None:
                 }
             except Resolver404 as exc:
                 tried = exc.args[0].get("tried", []) if exc.args else []
-                record["resolve"] = {"error": "Resolver404", "patterns_tried": len(tried)}
+                record["resolve"] = {
+                    "error": "Resolver404",
+                    "patterns_tried": len(tried),
+                }
             with tracer.trace():
                 response = client.get(path)
             record["status"] = response.status_code
@@ -264,13 +268,17 @@ def run(out_path: str) -> None:
             except ValueError:
                 title = re.search(r"<title>(.*?)</title>", body, re.S)
                 record["body"] = (
-                    {"html_title": " ".join(title.group(1).split())}
-                    if title
-                    else body[:300]
-                ) if not body.lstrip().startswith("<") else (
-                    "<html: Django debug 404 page>"
-                    if response.status_code == 404
-                    else "<html>"
+                    (
+                        {"html_title": " ".join(title.group(1).split())}
+                        if title
+                        else body[:300]
+                    )
+                    if not body.lstrip().startswith("<")
+                    else (
+                        "<html: Django debug 404 page>"
+                        if response.status_code == 404
+                        else "<html>"
+                    )
                 )
             record["package_calls"] = tracer.snapshot()
             requests.append(record)
@@ -281,9 +289,11 @@ def run(out_path: str) -> None:
     for kind, name, kwargs in scenario.get("reverse", []):
         kw = dict(kwargs)
         if kind == "api_reverse":
-            call = f"api_reverse({name!r}" + "".join(
-                f", {k}={v!r}" for k, v in kw.items()
-            ) + ")"
+            call = (
+                f"api_reverse({name!r}"
+                + "".join(f", {k}={v!r}" for k, v in kw.items())
+                + ")"
+            )
             func = lambda: api_reverse(name, **kw)  # noqa: E731
         else:
             call = f"django.urls.reverse({name!r})"
@@ -292,7 +302,11 @@ def run(out_path: str) -> None:
             reverses.append({"call": call, "result": func(), "error": None})
         except Exception as exc:  # noqa: BLE001
             reverses.append(
-                {"call": call, "result": None, "error": {"type": type(exc).__name__, "message": str(exc)}}
+                {
+                    "call": call,
+                    "result": None,
+                    "error": {"type": type(exc).__name__, "message": str(exc)},
+                }
             )
     result["reverse"] = reverses
 
@@ -304,7 +318,9 @@ def run(out_path: str) -> None:
         ]
 
     result["logs"] = log_handler.records
-    Path(out_path).write_text(json.dumps(result, indent=2, sort_keys=True, default=repr))
+    Path(out_path).write_text(
+        json.dumps(result, indent=2, sort_keys=True, default=repr)
+    )
 
 
 if __name__ == "__main__":

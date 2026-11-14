@@ -8,6 +8,7 @@ its settings once at import), so scenarios cannot leak into each other.
 
 Select a scenario manually with:  LAB_SCENARIO=<name> python manage.py ...
 """
+
 import os
 
 LIFECYCLE = {

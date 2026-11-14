@@ -1,6 +1,7 @@
 """
 "drf_viewset_class": @endpoint applied directly to a ViewSet class.
 """
+
 from rest_framework import viewsets
 from rest_framework.response import Response
 

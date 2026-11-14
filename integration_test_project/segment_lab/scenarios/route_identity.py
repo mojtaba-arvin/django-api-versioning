@@ -2,6 +2,7 @@
 "route_identity": routes that a human reads as "the same endpoint" but that
 are different strings.
 """
+
 from django.http import JsonResponse
 
 from django_api_versioning import endpoint

@@ -5,6 +5,7 @@ Root URLconf.
 contains the decorated views, so that module is imported here, before the
 package's generated patterns are included.
 """
+
 from importlib import import_module
 
 from django.conf import settings

@@ -4,6 +4,7 @@ Scenario settings layered on the repository's existing integration project.
 Every scenario runs in a fresh interpreter because the package registry and
 API settings are process-global and initialized during imports.
 """
+
 from pathlib import Path
 
 from project import settings as project_settings

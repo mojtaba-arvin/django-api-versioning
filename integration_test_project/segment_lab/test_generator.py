@@ -4,13 +4,20 @@ import hashlib
 import importlib.util
 import os
 import subprocess
+
 try:
     import tomllib
 except ModuleNotFoundError:  # Python 3.10
     import tomli as tomllib
 from pathlib import Path
 
-from segment_lab.generate_routes import PACKAGE_DIR, SCENARIOS, build, provenance, source_refs
+from segment_lab.generate_routes import (
+    PACKAGE_DIR,
+    SCENARIOS,
+    build,
+    provenance,
+    source_refs,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -82,9 +89,12 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
     scenarios = data["scenarios"]
 
     assert data["schema_version"] == 1
-    assert data["source"]["version"] == tomllib.loads(
-        (REPO_ROOT / "pyproject.toml").read_text()
-    )["project"]["version"]
+    assert (
+        data["source"]["version"]
+        == tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"][
+            "version"
+        ]
+    )
     assert len(scenarios) == len(SCENARIOS) == 18
     assert main_stdout.strip()
 

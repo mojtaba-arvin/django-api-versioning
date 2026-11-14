@@ -3,6 +3,7 @@
 
 Usage: python scripts/verify_distribution_contents.py [dist-directory]
 """
+
 from __future__ import annotations
 
 import sys
@@ -70,8 +71,12 @@ def check_sdist(path: Path) -> None:
         if not any(name.endswith("/" + filename) for name in names)
     ]
     if missing:
-        raise SystemExit(f"{path.name} is missing expected source files: {', '.join(missing)}")
-    print(f"PASS {path.name}: source package present; repository-only trees excluded ({len(names)} files)")
+        raise SystemExit(
+            f"{path.name} is missing expected source files: {', '.join(missing)}"
+        )
+    print(
+        f"PASS {path.name}: source package present; repository-only trees excluded ({len(names)} files)"
+    )
 
 
 def main() -> int:
