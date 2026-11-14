@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import { unified } from "@astrojs/markdown-remark";
 import { remarkArticleLinks } from "./src/lib/remark-article-links.mjs";
 import { rehypeHeadingAnchors } from "./src/lib/rehype-heading-anchors.mjs";
 
@@ -21,12 +22,14 @@ export default defineConfig({
   prefetch: false,
   devToolbar: { enabled: false },
   markdown: {
-    remarkPlugins: [remarkArticleLinks],
-    rehypePlugins: [rehypeHeadingAnchors],
-    shikiConfig: {
-      themes: { light: "github-light", dark: "github-dark" },
-      defaultColor: false,
-      wrap: false,
-    },
+    processor: unified({
+      remarkPlugins: [remarkArticleLinks],
+      rehypePlugins: [rehypeHeadingAnchors],
+      shikiConfig: {
+        themes: { light: "github-light", dark: "github-dark" },
+        defaultColor: false,
+        wrap: false,
+      },
+    }),
   },
 });
