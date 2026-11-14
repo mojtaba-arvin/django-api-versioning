@@ -13,10 +13,6 @@ venv/
 .DS_Store
 **/.DS_Store
 
-# Editor files
-.idea/
-.vscode/
-
 # Distribution / Packaging
 build/
 dist/
@@ -29,3 +25,10 @@ dist/
 .coverage
 .coverage.*
 .pytest_cache/
+
+# Documentation website (repository source is tracked; generated output is not)
+node_modules/
+website/node_modules/
+website/.astro/
+website/dist/
+website/.netlify/

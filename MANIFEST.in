@@ -4,6 +4,24 @@ include CHANGELOG.md
 include requirements.txt
 include requirements-dev.txt
 include pytest.ini
+
 recursive-include django_api_versioning *.py
 recursive-include django_api_versioning py.typed
 recursive-include tests *.py
+
+# Repository-only assets: never ship the docs corpus, integration lab, or website.
+prune docs
+prune integration_test_project
+prune website
+prune .github
+prune .claude
+
+# Generated frontend and local tooling artifacts.
+prune node_modules
+prune dist
+prune build
+prune .astro
+prune .netlify
+global-exclude __pycache__/*
+global-exclude *.py[cod]
+global-exclude .DS_Store
