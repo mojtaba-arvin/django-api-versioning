@@ -141,7 +141,7 @@ def _rewrite_call(text: str, call: ast.Call) -> str | None:
     if backward and forward:
         replacement = "version=1"
     elif backward and not forward:
-        replacement = f"versions=ver_range(1, {version})"
+        replacement = f"versions=list(range(1, {version + 1}))"
     elif not backward and not forward:
         replacement = f"versions=[{version}]"
     else:
