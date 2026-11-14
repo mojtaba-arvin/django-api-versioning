@@ -46,9 +46,9 @@ const category = article.data.keywords?.[0] ?? "Technical article";
         {article.id}
         {author && <span> · {author}</span>}
       </div>
-      {article.data.keywords?.length > 0 && (
+      {(article.data.keywords ?? []).length > 0 && (
         <div class="tag-row" aria-label="Article keywords">
-          {article.data.keywords.map((keyword) => <span class="tag">{keyword}</span>)}
+          {(article.data.keywords ?? []).map((keyword) => <span class="tag">{keyword}</span>)}
         </div>
       )}
     </header>

@@ -9,21 +9,22 @@ interface Props {
 const { initialScenario = "main", initialPostfix = "users/" } = Astro.props;
 const scenarios = scenarioNames.map((name) => {
   const current = scenario(name);
+  const settings = current.effective_settings["django_api_versioning.settings.api_settings"];
   const routes = Object.keys(current.matrix)
     .map((postfix) => ({ postfix, segments: segmentsOf(current, postfix) }))
     .filter((route) => route.segments.length > 0);
-  const error = current.urlconf?.error?.message
-    ?? current.recorded_errors?.map((item) => item.message).join(" ")
+  const error = current.urlconf_import.error?.message
+    ?? current.recorded_errors?.map((item) => item.message).filter(Boolean).join(" ")
     ?? "";
   return {
     name,
     title: current.title,
     question: current.question,
-    min: current.min_version,
-    max: current.max_version,
+    min: settings.API_MIN_VERSION,
+    max: settings.API_MAX_VERSION,
     routes,
     error,
-    registrySize: current.urlconf?.registry_size_after ?? current.registry.length,
+    registrySize: current.urlconf_import.registry_size_after,
     requestCount: current.requests.length,
   };
 });

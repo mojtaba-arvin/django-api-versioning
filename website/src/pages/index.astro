@@ -7,6 +7,7 @@ import {
   data,
   scenario,
   scenarioNames,
+  bodyRecord,
   source,
   repoUrl,
   pypiUrl,
@@ -19,18 +20,14 @@ const drfUrlPathDefault = scenario("drf_urlpath_default");
 const drfUrlPathAllowed = scenario("drf_urlpath_allowed");
 const drfRouter = scenario("drf_router");
 const drfViewSetClass = scenario("drf_viewset_class");
-const lifecycle = scenario("lifecycle");
-const explicit = scenario("explicit_versions");
-const minVersion = scenario("min_version");
-const maxBump = scenario("max_bump");
-const sameVersion = scenario("same_version");
-const routeIdentity = scenario("route_identity");
 
 const basePath = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
 const sourceUrl = (file: string) => `${repoUrl}/blob/${source.commit}/${file}`;
+const mainViewsSource = main.views_source;
+if (!mainViewsSource) throw new Error("The main evidence scenario has no recorded view source.");
 const checkRun = main.check_versions[0];
 const registerCalls = main.urlconf_import.package_calls[
   "django_api_versioning.registry.UrlRegistry.register"
@@ -39,12 +36,13 @@ const requestPackageCalls = main.requests.reduce(
   (total, request) => total + Object.values(request.package_calls ?? {}).reduce((sum, count) => sum + count, 0),
   0,
 );
-const drfDefaultVersion = drfDefault.requests[0]?.body?.["request.version"] ?? "null";
-const drfUrlPathVersion = drfUrlPath.requests[0]?.body?.["request.version"] ?? "null";
-const drfDefaultFallback = drfUrlPathDefault.requests[0]?.body?.["request.version"] ?? "not recorded";
-const drfAllowedError = drfUrlPathAllowed.requests[0]?.body?.detail ?? "No error recorded";
+const drfDefaultVersion = String(bodyRecord(drfDefault.requests[0])["request.version"] ?? "null");
+const drfUrlPathVersion = String(bodyRecord(drfUrlPath.requests[0])["request.version"] ?? "null");
+const drfDefaultFallback = String(bodyRecord(drfUrlPathDefault.requests[0])["request.version"] ?? "not recorded");
+const drfAllowedError = String(bodyRecord(drfUrlPathAllowed.requests[0]).detail ?? "No error recorded");
 const routerRequest = drfRouter.requests.find((request) => request.path === "/api/v2/users/");
-const viewSetError = drfViewSetClass.urlconf.error?.message ?? "No error recorded";
+const viewSetError = drfViewSetClass.urlconf_import.error?.message ?? "No error recorded";
+const routerHandler = String(bodyRecord(routerRequest).handler ?? "No matching router result");
 
 const capabilities = [
   { scenario: "main", title: "Forward inheritance", description: "A declaration continues into later versions until a newer declaration starts another segment." },
@@ -159,12 +157,12 @@ const capabilities = [
         </div>
       </div>
       <CodeBlock
-        label={main.views_source.file}
+        label={mainViewsSource.file}
         language="python"
-        code={main.views_source.code}
+        code={mainViewsSource.code}
       />
       <p class="muted">
-        <a href={sourceUrl(main.views_source.file)} target="_blank" rel="noreferrer">Open the exact source file at the recorded commit</a>.
+        <a href={sourceUrl(mainViewsSource.file)} target="_blank" rel="noreferrer">Open the exact source file at the recorded commit</a>.
         The functions above are executable scenario source, not a browser-side simulation.
       </p>
     </section>
@@ -345,7 +343,7 @@ const capabilities = [
             </tr>
             <tr>
               <td>DRF Router collision</td>
-              <td>{routerRequest?.body?.handler ?? "No matching router result"}; the resolver record has no package registry index.</td>
+              <td>{routerHandler}; the resolver record has no package registry index.</td>
             </tr>
             <tr>
               <td><code>@endpoint</code> directly on a ViewSet class</td>
@@ -356,7 +354,7 @@ const capabilities = [
       </div>
       <p class="note">
         For a ViewSet, pass a configured callable such as
-        <code>ReceiptViewSet.as_view({"get": "list"})</code>. Use DRF routers separately
+        <code>ReceiptViewSet.as_view(&#123;"get": "list"&#125;)</code>. Use DRF routers separately
         for standard list/detail/action routing.
       </p>
       <SourceLink file={data.source_refs.lines.as_view_call.file} line={data.source_refs.lines.as_view_call.line} label="Source: configured as_view call" />

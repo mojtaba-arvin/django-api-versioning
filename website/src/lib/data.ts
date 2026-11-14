@@ -123,6 +123,14 @@ export const source = data.source;
 export const shortCommit = source.commit.slice(0, 7);
 export const env = data.environment;
 
+/** Safely expose object-shaped response bodies from recorded requests. */
+export function bodyRecord(request?: RequestRecord): Record<string, unknown> {
+  const body = request?.body;
+  return typeof body === "object" && body !== null && !Array.isArray(body)
+    ? body as Record<string, unknown>
+    : {};
+}
+
 export function scenario(name: string): Scenario {
   const s = data.scenarios[name];
   if (!s) throw new Error(`Scenario ${name} is not in routes.json`);

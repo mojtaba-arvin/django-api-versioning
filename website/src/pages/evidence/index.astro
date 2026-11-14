@@ -100,7 +100,7 @@ const sourceRefs = Object.entries(data.source_refs.lines);
                 </td>
                 <td>{Object.keys(item.matrix).length}</td>
                 <td>{item.requests.length}</td>
-                <td>{item.urlconf.error ? "Expected URLConf error recorded" : "Probe completed"}</td>
+                <td>{item.urlconf_import.error ? "Expected URLConf error recorded" : "Probe completed"}</td>
               </tr>
             ))}
           </tbody>
@@ -121,7 +121,7 @@ const sourceRefs = Object.entries(data.source_refs.lines);
         <summary>Show {source.files.length} package file hashes</summary>
         <ul class="source-list">
           {source.files.map((file) => (
-            <li><code>{file.path}</code><code>{file.sha256}</code></li>
+            <li><code>{file.file}</code><code>{file.sha256}</code></li>
           ))}
         </ul>
       </details>
@@ -129,7 +129,7 @@ const sourceRefs = Object.entries(data.source_refs.lines);
         <summary>Show {source.evidence_files.length} integration and packaging input hashes</summary>
         <ul class="source-list">
           {source.evidence_files.map((file) => (
-            <li><code>{file.path}</code><code>{file.sha256}</code></li>
+            <li><code>{file.file}</code><code>{file.sha256}</code></li>
           ))}
         </ul>
       </details>

@@ -1,5 +1,5 @@
 ---
-import { segmentsOf, versionsOf } from "../lib/data";
+import { colourSlots, segmentsOf, versionsOf } from "../lib/data";
 
 interface Props {
   scenario: Parameters<typeof segmentsOf>[0];
@@ -9,6 +9,7 @@ interface Props {
 const { scenario, postfix, title } = Astro.props;
 const versions = versionsOf(scenario);
 const segments = segmentsOf(scenario, postfix);
+const slots = colourSlots(scenario);
 ---
 <div class="segment-diagram">
   {title && <h3>{title}</h3>}
@@ -16,35 +17,39 @@ const segments = segmentsOf(scenario, postfix);
     <div class="segment-axis" aria-hidden="true">
       {versions.map((version) => <span>v{version}</span>)}
     </div>
-    {segments.map((segment) => (
-      <>
-        <div class="segment-label">
-          <strong>{segment.callback}</strong>
-          <span>
-            declared at v{segment.sourceVersion} · active v{segment.start}–v{segment.end}
-          </span>
-        </div>
-        <div class="segment-track" aria-label={`${segment.callback}, versions ${segment.start} through ${segment.end}`}>
-          {versions.map((version) => {
-            const active = version >= segment.start && version <= segment.end;
-            return (
-              <span
-                class="segment-cell"
-                data-slot={active ? segment.slot : undefined}
-                class:is-declaration={active && version === segment.sourceVersion}
-                aria-label={active
-                  ? version === segment.sourceVersion
-                    ? `v${version}: declaration point`
-                    : `v${version}: inherited from v${segment.sourceVersion}`
-                  : undefined}
-              >
-                {active ? `v${version}` : ""}
-              </span>
-            );
-          })}
-        </div>
-      </>
-    ))}
+    {segments.map((segment) => {
+      const slot = slots.get(segment.callback) ?? 0;
+      return (
+        <>
+          <div class="segment-label">
+            <strong>{segment.callback}</strong>
+            <span>
+              declared at v{segment.source_version ?? "?"} · active v{segment.from}–v{segment.to}
+            </span>
+          </div>
+          <div class="segment-track" aria-label={`${segment.callback}, versions ${segment.from} through ${segment.to}`}>
+            {versions.map((version) => {
+              const active = version >= segment.from && version <= segment.to;
+              const declaration = active && segment.startsAtDeclaration && version === segment.from;
+              return (
+                <span
+                  class="segment-cell"
+                  data-slot={active ? slot : undefined}
+                  class:is-declaration={declaration}
+                  aria-label={active
+                    ? declaration
+                      ? `v${version}: declaration point`
+                      : `v${version}: inherited from v${segment.source_version}`
+                    : undefined}
+                >
+                  {active ? `v${version}` : ""}
+                </span>
+              );
+            })}
+          </div>
+        </>
+      );
+    })}
     <div class="segment-legend">
       <span><i style="background:var(--ink)"></i> Declaration point</span>
       <span><i style="background:var(--surface-2)"></i> Forward-inherited version</span>
