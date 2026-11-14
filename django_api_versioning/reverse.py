@@ -3,7 +3,7 @@ from typing import Any
 
 from django.urls import NoReverseMatch
 
-from .exceptions import AmbiguousVersionError
+from .exceptions import AmbiguousVersionError, VersionTypeError
 from .registry import registry
 
 # Matches Django path parameters, with or without an explicit converter.
@@ -22,6 +22,11 @@ def api_reverse(
     - ``version=None``: if exactly one version is registered for ``view_name``,
       return it; otherwise raise ``AmbiguousVersionError``.
     """
+    if version is not None and (
+        isinstance(version, bool) or not isinstance(version, int)
+    ):
+        raise VersionTypeError("Version must be an integer.")
+
     matches = []
     for pattern in registry.urlpatterns:
         if pattern.name != view_name:
