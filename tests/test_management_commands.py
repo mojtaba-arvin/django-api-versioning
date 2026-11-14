@@ -382,15 +382,16 @@ class TestMigrateEndpointsRewriting:
         )
         assert _suggest(source) == []
 
-    def test_suggest_preserves_unrelated_arguments(self):
+    def test_suggest_preserves_unrelated_arguments_and_string_contents(self):
         source = (
-            '@endpoint("users", version=2, backward=True, '
+            '@endpoint("users,admin", version=2, backward=True, '
             'forward=False, app_name="public")'
         )
         assert _suggest(source) == [
             (
                 source,
-                '@endpoint("users", app_name="public", versions=ver_range(1, 2))',
+                '@endpoint("users,admin", app_name="public", '
+                'versions=ver_range(1, 2))',
             )
         ]
 

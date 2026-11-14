@@ -48,6 +48,47 @@ def _suggest(text: str):
     return changes
 
 
+def _normalize_argument_spacing(args: str) -> str:
+    """Normalize separators without changing commas inside string literals."""
+    result = []
+    quote = None
+    escaped = False
+    index = 0
+
+    while index < len(args):
+        char = args[index]
+        if quote:
+            result.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            index += 1
+            continue
+
+        if char in {"'", '"'}:
+            quote = char
+            result.append(char)
+            index += 1
+            continue
+
+        if char == ",":
+            result.append(",")
+            index += 1
+            while index < len(args) and args[index].isspace():
+                index += 1
+            if index < len(args) and args[index] not in "),":
+                result.append(" ")
+            continue
+
+        result.append(char)
+        index += 1
+
+    return "".join(result).strip().rstrip(",")
+
+
 def _rewrite_args(args: str) -> str:
     version_match = re.search(r"version\s*=\s*(\d+)", args)
     if not version_match:
@@ -73,7 +114,7 @@ def _rewrite_args(args: str) -> str:
     cleaned = re.sub(r"version\s*=\s*\d+\s*,?", "", args)
     cleaned = re.sub(r"backward\s*=\s*(True|False)\s*,?", "", cleaned)
     cleaned = re.sub(r"forward\s*=\s*(True|False|None)\s*,?", "", cleaned)
-    cleaned = re.sub(r",\s*\)", ")", cleaned).strip().rstrip(",")
+    cleaned = _normalize_argument_spacing(cleaned)
 
     prefix = f"{cleaned}, " if cleaned else ""
 
