@@ -2,7 +2,7 @@
 
 > **Status date:** 2026-11-14  
 > **Audited branch:** `audit/comprehensive-package-review`  
-> **Audited source commit:** `34ffa802d9acbd94edd900e35287941a7779c42a`  
+> **Audited source commit:** `937dd3ce67a0a30f2c680966cff54f9a640900e4`  
 > **Deployment status:** Not deployable; no successful Astro production build or static-host smoke test has been recorded.
 
 This is a working engineering status document, not a claim that any unfinished gate has passed. Update it at each completed milestone using the exact commit and commands that were verified.
@@ -11,10 +11,10 @@ This is a working engineering status document, not a claim that any unfinished g
 
 | Area | Current state | Delivery assessment |
 | --- | --- | --- |
-| Python package | Version 0.3.7; package source and tests are present | Existing test evidence is useful, but must be revalidated at a final checkpoint |
+| Python package | Version 0.3.7; package source and tests are present | 195 unit tests and 249 integration tests passed; all 15 tox environments and lint passed at the audited checkpoint |
 | Package distribution | Package allowlist, sdist pruning, and artifact-content verification are present | Re-run wheel/sdist build and inspect actual artifacts before release |
 | Django integration project | Existing project is retained and extended | Do not create a parallel integration project |
-| Segment Lab | 18 executable scenario definitions and a generator/probe are present | Scenario suite has passed in an earlier CI run; generated website evidence is not yet committed |
+| Segment Lab | 18 executable scenario definitions and a generator/probe are present | Provenance and scenario tests passed across the full compatibility matrix; generated website evidence is not yet committed |
 | Article corpus | 25 canonical Markdown articles under `docs/articles/` | Preserve as the only editable source |
 | Astro application | Partial foundation: config, layout, styles, data helpers, article sync and logo | Incomplete; cannot yet build |
 | Website deployment | No verified `dist/`, Netlify deployment, or GitHub Pages deployment | Not ready |
@@ -36,7 +36,7 @@ These are blockers, not cosmetic cleanup. Do not configure a production deployme
 
 ## 2. Segment Lab evidence integrity
 
-The current lab contains 18 scenarios, including the existing integration project and DRF router, import-order behavior, explicit versions, minimum-version boundaries, route identity, DRF request-version behavior, ViewSet rejection, lifecycle middleware, and invalid declarations.
+The current lab contains 18 scenarios, including the existing integration project and DRF router, import-order behavior, explicit versions, minimum-version boundaries, route identity, DRF request-version behavior, ViewSet rejection, lifecycle middleware, and invalid declarations. The latest full matrix passed all 15 Python/Django environments plus lint at commit `937dd3ce67a0a30f2c680966cff54f9a640900e4`.
 
 The generator runs each scenario in a fresh interpreter because the package registry and settings are process-global/import-time state. It reads the package version from `pyproject.toml`, records the checked-out commit, and derives source references from the checked-out package.
 
@@ -46,7 +46,7 @@ A provenance gap was found during this audit: before commit `34ffa802d9acbd94edd
 - verifies those hashes in the generator tests; and
 - updates the TypeScript data contract for the new provenance field.
 
-The new provenance change has been committed but has **not yet been executed in a fresh local or CI run**. Its tests remain a required checkpoint.
+The provenance hardening has now been exercised by the full compatibility matrix: the generator tests verify the package hashes and the `evidence_files` hashes for `pyproject.toml` and the executable integration project. The evidence snapshot itself has not yet been generated or committed.
 
 Do not fabricate `routes.json` or copy the old Agent's 0.3.5 outputs. Generate the snapshot from one clean, committed checkout and commit the resulting data only after reviewing its provenance and scenario results.
 
@@ -62,7 +62,7 @@ Useful code has been adapted into the current repository as follows:
 | Content collection and article-link plugins | `website/src/content.config.ts`, `website/src/lib/`, `website/scripts/sync-articles.mjs` | Adapted to canonical `docs/articles/`; requires link and route tests |
 | Typed evidence access | `website/src/lib/data.ts` | Adapted; generated JSON is not present yet |
 | Django scenarios and probe | `integration_test_project/segment_lab/` | Adapted to current source and expanded to 18 scenarios |
-| Evidence generator | `integration_test_project/segment_lab/generate_routes.py` | Reworked for current checkout provenance; latest hash hardening awaits execution |
+| Evidence generator | `integration_test_project/segment_lab/generate_routes.py` | Reworked for current checkout provenance; package and lab input hashes are covered by passing matrix tests |
 | Distribution verifier | `scripts/verify_distribution_contents.py` | Repository implementation is present; validate against actual build artifacts |
 
 The temporary `s.py` scratch experiment is excluded. The missing old `routes.json` and `tools/README.md` were not reconstructed from guesses.

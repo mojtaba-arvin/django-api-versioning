@@ -61,6 +61,7 @@ Do not infer behaviour from article wording alone. Verify package claims against
 
 - `.github/workflows/tests.yml` runs the Python unit and integration suites only when package, test, integration-project, Python dependency, or test-workflow files change. Documentation-only and website-only changes do not run Python CI.
 - `.github/workflows/package-artifacts.yml` builds and validates wheel/sdist only when package source or packaging inputs change. It runs independently from the Python tests.
+- `.github/workflows/compatibility.yml` runs the full 15-environment Python/Django tox matrix plus lint as a manual `workflow_dispatch` checkpoint. Keep it out of routine push/PR triggers; use it before compatibility-sensitive releases or major package changes.
 - Both workflows use native GitHub-hosted Python with `setup-python` pip caching; CI must not build the development Docker image.
 - Pull-request checks run when a PR is opened/reopened or marked ready for review, not on every synchronization commit. Use the Actions `workflow_dispatch` entry to run explicit validation checkpoints after a batch of commits. Pushes to `main` remain automatic.
 - `requirements-ci.txt` contains only dependencies needed by pytest and the integration project. Do not add formatter/type-checker/pre-commit dependencies to it unless CI actually runs those tools.

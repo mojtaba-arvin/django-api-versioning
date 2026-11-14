@@ -10,6 +10,7 @@ The workflows are deliberately separate:
 |---|---|---|
 | `Python tests` | Package unit tests and the existing Django integration project, including Segment Lab | Package source, tests, integration project, Python runtime/test requirements, pytest configuration |
 | `Python package artifacts` | Wheel and sdist creation, Twine metadata validation, and forbidden-content checks | Package source plus every tracked sdist input, including tests, README, Changelog, license, requirements, and pytest configuration |
+| `Compatibility matrix` | Full tox matrix: 15 Python/Django combinations plus lint | Manual `workflow_dispatch` checkpoint; not part of routine PR or push CI |
 | Future website workflow | Astro checks, static build, and built-site smoke tests | `website/**` and `docs/articles/**` |
 
 Documentation-only edits under `docs/website/`, root agent instructions, and other editorial material must not invoke Python tests or package builds. The website workflow is intentionally deferred until the Astro application and its static-output checks are complete.
@@ -24,6 +25,7 @@ Documentation-only edits under `docs/website/`, root agent instructions, and oth
 - Pull-request workflows run at review start (`opened`, `reopened`, `ready_for_review`), not for every commit pushed to a long-lived review branch. Use `workflow_dispatch` to run explicit checkpoints after a meaningful batch of changes.
 - These PR runs are review checkpoints, not a green status for every later commit SHA. Do not mark them as required merge checks unless a lightweight per-synchronization gate is introduced or a manual checkpoint is run against the exact final SHA.
 - Pushes to `main` remain automatic and path-filtered.
+- The full compatibility matrix is manual-only. It covers Python 3.10–3.15 against Django 4.2, 5.2, 6.0, and 6.1 where supported, plus lint; run it at deliberate compatibility/release checkpoints rather than on every commit.
 
 Path filters are a cost boundary, not a replacement for testing. If a change crosses a boundary, update the corresponding path list in the workflow in the same commit.
 
@@ -50,14 +52,15 @@ The root `Dockerfile` and `entrypoint.sh` remain available for the complete loca
 
 ## Current baseline measurement
 
-The first native-Python run on this branch completed successfully:
+The latest focused and compatibility checkpoints completed successfully:
 
-- Unit tests: 195 passed in 0.56 seconds (89% package coverage).
-- Integration tests: 249 passed in 13.23 seconds.
-- Python test workflow wall time: 34 seconds, including runner setup and dependency installation.
-- Package artifact workflow: 21 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
+- Unit tests: 195 passed in 0.79 seconds (89% package coverage).
+- Integration tests: 249 passed in 17.11 seconds.
+- Python test workflow wall time: 37 seconds, including runner setup and dependency installation.
+- Package artifact workflow: 17 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
+- Full compatibility matrix: all 15 Python/Django environments and the lint environment passed in 44 seconds.
 
-These are one-run observations from the latest checkpoint at commit `0afbd590974e6203a1c85fe654088f3e23c83765`, not guaranteed future durations. The pip cache should reduce repeated dependency download cost on subsequent runs. The previous Docker-based workflow took approximately 143 seconds for one combined run.
+The focused test run was recorded at `f783d93d758b4159e594ad9771ea191c31392d34`; the full matrix passed at `937dd3ce67a0a30f2c680966cff54f9a640900e4`. These are observed runs, not guaranteed future durations. The previous Docker-based workflow took approximately 143 seconds for one combined run.
 
 ## Website workflow acceptance criteria
 
