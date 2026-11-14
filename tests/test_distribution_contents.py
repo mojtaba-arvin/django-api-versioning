@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from scripts.verify_distribution_contents import check_sdist, check_wheel
+from scripts.smoke_installed_wheel import digest_tree
 
 
 def _write_wheel(path: Path, names: list[str]) -> None:
@@ -110,3 +111,17 @@ def test_sdist_rejects_repository_only_assets(
 
     with pytest.raises(SystemExit, match="repository-only files"):
         check_sdist(sdist)
+
+
+
+def test_installed_wheel_digest_includes_only_package_source_files(
+    tmp_path: Path,
+) -> None:
+    package = tmp_path / "django_api_versioning"
+    package.mkdir()
+    (package / "__init__.py").write_text("VALUE = 1\\n")
+    (package / "py.typed").write_text("")
+    (package / "module.pyc").write_bytes(b"compiled")
+    (package / "README.txt").write_text("not package code")
+
+    assert set(digest_tree(package)) == {"__init__.py", "py.typed"}
