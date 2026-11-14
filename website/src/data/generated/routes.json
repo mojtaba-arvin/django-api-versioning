@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T20:17:59+00:00",
+  "generated_at": "2026-11-14T21:29:45+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -2093,6 +2093,15 @@
         "api/v1/comments/": {
           "1": "view"
         },
+        "api/v1/configured-products/": {
+          "1": "ConfiguredProductViewSetV1"
+        },
+        "api/v1/configured-products/<int:pk>/": {
+          "1": "ConfiguredProductViewSetV1"
+        },
+        "api/v1/configured-products/popular/": {
+          "1": "ConfiguredProductViewSetV1"
+        },
         "api/v1/docs/": {
           "1": "view"
         },
@@ -2176,6 +2185,15 @@
         },
         "api/v2/comments/": {
           "2": "view"
+        },
+        "api/v2/configured-products/": {
+          "2": "ConfiguredProductViewSetV2"
+        },
+        "api/v2/configured-products/<int:pk>/": {
+          "2": "ConfiguredProductViewSetV2"
+        },
+        "api/v2/configured-products/popular/": {
+          "2": "ConfiguredProductViewSetV2"
         },
         "api/v2/docs/": {
           "2": "view"
@@ -2264,6 +2282,12 @@
         "api/v3/comments/": {
           "3": "view"
         },
+        "api/v3/configured-products/": {
+          "3": "ConfiguredProductViewSetV2"
+        },
+        "api/v3/configured-products/<int:pk>/": {
+          "3": "ConfiguredProductViewSetV2"
+        },
         "api/v3/docs/": {
           "3": "view"
         },
@@ -2348,6 +2372,12 @@
         "api/v4/comments/": {
           "4": "view"
         },
+        "api/v4/configured-products/": {
+          "4": "ConfiguredProductViewSetV2"
+        },
+        "api/v4/configured-products/<int:pk>/": {
+          "4": "ConfiguredProductViewSetV2"
+        },
         "api/v4/docs/": {
           "4": "view"
         },
@@ -2422,7 +2452,7 @@
           "stderr": "",
           "stderr_last_line": "",
           "stderr_line_count": 0,
-          "stdout": "\nadmin-only/:\n  v1           → admin_only_v1\n  v2           → admin_only_v2\n  v3           → admin_only_v2\n  v4           → admin_only_v2\n\nadmin/config/:\n  v1           → admin_config_v1\n  v2           → admin_config_v2\n  v3           → admin_config_v2\n  v4           → admin_config_v2\n\nadmin/reports/summary/:\n  v1           → admin_reports_summary_v1\n  v2           → admin_reports_summary_v2\n  v3           → admin_reports_summary_v2\n  v4           → admin_reports_summary_v2\n\nadmin/reports/users/:\n  v1           → admin_reports_users_v1\n  v2           → admin_reports_users_v2\n  v3           → admin_reports_users_v2\n  v4           → admin_reports_users_v2\n\nanalytics/overview/:\n  v1           → analytics_overview_v1\n  v2           → analytics_overview_v2\n  v3           → analytics_overview_v2\n  v4           → analytics_overview_v2\n\narticles/:\n  v1           → ArticleListV1\n  v2           → ArticleListV2\n  v3           → ArticleListV2\n  v4           → ArticleListV2\n\nblog/:\n  v1           → <lambda>\n  v2           → <lambda>\n  v3           → <lambda>\n  v4           → <lambda>\n\ncomments/:\n  v1           → CommentListV1\n  v2           → CommentListV2\n  v3           → CommentListV2\n  v4           → CommentListV2\n\ndocs/:\n  v1           → DocListV1\n  v2           → DocListV1\n  v3           → DocListV1\n  v4           → DocListV1\n\nitems/:\n  v1           → ItemListV1\n  v2           → ItemListV1\n  v3           → ItemListV1\n  v4           → ItemListV1\n\nitems/<uuid:item_uuid>/:\n  v1           → ItemByUUIDV1\n  v2           → ItemByUUIDV2\n  v3           → ItemByUUIDV2\n  v4           → ItemByUUIDV2\n\nlegacy-api/:\n  v1           → legacy_api\n  v2           → legacy_api\n  v3           → legacy_api\n\norders/:\n  v1           → OrderListV1\n  v2           → OrderListV2\n  v3           → OrderListV2\n  v4           → OrderListV2\n\norders/<int:order_id>/:\n  v1           → OrderDetailV1\n  v2           → OrderDetailV2\n  v3           → OrderDetailV2\n  v4           → OrderDetailV2\n\nposts/:\n  v1           → post_list\n  v2           → post_list_v2\n  v3           → post_list_v2\n  v4           → post_list_v2\n\nposts/<int:post_id>/:\n  v1           → post_detail\n  v2           → post_detail_v2\n  v3           → post_detail_v2\n  v4           → post_detail_v2\n\nposts/<slug:slug>/:\n  v1           → post_by_slug_v1\n  v2           → post_by_slug_v1\n  v3           → post_by_slug_v1\n  v4           → post_by_slug_v1\n\npremium-features/:\n  v2           → premium_features\n  v4           → premium_features\n\nproducts-list/:\n  v1           → ProductListV1\n  v2           → ProductListV2\n  v3           → ProductListV2\n  v4           → ProductListV2\n\nproducts/<int:product_id>/:\n  v1           → product_by_int_v1\n  v2           → product_by_int_v1\n  v3           → product_by_int_v1\n  v4           → product_by_int_v1\n\nprotected-data/:\n  v1           → protected_data_v1\n  v2           → protected_data_v2\n  v3           → protected_data_v2\n  v4           → protected_data_v2\n\nresources/:\n  v1           → resources_v1\n  v2           → resources_v2\n  v3           → resources_v2\n  v4           → resources_v2\n\nsearch/:\n  v1           → search_v1\n  v2           → search_v2\n  v3           → search_v2\n  v4           → search_v2\n\nsecure-data/:\n  v1           → secure_data_v1\n  v2           → secure_data_v2\n  v3           → secure_data_v2\n  v4           → secure_data_v2\n\nstatus/:\n  unversioned  → status_endpoint\n\ntasks/:\n  v1           → TaskCreateV1\n  v2           → TaskCreateV1\n  v3           → TaskCreateV1\n  v4           → TaskCreateV1\n\ntasks/<int:task_id>/:\n  v1           → TaskRetrieveV1\n  v2           → TaskDetailV2\n  v3           → TaskDetailV2\n  v4           → TaskDetailV2\n\nupload/:\n  v1           → upload_v1\n  v2           → upload_v2\n  v3           → upload_v2\n  v4           → upload_v2\n\nusers/:\n  v1           → user_list\n  v2           → user_list_v2\n  v3           → user_list_v3\n  v4           → user_list_v3\n\nusers/<int:user_id>/:\n  v1           → user_detail\n  v2           → user_detail_v2\n  v3           → user_detail_v2\n  v4           → user_detail_v2\n  [premium-features/] v3 is not defined.\n"
+          "stdout": "\nadmin-only/:\n  v1           → admin_only_v1\n  v2           → admin_only_v2\n  v3           → admin_only_v2\n  v4           → admin_only_v2\n\nadmin/config/:\n  v1           → admin_config_v1\n  v2           → admin_config_v2\n  v3           → admin_config_v2\n  v4           → admin_config_v2\n\nadmin/reports/summary/:\n  v1           → admin_reports_summary_v1\n  v2           → admin_reports_summary_v2\n  v3           → admin_reports_summary_v2\n  v4           → admin_reports_summary_v2\n\nadmin/reports/users/:\n  v1           → admin_reports_users_v1\n  v2           → admin_reports_users_v2\n  v3           → admin_reports_users_v2\n  v4           → admin_reports_users_v2\n\nanalytics/overview/:\n  v1           → analytics_overview_v1\n  v2           → analytics_overview_v2\n  v3           → analytics_overview_v2\n  v4           → analytics_overview_v2\n\narticles/:\n  v1           → ArticleListV1\n  v2           → ArticleListV2\n  v3           → ArticleListV2\n  v4           → ArticleListV2\n\nblog/:\n  v1           → <lambda>\n  v2           → <lambda>\n  v3           → <lambda>\n  v4           → <lambda>\n\ncomments/:\n  v1           → CommentListV1\n  v2           → CommentListV2\n  v3           → CommentListV2\n  v4           → CommentListV2\n\nconfigured-products/:\n  v1           → ConfiguredProductViewSetV1\n  v2           → ConfiguredProductViewSetV2\n  v3           → ConfiguredProductViewSetV2\n  v4           → ConfiguredProductViewSetV2\n\nconfigured-products/<int:pk>/:\n  v1           → ConfiguredProductViewSetV1\n  v2           → ConfiguredProductViewSetV2\n  v3           → ConfiguredProductViewSetV2\n  v4           → ConfiguredProductViewSetV2\n\nconfigured-products/popular/:\n  v1           → ConfiguredProductViewSetV1\n  v2           → ConfiguredProductViewSetV2\n\ndocs/:\n  v1           → DocListV1\n  v2           → DocListV1\n  v3           → DocListV1\n  v4           → DocListV1\n\nitems/:\n  v1           → ItemListV1\n  v2           → ItemListV1\n  v3           → ItemListV1\n  v4           → ItemListV1\n\nitems/<uuid:item_uuid>/:\n  v1           → ItemByUUIDV1\n  v2           → ItemByUUIDV2\n  v3           → ItemByUUIDV2\n  v4           → ItemByUUIDV2\n\nlegacy-api/:\n  v1           → legacy_api\n  v2           → legacy_api\n  v3           → legacy_api\n\norders/:\n  v1           → OrderListV1\n  v2           → OrderListV2\n  v3           → OrderListV2\n  v4           → OrderListV2\n\norders/<int:order_id>/:\n  v1           → OrderDetailV1\n  v2           → OrderDetailV2\n  v3           → OrderDetailV2\n  v4           → OrderDetailV2\n\nposts/:\n  v1           → post_list\n  v2           → post_list_v2\n  v3           → post_list_v2\n  v4           → post_list_v2\n\nposts/<int:post_id>/:\n  v1           → post_detail\n  v2           → post_detail_v2\n  v3           → post_detail_v2\n  v4           → post_detail_v2\n\nposts/<slug:slug>/:\n  v1           → post_by_slug_v1\n  v2           → post_by_slug_v1\n  v3           → post_by_slug_v1\n  v4           → post_by_slug_v1\n\npremium-features/:\n  v2           → premium_features\n  v4           → premium_features\n\nproducts-list/:\n  v1           → ProductListV1\n  v2           → ProductListV2\n  v3           → ProductListV2\n  v4           → ProductListV2\n\nproducts/<int:product_id>/:\n  v1           → product_by_int_v1\n  v2           → product_by_int_v1\n  v3           → product_by_int_v1\n  v4           → product_by_int_v1\n\nprotected-data/:\n  v1           → protected_data_v1\n  v2           → protected_data_v2\n  v3           → protected_data_v2\n  v4           → protected_data_v2\n\nresources/:\n  v1           → resources_v1\n  v2           → resources_v2\n  v3           → resources_v2\n  v4           → resources_v2\n\nsearch/:\n  v1           → search_v1\n  v2           → search_v2\n  v3           → search_v2\n  v4           → search_v2\n\nsecure-data/:\n  v1           → secure_data_v1\n  v2           → secure_data_v2\n  v3           → secure_data_v2\n  v4           → secure_data_v2\n\nstatus/:\n  unversioned  → status_endpoint\n\ntasks/:\n  v1           → TaskCreateV1\n  v2           → TaskCreateV1\n  v3           → TaskCreateV1\n  v4           → TaskCreateV1\n\ntasks/<int:task_id>/:\n  v1           → TaskRetrieveV1\n  v2           → TaskDetailV2\n  v3           → TaskDetailV2\n  v4           → TaskDetailV2\n\nupload/:\n  v1           → upload_v1\n  v2           → upload_v2\n  v3           → upload_v2\n  v4           → upload_v2\n\nusers/:\n  v1           → user_list\n  v2           → user_list_v2\n  v3           → user_list_v3\n  v4           → user_list_v3\n\nusers/<int:user_id>/:\n  v1           → user_detail\n  v2           → user_detail_v2\n  v3           → user_detail_v2\n  v4           → user_detail_v2\n  [premium-features/] v3 is not defined.\n"
         }
       ],
       "effective_settings": {
@@ -2622,6 +2652,62 @@
           "4": {
             "callback": "CommentListV2",
             "route": "api/v4/comments/",
+            "source_version": 2
+          }
+        },
+        "configured-products/": {
+          "1": {
+            "callback": "ConfiguredProductViewSetV1",
+            "route": "api/v1/configured-products/",
+            "source_version": 1
+          },
+          "2": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v2/configured-products/",
+            "source_version": 2
+          },
+          "3": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v3/configured-products/",
+            "source_version": 2
+          },
+          "4": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v4/configured-products/",
+            "source_version": 2
+          }
+        },
+        "configured-products/<int:pk>/": {
+          "1": {
+            "callback": "ConfiguredProductViewSetV1",
+            "route": "api/v1/configured-products/<int:pk>/",
+            "source_version": 1
+          },
+          "2": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v2/configured-products/<int:pk>/",
+            "source_version": 2
+          },
+          "3": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v3/configured-products/<int:pk>/",
+            "source_version": 2
+          },
+          "4": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v4/configured-products/<int:pk>/",
+            "source_version": 2
+          }
+        },
+        "configured-products/popular/": {
+          "1": {
+            "callback": "ConfiguredProductViewSetV1",
+            "route": "api/v1/configured-products/popular/",
+            "source_version": 1
+          },
+          "2": {
+            "callback": "ConfiguredProductViewSetV2",
+            "route": "api/v2/configured-products/popular/",
             "source_version": 2
           }
         },
@@ -3303,9 +3389,48 @@
           "view_class": "TaskCreateV1"
         },
         {
+          "actions": {
+            "get": "list"
+          },
+          "callback": "ConfiguredProductViewSetV1",
+          "index": 20,
+          "name": "configured-product-list-v1",
+          "postfix": "configured-products/",
+          "route": "api/v1/configured-products/",
+          "route_version": 1,
+          "source_version": 1,
+          "view_class": "ConfiguredProductViewSetV1"
+        },
+        {
+          "actions": {
+            "get": "retrieve"
+          },
+          "callback": "ConfiguredProductViewSetV1",
+          "index": 21,
+          "name": "configured-product-detail-v1",
+          "postfix": "configured-products/<int:pk>/",
+          "route": "api/v1/configured-products/<int:pk>/",
+          "route_version": 1,
+          "source_version": 1,
+          "view_class": "ConfiguredProductViewSetV1"
+        },
+        {
+          "actions": {
+            "get": "popular"
+          },
+          "callback": "ConfiguredProductViewSetV1",
+          "index": 22,
+          "name": "configured-product-popular-v1",
+          "postfix": "configured-products/popular/",
+          "route": "api/v1/configured-products/popular/",
+          "route_version": 1,
+          "source_version": 1,
+          "view_class": "ConfiguredProductViewSetV1"
+        },
+        {
           "actions": null,
           "callback": "admin_reports_summary_v1",
-          "index": 20,
+          "index": 23,
           "name": "reports-summary-v1",
           "postfix": "admin/reports/summary/",
           "route": "api/v1/admin/reports/summary/",
@@ -3316,7 +3441,7 @@
         {
           "actions": null,
           "callback": "admin_reports_users_v1",
-          "index": 21,
+          "index": 24,
           "name": "reports-users-v1",
           "postfix": "admin/reports/users/",
           "route": "api/v1/admin/reports/users/",
@@ -3327,7 +3452,7 @@
         {
           "actions": null,
           "callback": "admin_config_v1",
-          "index": 22,
+          "index": 25,
           "name": "config-v1",
           "postfix": "admin/config/",
           "route": "api/v1/admin/config/",
@@ -3338,7 +3463,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 23,
+          "index": 26,
           "name": "secure-v1",
           "postfix": "secure-data/",
           "route": "api/v1/secure-data/",
@@ -3349,7 +3474,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 24,
+          "index": 27,
           "name": "admin-only-v1",
           "postfix": "admin-only/",
           "route": "api/v1/admin-only/",
@@ -3360,7 +3485,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 25,
+          "index": 28,
           "name": "search-v1",
           "postfix": "search/",
           "route": "api/v1/search/",
@@ -3371,7 +3496,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 26,
+          "index": 29,
           "name": "upload-v1",
           "postfix": "upload/",
           "route": "api/v1/upload/",
@@ -3382,7 +3507,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 27,
+          "index": 30,
           "name": "resources-v1",
           "postfix": "resources/",
           "route": "api/v1/resources/",
@@ -3393,7 +3518,7 @@
         {
           "actions": null,
           "callback": "<lambda>",
-          "index": 28,
+          "index": 31,
           "name": "blog-router-v1",
           "postfix": "blog/",
           "route": "api/v1/blog/",
@@ -3404,7 +3529,7 @@
         {
           "actions": null,
           "callback": "user_list_v2",
-          "index": 29,
+          "index": 32,
           "name": "user-list-v2",
           "postfix": "users/",
           "route": "api/v2/users/",
@@ -3415,7 +3540,7 @@
         {
           "actions": null,
           "callback": "user_detail_v2",
-          "index": 30,
+          "index": 33,
           "name": "user-detail-v2",
           "postfix": "users/<int:user_id>/",
           "route": "api/v2/users/<int:user_id>/",
@@ -3426,7 +3551,7 @@
         {
           "actions": null,
           "callback": "post_list_v2",
-          "index": 31,
+          "index": 34,
           "name": "post-list-v2",
           "postfix": "posts/",
           "route": "api/v2/posts/",
@@ -3437,7 +3562,7 @@
         {
           "actions": null,
           "callback": "post_detail_v2",
-          "index": 32,
+          "index": 35,
           "name": "post-detail-v2",
           "postfix": "posts/<int:post_id>/",
           "route": "api/v2/posts/<int:post_id>/",
@@ -3448,7 +3573,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 33,
+          "index": 36,
           "name": "comment-list-v2-cbv",
           "postfix": "comments/",
           "route": "api/v2/comments/",
@@ -3459,7 +3584,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 34,
+          "index": 37,
           "name": "article-list-v2-drf",
           "postfix": "articles/",
           "route": "api/v2/articles/",
@@ -3470,7 +3595,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 35,
+          "index": 38,
           "name": "doc-list-v1-drf-generic",
           "postfix": "docs/",
           "route": "api/v2/docs/",
@@ -3481,7 +3606,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 36,
+          "index": 39,
           "name": "order-list-v2-drf-methods",
           "postfix": "orders/",
           "route": "api/v2/orders/",
@@ -3492,7 +3617,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 37,
+          "index": 40,
           "name": "order-detail-v2-drf-methods",
           "postfix": "orders/<int:order_id>/",
           "route": "api/v2/orders/<int:order_id>/",
@@ -3503,7 +3628,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 38,
+          "index": 41,
           "name": "item-list-v1-errors",
           "postfix": "items/",
           "route": "api/v2/items/",
@@ -3514,7 +3639,7 @@
         {
           "actions": null,
           "callback": "premium_features",
-          "index": 39,
+          "index": 42,
           "name": "premium-features",
           "postfix": "premium-features/",
           "route": "api/v2/premium-features/",
@@ -3525,7 +3650,7 @@
         {
           "actions": null,
           "callback": "legacy_api",
-          "index": 40,
+          "index": 43,
           "name": "legacy-api",
           "postfix": "legacy-api/",
           "route": "api/v2/legacy-api/",
@@ -3536,7 +3661,7 @@
         {
           "actions": null,
           "callback": "analytics_overview_v2",
-          "index": 41,
+          "index": 44,
           "name": "analytics-overview-v2",
           "postfix": "analytics/overview/",
           "route": "api/v2/analytics/overview/",
@@ -3547,7 +3672,7 @@
         {
           "actions": null,
           "callback": "product_by_int_v1",
-          "index": 42,
+          "index": 45,
           "name": "product-by-int",
           "postfix": "products/<int:product_id>/",
           "route": "api/v2/products/<int:product_id>/",
@@ -3558,7 +3683,7 @@
         {
           "actions": null,
           "callback": "post_by_slug_v1",
-          "index": 43,
+          "index": 46,
           "name": "post-by-slug",
           "postfix": "posts/<slug:slug>/",
           "route": "api/v2/posts/<slug:slug>/",
@@ -3569,7 +3694,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 44,
+          "index": 47,
           "name": "protected-v2",
           "postfix": "protected-data/",
           "route": "api/v2/protected-data/",
@@ -3580,7 +3705,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 45,
+          "index": 48,
           "name": "products-list-v2",
           "postfix": "products-list/",
           "route": "api/v2/products-list/",
@@ -3591,7 +3716,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 46,
+          "index": 49,
           "name": "item-by-uuid-v2",
           "postfix": "items/<uuid:item_uuid>/",
           "route": "api/v2/items/<uuid:item_uuid>/",
@@ -3602,7 +3727,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 47,
+          "index": 50,
           "name": "task-detail-v2",
           "postfix": "tasks/<int:task_id>/",
           "route": "api/v2/tasks/<int:task_id>/",
@@ -3613,7 +3738,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 48,
+          "index": 51,
           "name": "task-create-v1",
           "postfix": "tasks/",
           "route": "api/v2/tasks/",
@@ -3622,9 +3747,48 @@
           "view_class": "TaskCreateV1"
         },
         {
+          "actions": {
+            "get": "list"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 52,
+          "name": "configured-product-list-v2",
+          "postfix": "configured-products/",
+          "route": "api/v2/configured-products/",
+          "route_version": 2,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
+          "actions": {
+            "get": "retrieve"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 53,
+          "name": "configured-product-detail-v2",
+          "postfix": "configured-products/<int:pk>/",
+          "route": "api/v2/configured-products/<int:pk>/",
+          "route_version": 2,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
+          "actions": {
+            "get": "popular"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 54,
+          "name": "configured-product-popular-v2",
+          "postfix": "configured-products/popular/",
+          "route": "api/v2/configured-products/popular/",
+          "route_version": 2,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
           "actions": null,
           "callback": "admin_reports_summary_v2",
-          "index": 49,
+          "index": 55,
           "name": "reports-summary-v2",
           "postfix": "admin/reports/summary/",
           "route": "api/v2/admin/reports/summary/",
@@ -3635,7 +3799,7 @@
         {
           "actions": null,
           "callback": "admin_reports_users_v2",
-          "index": 50,
+          "index": 56,
           "name": "reports-users-v2",
           "postfix": "admin/reports/users/",
           "route": "api/v2/admin/reports/users/",
@@ -3646,7 +3810,7 @@
         {
           "actions": null,
           "callback": "admin_config_v2",
-          "index": 51,
+          "index": 57,
           "name": "config-v2",
           "postfix": "admin/config/",
           "route": "api/v2/admin/config/",
@@ -3657,7 +3821,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 52,
+          "index": 58,
           "name": "secure-v2",
           "postfix": "secure-data/",
           "route": "api/v2/secure-data/",
@@ -3668,7 +3832,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 53,
+          "index": 59,
           "name": "admin-only-v2",
           "postfix": "admin-only/",
           "route": "api/v2/admin-only/",
@@ -3679,7 +3843,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 54,
+          "index": 60,
           "name": "search-v2",
           "postfix": "search/",
           "route": "api/v2/search/",
@@ -3690,7 +3854,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 55,
+          "index": 61,
           "name": "upload-v2",
           "postfix": "upload/",
           "route": "api/v2/upload/",
@@ -3701,7 +3865,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 56,
+          "index": 62,
           "name": "resources-v2",
           "postfix": "resources/",
           "route": "api/v2/resources/",
@@ -3712,7 +3876,7 @@
         {
           "actions": null,
           "callback": "<lambda>",
-          "index": 57,
+          "index": 63,
           "name": "blog-router-v1",
           "postfix": "blog/",
           "route": "api/v2/blog/",
@@ -3723,7 +3887,7 @@
         {
           "actions": null,
           "callback": "user_list_v3",
-          "index": 58,
+          "index": 64,
           "name": "user-list-v3",
           "postfix": "users/",
           "route": "api/v3/users/",
@@ -3734,7 +3898,7 @@
         {
           "actions": null,
           "callback": "user_detail_v2",
-          "index": 59,
+          "index": 65,
           "name": "user-detail-v2",
           "postfix": "users/<int:user_id>/",
           "route": "api/v3/users/<int:user_id>/",
@@ -3745,7 +3909,7 @@
         {
           "actions": null,
           "callback": "post_list_v2",
-          "index": 60,
+          "index": 66,
           "name": "post-list-v2",
           "postfix": "posts/",
           "route": "api/v3/posts/",
@@ -3756,7 +3920,7 @@
         {
           "actions": null,
           "callback": "post_detail_v2",
-          "index": 61,
+          "index": 67,
           "name": "post-detail-v2",
           "postfix": "posts/<int:post_id>/",
           "route": "api/v3/posts/<int:post_id>/",
@@ -3767,7 +3931,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 62,
+          "index": 68,
           "name": "comment-list-v2-cbv",
           "postfix": "comments/",
           "route": "api/v3/comments/",
@@ -3778,7 +3942,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 63,
+          "index": 69,
           "name": "article-list-v2-drf",
           "postfix": "articles/",
           "route": "api/v3/articles/",
@@ -3789,7 +3953,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 64,
+          "index": 70,
           "name": "doc-list-v1-drf-generic",
           "postfix": "docs/",
           "route": "api/v3/docs/",
@@ -3800,7 +3964,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 65,
+          "index": 71,
           "name": "order-list-v2-drf-methods",
           "postfix": "orders/",
           "route": "api/v3/orders/",
@@ -3811,7 +3975,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 66,
+          "index": 72,
           "name": "order-detail-v2-drf-methods",
           "postfix": "orders/<int:order_id>/",
           "route": "api/v3/orders/<int:order_id>/",
@@ -3822,7 +3986,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 67,
+          "index": 73,
           "name": "item-list-v1-errors",
           "postfix": "items/",
           "route": "api/v3/items/",
@@ -3833,7 +3997,7 @@
         {
           "actions": null,
           "callback": "legacy_api",
-          "index": 68,
+          "index": 74,
           "name": "legacy-api",
           "postfix": "legacy-api/",
           "route": "api/v3/legacy-api/",
@@ -3844,7 +4008,7 @@
         {
           "actions": null,
           "callback": "analytics_overview_v2",
-          "index": 69,
+          "index": 75,
           "name": "analytics-overview-v2",
           "postfix": "analytics/overview/",
           "route": "api/v3/analytics/overview/",
@@ -3855,7 +4019,7 @@
         {
           "actions": null,
           "callback": "product_by_int_v1",
-          "index": 70,
+          "index": 76,
           "name": "product-by-int",
           "postfix": "products/<int:product_id>/",
           "route": "api/v3/products/<int:product_id>/",
@@ -3866,7 +4030,7 @@
         {
           "actions": null,
           "callback": "post_by_slug_v1",
-          "index": 71,
+          "index": 77,
           "name": "post-by-slug",
           "postfix": "posts/<slug:slug>/",
           "route": "api/v3/posts/<slug:slug>/",
@@ -3877,7 +4041,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 72,
+          "index": 78,
           "name": "protected-v2",
           "postfix": "protected-data/",
           "route": "api/v3/protected-data/",
@@ -3888,7 +4052,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 73,
+          "index": 79,
           "name": "products-list-v2",
           "postfix": "products-list/",
           "route": "api/v3/products-list/",
@@ -3899,7 +4063,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 74,
+          "index": 80,
           "name": "item-by-uuid-v2",
           "postfix": "items/<uuid:item_uuid>/",
           "route": "api/v3/items/<uuid:item_uuid>/",
@@ -3910,7 +4074,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 75,
+          "index": 81,
           "name": "task-detail-v2",
           "postfix": "tasks/<int:task_id>/",
           "route": "api/v3/tasks/<int:task_id>/",
@@ -3921,7 +4085,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 76,
+          "index": 82,
           "name": "task-create-v1",
           "postfix": "tasks/",
           "route": "api/v3/tasks/",
@@ -3930,9 +4094,35 @@
           "view_class": "TaskCreateV1"
         },
         {
+          "actions": {
+            "get": "list"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 83,
+          "name": "configured-product-list-v2",
+          "postfix": "configured-products/",
+          "route": "api/v3/configured-products/",
+          "route_version": 3,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
+          "actions": {
+            "get": "retrieve"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 84,
+          "name": "configured-product-detail-v2",
+          "postfix": "configured-products/<int:pk>/",
+          "route": "api/v3/configured-products/<int:pk>/",
+          "route_version": 3,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
           "actions": null,
           "callback": "admin_reports_summary_v2",
-          "index": 77,
+          "index": 85,
           "name": "reports-summary-v2",
           "postfix": "admin/reports/summary/",
           "route": "api/v3/admin/reports/summary/",
@@ -3943,7 +4133,7 @@
         {
           "actions": null,
           "callback": "admin_reports_users_v2",
-          "index": 78,
+          "index": 86,
           "name": "reports-users-v2",
           "postfix": "admin/reports/users/",
           "route": "api/v3/admin/reports/users/",
@@ -3954,7 +4144,7 @@
         {
           "actions": null,
           "callback": "admin_config_v2",
-          "index": 79,
+          "index": 87,
           "name": "config-v2",
           "postfix": "admin/config/",
           "route": "api/v3/admin/config/",
@@ -3965,7 +4155,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 80,
+          "index": 88,
           "name": "secure-v2",
           "postfix": "secure-data/",
           "route": "api/v3/secure-data/",
@@ -3976,7 +4166,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 81,
+          "index": 89,
           "name": "admin-only-v2",
           "postfix": "admin-only/",
           "route": "api/v3/admin-only/",
@@ -3987,7 +4177,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 82,
+          "index": 90,
           "name": "search-v2",
           "postfix": "search/",
           "route": "api/v3/search/",
@@ -3998,7 +4188,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 83,
+          "index": 91,
           "name": "upload-v2",
           "postfix": "upload/",
           "route": "api/v3/upload/",
@@ -4009,7 +4199,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 84,
+          "index": 92,
           "name": "resources-v2",
           "postfix": "resources/",
           "route": "api/v3/resources/",
@@ -4020,7 +4210,7 @@
         {
           "actions": null,
           "callback": "<lambda>",
-          "index": 85,
+          "index": 93,
           "name": "blog-router-v1",
           "postfix": "blog/",
           "route": "api/v3/blog/",
@@ -4031,7 +4221,7 @@
         {
           "actions": null,
           "callback": "user_list_v3",
-          "index": 86,
+          "index": 94,
           "name": "user-list-v3",
           "postfix": "users/",
           "route": "api/v4/users/",
@@ -4042,7 +4232,7 @@
         {
           "actions": null,
           "callback": "user_detail_v2",
-          "index": 87,
+          "index": 95,
           "name": "user-detail-v2",
           "postfix": "users/<int:user_id>/",
           "route": "api/v4/users/<int:user_id>/",
@@ -4053,7 +4243,7 @@
         {
           "actions": null,
           "callback": "post_list_v2",
-          "index": 88,
+          "index": 96,
           "name": "post-list-v2",
           "postfix": "posts/",
           "route": "api/v4/posts/",
@@ -4064,7 +4254,7 @@
         {
           "actions": null,
           "callback": "post_detail_v2",
-          "index": 89,
+          "index": 97,
           "name": "post-detail-v2",
           "postfix": "posts/<int:post_id>/",
           "route": "api/v4/posts/<int:post_id>/",
@@ -4075,7 +4265,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 90,
+          "index": 98,
           "name": "comment-list-v2-cbv",
           "postfix": "comments/",
           "route": "api/v4/comments/",
@@ -4086,7 +4276,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 91,
+          "index": 99,
           "name": "article-list-v2-drf",
           "postfix": "articles/",
           "route": "api/v4/articles/",
@@ -4097,7 +4287,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 92,
+          "index": 100,
           "name": "doc-list-v1-drf-generic",
           "postfix": "docs/",
           "route": "api/v4/docs/",
@@ -4108,7 +4298,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 93,
+          "index": 101,
           "name": "order-list-v2-drf-methods",
           "postfix": "orders/",
           "route": "api/v4/orders/",
@@ -4119,7 +4309,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 94,
+          "index": 102,
           "name": "order-detail-v2-drf-methods",
           "postfix": "orders/<int:order_id>/",
           "route": "api/v4/orders/<int:order_id>/",
@@ -4130,7 +4320,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 95,
+          "index": 103,
           "name": "item-list-v1-errors",
           "postfix": "items/",
           "route": "api/v4/items/",
@@ -4141,7 +4331,7 @@
         {
           "actions": null,
           "callback": "premium_features",
-          "index": 96,
+          "index": 104,
           "name": "premium-features",
           "postfix": "premium-features/",
           "route": "api/v4/premium-features/",
@@ -4152,7 +4342,7 @@
         {
           "actions": null,
           "callback": "analytics_overview_v2",
-          "index": 97,
+          "index": 105,
           "name": "analytics-overview-v2",
           "postfix": "analytics/overview/",
           "route": "api/v4/analytics/overview/",
@@ -4163,7 +4353,7 @@
         {
           "actions": null,
           "callback": "product_by_int_v1",
-          "index": 98,
+          "index": 106,
           "name": "product-by-int",
           "postfix": "products/<int:product_id>/",
           "route": "api/v4/products/<int:product_id>/",
@@ -4174,7 +4364,7 @@
         {
           "actions": null,
           "callback": "post_by_slug_v1",
-          "index": 99,
+          "index": 107,
           "name": "post-by-slug",
           "postfix": "posts/<slug:slug>/",
           "route": "api/v4/posts/<slug:slug>/",
@@ -4185,7 +4375,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 100,
+          "index": 108,
           "name": "protected-v2",
           "postfix": "protected-data/",
           "route": "api/v4/protected-data/",
@@ -4196,7 +4386,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 101,
+          "index": 109,
           "name": "products-list-v2",
           "postfix": "products-list/",
           "route": "api/v4/products-list/",
@@ -4207,7 +4397,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 102,
+          "index": 110,
           "name": "item-by-uuid-v2",
           "postfix": "items/<uuid:item_uuid>/",
           "route": "api/v4/items/<uuid:item_uuid>/",
@@ -4218,7 +4408,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 103,
+          "index": 111,
           "name": "task-detail-v2",
           "postfix": "tasks/<int:task_id>/",
           "route": "api/v4/tasks/<int:task_id>/",
@@ -4229,7 +4419,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 104,
+          "index": 112,
           "name": "task-create-v1",
           "postfix": "tasks/",
           "route": "api/v4/tasks/",
@@ -4238,9 +4428,35 @@
           "view_class": "TaskCreateV1"
         },
         {
+          "actions": {
+            "get": "list"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 113,
+          "name": "configured-product-list-v2",
+          "postfix": "configured-products/",
+          "route": "api/v4/configured-products/",
+          "route_version": 4,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
+          "actions": {
+            "get": "retrieve"
+          },
+          "callback": "ConfiguredProductViewSetV2",
+          "index": 114,
+          "name": "configured-product-detail-v2",
+          "postfix": "configured-products/<int:pk>/",
+          "route": "api/v4/configured-products/<int:pk>/",
+          "route_version": 4,
+          "source_version": 2,
+          "view_class": "ConfiguredProductViewSetV2"
+        },
+        {
           "actions": null,
           "callback": "admin_reports_summary_v2",
-          "index": 105,
+          "index": 115,
           "name": "reports-summary-v2",
           "postfix": "admin/reports/summary/",
           "route": "api/v4/admin/reports/summary/",
@@ -4251,7 +4467,7 @@
         {
           "actions": null,
           "callback": "admin_reports_users_v2",
-          "index": 106,
+          "index": 116,
           "name": "reports-users-v2",
           "postfix": "admin/reports/users/",
           "route": "api/v4/admin/reports/users/",
@@ -4262,7 +4478,7 @@
         {
           "actions": null,
           "callback": "admin_config_v2",
-          "index": 107,
+          "index": 117,
           "name": "config-v2",
           "postfix": "admin/config/",
           "route": "api/v4/admin/config/",
@@ -4273,7 +4489,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 108,
+          "index": 118,
           "name": "secure-v2",
           "postfix": "secure-data/",
           "route": "api/v4/secure-data/",
@@ -4284,7 +4500,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 109,
+          "index": 119,
           "name": "admin-only-v2",
           "postfix": "admin-only/",
           "route": "api/v4/admin-only/",
@@ -4295,7 +4511,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 110,
+          "index": 120,
           "name": "search-v2",
           "postfix": "search/",
           "route": "api/v4/search/",
@@ -4306,7 +4522,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 111,
+          "index": 121,
           "name": "upload-v2",
           "postfix": "upload/",
           "route": "api/v4/upload/",
@@ -4317,7 +4533,7 @@
         {
           "actions": null,
           "callback": "view",
-          "index": 112,
+          "index": 122,
           "name": "resources-v2",
           "postfix": "resources/",
           "route": "api/v4/resources/",
@@ -4328,7 +4544,7 @@
         {
           "actions": null,
           "callback": "<lambda>",
-          "index": 113,
+          "index": 123,
           "name": "blog-router-v1",
           "postfix": "blog/",
           "route": "api/v4/blog/",
@@ -4410,8 +4626,8 @@
             "actions": null,
             "callback": "user_list_v2",
             "kwargs": {},
-            "patterns_tried": 37,
-            "registry_index": 29,
+            "patterns_tried": 40,
+            "registry_index": 32,
             "route": "api/v2/users/",
             "url_name": "user-list-v2",
             "view_class": null
@@ -4455,8 +4671,8 @@
             "actions": null,
             "callback": "user_list_v3",
             "kwargs": {},
-            "patterns_tried": 63,
-            "registry_index": 58,
+            "patterns_tried": 69,
+            "registry_index": 64,
             "route": "api/v3/users/",
             "url_name": "user-list-v3",
             "view_class": null
@@ -4500,8 +4716,8 @@
             "actions": null,
             "callback": "user_list_v3",
             "kwargs": {},
-            "patterns_tried": 91,
-            "registry_index": 86,
+            "patterns_tried": 99,
+            "registry_index": 94,
             "route": "api/v4/users/",
             "url_name": "user-list-v3",
             "view_class": null
@@ -4632,7 +4848,7 @@
           "path": "/api/v5/users/",
           "resolve": {
             "error": "Resolver404",
-            "patterns_tried": 118
+            "patterns_tried": 128
           },
           "status": 404
         }
@@ -4694,24 +4910,24 @@
         "error": null,
         "ok": true,
         "package_calls": {
-          "django_api_versioning.decorators._validate_version": 54,
-          "django_api_versioning.decorators.endpoint": 52,
-          "django_api_versioning.decorators.endpoint.<locals>.decorator": 52,
-          "django_api_versioning.decorators.endpoint.<locals>.decorator.<locals>._register_route": 179,
+          "django_api_versioning.decorators._validate_version": 60,
+          "django_api_versioning.decorators.endpoint": 58,
+          "django_api_versioning.decorators.endpoint.<locals>.decorator": 58,
+          "django_api_versioning.decorators.endpoint.<locals>.decorator.<locals>._register_route": 195,
           "django_api_versioning.decorators.ver_range": 1,
-          "django_api_versioning.registry.UrlRegistry._create_pattern": 179,
-          "django_api_versioning.registry.UrlRegistry._find_route_index": 179,
-          "django_api_versioning.registry.UrlRegistry._should_replace": 65,
-          "django_api_versioning.registry.UrlRegistry._sort_urlpatterns": 179,
-          "django_api_versioning.registry.UrlRegistry._sort_urlpatterns.<locals>.<lambda>": 10193,
-          "django_api_versioning.registry.UrlRegistry.register": 179,
+          "django_api_versioning.registry.UrlRegistry._create_pattern": 195,
+          "django_api_versioning.registry.UrlRegistry._find_route_index": 195,
+          "django_api_versioning.registry.UrlRegistry._should_replace": 71,
+          "django_api_versioning.registry.UrlRegistry._sort_urlpatterns": 195,
+          "django_api_versioning.registry.UrlRegistry._sort_urlpatterns.<locals>.<lambda>": 12116,
+          "django_api_versioning.registry.UrlRegistry.register": 195,
           "django_api_versioning.urls.<module>": 1
         },
-        "registry_size_after": 114
+        "registry_size_after": 124
       },
       "views_module": "api.views",
       "views_source": {
-        "code": "\"\"\"\nAPI views for integration testing.\nTests various versioning scenarios.\n\"\"\"\n\nfrom django.http import JsonResponse\nfrom django.views import View\nfrom django.views.decorators.http import require_http_methods\n\nfrom django_api_versioning.decorators import endpoint, ver_range\n\n\n# Unversioned health check endpoint\n@require_http_methods([\"GET\"])\ndef health_check(request):\n    \"\"\"Health check endpoint.\"\"\"\n    return JsonResponse({\"status\": \"ok\"})\n\n\n# User endpoints with versioning\n@endpoint(\"users/\", version=1, view_name=\"user-list-v1\")\n@require_http_methods([\"GET\"])\ndef user_list(request):\n    \"\"\"List users - v1 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"users\": [\n                {\"id\": 1, \"name\": \"Alice\"},\n                {\"id\": 2, \"name\": \"Bob\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"users/\", version=2, view_name=\"user-list-v2\")\n@require_http_methods([\"GET\"])\ndef user_list_v2(request):\n    \"\"\"List users - v2 implementation with additional fields.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"users\": [\n                {\"id\": 1, \"name\": \"Alice\", \"email\": \"alice@example.com\"},\n                {\"id\": 2, \"name\": \"Bob\", \"email\": \"bob@example.com\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"users/\", version=3, view_name=\"user-list-v3\")\n@require_http_methods([\"GET\"])\ndef user_list_v3(request):\n    \"\"\"List users - v3 implementation with pagination.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 3,\n            \"users\": [\n                {\n                    \"id\": 1,\n                    \"name\": \"Alice\",\n                    \"email\": \"alice@example.com\",\n                    \"status\": \"active\",\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Bob\",\n                    \"email\": \"bob@example.com\",\n                    \"status\": \"active\",\n                },\n            ],\n            \"pagination\": {\"total\": 2, \"page\": 1},\n        }\n    )\n\n\n@endpoint(\"users/<int:user_id>/\", version=1, view_name=\"user-detail-v1\")\n@require_http_methods([\"GET\"])\ndef user_detail(request, user_id):\n    \"\"\"Get user detail - v1 implementation.\"\"\"\n    return JsonResponse({\"version\": 1, \"id\": user_id, \"name\": f\"User {user_id}\"})\n\n\n@endpoint(\"users/<int:user_id>/\", version=2, view_name=\"user-detail-v2\")\n@require_http_methods([\"GET\"])\ndef user_detail_v2(request, user_id):\n    \"\"\"Get user detail - v2 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"id\": user_id,\n            \"name\": f\"User {user_id}\",\n            \"email\": f\"user{user_id}@example.com\",\n        }\n    )\n\n\n# Post endpoints\n@endpoint(\"posts/\", version=1, view_name=\"post-list-v1\")\n@require_http_methods([\"GET\"])\ndef post_list(request):\n    \"\"\"List posts - v1 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"posts\": [\n                {\"id\": 1, \"title\": \"Post 1\"},\n                {\"id\": 2, \"title\": \"Post 2\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"posts/\", version=2, view_name=\"post-list-v2\")\n@require_http_methods([\"GET\"])\ndef post_list_v2(request):\n    \"\"\"List posts - v2 implementation with content.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"posts\": [\n                {\"id\": 1, \"title\": \"Post 1\", \"content\": \"Content 1\"},\n                {\"id\": 2, \"title\": \"Post 2\", \"content\": \"Content 2\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"posts/<int:post_id>/\", version=1, view_name=\"post-detail-v1\")\n@require_http_methods([\"GET\"])\ndef post_detail(request, post_id):\n    \"\"\"Get post detail - v1 implementation.\"\"\"\n    return JsonResponse({\"version\": 1, \"id\": post_id, \"title\": f\"Post {post_id}\"})\n\n\n@endpoint(\"posts/<int:post_id>/\", version=2, view_name=\"post-detail-v2\")\n@require_http_methods([\"GET\"])\ndef post_detail_v2(request, post_id):\n    \"\"\"Get post detail - v2 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"id\": post_id,\n            \"title\": f\"Post {post_id}\",\n            \"content\": f\"Content for post {post_id}\",\n        }\n    )\n\n\n# Class-Based Views\n@endpoint(\"comments/\", version=1, view_name=\"comment-list-v1-cbv\")\nclass CommentListV1(View):\n    \"\"\"CBV: List comments - v1 implementation.\"\"\"\n\n    def get(self, request):\n        return JsonResponse(\n            {\n                \"version\": 1,\n                \"comments\": [\n                    {\"id\": 1, \"text\": \"Great post!\"},\n                ],\n            }\n        )\n\n\n@endpoint(\"comments/\", version=2, view_name=\"comment-list-v2-cbv\")\nclass CommentListV2(View):\n    \"\"\"CBV: List comments - v2 implementation with author.\"\"\"\n\n    def get(self, request):\n        return JsonResponse(\n            {\n                \"version\": 2,\n                \"comments\": [\n                    {\"id\": 1, \"text\": \"Great post!\", \"author\": \"Alice\"},\n                ],\n            }\n        )\n\n\n# DRF APIViews\ntry:  # noqa: C901\n    from rest_framework import status, viewsets\n    from rest_framework.decorators import action, api_view\n    from rest_framework.decorators import permission_classes as drf_permission_classes\n    from rest_framework.generics import (\n        CreateAPIView,\n        ListAPIView,\n        RetrieveAPIView,\n        RetrieveUpdateDestroyAPIView,\n    )\n    from rest_framework.permissions import AllowAny, IsAuthenticated\n    from rest_framework.response import Response\n    from rest_framework.serializers import (\n        BooleanField,\n        CharField,\n        IntegerField,\n        Serializer,\n    )\n    from rest_framework.views import APIView\n\n    @endpoint(\"articles/\", version=1, view_name=\"article-list-v1-drf\")\n    class ArticleListV1(APIView):\n        \"\"\"DRF APIView: List articles - v1 implementation.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"articles\": [\n                        {\"id\": 1, \"title\": \"Django Tips\"},\n                    ],\n                }\n            )\n\n    @endpoint(\"articles/\", version=2, view_name=\"article-list-v2-drf\")\n    class ArticleListV2(APIView):\n        \"\"\"DRF APIView: List articles - v2 implementation with summary.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"articles\": [\n                        {\"id\": 1, \"title\": \"Django Tips\", \"summary\": \"Best practices\"},\n                    ],\n                }\n            )\n\n    # DRF Generic Views\n\n    class ArticleSerializer(Serializer):\n        id = IntegerField()\n        title = CharField()\n        summary = CharField(required=False, allow_blank=True)\n\n    @endpoint(\"docs/\", version=1, view_name=\"doc-list-v1-drf-generic\")\n    class DocListV1(ListAPIView):\n        \"\"\"DRF Generic View: List docs - v1 implementation.\"\"\"\n\n        serializer_class = ArticleSerializer\n\n        def get_queryset(self):\n            # Return a list instead of queryset for simplicity\n            return [{\"id\": 1, \"title\": \"Doc 1\"}]\n\n    # DRF APIViews with multiple HTTP methods\n    @endpoint(\"orders/\", version=1, view_name=\"order-list-v1-drf-methods\")\n    class OrderListV1(APIView):\n        \"\"\"DRF APIView: Orders - v1 with POST support.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"orders\": [\n                        {\"id\": 1, \"total\": \"19.99\"},\n                        {\"id\": 2, \"total\": \"29.99\"},\n                    ],\n                }\n            )\n\n        def post(self, request):\n            return Response(\n                {\"version\": 1, \"id\": 3, \"total\": request.data.get(\"total\", \"0.00\")},\n                status=status.HTTP_201_CREATED,\n            )\n\n    @endpoint(\"orders/\", version=2, view_name=\"order-list-v2-drf-methods\")\n    class OrderListV2(APIView):\n        \"\"\"DRF APIView: Orders - v2 with currency and POST support.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"orders\": [\n                        {\"id\": 1, \"total\": 1999, \"currency\": \"USD\"},\n                        {\"id\": 2, \"total\": 2999, \"currency\": \"USD\"},\n                    ],\n                }\n            )\n\n        def post(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": 3,\n                    \"total\": request.data.get(\"total\", 0),\n                    \"currency\": request.data.get(\"currency\", \"USD\"),\n                },\n                status=status.HTTP_201_CREATED,\n            )\n\n    @endpoint(\n        \"orders/<int:order_id>/\", version=1, view_name=\"order-detail-v1-drf-methods\"\n    )\n    class OrderDetailV1(APIView):\n        \"\"\"DRF APIView: Order detail - v1 with PUT/PATCH/DELETE support.\"\"\"\n\n        def get(self, request, order_id):\n            return Response({\"version\": 1, \"id\": order_id, \"total\": \"99.99\"})\n\n        def put(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", \"99.99\"),\n                }\n            )\n\n        def patch(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", \"99.99\"),\n                }\n            )\n\n        def delete(self, request, order_id):\n            return Response(status=status.HTTP_204_NO_CONTENT)\n\n    @endpoint(\n        \"orders/<int:order_id>/\", version=2, view_name=\"order-detail-v2-drf-methods\"\n    )\n    class OrderDetailV2(APIView):\n        \"\"\"DRF APIView: Order detail - v2 with currency and PUT/PATCH/DELETE support.\"\"\"\n\n        def get(self, request, order_id):\n            return Response(\n                {\"version\": 2, \"id\": order_id, \"total\": 9999, \"currency\": \"USD\"}\n            )\n\n        def put(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", 9999),\n                    \"currency\": request.data.get(\"currency\", \"USD\"),\n                }\n            )\n\n        def patch(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", 9999),\n                    \"currency\": request.data.get(\"currency\", \"USD\"),\n                }\n            )\n\n        def delete(self, request, order_id):\n            return Response(status=status.HTTP_204_NO_CONTENT)\n\n    # Error response testing\n    @endpoint(\"items/\", version=1, view_name=\"item-list-v1-errors\")\n    class ItemListV1(APIView):\n        \"\"\"DRF APIView: Items - v1 with error handling.\"\"\"\n\n        def get(self, request):\n            return Response({\"version\": 1, \"items\": []})\n\n        def post(self, request):\n            if not request.data.get(\"name\"):\n                return Response(\n                    {\"error\": \"name is required\"}, status=status.HTTP_400_BAD_REQUEST\n                )\n            return Response(\n                {\"version\": 1, \"id\": 1, \"name\": request.data[\"name\"]},\n                status=status.HTTP_201_CREATED,\n            )\n\n    DRF_AVAILABLE = True\nexcept ImportError:\n    DRF_AVAILABLE = False\n\n\n# Explicit version sets (only v2 and v4, v3 unavailable)\n@endpoint(\"premium-features/\", versions=[2, 4], view_name=\"premium-features\")\n@require_http_methods([\"GET\"])\ndef premium_features(request):\n    \"\"\"Feature available only in v2 and v4.\"\"\"\n    return JsonResponse({\"feature\": \"premium\", \"available_in_v2_and_v4_only\": True})\n\n\n# Bounded range (v1 through v3 only, then removed)\n@endpoint(\"legacy-api/\", versions=ver_range(1, 3), view_name=\"legacy-api\")\n@require_http_methods([\"GET\"])\ndef legacy_api(request):\n    \"\"\"Legacy API available only in v1-v3.\"\"\"\n    return JsonResponse({\"type\": \"legacy\", \"available_v1_through_v3_only\": True})\n\n\n# Unversioned endpoint (no version prefix, omit version parameter)\n@endpoint(\"status/\", view_name=\"status-check\")\n@require_http_methods([\"GET\"])\ndef status_endpoint(request):\n    \"\"\"Unversioned status endpoint.\"\"\"\n    return JsonResponse({\"status\": \"operational\", \"unversioned\": True})\n\n\n# Nested/namespaced endpoints for testing URL inclusion patterns\n# These will be included in a nested URL configuration\n@endpoint(\"analytics/overview/\", version=1, view_name=\"analytics-overview\")\n@require_http_methods([\"GET\"])\ndef analytics_overview_v1(request):\n    \"\"\"Analytics overview - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"metrics\": {\n                \"users\": 1000,\n                \"sessions\": 5000,\n            },\n        }\n    )\n\n\n@endpoint(\"analytics/overview/\", version=2, view_name=\"analytics-overview-v2\")\n@require_http_methods([\"GET\"])\ndef analytics_overview_v2(request):\n    \"\"\"Analytics overview - v2 with detailed metrics.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"metrics\": {\n                \"daily_active_users\": 500,\n                \"weekly_active_users\": 800,\n                \"monthly_active_users\": 1000,\n                \"sessions\": 5000,\n                \"bounce_rate\": 0.35,\n            },\n        }\n    )\n\n\n# Test different path converters\n@endpoint(\"products/<int:product_id>/\", version=1, view_name=\"product-by-int\")\n@require_http_methods([\"GET\"])\ndef product_by_int_v1(request, product_id):\n    \"\"\"Product by integer ID - v1.\"\"\"\n    return JsonResponse({\"version\": 1, \"product_id\": product_id, \"id_type\": \"integer\"})\n\n\n@endpoint(\"posts/<slug:slug>/\", version=1, view_name=\"post-by-slug\")\n@require_http_methods([\"GET\"])\ndef post_by_slug_v1(request, slug):\n    \"\"\"Post by slug - v1.\"\"\"\n    return JsonResponse({\"version\": 1, \"slug\": slug, \"slug_type\": \"slug\"})\n\n\n# Permissions-based views (permission testing)\ntry:  # noqa: C901\n\n    @endpoint(\"protected-data/\", version=1, view_name=\"protected-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([AllowAny])  # v1 allows all\n    def protected_data_v1(request):\n        \"\"\"Protected data endpoint - v1 with AllowAny permission.\"\"\"\n        return Response(\n            {\n                \"version\": 1,\n                \"data\": \"public\",\n                \"permission_level\": \"all\",\n            }\n        )\n\n    @endpoint(\"protected-data/\", version=2, view_name=\"protected-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([AllowAny])  # v2 also allows all for testing\n    def protected_data_v2(request):\n        \"\"\"Protected data endpoint - v2 with different permission.\"\"\"\n        return Response(\n            {\n                \"version\": 2,\n                \"data\": \"sensitive\",\n                \"permission_level\": \"restricted\",\n            }\n        )\n\n    # Serializer-based versioning views\n    class ProductV1Serializer(Serializer):\n        \"\"\"v1 product serializer - basic fields only.\"\"\"\n\n        id = IntegerField()\n        name = CharField()\n\n    class ProductV2Serializer(Serializer):\n        \"\"\"v2 product serializer - extended fields.\"\"\"\n\n        id = IntegerField()\n        name = CharField()\n        description = CharField(required=False)\n        price = IntegerField(required=False)\n\n    @endpoint(\"products-list/\", version=1, view_name=\"products-list-v1\")\n    class ProductListV1(ListAPIView):\n        \"\"\"Product list - v1 with basic serializer.\"\"\"\n\n        serializer_class = ProductV1Serializer\n\n        def get_queryset(self):\n            return [\n                {\"id\": 1, \"name\": \"Product 1\"},\n                {\"id\": 2, \"name\": \"Product 2\"},\n            ]\n\n    @endpoint(\"products-list/\", version=2, view_name=\"products-list-v2\")\n    class ProductListV2(ListAPIView):\n        \"\"\"Product list - v2 with extended serializer.\"\"\"\n\n        serializer_class = ProductV2Serializer\n\n        def get_queryset(self):\n            return [\n                {\n                    \"id\": 1,\n                    \"name\": \"Product 1\",\n                    \"description\": \"First product\",\n                    \"price\": 100,\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Product 2\",\n                    \"description\": \"Second product\",\n                    \"price\": 200,\n                },\n            ]\n\n    # UUID path converter tests\n    @endpoint(\"items/<uuid:item_uuid>/\", version=1, view_name=\"item-by-uuid-v1\")\n    class ItemByUUIDV1(APIView):\n        \"\"\"Get item by UUID - v1.\"\"\"\n\n        def get(self, request, item_uuid):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"item_uuid\": str(item_uuid),\n                    \"item_type\": \"uuid\",\n                }\n            )\n\n    @endpoint(\"items/<uuid:item_uuid>/\", version=2, view_name=\"item-by-uuid-v2\")\n    class ItemByUUIDV2(APIView):\n        \"\"\"Get item by UUID - v2 with extended info.\"\"\"\n\n        def get(self, request, item_uuid):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"item_uuid\": str(item_uuid),\n                    \"item_type\": \"uuid\",\n                    \"details\": f\"Item {item_uuid} details\",\n                }\n            )\n\n    # ViewSet examples (for router integration testing)\n    # Note: ViewSets with @endpoint decorator work with explicit as_view() calls\n    class BlogPostSerializer(Serializer):\n        \"\"\"Blog post serializer.\"\"\"\n\n        id = IntegerField()\n        title = CharField()\n        content = CharField(required=False)\n\n    class BlogPostViewSetV1(viewsets.ViewSet):\n        \"\"\"Blog post viewset - v1 with basic fields.\"\"\"\n\n        def list(self, request):\n            \"\"\"List blog posts.\"\"\"\n            return Response(\n                {\n                    \"version\": 1,\n                    \"posts\": [\n                        {\"id\": 1, \"title\": \"Post 1\"},\n                        {\"id\": 2, \"title\": \"Post 2\"},\n                    ],\n                }\n            )\n\n        def retrieve(self, request, pk=None):\n            \"\"\"Get a single blog post.\"\"\"\n            return Response({\"version\": 1, \"id\": pk, \"title\": f\"Post {pk}\"})\n\n        @action(detail=True, methods=[\"post\"])\n        def publish(self, request, pk=None):\n            \"\"\"Publish a blog post.\"\"\"\n            return Response({\"version\": 1, \"status\": \"published\", \"id\": pk})\n\n    class BlogPostViewSetV2(viewsets.ViewSet):\n        \"\"\"Blog post viewset - v2 with extended fields.\"\"\"\n\n        def list(self, request):\n            \"\"\"List blog posts.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"posts\": [\n                        {\"id\": 1, \"title\": \"Post 1\", \"content\": \"Content 1\"},\n                        {\"id\": 2, \"title\": \"Post 2\", \"content\": \"Content 2\"},\n                    ],\n                }\n            )\n\n        def retrieve(self, request, pk=None):\n            \"\"\"Get a single blog post.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": pk,\n                    \"title\": f\"Post {pk}\",\n                    \"content\": f\"Content for post {pk}\",\n                }\n            )\n\n        @action(detail=False, methods=[\"get\"])\n        def recent(self, request):\n            \"\"\"Get recent blog posts.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"posts\": [\n                        {\"id\": 1, \"title\": \"Post 1\", \"content\": \"Content 1\"},\n                    ],\n                }\n            )\n\n        @action(detail=True, methods=[\"post\"])\n        def publish(self, request, pk=None):\n            \"\"\"Publish a blog post.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"status\": \"published\",\n                    \"id\": pk,\n                    \"timestamp\": \"2026-11-08T00:00:00Z\",\n                }\n            )\n\n    # Generic APIView tests (Retrieve, Create, Update, Destroy)\n    class TaskSerializer(Serializer):\n        \"\"\"Task serializer for generic view tests.\"\"\"\n\n        id = IntegerField(read_only=True)\n        title = CharField(max_length=100)\n        completed = BooleanField(default=False)\n\n    @endpoint(\"tasks/<int:task_id>/\", version=1, view_name=\"task-retrieve-v1\")\n    class TaskRetrieveV1(RetrieveAPIView):\n        \"\"\"Retrieve a task - v1.\"\"\"\n\n        serializer_class = TaskSerializer\n\n        def get_object(self):\n            \"\"\"Mock task object retrieval.\"\"\"\n            task_id = self.kwargs.get(\"task_id\", 1)\n            return {\"id\": task_id, \"title\": f\"Task {task_id}\", \"completed\": False}\n\n    @endpoint(\"tasks/\", version=1, view_name=\"task-create-v1\")\n    class TaskCreateV1(CreateAPIView):\n        \"\"\"Create a new task - v1.\"\"\"\n\n        serializer_class = TaskSerializer\n\n        def create(self, request, *args, **kwargs):\n            serializer = self.get_serializer(data=request.data)\n            serializer.is_valid(raise_exception=True)\n            return Response(\n                {\"id\": 1, **serializer.validated_data}, status=status.HTTP_201_CREATED\n            )\n\n    @endpoint(\"tasks/<int:task_id>/\", version=2, view_name=\"task-detail-v2\")\n    class TaskDetailV2(RetrieveUpdateDestroyAPIView):\n        \"\"\"Retrieve, update, or delete a task - v2.\"\"\"\n\n        serializer_class = TaskSerializer\n\n        def get_object(self):\n            \"\"\"Mock task object retrieval.\"\"\"\n            task_id = self.kwargs.get(\"task_id\", 1)\n            return {\"id\": task_id, \"title\": f\"Task {task_id}\", \"completed\": False}\n\n        def update(self, request, *args, **kwargs):\n            \"\"\"Handle PUT requests (full update).\"\"\"\n            instance = self.get_object()\n            serializer = self.get_serializer(instance, data=request.data, partial=False)\n            serializer.is_valid(raise_exception=True)\n            return Response(\n                {\n                    \"id\": instance[\"id\"],\n                    \"title\": serializer.validated_data.get(\"title\", instance[\"title\"]),\n                    \"completed\": serializer.validated_data.get(\n                        \"completed\", instance.get(\"completed\", False)\n                    ),\n                }\n            )\n\n        def partial_update(self, request, *args, **kwargs):\n            \"\"\"Handle PATCH requests (partial update).\"\"\"\n            instance = self.get_object()\n            serializer = self.get_serializer(instance, data=request.data, partial=True)\n            serializer.is_valid(raise_exception=True)\n            return Response(\n                {\n                    \"id\": instance[\"id\"],\n                    \"title\": serializer.validated_data.get(\"title\", instance[\"title\"]),\n                    \"completed\": serializer.validated_data.get(\n                        \"completed\", instance.get(\"completed\", False)\n                    ),\n                }\n            )\n\n        def destroy(self, request, *args, **kwargs):\n            \"\"\"Handle DELETE requests.\"\"\"\n            task_id = self.kwargs.get(\"task_id\", 1)\n            return Response(\n                {\"id\": task_id, \"deleted\": True}, status=status.HTTP_204_NO_CONTENT\n            )\n\nexcept ImportError:\n    pass\n\n\n# Namespaced endpoint views for testing namespace integration\n# Note: app_name=\"admin\" adds \"admin/\" to the path, so we don't duplicate it in postfix\n@endpoint(\n    \"reports/summary/\", version=1, view_name=\"reports-summary-v1\", app_name=\"admin\"\n)\n@require_http_methods([\"GET\"])\ndef admin_reports_summary_v1(request):\n    \"\"\"Admin reports summary - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/summary\",\n            \"data\": {\n                \"total_users\": 1000,\n                \"active_sessions\": 50,\n            },\n        }\n    )\n\n\n@endpoint(\n    \"reports/summary/\", version=2, view_name=\"reports-summary-v2\", app_name=\"admin\"\n)\n@require_http_methods([\"GET\"])\ndef admin_reports_summary_v2(request):\n    \"\"\"Admin reports summary - v2 with extended metrics.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/summary\",\n            \"data\": {\n                \"total_users\": 1050,\n                \"active_sessions\": 55,\n                \"new_signups_today\": 12,\n                \"premium_count\": 150,\n            },\n        }\n    )\n\n\n@endpoint(\"reports/users/\", version=1, view_name=\"reports-users-v1\", app_name=\"admin\")\n@require_http_methods([\"GET\"])\ndef admin_reports_users_v1(request):\n    \"\"\"Admin user reports - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/users\",\n            \"users\": [\n                {\"id\": 1, \"email\": \"user1@example.com\"},\n                {\"id\": 2, \"email\": \"user2@example.com\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"reports/users/\", version=2, view_name=\"reports-users-v2\", app_name=\"admin\")\n@require_http_methods([\"GET\"])\ndef admin_reports_users_v2(request):\n    \"\"\"Admin user reports - v2 with status.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/users\",\n            \"users\": [\n                {\"id\": 1, \"email\": \"user1@example.com\", \"status\": \"active\"},\n                {\"id\": 2, \"email\": \"user2@example.com\", \"status\": \"inactive\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"config/\", version=1, view_name=\"config-v1\", app_name=\"admin\")\n@require_http_methods([\"GET\"])\ndef admin_config_v1(request):\n    \"\"\"Admin configuration - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"namespace\": \"admin\",\n            \"config\": {\n                \"max_users\": 5000,\n                \"max_storage\": 1000000,\n            },\n        }\n    )\n\n\n@endpoint(\"config/\", version=2, view_name=\"config-v2\", app_name=\"admin\")\n@require_http_methods([\"GET\", \"POST\"])\ndef admin_config_v2(request):\n    \"\"\"Admin configuration - v2 with update support.\"\"\"\n    if request.method == \"POST\":\n        return JsonResponse(\n            {\"version\": 2, \"namespace\": \"admin\", \"status\": \"config_updated\"}\n        )\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"namespace\": \"admin\",\n            \"config\": {\n                \"max_users\": 10000,\n                \"max_storage\": 5000000,\n                \"max_api_calls_per_day\": 100000,\n            },\n        }\n    )\n\n\n# Authentication and Permission testing views\ntry:\n    from rest_framework.permissions import BasePermission\n\n    class IsAdminUser(BasePermission):\n        \"\"\"Custom permission for admin users.\"\"\"\n\n        def has_permission(self, request, view):\n            return hasattr(request, \"user\") and getattr(request.user, \"is_staff\", False)\n\n    @endpoint(\"secure-data/\", version=1, view_name=\"secure-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAuthenticated])\n    def secure_data_v1(request):\n        \"\"\"Secure data endpoint - v1 requires authentication.\"\"\"\n        return Response(\n            {\n                \"version\": 1,\n                \"data\": \"secure_v1\",\n                \"user\": getattr(request.user, \"username\", \"anonymous\"),\n            }\n        )\n\n    @endpoint(\"secure-data/\", version=2, view_name=\"secure-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAuthenticated])\n    def secure_data_v2(request):\n        \"\"\"Secure data endpoint - v2 requires authentication.\"\"\"\n        return Response(\n            {\n                \"version\": 2,\n                \"data\": \"secure_v2\",\n                \"user\": getattr(request.user, \"username\", \"anonymous\"),\n                \"email\": getattr(request.user, \"email\", \"no-email\"),\n            }\n        )\n\n    @endpoint(\"admin-only/\", version=1, view_name=\"admin-only-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAdminUser])\n    def admin_only_v1(request):\n        \"\"\"Admin-only endpoint - v1.\"\"\"\n        return Response(\n            {\n                \"version\": 1,\n                \"admin_data\": \"admin_content_v1\",\n            }\n        )\n\n    @endpoint(\"admin-only/\", version=2, view_name=\"admin-only-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAdminUser])\n    def admin_only_v2(request):\n        \"\"\"Admin-only endpoint - v2.\"\"\"\n        return Response(\n            {\n                \"version\": 2,\n                \"admin_data\": \"admin_content_v2\",\n                \"admin_user\": getattr(request.user, \"username\", \"none\"),\n            }\n        )\n\n    # Query parameter handling tests\n    @endpoint(\"search/\", version=1, view_name=\"search-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([])\n    def search_v1(request):\n        \"\"\"Search endpoint - v1 with query parameters.\"\"\"\n        query = request.query_params.get(\"q\", \"\")\n        limit = request.query_params.get(\"limit\", \"10\")\n        return Response(\n            {\n                \"version\": 1,\n                \"query\": query,\n                \"limit\": int(limit) if limit.isdigit() else 10,\n                \"results\": [{\"id\": 1, \"title\": f\"Result for {query}\"}] if query else [],\n            }\n        )\n\n    @endpoint(\"search/\", version=2, view_name=\"search-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([])\n    def search_v2(request):\n        \"\"\"Search endpoint - v2 with extended query parameters.\"\"\"\n        query = request.query_params.get(\"q\", \"\")\n        limit = request.query_params.get(\"limit\", \"20\")\n        offset = request.query_params.get(\"offset\", \"0\")\n        filters = request.query_params.get(\"filters\", \"\")\n        return Response(\n            {\n                \"version\": 2,\n                \"query\": query,\n                \"limit\": int(limit) if limit.isdigit() else 20,\n                \"offset\": int(offset) if offset.isdigit() else 0,\n                \"filters\": filters,\n                \"total\": 100,\n                \"results\": (\n                    [{\"id\": i, \"title\": f\"Result {i} for {query}\"} for i in range(1, 3)]\n                    if query\n                    else []\n                ),\n            }\n        )\n\n    # Form data and multipart handling tests\n    @endpoint(\"upload/\", version=1, view_name=\"upload-v1\")\n    @api_view([\"POST\"])\n    @drf_permission_classes([])\n    def upload_v1(request):\n        \"\"\"Upload endpoint - v1.\"\"\"\n        name = request.data.get(\"name\", \"unnamed\")\n        description = request.data.get(\"description\", \"\")\n        return Response(\n            {\n                \"version\": 1,\n                \"uploaded\": True,\n                \"name\": name,\n                \"description\": description,\n            },\n            status=201,\n        )\n\n    @endpoint(\"upload/\", version=2, view_name=\"upload-v2\")\n    @api_view([\"POST\"])\n    @drf_permission_classes([])\n    def upload_v2(request):\n        \"\"\"Upload endpoint - v2 with metadata.\"\"\"\n        name = request.data.get(\"name\", \"unnamed\")\n        description = request.data.get(\"description\", \"\")\n        tags = request.data.get(\"tags\", \"\")\n        return Response(\n            {\n                \"version\": 2,\n                \"uploaded\": True,\n                \"name\": name,\n                \"description\": description,\n                \"tags\": tags.split(\",\") if tags else [],\n                \"timestamp\": \"2024-01-01T00:00:00Z\",\n            },\n            status=201,\n        )\n\n    # HEAD/OPTIONS method testing\n    @endpoint(\"resources/\", version=1, view_name=\"resources-v1\")\n    @api_view([\"GET\", \"HEAD\", \"OPTIONS\"])\n    @drf_permission_classes([])\n    def resources_v1(request):\n        \"\"\"Resources endpoint - v1 with HEAD/OPTIONS support.\"\"\"\n        if request.method == \"HEAD\":\n            # HEAD should return same headers as GET but no body\n            response = Response({})\n            response[\"X-Total-Count\"] = \"42\"\n            return response\n        return Response({\"version\": 1, \"resources\": [{\"id\": 1, \"name\": \"Resource 1\"}]})\n\n    @endpoint(\"resources/\", version=2, view_name=\"resources-v2\")\n    @api_view([\"GET\", \"HEAD\", \"OPTIONS\", \"POST\"])\n    @drf_permission_classes([])\n    def resources_v2(request):\n        \"\"\"Resources endpoint - v2 with additional methods.\"\"\"\n        if request.method == \"HEAD\":\n            response = Response({})\n            response[\"X-Total-Count\"] = \"100\"\n            return response\n        if request.method == \"POST\":\n            return Response({\"version\": 2, \"created\": True, \"id\": 999}, status=201)\n        return Response(\n            {\n                \"version\": 2,\n                \"resources\": [{\"id\": i, \"name\": f\"Resource {i}\"} for i in range(1, 3)],\n            }\n        )\n\nexcept ImportError:\n    pass\n",
+        "code": "\"\"\"\nAPI views for integration testing.\nTests various versioning scenarios.\n\"\"\"\n\nfrom django.http import JsonResponse\nfrom django.views import View\nfrom django.views.decorators.http import require_http_methods\n\nfrom django_api_versioning.decorators import endpoint, ver_range\n\n\n# Unversioned health check endpoint\n@require_http_methods([\"GET\"])\ndef health_check(request):\n    \"\"\"Health check endpoint.\"\"\"\n    return JsonResponse({\"status\": \"ok\"})\n\n\n# User endpoints with versioning\n@endpoint(\"users/\", version=1, view_name=\"user-list-v1\")\n@require_http_methods([\"GET\"])\ndef user_list(request):\n    \"\"\"List users - v1 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"users\": [\n                {\"id\": 1, \"name\": \"Alice\"},\n                {\"id\": 2, \"name\": \"Bob\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"users/\", version=2, view_name=\"user-list-v2\")\n@require_http_methods([\"GET\"])\ndef user_list_v2(request):\n    \"\"\"List users - v2 implementation with additional fields.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"users\": [\n                {\"id\": 1, \"name\": \"Alice\", \"email\": \"alice@example.com\"},\n                {\"id\": 2, \"name\": \"Bob\", \"email\": \"bob@example.com\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"users/\", version=3, view_name=\"user-list-v3\")\n@require_http_methods([\"GET\"])\ndef user_list_v3(request):\n    \"\"\"List users - v3 implementation with pagination.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 3,\n            \"users\": [\n                {\n                    \"id\": 1,\n                    \"name\": \"Alice\",\n                    \"email\": \"alice@example.com\",\n                    \"status\": \"active\",\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Bob\",\n                    \"email\": \"bob@example.com\",\n                    \"status\": \"active\",\n                },\n            ],\n            \"pagination\": {\"total\": 2, \"page\": 1},\n        }\n    )\n\n\n@endpoint(\"users/<int:user_id>/\", version=1, view_name=\"user-detail-v1\")\n@require_http_methods([\"GET\"])\ndef user_detail(request, user_id):\n    \"\"\"Get user detail - v1 implementation.\"\"\"\n    return JsonResponse({\"version\": 1, \"id\": user_id, \"name\": f\"User {user_id}\"})\n\n\n@endpoint(\"users/<int:user_id>/\", version=2, view_name=\"user-detail-v2\")\n@require_http_methods([\"GET\"])\ndef user_detail_v2(request, user_id):\n    \"\"\"Get user detail - v2 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"id\": user_id,\n            \"name\": f\"User {user_id}\",\n            \"email\": f\"user{user_id}@example.com\",\n        }\n    )\n\n\n# Post endpoints\n@endpoint(\"posts/\", version=1, view_name=\"post-list-v1\")\n@require_http_methods([\"GET\"])\ndef post_list(request):\n    \"\"\"List posts - v1 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"posts\": [\n                {\"id\": 1, \"title\": \"Post 1\"},\n                {\"id\": 2, \"title\": \"Post 2\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"posts/\", version=2, view_name=\"post-list-v2\")\n@require_http_methods([\"GET\"])\ndef post_list_v2(request):\n    \"\"\"List posts - v2 implementation with content.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"posts\": [\n                {\"id\": 1, \"title\": \"Post 1\", \"content\": \"Content 1\"},\n                {\"id\": 2, \"title\": \"Post 2\", \"content\": \"Content 2\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"posts/<int:post_id>/\", version=1, view_name=\"post-detail-v1\")\n@require_http_methods([\"GET\"])\ndef post_detail(request, post_id):\n    \"\"\"Get post detail - v1 implementation.\"\"\"\n    return JsonResponse({\"version\": 1, \"id\": post_id, \"title\": f\"Post {post_id}\"})\n\n\n@endpoint(\"posts/<int:post_id>/\", version=2, view_name=\"post-detail-v2\")\n@require_http_methods([\"GET\"])\ndef post_detail_v2(request, post_id):\n    \"\"\"Get post detail - v2 implementation.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"id\": post_id,\n            \"title\": f\"Post {post_id}\",\n            \"content\": f\"Content for post {post_id}\",\n        }\n    )\n\n\n# Class-Based Views\n@endpoint(\"comments/\", version=1, view_name=\"comment-list-v1-cbv\")\nclass CommentListV1(View):\n    \"\"\"CBV: List comments - v1 implementation.\"\"\"\n\n    def get(self, request):\n        return JsonResponse(\n            {\n                \"version\": 1,\n                \"comments\": [\n                    {\"id\": 1, \"text\": \"Great post!\"},\n                ],\n            }\n        )\n\n\n@endpoint(\"comments/\", version=2, view_name=\"comment-list-v2-cbv\")\nclass CommentListV2(View):\n    \"\"\"CBV: List comments - v2 implementation with author.\"\"\"\n\n    def get(self, request):\n        return JsonResponse(\n            {\n                \"version\": 2,\n                \"comments\": [\n                    {\"id\": 1, \"text\": \"Great post!\", \"author\": \"Alice\"},\n                ],\n            }\n        )\n\n\n# DRF APIViews\ntry:  # noqa: C901\n    from rest_framework import status, viewsets\n    from rest_framework.decorators import action, api_view\n    from rest_framework.decorators import permission_classes as drf_permission_classes\n    from rest_framework.generics import (\n        CreateAPIView,\n        ListAPIView,\n        RetrieveAPIView,\n        RetrieveUpdateDestroyAPIView,\n    )\n    from rest_framework.permissions import AllowAny, IsAuthenticated\n    from rest_framework.response import Response\n    from rest_framework.serializers import (\n        BooleanField,\n        CharField,\n        IntegerField,\n        Serializer,\n    )\n    from rest_framework.views import APIView\n\n    @endpoint(\"articles/\", version=1, view_name=\"article-list-v1-drf\")\n    class ArticleListV1(APIView):\n        \"\"\"DRF APIView: List articles - v1 implementation.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"articles\": [\n                        {\"id\": 1, \"title\": \"Django Tips\"},\n                    ],\n                }\n            )\n\n    @endpoint(\"articles/\", version=2, view_name=\"article-list-v2-drf\")\n    class ArticleListV2(APIView):\n        \"\"\"DRF APIView: List articles - v2 implementation with summary.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"articles\": [\n                        {\"id\": 1, \"title\": \"Django Tips\", \"summary\": \"Best practices\"},\n                    ],\n                }\n            )\n\n    # DRF Generic Views\n\n    class ArticleSerializer(Serializer):\n        id = IntegerField()\n        title = CharField()\n        summary = CharField(required=False, allow_blank=True)\n\n    @endpoint(\"docs/\", version=1, view_name=\"doc-list-v1-drf-generic\")\n    class DocListV1(ListAPIView):\n        \"\"\"DRF Generic View: List docs - v1 implementation.\"\"\"\n\n        serializer_class = ArticleSerializer\n\n        def get_queryset(self):\n            # Return a list instead of queryset for simplicity\n            return [{\"id\": 1, \"title\": \"Doc 1\"}]\n\n    # DRF APIViews with multiple HTTP methods\n    @endpoint(\"orders/\", version=1, view_name=\"order-list-v1-drf-methods\")\n    class OrderListV1(APIView):\n        \"\"\"DRF APIView: Orders - v1 with POST support.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"orders\": [\n                        {\"id\": 1, \"total\": \"19.99\"},\n                        {\"id\": 2, \"total\": \"29.99\"},\n                    ],\n                }\n            )\n\n        def post(self, request):\n            return Response(\n                {\"version\": 1, \"id\": 3, \"total\": request.data.get(\"total\", \"0.00\")},\n                status=status.HTTP_201_CREATED,\n            )\n\n    @endpoint(\"orders/\", version=2, view_name=\"order-list-v2-drf-methods\")\n    class OrderListV2(APIView):\n        \"\"\"DRF APIView: Orders - v2 with currency and POST support.\"\"\"\n\n        def get(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"orders\": [\n                        {\"id\": 1, \"total\": 1999, \"currency\": \"USD\"},\n                        {\"id\": 2, \"total\": 2999, \"currency\": \"USD\"},\n                    ],\n                }\n            )\n\n        def post(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": 3,\n                    \"total\": request.data.get(\"total\", 0),\n                    \"currency\": request.data.get(\"currency\", \"USD\"),\n                },\n                status=status.HTTP_201_CREATED,\n            )\n\n    @endpoint(\n        \"orders/<int:order_id>/\", version=1, view_name=\"order-detail-v1-drf-methods\"\n    )\n    class OrderDetailV1(APIView):\n        \"\"\"DRF APIView: Order detail - v1 with PUT/PATCH/DELETE support.\"\"\"\n\n        def get(self, request, order_id):\n            return Response({\"version\": 1, \"id\": order_id, \"total\": \"99.99\"})\n\n        def put(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", \"99.99\"),\n                }\n            )\n\n        def patch(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", \"99.99\"),\n                }\n            )\n\n        def delete(self, request, order_id):\n            return Response(status=status.HTTP_204_NO_CONTENT)\n\n    @endpoint(\n        \"orders/<int:order_id>/\", version=2, view_name=\"order-detail-v2-drf-methods\"\n    )\n    class OrderDetailV2(APIView):\n        \"\"\"DRF APIView: Order detail - v2 with currency and PUT/PATCH/DELETE support.\"\"\"\n\n        def get(self, request, order_id):\n            return Response(\n                {\"version\": 2, \"id\": order_id, \"total\": 9999, \"currency\": \"USD\"}\n            )\n\n        def put(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", 9999),\n                    \"currency\": request.data.get(\"currency\", \"USD\"),\n                }\n            )\n\n        def patch(self, request, order_id):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": order_id,\n                    \"total\": request.data.get(\"total\", 9999),\n                    \"currency\": request.data.get(\"currency\", \"USD\"),\n                }\n            )\n\n        def delete(self, request, order_id):\n            return Response(status=status.HTTP_204_NO_CONTENT)\n\n    # Error response testing\n    @endpoint(\"items/\", version=1, view_name=\"item-list-v1-errors\")\n    class ItemListV1(APIView):\n        \"\"\"DRF APIView: Items - v1 with error handling.\"\"\"\n\n        def get(self, request):\n            return Response({\"version\": 1, \"items\": []})\n\n        def post(self, request):\n            if not request.data.get(\"name\"):\n                return Response(\n                    {\"error\": \"name is required\"}, status=status.HTTP_400_BAD_REQUEST\n                )\n            return Response(\n                {\"version\": 1, \"id\": 1, \"name\": request.data[\"name\"]},\n                status=status.HTTP_201_CREATED,\n            )\n\n    DRF_AVAILABLE = True\nexcept ImportError:\n    DRF_AVAILABLE = False\n\n\n# Explicit version sets (only v2 and v4, v3 unavailable)\n@endpoint(\"premium-features/\", versions=[2, 4], view_name=\"premium-features\")\n@require_http_methods([\"GET\"])\ndef premium_features(request):\n    \"\"\"Feature available only in v2 and v4.\"\"\"\n    return JsonResponse({\"feature\": \"premium\", \"available_in_v2_and_v4_only\": True})\n\n\n# Bounded range (v1 through v3 only, then removed)\n@endpoint(\"legacy-api/\", versions=ver_range(1, 3), view_name=\"legacy-api\")\n@require_http_methods([\"GET\"])\ndef legacy_api(request):\n    \"\"\"Legacy API available only in v1-v3.\"\"\"\n    return JsonResponse({\"type\": \"legacy\", \"available_v1_through_v3_only\": True})\n\n\n# Unversioned endpoint (no version prefix, omit version parameter)\n@endpoint(\"status/\", view_name=\"status-check\")\n@require_http_methods([\"GET\"])\ndef status_endpoint(request):\n    \"\"\"Unversioned status endpoint.\"\"\"\n    return JsonResponse({\"status\": \"operational\", \"unversioned\": True})\n\n\n# Nested/namespaced endpoints for testing URL inclusion patterns\n# These will be included in a nested URL configuration\n@endpoint(\"analytics/overview/\", version=1, view_name=\"analytics-overview\")\n@require_http_methods([\"GET\"])\ndef analytics_overview_v1(request):\n    \"\"\"Analytics overview - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"metrics\": {\n                \"users\": 1000,\n                \"sessions\": 5000,\n            },\n        }\n    )\n\n\n@endpoint(\"analytics/overview/\", version=2, view_name=\"analytics-overview-v2\")\n@require_http_methods([\"GET\"])\ndef analytics_overview_v2(request):\n    \"\"\"Analytics overview - v2 with detailed metrics.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"metrics\": {\n                \"daily_active_users\": 500,\n                \"weekly_active_users\": 800,\n                \"monthly_active_users\": 1000,\n                \"sessions\": 5000,\n                \"bounce_rate\": 0.35,\n            },\n        }\n    )\n\n\n# Test different path converters\n@endpoint(\"products/<int:product_id>/\", version=1, view_name=\"product-by-int\")\n@require_http_methods([\"GET\"])\ndef product_by_int_v1(request, product_id):\n    \"\"\"Product by integer ID - v1.\"\"\"\n    return JsonResponse({\"version\": 1, \"product_id\": product_id, \"id_type\": \"integer\"})\n\n\n@endpoint(\"posts/<slug:slug>/\", version=1, view_name=\"post-by-slug\")\n@require_http_methods([\"GET\"])\ndef post_by_slug_v1(request, slug):\n    \"\"\"Post by slug - v1.\"\"\"\n    return JsonResponse({\"version\": 1, \"slug\": slug, \"slug_type\": \"slug\"})\n\n\n# Permissions-based views (permission testing)\ntry:  # noqa: C901\n\n    @endpoint(\"protected-data/\", version=1, view_name=\"protected-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([AllowAny])  # v1 allows all\n    def protected_data_v1(request):\n        \"\"\"Protected data endpoint - v1 with AllowAny permission.\"\"\"\n        return Response(\n            {\n                \"version\": 1,\n                \"data\": \"public\",\n                \"permission_level\": \"all\",\n            }\n        )\n\n    @endpoint(\"protected-data/\", version=2, view_name=\"protected-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([AllowAny])  # v2 also allows all for testing\n    def protected_data_v2(request):\n        \"\"\"Protected data endpoint - v2 with different permission.\"\"\"\n        return Response(\n            {\n                \"version\": 2,\n                \"data\": \"sensitive\",\n                \"permission_level\": \"restricted\",\n            }\n        )\n\n    # Serializer-based versioning views\n    class ProductV1Serializer(Serializer):\n        \"\"\"v1 product serializer - basic fields only.\"\"\"\n\n        id = IntegerField()\n        name = CharField()\n\n    class ProductV2Serializer(Serializer):\n        \"\"\"v2 product serializer - extended fields.\"\"\"\n\n        id = IntegerField()\n        name = CharField()\n        description = CharField(required=False)\n        price = IntegerField(required=False)\n\n    @endpoint(\"products-list/\", version=1, view_name=\"products-list-v1\")\n    class ProductListV1(ListAPIView):\n        \"\"\"Product list - v1 with basic serializer.\"\"\"\n\n        serializer_class = ProductV1Serializer\n\n        def get_queryset(self):\n            return [\n                {\"id\": 1, \"name\": \"Product 1\"},\n                {\"id\": 2, \"name\": \"Product 2\"},\n            ]\n\n    @endpoint(\"products-list/\", version=2, view_name=\"products-list-v2\")\n    class ProductListV2(ListAPIView):\n        \"\"\"Product list - v2 with extended serializer.\"\"\"\n\n        serializer_class = ProductV2Serializer\n\n        def get_queryset(self):\n            return [\n                {\n                    \"id\": 1,\n                    \"name\": \"Product 1\",\n                    \"description\": \"First product\",\n                    \"price\": 100,\n                },\n                {\n                    \"id\": 2,\n                    \"name\": \"Product 2\",\n                    \"description\": \"Second product\",\n                    \"price\": 200,\n                },\n            ]\n\n    # UUID path converter tests\n    @endpoint(\"items/<uuid:item_uuid>/\", version=1, view_name=\"item-by-uuid-v1\")\n    class ItemByUUIDV1(APIView):\n        \"\"\"Get item by UUID - v1.\"\"\"\n\n        def get(self, request, item_uuid):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"item_uuid\": str(item_uuid),\n                    \"item_type\": \"uuid\",\n                }\n            )\n\n    @endpoint(\"items/<uuid:item_uuid>/\", version=2, view_name=\"item-by-uuid-v2\")\n    class ItemByUUIDV2(APIView):\n        \"\"\"Get item by UUID - v2 with extended info.\"\"\"\n\n        def get(self, request, item_uuid):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"item_uuid\": str(item_uuid),\n                    \"item_type\": \"uuid\",\n                    \"details\": f\"Item {item_uuid} details\",\n                }\n            )\n\n    # ViewSet examples (for router integration testing)\n    # Note: ViewSets with @endpoint decorator work with explicit as_view() calls\n    class BlogPostSerializer(Serializer):\n        \"\"\"Blog post serializer.\"\"\"\n\n        id = IntegerField()\n        title = CharField()\n        content = CharField(required=False)\n\n    class BlogPostViewSetV1(viewsets.ViewSet):\n        \"\"\"Blog post viewset - v1 with basic fields.\"\"\"\n\n        def list(self, request):\n            \"\"\"List blog posts.\"\"\"\n            return Response(\n                {\n                    \"version\": 1,\n                    \"posts\": [\n                        {\"id\": 1, \"title\": \"Post 1\"},\n                        {\"id\": 2, \"title\": \"Post 2\"},\n                    ],\n                }\n            )\n\n        def retrieve(self, request, pk=None):\n            \"\"\"Get a single blog post.\"\"\"\n            return Response({\"version\": 1, \"id\": pk, \"title\": f\"Post {pk}\"})\n\n        @action(detail=True, methods=[\"post\"])\n        def publish(self, request, pk=None):\n            \"\"\"Publish a blog post.\"\"\"\n            return Response({\"version\": 1, \"status\": \"published\", \"id\": pk})\n\n    class BlogPostViewSetV2(viewsets.ViewSet):\n        \"\"\"Blog post viewset - v2 with extended fields.\"\"\"\n\n        def list(self, request):\n            \"\"\"List blog posts.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"posts\": [\n                        {\"id\": 1, \"title\": \"Post 1\", \"content\": \"Content 1\"},\n                        {\"id\": 2, \"title\": \"Post 2\", \"content\": \"Content 2\"},\n                    ],\n                }\n            )\n\n        def retrieve(self, request, pk=None):\n            \"\"\"Get a single blog post.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"id\": pk,\n                    \"title\": f\"Post {pk}\",\n                    \"content\": f\"Content for post {pk}\",\n                }\n            )\n\n        @action(detail=False, methods=[\"get\"])\n        def recent(self, request):\n            \"\"\"Get recent blog posts.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"posts\": [\n                        {\"id\": 1, \"title\": \"Post 1\", \"content\": \"Content 1\"},\n                    ],\n                }\n            )\n\n        @action(detail=True, methods=[\"post\"])\n        def publish(self, request, pk=None):\n            \"\"\"Publish a blog post.\"\"\"\n            return Response(\n                {\n                    \"version\": 2,\n                    \"status\": \"published\",\n                    \"id\": pk,\n                    \"timestamp\": \"2026-11-08T00:00:00Z\",\n                }\n            )\n\n    # Generic APIView tests (Retrieve, Create, Update, Destroy)\n    class TaskSerializer(Serializer):\n        \"\"\"Task serializer for generic view tests.\"\"\"\n\n        id = IntegerField(read_only=True)\n        title = CharField(max_length=100)\n        completed = BooleanField(default=False)\n\n    @endpoint(\"tasks/<int:task_id>/\", version=1, view_name=\"task-retrieve-v1\")\n    class TaskRetrieveV1(RetrieveAPIView):\n        \"\"\"Retrieve a task - v1.\"\"\"\n\n        serializer_class = TaskSerializer\n\n        def get_object(self):\n            \"\"\"Mock task object retrieval.\"\"\"\n            task_id = self.kwargs.get(\"task_id\", 1)\n            return {\"id\": task_id, \"title\": f\"Task {task_id}\", \"completed\": False}\n\n    @endpoint(\"tasks/\", version=1, view_name=\"task-create-v1\")\n    class TaskCreateV1(CreateAPIView):\n        \"\"\"Create a new task - v1.\"\"\"\n\n        serializer_class = TaskSerializer\n\n        def create(self, request, *args, **kwargs):\n            serializer = self.get_serializer(data=request.data)\n            serializer.is_valid(raise_exception=True)\n            return Response(\n                {\"id\": 1, **serializer.validated_data}, status=status.HTTP_201_CREATED\n            )\n\n    @endpoint(\"tasks/<int:task_id>/\", version=2, view_name=\"task-detail-v2\")\n    class TaskDetailV2(RetrieveUpdateDestroyAPIView):\n        \"\"\"Retrieve, update, or delete a task - v2.\"\"\"\n\n        serializer_class = TaskSerializer\n\n        def get_object(self):\n            \"\"\"Mock task object retrieval.\"\"\"\n            task_id = self.kwargs.get(\"task_id\", 1)\n            return {\"id\": task_id, \"title\": f\"Task {task_id}\", \"completed\": False}\n\n        def update(self, request, *args, **kwargs):\n            \"\"\"Handle PUT requests (full update).\"\"\"\n            instance = self.get_object()\n            serializer = self.get_serializer(instance, data=request.data, partial=False)\n            serializer.is_valid(raise_exception=True)\n            return Response(\n                {\n                    \"id\": instance[\"id\"],\n                    \"title\": serializer.validated_data.get(\"title\", instance[\"title\"]),\n                    \"completed\": serializer.validated_data.get(\n                        \"completed\", instance.get(\"completed\", False)\n                    ),\n                }\n            )\n\n        def partial_update(self, request, *args, **kwargs):\n            \"\"\"Handle PATCH requests (partial update).\"\"\"\n            instance = self.get_object()\n            serializer = self.get_serializer(instance, data=request.data, partial=True)\n            serializer.is_valid(raise_exception=True)\n            return Response(\n                {\n                    \"id\": instance[\"id\"],\n                    \"title\": serializer.validated_data.get(\"title\", instance[\"title\"]),\n                    \"completed\": serializer.validated_data.get(\n                        \"completed\", instance.get(\"completed\", False)\n                    ),\n                }\n            )\n\n        def destroy(self, request, *args, **kwargs):\n            \"\"\"Handle DELETE requests.\"\"\"\n            task_id = self.kwargs.get(\"task_id\", 1)\n            return Response(\n                {\"id\": task_id, \"deleted\": True}, status=status.HTTP_204_NO_CONTENT\n            )\n\n    # Configured ViewSet callables registered through @endpoint.\n    # These deliberately use plain methods (not @action) so the example tests\n    # the documented direct-as_view boundary without router-only metadata.\n    class ConfiguredProductViewSetV1(viewsets.ViewSet):\n        def list(self, request):\n            return Response({\"version\": 1, \"detail\": self.detail})\n\n        def retrieve(self, request, pk=None):\n            return Response({\"version\": 1, \"id\": pk, \"detail\": self.detail})\n\n        def popular(self, request):\n            return Response(\n                {\n                    \"version\": 1,\n                    \"action_url\": self.reverse_action(\"popular-v1\"),\n                    \"detail\": self.detail,\n                }\n            )\n\n    class ConfiguredProductViewSetV2(viewsets.ViewSet):\n        def list(self, request):\n            return Response({\"version\": 2, \"detail\": self.detail})\n\n        def retrieve(self, request, pk=None):\n            return Response({\"version\": 2, \"id\": pk, \"detail\": self.detail})\n\n        def popular(self, request):\n            return Response(\n                {\n                    \"version\": 2,\n                    \"action_url\": self.reverse_action(\"popular-v2\"),\n                    \"detail\": self.detail,\n                }\n            )\n\n    endpoint(\n        \"configured-products/\",\n        version=1,\n        view_name=\"configured-product-list-v1\",\n    )(\n        ConfiguredProductViewSetV1.as_view(\n            {\"get\": \"list\"},\n            detail=False,\n            basename=\"configured-product\",\n        )\n    )\n    endpoint(\n        \"configured-products/\",\n        version=2,\n        view_name=\"configured-product-list-v2\",\n    )(\n        ConfiguredProductViewSetV2.as_view(\n            {\"get\": \"list\"},\n            detail=False,\n            basename=\"configured-product\",\n        )\n    )\n\n    endpoint(\n        \"configured-products/<int:pk>/\",\n        version=1,\n        view_name=\"configured-product-detail-v1\",\n    )(\n        ConfiguredProductViewSetV1.as_view(\n            {\"get\": \"retrieve\"},\n            detail=True,\n            basename=\"configured-product\",\n        )\n    )\n    endpoint(\n        \"configured-products/<int:pk>/\",\n        version=2,\n        view_name=\"configured-product-detail-v2\",\n    )(\n        ConfiguredProductViewSetV2.as_view(\n            {\"get\": \"retrieve\"},\n            detail=True,\n            basename=\"configured-product\",\n        )\n    )\n\n    endpoint(\n        \"configured-products/popular/\",\n        versions=[1],\n        view_name=\"configured-product-popular-v1\",\n    )(\n        ConfiguredProductViewSetV1.as_view(\n            {\"get\": \"popular\"},\n            detail=False,\n            basename=\"configured-product\",\n        )\n    )\n    endpoint(\n        \"configured-products/popular/\",\n        versions=[2],\n        view_name=\"configured-product-popular-v2\",\n    )(\n        ConfiguredProductViewSetV2.as_view(\n            {\"get\": \"popular\"},\n            detail=False,\n            basename=\"configured-product\",\n        )\n    )\n\nexcept ImportError:\n    pass\n\n\n# Namespaced endpoint views for testing namespace integration\n# Note: app_name=\"admin\" adds \"admin/\" to the path, so we don't duplicate it in postfix\n@endpoint(\n    \"reports/summary/\", version=1, view_name=\"reports-summary-v1\", app_name=\"admin\"\n)\n@require_http_methods([\"GET\"])\ndef admin_reports_summary_v1(request):\n    \"\"\"Admin reports summary - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/summary\",\n            \"data\": {\n                \"total_users\": 1000,\n                \"active_sessions\": 50,\n            },\n        }\n    )\n\n\n@endpoint(\n    \"reports/summary/\", version=2, view_name=\"reports-summary-v2\", app_name=\"admin\"\n)\n@require_http_methods([\"GET\"])\ndef admin_reports_summary_v2(request):\n    \"\"\"Admin reports summary - v2 with extended metrics.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/summary\",\n            \"data\": {\n                \"total_users\": 1050,\n                \"active_sessions\": 55,\n                \"new_signups_today\": 12,\n                \"premium_count\": 150,\n            },\n        }\n    )\n\n\n@endpoint(\"reports/users/\", version=1, view_name=\"reports-users-v1\", app_name=\"admin\")\n@require_http_methods([\"GET\"])\ndef admin_reports_users_v1(request):\n    \"\"\"Admin user reports - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/users\",\n            \"users\": [\n                {\"id\": 1, \"email\": \"user1@example.com\"},\n                {\"id\": 2, \"email\": \"user2@example.com\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"reports/users/\", version=2, view_name=\"reports-users-v2\", app_name=\"admin\")\n@require_http_methods([\"GET\"])\ndef admin_reports_users_v2(request):\n    \"\"\"Admin user reports - v2 with status.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"namespace\": \"admin\",\n            \"endpoint\": \"reports/users\",\n            \"users\": [\n                {\"id\": 1, \"email\": \"user1@example.com\", \"status\": \"active\"},\n                {\"id\": 2, \"email\": \"user2@example.com\", \"status\": \"inactive\"},\n            ],\n        }\n    )\n\n\n@endpoint(\"config/\", version=1, view_name=\"config-v1\", app_name=\"admin\")\n@require_http_methods([\"GET\"])\ndef admin_config_v1(request):\n    \"\"\"Admin configuration - v1.\"\"\"\n    return JsonResponse(\n        {\n            \"version\": 1,\n            \"namespace\": \"admin\",\n            \"config\": {\n                \"max_users\": 5000,\n                \"max_storage\": 1000000,\n            },\n        }\n    )\n\n\n@endpoint(\"config/\", version=2, view_name=\"config-v2\", app_name=\"admin\")\n@require_http_methods([\"GET\", \"POST\"])\ndef admin_config_v2(request):\n    \"\"\"Admin configuration - v2 with update support.\"\"\"\n    if request.method == \"POST\":\n        return JsonResponse(\n            {\"version\": 2, \"namespace\": \"admin\", \"status\": \"config_updated\"}\n        )\n    return JsonResponse(\n        {\n            \"version\": 2,\n            \"namespace\": \"admin\",\n            \"config\": {\n                \"max_users\": 10000,\n                \"max_storage\": 5000000,\n                \"max_api_calls_per_day\": 100000,\n            },\n        }\n    )\n\n\n# Authentication and Permission testing views\ntry:\n    from rest_framework.permissions import BasePermission\n\n    class IsAdminUser(BasePermission):\n        \"\"\"Custom permission for admin users.\"\"\"\n\n        def has_permission(self, request, view):\n            return hasattr(request, \"user\") and getattr(request.user, \"is_staff\", False)\n\n    @endpoint(\"secure-data/\", version=1, view_name=\"secure-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAuthenticated])\n    def secure_data_v1(request):\n        \"\"\"Secure data endpoint - v1 requires authentication.\"\"\"\n        return Response(\n            {\n                \"version\": 1,\n                \"data\": \"secure_v1\",\n                \"user\": getattr(request.user, \"username\", \"anonymous\"),\n            }\n        )\n\n    @endpoint(\"secure-data/\", version=2, view_name=\"secure-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAuthenticated])\n    def secure_data_v2(request):\n        \"\"\"Secure data endpoint - v2 requires authentication.\"\"\"\n        return Response(\n            {\n                \"version\": 2,\n                \"data\": \"secure_v2\",\n                \"user\": getattr(request.user, \"username\", \"anonymous\"),\n                \"email\": getattr(request.user, \"email\", \"no-email\"),\n            }\n        )\n\n    @endpoint(\"admin-only/\", version=1, view_name=\"admin-only-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAdminUser])\n    def admin_only_v1(request):\n        \"\"\"Admin-only endpoint - v1.\"\"\"\n        return Response(\n            {\n                \"version\": 1,\n                \"admin_data\": \"admin_content_v1\",\n            }\n        )\n\n    @endpoint(\"admin-only/\", version=2, view_name=\"admin-only-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([IsAdminUser])\n    def admin_only_v2(request):\n        \"\"\"Admin-only endpoint - v2.\"\"\"\n        return Response(\n            {\n                \"version\": 2,\n                \"admin_data\": \"admin_content_v2\",\n                \"admin_user\": getattr(request.user, \"username\", \"none\"),\n            }\n        )\n\n    # Query parameter handling tests\n    @endpoint(\"search/\", version=1, view_name=\"search-v1\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([])\n    def search_v1(request):\n        \"\"\"Search endpoint - v1 with query parameters.\"\"\"\n        query = request.query_params.get(\"q\", \"\")\n        limit = request.query_params.get(\"limit\", \"10\")\n        return Response(\n            {\n                \"version\": 1,\n                \"query\": query,\n                \"limit\": int(limit) if limit.isdigit() else 10,\n                \"results\": [{\"id\": 1, \"title\": f\"Result for {query}\"}] if query else [],\n            }\n        )\n\n    @endpoint(\"search/\", version=2, view_name=\"search-v2\")\n    @api_view([\"GET\"])\n    @drf_permission_classes([])\n    def search_v2(request):\n        \"\"\"Search endpoint - v2 with extended query parameters.\"\"\"\n        query = request.query_params.get(\"q\", \"\")\n        limit = request.query_params.get(\"limit\", \"20\")\n        offset = request.query_params.get(\"offset\", \"0\")\n        filters = request.query_params.get(\"filters\", \"\")\n        return Response(\n            {\n                \"version\": 2,\n                \"query\": query,\n                \"limit\": int(limit) if limit.isdigit() else 20,\n                \"offset\": int(offset) if offset.isdigit() else 0,\n                \"filters\": filters,\n                \"total\": 100,\n                \"results\": (\n                    [{\"id\": i, \"title\": f\"Result {i} for {query}\"} for i in range(1, 3)]\n                    if query\n                    else []\n                ),\n            }\n        )\n\n    # Form data and multipart handling tests\n    @endpoint(\"upload/\", version=1, view_name=\"upload-v1\")\n    @api_view([\"POST\"])\n    @drf_permission_classes([])\n    def upload_v1(request):\n        \"\"\"Upload endpoint - v1.\"\"\"\n        name = request.data.get(\"name\", \"unnamed\")\n        description = request.data.get(\"description\", \"\")\n        return Response(\n            {\n                \"version\": 1,\n                \"uploaded\": True,\n                \"name\": name,\n                \"description\": description,\n            },\n            status=201,\n        )\n\n    @endpoint(\"upload/\", version=2, view_name=\"upload-v2\")\n    @api_view([\"POST\"])\n    @drf_permission_classes([])\n    def upload_v2(request):\n        \"\"\"Upload endpoint - v2 with metadata.\"\"\"\n        name = request.data.get(\"name\", \"unnamed\")\n        description = request.data.get(\"description\", \"\")\n        tags = request.data.get(\"tags\", \"\")\n        return Response(\n            {\n                \"version\": 2,\n                \"uploaded\": True,\n                \"name\": name,\n                \"description\": description,\n                \"tags\": tags.split(\",\") if tags else [],\n                \"timestamp\": \"2024-01-01T00:00:00Z\",\n            },\n            status=201,\n        )\n\n    # HEAD/OPTIONS method testing\n    @endpoint(\"resources/\", version=1, view_name=\"resources-v1\")\n    @api_view([\"GET\", \"HEAD\", \"OPTIONS\"])\n    @drf_permission_classes([])\n    def resources_v1(request):\n        \"\"\"Resources endpoint - v1 with HEAD/OPTIONS support.\"\"\"\n        if request.method == \"HEAD\":\n            # HEAD should return same headers as GET but no body\n            response = Response({})\n            response[\"X-Total-Count\"] = \"42\"\n            return response\n        return Response({\"version\": 1, \"resources\": [{\"id\": 1, \"name\": \"Resource 1\"}]})\n\n    @endpoint(\"resources/\", version=2, view_name=\"resources-v2\")\n    @api_view([\"GET\", \"HEAD\", \"OPTIONS\", \"POST\"])\n    @drf_permission_classes([])\n    def resources_v2(request):\n        \"\"\"Resources endpoint - v2 with additional methods.\"\"\"\n        if request.method == \"HEAD\":\n            response = Response({})\n            response[\"X-Total-Count\"] = \"100\"\n            return response\n        if request.method == \"POST\":\n            return Response({\"version\": 2, \"created\": True, \"id\": 999}, status=201)\n        return Response(\n            {\n                \"version\": 2,\n                \"resources\": [{\"id\": i, \"name\": f\"Resource {i}\"} for i in range(1, 3)],\n            }\n        )\n\nexcept ImportError:\n    pass\n",
         "file": "integration_test_project/api/views.py"
       }
     },
@@ -7593,7 +7809,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "01462339a958c268bb15de50955c664cca05f69c",
+    "commit": "cecea6320cb546be08c727e0f87cd510983479af",
     "evidence_files": [
       {
         "file": "pyproject.toml",
@@ -7609,7 +7825,7 @@
       },
       {
         "file": "integration_test_project/api/views.py",
-        "sha256": "db2d82496caddafeb3fd0257d5e9069afbdedfd2ed9debaaf843ef19346f6b74"
+        "sha256": "af39c17cd629248eb2d8c9696267e8ef23ae713dc5e91b7728d9d4d51e1e109e"
       },
       {
         "file": "integration_test_project/manage.py",
@@ -7713,7 +7929,7 @@
       },
       {
         "file": "integration_test_project/test_integration.py",
-        "sha256": "6e00faad9ba70daba4a5056aa2667ab9720aa55fe3b25f55cbb3660f1c80bf4f"
+        "sha256": "b2036a90fc9cb4f9ab22c9eabcd1a4fd6361788b2b853976b78fb00d6fcac3ff"
       }
     ],
     "files": [
@@ -7775,7 +7991,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/01462339a958c268bb15de50955c664cca05f69c",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/cecea6320cb546be08c727e0f87cd510983479af",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
