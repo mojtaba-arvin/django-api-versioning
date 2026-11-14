@@ -5,6 +5,7 @@ on:
     branches: [audit/comprehensive-package-review]
     paths:
       - ".github/workflows/python-format-checkpoint.yml"
+      - "tests/test_management_commands.py"
 
 permissions:
   contents: write
