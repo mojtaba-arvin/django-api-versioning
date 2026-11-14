@@ -33,6 +33,7 @@ const initialRoute = initial.routes.find((item) => item.postfix === initialPostf
 const serialized = JSON.stringify(scenarios).replace(/</g, "\\u003c");
 ---
 <section class="explorer-panel" data-segment-explorer data-initial-route={initialRoute?.postfix ?? ""}>
+  <p class="note">routing model / explanatory visualization, not actual Python execution</p>
   <div class="explorer-controls js-only">
     <label>
       Scenario
