@@ -365,6 +365,10 @@ class TestMigrateEndpointsRewriting:
                 '"users", version=3, backward=False, forward=True',
                 '"users", version=3',
             ),
+            (
+                '"users", version=3, backward=False, forward=None',
+                '"users", versions=[3]',
+            ),
         ],
     )
     def test_rewrites_legacy_flag_combinations(self, args, expected):
@@ -372,6 +376,14 @@ class TestMigrateEndpointsRewriting:
 
     def test_without_version_is_left_unchanged(self):
         args = '"users", backward=True, forward=False'
+        assert _rewrite_args(args) == args
+
+    def test_positional_version_is_left_unchanged(self):
+        args = '"users", 2, backward=True, forward=False'
+        assert _rewrite_args(args) == args
+
+    def test_existing_explicit_versions_are_left_unchanged(self):
+        args = '"users", version=2, versions=[1], backward=True, forward=False'
         assert _rewrite_args(args) == args
 
     def test_forward_defaults_to_true_when_omitted(self):
