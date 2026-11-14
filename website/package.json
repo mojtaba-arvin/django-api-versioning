@@ -15,7 +15,8 @@
     "preview": "astro preview",
     "serve:dist": "node scripts/serve-dist.mjs",
     "test:dist": "node scripts/check-dist.mjs",
-    "check": "npm run sync:articles && astro check"
+    "check": "npm run sync:articles && astro check",
+    "test": "node --test"
   },
   "dependencies": {
     "astro": "6.4.8",

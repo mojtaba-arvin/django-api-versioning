@@ -4,8 +4,8 @@ import { z } from "astro/zod";
 
 /**
  * Every Markdown file mirrored from upstream `docs/articles/` is published.
- * IDs come from the FILE NAME, not the frontmatter `slug`: upstream 003 and
- * 004 share the slug "004-api-routing-library", so slugs are not unique.
+ * IDs come from the FILE NAME, not the frontmatter `slug`. File identity keeps
+ * article routes stable when editorial slugs change and avoids slug collisions.
  */
 const articles = defineCollection({
   loader: glob({
