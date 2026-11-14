@@ -88,7 +88,33 @@ def _has_comments(source: str) -> bool:
         return True
 
 
-def _rewrite_call(text: str, call: ast.Call) -> str | None:
+def _literal_integer(node: ast.expr | None) -> int | None:
+    if isinstance(node, ast.Constant) and type(node.value) is int:
+        return node.value
+    return None
+
+
+def _literal_boolean(node: ast.expr | None, default: bool) -> bool | None:
+    if node is None:
+        return default
+    if not isinstance(node, ast.Constant) or type(node.value) is not bool:
+        return None
+    return node.value
+
+
+def _literal_forward(node: ast.expr | None) -> bool | None:
+    if node is None:
+        return True
+    if not isinstance(node, ast.Constant):
+        return None
+    if type(node.value) is bool:
+        return node.value
+    if node.value is None:
+        return False
+    return None
+
+
+def _legacy_options(call: ast.Call) -> tuple[int, bool, bool] | None:
     if not any(keyword.arg in {"backward", "forward"} for keyword in call.keywords):
         return None
 
@@ -99,33 +125,31 @@ def _rewrite_call(text: str, call: ast.Call) -> str | None:
                 return None
             keywords[keyword.arg] = keyword.value
 
-    version_node = keywords.get("version")
-    if (
-        not isinstance(version_node, ast.Constant)
-        or type(version_node.value) is not int
-    ):
+    version = _literal_integer(keywords.get("version"))
+    if version is None:
         return None
 
-    backward_node = keywords.get("backward")
-    if backward_node is not None:
-        if (
-            not isinstance(backward_node, ast.Constant)
-            or type(backward_node.value) is not bool
-        ):
-            return None
-        backward = backward_node.value
-    else:
-        backward = False
+    backward = _literal_boolean(keywords.get("backward"), default=False)
+    forward = _literal_forward(keywords.get("forward"))
+    if backward is None or forward is None:
+        return None
+    return version, backward, forward
 
-    forward_node = keywords.get("forward")
-    if forward_node is not None:
-        if not isinstance(forward_node, ast.Constant) or (
-            type(forward_node.value) is not bool and forward_node.value is not None
-        ):
-            return None
-        forward = forward_node.value is True
-    else:
-        forward = True
+
+def _legacy_version_argument(version: int, backward: bool, forward: bool) -> str:
+    if backward and forward:
+        return "version=1"
+    if backward:
+        return f"versions=list(range(1, {version + 1}))"
+    if not forward:
+        return f"versions=[{version}]"
+    return f"version={version}"
+
+
+def _rewrite_call(text: str, call: ast.Call) -> str | None:
+    legacy = _legacy_options(call)
+    if legacy is None:
+        return None
 
     call_source = ast.get_source_segment(text, call)
     function_source = ast.get_source_segment(text, call.func)
@@ -147,17 +171,7 @@ def _rewrite_call(text: str, call: ast.Call) -> str | None:
             return None
         remaining.append(segment)
 
-    version = version_node.value
-    if backward and forward:
-        replacement = "version=1"
-    elif backward and not forward:
-        replacement = f"versions=list(range(1, {version + 1}))"
-    elif not backward and not forward:
-        replacement = f"versions=[{version}]"
-    else:
-        replacement = f"version={version}"
-
-    remaining.append(replacement)
+    remaining.append(_legacy_version_argument(*legacy))
     return f"{function_source}({', '.join(remaining)})"
 
 
