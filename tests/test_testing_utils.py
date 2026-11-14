@@ -90,9 +90,7 @@ def test_build_version_matrix_supports_callable_instances():
 
     registry.register("api/v1/callable/", CallableView(), route_version=1)
 
-    assert build_version_matrix() == {
-        "api/v1/callable/": {"1": "CallableView"}
-    }
+    assert build_version_matrix() == {"api/v1/callable/": {"1": "CallableView"}}
 
 
 def test_build_version_matrix_uses_class_name_for_class_based_views():
@@ -102,6 +100,4 @@ def test_build_version_matrix_uses_class_name_for_class_based_views():
 
     registry.register("api/v1/items/", SampleView, route_version=1)
 
-    assert build_version_matrix() == {
-        "api/v1/items/": {"1": "SampleView"}
-    }
+    assert build_version_matrix() == {"api/v1/items/": {"1": "SampleView"}}
