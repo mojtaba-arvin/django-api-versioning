@@ -184,7 +184,7 @@ SYMBOLS = {
 LINES = {
     "segment_loop": ("decorators.py", "for ver in range(version, max_version + 1):"),
     "explicit_loop": ("decorators.py", "for ver in versions:"),
-    "below_min_return": ("decorators.py", "return view"),
+    "below_min_return": ("decorators.py", "                return view"),
     "below_min_warning": ("decorators.py", '"No routes will be registered."'),
     "newer_wins": ("registry.py", "return source_version >= existing_version"),
     "none_wins": (
@@ -242,6 +242,16 @@ def _symbol_lines(tree: ast.AST, dotted: str) -> tuple[int, int]:
     return start, node.end_lineno
 
 
+def _unique_line_reference(lines: list[str], rel: str, needle: str) -> dict:
+    """Return a source line only when its anchor identifies exactly one match."""
+    hits = [i + 1 for i, line in enumerate(lines) if needle in line]
+    if len(hits) != 1:
+        reason = "not found" if not hits else f"ambiguous ({len(hits)} matches)"
+        raise SystemExit(f"Line anchor {needle!r} in {rel} is {reason}.")
+    line = hits[0]
+    return {"line": line, "code": lines[line - 1].strip()}
+
+
 def _setting_references(tree: ast.AST):
     """Yield actual identifier reads; ignore docstrings and string literals."""
     setting_names = {
@@ -283,13 +293,10 @@ def source_refs(package_dir: Path) -> dict:
         }
     for key, (rel, needle) in LINES.items():
         _, lines = load(rel)
-        hits = [i + 1 for i, line in enumerate(lines) if needle in line]
-        if not hits:
-            raise SystemExit(f"Line {needle!r} not found in {rel}.")
+        line_ref = _unique_line_reference(lines, rel, needle)
         refs["lines"][key] = {
             "file": f"django_api_versioning/{rel}",
-            "line": hits[0],
-            "code": lines[hits[0] - 1].strip(),
+            **line_ref,
         }
 
     # Where are the two non-routing settings referenced? (AST, whole package)
