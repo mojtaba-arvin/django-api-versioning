@@ -65,7 +65,7 @@ match the pattern:
 
 | Last commit(s) | Likely state | Resume |
 |---|---|---|
-| `test: matrix PY=X DJ=Y ...` | Matrix partial or done | Re-run `/compat-matrix`. `row_done` skips done rows. |
+| `test: matrix PY=X DJ=Y ...` | A matrix-related task may be partial or done | Inspect current `tox.ini`, commits, and available logs. If a full compatibility run is still requested, use `/manual-testing` Full; do not invoke the removed `/compat-matrix` skill or assume a `row_done` mechanism. |
 | `chore(release): prepare vX.Y.Z` + tag exists | Release mid-flight, tag not pushed | `.claude/push.sh --tag` then `/release` step 11+ |
 | `chore(release): prepare vX.Y.Z` + no tag | Release mid-flight, tag not created | `/release` step 8 (create tag) |
 | Single `fix: …` or `feat: …` | One fix done, maybe more planned | **Ask user** if more remained |
