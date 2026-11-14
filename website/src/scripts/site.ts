@@ -175,7 +175,8 @@ async function copyText(value: string): Promise<void> {
   field.value = value; field.setAttribute("readonly", "");
   field.style.position = "fixed"; field.style.opacity = "0";
   document.body.append(field); field.select();
-  const ok = document.execCommand("copy"); field.remove();
+  const execCommand = Reflect.get(document, "execCommand") as ((command: string) => boolean) | undefined;
+  const ok = execCommand?.call(document, "copy") ?? false; field.remove();
   if (!ok) throw new Error("Clipboard copy is unavailable in this browser.");
 }
 function addCopyButton(pre: HTMLPreElement): void {
