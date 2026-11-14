@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
+import SourceLink from "../../components/SourceLink.astro";
 
 export async function getStaticPaths() {
   const articles = (await getCollection("articles")).sort((a, b) =>
@@ -80,7 +81,7 @@ const category = article.data.keywords?.[0] ?? "Technical article";
     </nav>
     <p class="muted article-source-note">
       Canonical Markdown source: <code>docs/articles/{article.id}.md</code>.
-      <a href={`https://github.com/mojtaba-arvin/django-api-versioning/blob/${import.meta.env.PUBLIC_SOURCE_COMMIT ?? "main"}/docs/articles/${article.id}.md`} target="_blank" rel="noreferrer">Open the canonical source file</a>.
+      <SourceLink file={`docs/articles/${article.id}.md`} label="Open the canonical source at the recorded commit" />.
     </p>
   </div>
 </Base>

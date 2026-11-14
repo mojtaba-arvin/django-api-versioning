@@ -1,23 +1,31 @@
 import { visit } from "unist-util-visit";
 
-const text = (node) =>
-  node.type === "text" ? node.value : (node.children ?? []).map(text).join("");
-
-/** Appends a visible, keyboard-focusable "#" link to h2–h4 that have ids. */
+/**
+ * Add accessible, keyboard-focusable deep links to article headings.
+ * The visible marker is decorative; the anchor has an explicit accessible name.
+ */
 export function rehypeHeadingAnchors() {
   return (tree) => {
     visit(tree, "element", (node) => {
-      if (!/^h[2-4]$/.test(node.tagName) || !node.properties?.id) return;
-      const label = text(node).trim();
-      node.properties.className = [...(node.properties.className ?? []), "has-anchor"];
+      if (!/^h[2-6]$/.test(node.tagName ?? "")) return;
+      const id = node.properties?.id;
+      if (typeof id !== "string" || !id) return;
+      const existing = Array.isArray(node.properties.className)
+        ? node.properties.className
+        : typeof node.properties.className === "string"
+          ? [node.properties.className]
+          : [];
+      node.properties.className = [...existing, "has-anchor"];
       node.children.push({
         type: "element",
         tagName: "a",
-        properties: { className: ["heading-anchor"], href: `#${node.properties.id}` },
-        children: [
-          { type: "element", tagName: "span", properties: { ariaHidden: "true" }, children: [{ type: "text", value: "#" }] },
-          { type: "element", tagName: "span", properties: { className: ["sr-only"] }, children: [{ type: "text", value: `Link to section: ${label}` }] },
-        ],
+        properties: {
+          href: "#" + id,
+          className: ["heading-anchor"],
+          ariaLabel: "Link to this section",
+          title: "Link to this section",
+        },
+        children: [{ type: "text", value: "#" }],
       });
     });
   };
