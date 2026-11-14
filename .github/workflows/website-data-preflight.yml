@@ -5,6 +5,9 @@ on:
     branches: [audit/comprehensive-package-review]
     paths:
       - ".github/workflows/website-data-preflight.yml"
+      - "website/**"
+      - "docs/articles/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
