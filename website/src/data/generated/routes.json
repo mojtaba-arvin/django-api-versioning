@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T22:00:51+00:00",
+  "generated_at": "2026-11-14T22:02:40+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -291,25 +291,25 @@
     "drf_default": {
       "build_version_matrix": {
         "api/v1/invoices/": {
-          "1": "view"
+          "1": "InvoiceListV1"
         },
         "api/v1/ping/": {
-          "1": "view"
+          "1": "ping"
         },
         "api/v2/invoices/": {
-          "2": "view"
+          "2": "InvoiceListV1"
         },
         "api/v2/ping/": {
-          "2": "view"
+          "2": "ping"
         },
         "api/v2/receipts/": {
           "2": "ReceiptViewSet"
         },
         "api/v3/invoices/": {
-          "3": "view"
+          "3": "InvoiceListV3"
         },
         "api/v3/ping/": {
-          "3": "view"
+          "3": "ping"
         },
         "api/v3/receipts/": {
           "3": "ReceiptViewSet"
@@ -951,25 +951,25 @@
     "drf_urlpath": {
       "build_version_matrix": {
         "api/v1/invoices/": {
-          "1": "view"
+          "1": "InvoiceListV1"
         },
         "api/v1/ping/": {
-          "1": "view"
+          "1": "ping"
         },
         "api/v2/invoices/": {
-          "2": "view"
+          "2": "InvoiceListV1"
         },
         "api/v2/ping/": {
-          "2": "view"
+          "2": "ping"
         },
         "api/v2/receipts/": {
           "2": "ReceiptViewSet"
         },
         "api/v3/invoices/": {
-          "3": "view"
+          "3": "InvoiceListV3"
         },
         "api/v3/ping/": {
-          "3": "view"
+          "3": "ping"
         },
         "api/v3/receipts/": {
           "3": "ReceiptViewSet"
@@ -1299,25 +1299,25 @@
     "drf_urlpath_allowed": {
       "build_version_matrix": {
         "api/v1/invoices/": {
-          "1": "view"
+          "1": "InvoiceListV1"
         },
         "api/v1/ping/": {
-          "1": "view"
+          "1": "ping"
         },
         "api/v2/invoices/": {
-          "2": "view"
+          "2": "InvoiceListV1"
         },
         "api/v2/ping/": {
-          "2": "view"
+          "2": "ping"
         },
         "api/v2/receipts/": {
           "2": "ReceiptViewSet"
         },
         "api/v3/invoices/": {
-          "3": "view"
+          "3": "InvoiceListV3"
         },
         "api/v3/ping/": {
-          "3": "view"
+          "3": "ping"
         },
         "api/v3/receipts/": {
           "3": "ReceiptViewSet"
@@ -1623,25 +1623,25 @@
     "drf_urlpath_default": {
       "build_version_matrix": {
         "api/v1/invoices/": {
-          "1": "view"
+          "1": "InvoiceListV1"
         },
         "api/v1/ping/": {
-          "1": "view"
+          "1": "ping"
         },
         "api/v2/invoices/": {
-          "2": "view"
+          "2": "InvoiceListV1"
         },
         "api/v2/ping/": {
-          "2": "view"
+          "2": "ping"
         },
         "api/v2/receipts/": {
           "2": "ReceiptViewSet"
         },
         "api/v3/invoices/": {
-          "3": "view"
+          "3": "InvoiceListV3"
         },
         "api/v3/ping/": {
-          "3": "view"
+          "3": "ping"
         },
         "api/v3/receipts/": {
           "3": "ReceiptViewSet"
@@ -2070,7 +2070,7 @@
     "existing_integration_project": {
       "build_version_matrix": {
         "api/v1/admin-only/": {
-          "1": "view"
+          "1": "admin_only_v1"
         },
         "api/v1/admin/config/": {
           "1": "admin_config_v1"
@@ -2085,13 +2085,13 @@
           "1": "analytics_overview_v1"
         },
         "api/v1/articles/": {
-          "1": "view"
+          "1": "ArticleListV1"
         },
         "api/v1/blog/": {
           "1": "<lambda>"
         },
         "api/v1/comments/": {
-          "1": "view"
+          "1": "CommentListV1"
         },
         "api/v1/configured-products/": {
           "1": "ConfiguredProductViewSetV1"
@@ -2103,22 +2103,22 @@
           "1": "ConfiguredProductViewSetV1"
         },
         "api/v1/docs/": {
-          "1": "view"
+          "1": "DocListV1"
         },
         "api/v1/items/": {
-          "1": "view"
+          "1": "ItemListV1"
         },
         "api/v1/items/<uuid:item_uuid>/": {
-          "1": "view"
+          "1": "ItemByUUIDV1"
         },
         "api/v1/legacy-api/": {
           "1": "legacy_api"
         },
         "api/v1/orders/": {
-          "1": "view"
+          "1": "OrderListV1"
         },
         "api/v1/orders/<int:order_id>/": {
-          "1": "view"
+          "1": "OrderDetailV1"
         },
         "api/v1/posts/": {
           "1": "post_list"
@@ -2130,31 +2130,31 @@
           "1": "post_by_slug_v1"
         },
         "api/v1/products-list/": {
-          "1": "view"
+          "1": "ProductListV1"
         },
         "api/v1/products/<int:product_id>/": {
           "1": "product_by_int_v1"
         },
         "api/v1/protected-data/": {
-          "1": "view"
+          "1": "protected_data_v1"
         },
         "api/v1/resources/": {
-          "1": "view"
+          "1": "resources_v1"
         },
         "api/v1/search/": {
-          "1": "view"
+          "1": "search_v1"
         },
         "api/v1/secure-data/": {
-          "1": "view"
+          "1": "secure_data_v1"
         },
         "api/v1/tasks/": {
-          "1": "view"
+          "1": "TaskCreateV1"
         },
         "api/v1/tasks/<int:task_id>/": {
-          "1": "view"
+          "1": "TaskRetrieveV1"
         },
         "api/v1/upload/": {
-          "1": "view"
+          "1": "upload_v1"
         },
         "api/v1/users/": {
           "1": "user_list"
@@ -2163,7 +2163,7 @@
           "1": "user_detail"
         },
         "api/v2/admin-only/": {
-          "2": "view"
+          "2": "admin_only_v2"
         },
         "api/v2/admin/config/": {
           "2": "admin_config_v2"
@@ -2178,13 +2178,13 @@
           "2": "analytics_overview_v2"
         },
         "api/v2/articles/": {
-          "2": "view"
+          "2": "ArticleListV2"
         },
         "api/v2/blog/": {
           "2": "<lambda>"
         },
         "api/v2/comments/": {
-          "2": "view"
+          "2": "CommentListV2"
         },
         "api/v2/configured-products/": {
           "2": "ConfiguredProductViewSetV2"
@@ -2196,22 +2196,22 @@
           "2": "ConfiguredProductViewSetV2"
         },
         "api/v2/docs/": {
-          "2": "view"
+          "2": "DocListV1"
         },
         "api/v2/items/": {
-          "2": "view"
+          "2": "ItemListV1"
         },
         "api/v2/items/<uuid:item_uuid>/": {
-          "2": "view"
+          "2": "ItemByUUIDV2"
         },
         "api/v2/legacy-api/": {
           "2": "legacy_api"
         },
         "api/v2/orders/": {
-          "2": "view"
+          "2": "OrderListV2"
         },
         "api/v2/orders/<int:order_id>/": {
-          "2": "view"
+          "2": "OrderDetailV2"
         },
         "api/v2/posts/": {
           "2": "post_list_v2"
@@ -2226,31 +2226,31 @@
           "2": "premium_features"
         },
         "api/v2/products-list/": {
-          "2": "view"
+          "2": "ProductListV2"
         },
         "api/v2/products/<int:product_id>/": {
           "2": "product_by_int_v1"
         },
         "api/v2/protected-data/": {
-          "2": "view"
+          "2": "protected_data_v2"
         },
         "api/v2/resources/": {
-          "2": "view"
+          "2": "resources_v2"
         },
         "api/v2/search/": {
-          "2": "view"
+          "2": "search_v2"
         },
         "api/v2/secure-data/": {
-          "2": "view"
+          "2": "secure_data_v2"
         },
         "api/v2/tasks/": {
-          "2": "view"
+          "2": "TaskCreateV1"
         },
         "api/v2/tasks/<int:task_id>/": {
-          "2": "view"
+          "2": "TaskDetailV2"
         },
         "api/v2/upload/": {
-          "2": "view"
+          "2": "upload_v2"
         },
         "api/v2/users/": {
           "2": "user_list_v2"
@@ -2259,7 +2259,7 @@
           "2": "user_detail_v2"
         },
         "api/v3/admin-only/": {
-          "3": "view"
+          "3": "admin_only_v2"
         },
         "api/v3/admin/config/": {
           "3": "admin_config_v2"
@@ -2274,13 +2274,13 @@
           "3": "analytics_overview_v2"
         },
         "api/v3/articles/": {
-          "3": "view"
+          "3": "ArticleListV2"
         },
         "api/v3/blog/": {
           "3": "<lambda>"
         },
         "api/v3/comments/": {
-          "3": "view"
+          "3": "CommentListV2"
         },
         "api/v3/configured-products/": {
           "3": "ConfiguredProductViewSetV2"
@@ -2289,22 +2289,22 @@
           "3": "ConfiguredProductViewSetV2"
         },
         "api/v3/docs/": {
-          "3": "view"
+          "3": "DocListV1"
         },
         "api/v3/items/": {
-          "3": "view"
+          "3": "ItemListV1"
         },
         "api/v3/items/<uuid:item_uuid>/": {
-          "3": "view"
+          "3": "ItemByUUIDV2"
         },
         "api/v3/legacy-api/": {
           "3": "legacy_api"
         },
         "api/v3/orders/": {
-          "3": "view"
+          "3": "OrderListV2"
         },
         "api/v3/orders/<int:order_id>/": {
-          "3": "view"
+          "3": "OrderDetailV2"
         },
         "api/v3/posts/": {
           "3": "post_list_v2"
@@ -2316,31 +2316,31 @@
           "3": "post_by_slug_v1"
         },
         "api/v3/products-list/": {
-          "3": "view"
+          "3": "ProductListV2"
         },
         "api/v3/products/<int:product_id>/": {
           "3": "product_by_int_v1"
         },
         "api/v3/protected-data/": {
-          "3": "view"
+          "3": "protected_data_v2"
         },
         "api/v3/resources/": {
-          "3": "view"
+          "3": "resources_v2"
         },
         "api/v3/search/": {
-          "3": "view"
+          "3": "search_v2"
         },
         "api/v3/secure-data/": {
-          "3": "view"
+          "3": "secure_data_v2"
         },
         "api/v3/tasks/": {
-          "3": "view"
+          "3": "TaskCreateV1"
         },
         "api/v3/tasks/<int:task_id>/": {
-          "3": "view"
+          "3": "TaskDetailV2"
         },
         "api/v3/upload/": {
-          "3": "view"
+          "3": "upload_v2"
         },
         "api/v3/users/": {
           "3": "user_list_v3"
@@ -2349,7 +2349,7 @@
           "3": "user_detail_v2"
         },
         "api/v4/admin-only/": {
-          "4": "view"
+          "4": "admin_only_v2"
         },
         "api/v4/admin/config/": {
           "4": "admin_config_v2"
@@ -2364,13 +2364,13 @@
           "4": "analytics_overview_v2"
         },
         "api/v4/articles/": {
-          "4": "view"
+          "4": "ArticleListV2"
         },
         "api/v4/blog/": {
           "4": "<lambda>"
         },
         "api/v4/comments/": {
-          "4": "view"
+          "4": "CommentListV2"
         },
         "api/v4/configured-products/": {
           "4": "ConfiguredProductViewSetV2"
@@ -2379,19 +2379,19 @@
           "4": "ConfiguredProductViewSetV2"
         },
         "api/v4/docs/": {
-          "4": "view"
+          "4": "DocListV1"
         },
         "api/v4/items/": {
-          "4": "view"
+          "4": "ItemListV1"
         },
         "api/v4/items/<uuid:item_uuid>/": {
-          "4": "view"
+          "4": "ItemByUUIDV2"
         },
         "api/v4/orders/": {
-          "4": "view"
+          "4": "OrderListV2"
         },
         "api/v4/orders/<int:order_id>/": {
-          "4": "view"
+          "4": "OrderDetailV2"
         },
         "api/v4/posts/": {
           "4": "post_list_v2"
@@ -2406,31 +2406,31 @@
           "4": "premium_features"
         },
         "api/v4/products-list/": {
-          "4": "view"
+          "4": "ProductListV2"
         },
         "api/v4/products/<int:product_id>/": {
           "4": "product_by_int_v1"
         },
         "api/v4/protected-data/": {
-          "4": "view"
+          "4": "protected_data_v2"
         },
         "api/v4/resources/": {
-          "4": "view"
+          "4": "resources_v2"
         },
         "api/v4/search/": {
-          "4": "view"
+          "4": "search_v2"
         },
         "api/v4/secure-data/": {
-          "4": "view"
+          "4": "secure_data_v2"
         },
         "api/v4/tasks/": {
-          "4": "view"
+          "4": "TaskCreateV1"
         },
         "api/v4/tasks/<int:task_id>/": {
-          "4": "view"
+          "4": "TaskDetailV2"
         },
         "api/v4/upload/": {
-          "4": "view"
+          "4": "upload_v2"
         },
         "api/v4/users/": {
           "4": "user_list_v3"
@@ -7809,7 +7809,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "215b961b8f256751b1661ab817fb522c506ff325",
+    "commit": "3c13f9f2e743fc6896dbcfb460611454b03972fd",
     "evidence_files": [
       {
         "file": "pyproject.toml",
@@ -7987,7 +7987,7 @@
       },
       {
         "file": "django_api_versioning/testing.py",
-        "sha256": "9448703b3695addcbe21206b3419d7b7ffff759ad363a15a8f68a106a4cf5ccc"
+        "sha256": "27c18a759a0440666eab1899bab87f9b76b70385b67f2b69d4983f16dcb205b3"
       },
       {
         "file": "django_api_versioning/urls.py",
@@ -7995,7 +7995,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/215b961b8f256751b1661ab817fb522c506ff325",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/3c13f9f2e743fc6896dbcfb460611454b03972fd",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
@@ -8175,9 +8175,9 @@
         "start": 13
       },
       "assert_version_matrix": {
-        "end": 67,
+        "end": 83,
         "file": "django_api_versioning/testing.py",
-        "start": 29
+        "start": 45
       },
       "build_version_matrix": {
         "end": 26,
