@@ -9,15 +9,15 @@ Three modes. `tox.ini` is the source of truth for the supported matrix.
 
 ## Matrix
 
-`tox.ini` envlist at the time of this skill:
+`tox.ini` is authoritative. Re-read it before each Full run; the following is the matrix currently configured on this branch:
 
-- py{310,311,312,313,314}-django52
-- py{312,313,314}-django60
-- py{312,313,314,315}-django61
-- lint
+- `py{310,311,312}-django42` — 3 environments
+- `py{310,311,312,313,314}-django52` — 5 environments
+- `py{312,313,314}-django60` — 3 environments
+- `py{312,313,314,315}-django61` — 4 environments
+- `lint` — 1 environment
 
-13 envs total. Django 5.2, 6.0, 6.1 only. If `pyproject.toml` changes
-the minimum Django, update `tox.ini` first, not this skill.
+There are currently 15 test environments plus one lint environment (16 total). This describes configured environments only; it does not establish that they have passed. DRF is not a separate tox matrix dimension.
 
 ## Quick — after EVERY file change
 
@@ -37,34 +37,31 @@ For Phase 1 baseline. Unit + integration on one Python. No tox.
 
 ```bash
 set -o pipefail
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 V=3.15
-uv venv /tmp/env-$V --python $V || { echo "VENV FAIL $V"; exit 1; }
-uv pip install --python /tmp/env-$V/bin/python \
-  -e /home/repl/django-api-versioning \
+uv python install "$V"
+uv venv "/tmp/env-$V" --python "$V" || { echo "VENV FAIL $V"; exit 1; }
+uv pip install --python "/tmp/env-$V/bin/python" \
+  -e "$REPO_ROOT" \
   pytest pytest-django pytest-cov djangorestframework \
   || { echo "INSTALL FAIL $V"; exit 2; }
 
-/tmp/env-$V/bin/python --version
-/tmp/env-$V/bin/python -c \
+"/tmp/env-$V/bin/python" --version
+"/tmp/env-$V/bin/python" -c \
   "import django, rest_framework; print('Django:', django.get_version()); print('DRF:', rest_framework.VERSION)"
 
-/tmp/env-$V/bin/python -m pytest /home/repl/django-api-versioning/tests/ \
-  -v --tb=short 2>&1 | tee /tmp/pytest-unit-$V.log
+"/tmp/env-$V/bin/python" -m pytest "$REPO_ROOT/tests/" \
+  -v --tb=short 2>&1 | tee "/tmp/pytest-unit-$V.log"
 UNIT_EXIT=${PIPESTATUS[0]}
 
-/tmp/env-$V/bin/python -m pytest /home/repl/django-api-versioning/integration_test_project/ \
-  -v --tb=short 2>&1 | tee /tmp/pytest-integ-$V.log
+"/tmp/env-$V/bin/python" -m pytest "$REPO_ROOT/integration_test_project/" \
+  -v --tb=short 2>&1 | tee "/tmp/pytest-integ-$V.log"
 INTEG_EXIT=${PIPESTATUS[0]}
 
 echo "UNIT_EXIT=$UNIT_EXIT INTEG_EXIT=$INTEG_EXIT"
 ```
 
-Note: the integration file is `integration_test_project/test_integration.py`
-— point pytest at the directory `integration_test_project/`, not a
-subpath `tests/` that does not exist. The integration directory has
-its own `pytest.ini` with its own `DJANGO_SETTINGS_MODULE`; do not
-run integration and unit in a single pytest invocation, because the
-root `pytest.ini` would override the integration settings.
+The integration directory has its own `pytest.ini` and `DJANGO_SETTINGS_MODULE`. Run unit and integration tests as separate pytest invocations; the root pytest configuration must not override the integration settings.
 
 ## Full — all tox envs
 
@@ -136,24 +133,15 @@ PASSED_LINES=$(grep -c 'passed' /tmp/tox-full.log)
 echo "succeeded=$SUCCEEDED not-run=$NOTRUN passed-lines=$PASSED_LINES"
 ```
 
-Three conditions must ALL hold:
+For the current matrix, all of these must hold:
 
-- `succeeded == 13`
-- `not-run == 0`
-- `passed-lines >= 26` — 13 envs × 2 pytest runs (unit + integration);
-  `lint` contributes none, so the minimum for 12 test envs is 24, but
-  allow 26 to catch extra summary lines. If `passed-lines < 24`,
-  some env only ran one pytest invocation — `tox.ini` commands are
-  wrong (probably still the old combined form).
+- `succeeded == 16` (15 test environments plus lint).
+- `not-run == 0`.
+- `passed-lines >= 30` (15 test environments × 2 separate pytest invocations).
+- Every test environment's log section contains one successful unit-test invocation and one successful integration-test invocation; lint is checked separately.
+- `TOX_EXIT == 0`.
 
-If any condition fails: setup is broken. STOP. Do not report
-"sandbox limitation". Do not certify. Report the failing env names
-and which condition failed, then stop.
-
-Per-env check: for each of the 12 test envs, the env's log section
-in `/tmp/tox-full.log` must contain two `passed` lines — one from
-the unit run, one from the integration run. If only one, integration
-did not run for that env.
+If a condition fails, inspect the affected environment sections before classifying the cause. `interpreter not found` or dependency installation failures indicate environment/setup problems; pytest failures indicate test/code failures; missing one of the two pytest invocations indicates a tox configuration problem. Do not label all non-zero results as infrastructure failures.
 
 ### Update COMPATIBILITY_REPORT.md only on real results
 
@@ -219,7 +207,10 @@ fabricate — every row must come from the actual tox output.
 
 | Env | Python | Django | Status | Unit pass | Integ pass | Notes |
 |-----|--------|--------|--------|-----------|------------|-------|
-| py310-django52 | 3.10.x | 5.2.x | ok / FAIL / NOT-RUN | n | m | from tox log |
+| py310-django42 | 3.10.x | 4.2.x | ok / FAIL / NOT-RUN | n | m | from tox log |
+| py311-django42 | 3.11.x | 4.2.x | ... | | | |
+| py312-django42 | 3.12.x | 4.2.x | ... | | | |
+| py310-django52 | 3.10.x | 5.2.x | ... | | | |
 | py311-django52 | 3.11.x | 5.2.x | ... | | | |
 | py312-django52 | 3.12.x | 5.2.x | ... | | | |
 | py313-django52 | 3.13.x | 5.2.x | ... | | | |
@@ -247,8 +238,7 @@ env as `FAIL`. Do not fabricate a count.
 
 ## Unsupported combinations
 
-`tox.ini` does not include Django 4.2, 5.0, or 5.1. These versions
-are not part of the tested matrix. Do not claim support for them.
+`tox.ini` currently includes Django 4.2, 5.2, 6.0, and 6.1. Django 5.0 and 5.1 are not in the configured test matrix. Do not infer test coverage for a version from package classifiers alone.
 
 Do not label any combination "SUPPORTED" without an `ok` row in
 the table above.
@@ -284,14 +274,13 @@ Do NOT update it after Quick or Single mode — those do not cover
 the matrix.
 
 ## Never
-- Never use system `python3` (3.8.10) for Single or Quick.
+- Never use an unverified system interpreter for tests; use the active project venv or the explicitly created uv environment.
 - Never install without `pytest-cov` — pyproject's addopts requires it.
 - Never pipe to `tee` without `set -o pipefail` and `${PIPESTATUS[0]}`.
 - Never claim a test passed unless the exit code is 0.
 - Never fabricate counts, versions, coverage.
 - Never run Full (tox) in Phase 1.
-- Never modify `tox.ini` to add Django versions without updating
-  `pyproject.toml` first.
+- When changing compatibility declarations, keep `tox.ini`, `pyproject.toml` classifiers, `COMPATIBILITY_REPORT.md`, and user-facing documentation consistent. `tox.ini` defines the configured test matrix; classifiers are metadata and do not prove that a combination was tested.
 - Never use `.[dev]` — that extras group does not exist in this
   project's pyproject.toml.
 - Never run unit and integration in a single pytest invocation —
