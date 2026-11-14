@@ -186,6 +186,29 @@ class TestIssue0SimultaneousVersionAndVersions:
         assert len(registry.urlpatterns) == initial_count
 
 
+class TestExplicitVersionsBelowMin:
+    def test_explicit_versions_below_min_are_skipped(
+        self, monkeypatch, caplog
+    ):
+        from django_api_versioning.decorators import settings as api_settings
+
+        monkeypatch.setattr(api_settings, "API_MIN_VERSION", 2)
+        monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+        with caplog.at_level("WARNING"):
+
+            @endpoint("users", versions=[1, 2, 3])
+            def users(request):
+                return JsonResponse({})
+
+        route_versions = {
+            pattern._django_api_versioning_route_version
+            for pattern in registry.urlpatterns
+        }
+        assert route_versions == {2, 3}
+        assert "Skipping this version" in caplog.text
+
+
 class TestUnversioned:
     def test_unversioned_registers_single_route(self):
         @endpoint("health")
