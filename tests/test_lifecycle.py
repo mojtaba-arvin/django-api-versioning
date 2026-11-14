@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from django.http import HttpResponse
 from django.test import RequestFactory
@@ -474,3 +474,27 @@ class TestOverrideSettingsCompatibility:
             # Check lifecycle with extracted version
             response = middleware(request)
             assert response.status_code == 410
+
+
+
+def test_timezone_aware_sunset_is_compared_as_an_absolute_instant(monkeypatch):
+    """An explicit UTC offset must be converted, not overwritten."""
+    import django_api_versioning.lifecycle as lifecycle
+
+    class FrozenDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 11, 15, 0, 0, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(lifecycle, "datetime", FrozenDateTime)
+
+    # 01:00 at UTC+02:00 is 23:00 UTC on the previous day.
+    assert lifecycle._is_past("2026-11-15T01:00:00+02:00") is True
+
+
+def test_timezone_aware_sunset_header_is_normalized_to_utc():
+    from django_api_versioning.lifecycle import _to_http_date
+
+    assert _to_http_date("2026-11-15T01:00:00+02:00") == (
+        "Sat, 14 Nov 2026 23:00:00 GMT"
+    )
