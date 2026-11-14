@@ -14,7 +14,9 @@ SOURCE_PACKAGE = ROOT / "django_api_versioning"
 
 def digest_tree(directory: Path) -> dict[str, str]:
     return {
-        path.relative_to(directory).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        path.relative_to(directory).as_posix(): hashlib.sha256(
+            path.read_bytes()
+        ).hexdigest()
         for path in sorted(directory.rglob("*"))
         if path.is_file() and (path.suffix == ".py" or path.name == "py.typed")
     }
@@ -57,7 +59,8 @@ def main() -> None:
     installed_package = Path(django_api_versioning.__file__).resolve().parent
     if installed_package == SOURCE_PACKAGE or SOURCE_PACKAGE in installed_package.parents:
         raise SystemExit(
-            "The smoke test imported the repository checkout instead of the installed wheel."
+            "The smoke test imported the repository checkout instead of "
+            "the installed wheel."
         )
 
     source_hashes = digest_tree(SOURCE_PACKAGE)
@@ -119,11 +122,14 @@ def main() -> None:
     except VersionTypeError:
         pass
     else:
-        raise SystemExit("Installed wheel api_reverse() accepted bool as an API version.")
+        raise SystemExit(
+            "Installed wheel api_reverse() accepted bool as an API version."
+        )
 
     print(
-        f"PASS installed wheel {installed_version}: {len(installed_hashes)} package files "
-        "match source; inherited routing, route overrides, api_reverse and converters work."
+        f"PASS installed wheel {installed_version}: "
+        f"{len(installed_hashes)} package files match source; "
+        "inherited routing, route overrides, api_reverse and converters work."
     )
 
 
