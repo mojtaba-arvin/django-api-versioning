@@ -2,9 +2,9 @@
 
 import ast
 import sys
+from pathlib import Path
 
 import pytest
-from pathlib import Path
 
 INTEGRATION_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(INTEGRATION_ROOT))
@@ -39,9 +39,7 @@ def test_setting_references_only_reports_read_accesses():
         "    return API_EFFECTIVE_VERSION_RESOLVER\n"
     )
 
-    assert list(_setting_references(tree)) == [
-        ("API_EFFECTIVE_VERSION_RESOLVER", 5)
-    ]
+    assert list(_setting_references(tree)) == [("API_EFFECTIVE_VERSION_RESOLVER", 5)]
 
 
 def test_unique_line_reference_returns_the_only_matching_line():
