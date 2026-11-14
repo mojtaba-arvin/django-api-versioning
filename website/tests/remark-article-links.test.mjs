@@ -21,3 +21,12 @@ test("external links are left unchanged", () => {
   remarkArticleLinks()(tree, { path: process.cwd() + "/src/content/articles/sample.md" });
   assert.equal(link.url, "https://example.com/docs");
 });
+
+test("root-relative home and section links respect the site base path", () => {
+  const home = { type: "link", url: "/", children: [{ type: "text", value: "Home" }] };
+  const section = { type: "link", url: "/#capabilities", children: [{ type: "text", value: "Capabilities" }] };
+  const tree = { type: "root", children: [{ type: "paragraph", children: [home, section] }] };
+  remarkArticleLinks()(tree, { path: process.cwd() + "/src/content/articles/sample.md" });
+  assert.equal(home.url, "/project-docs/");
+  assert.equal(section.url, "/project-docs/#capabilities");
+});

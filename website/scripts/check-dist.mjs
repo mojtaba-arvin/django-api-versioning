@@ -60,10 +60,14 @@ export async function findBrokenLocalReferences(distRoot, basePath = "/") {
         issues.push(`${relativePage}: local URL escapes configured base path: ${raw}`);
         continue;
       }
-      let relativeTarget = pathname.slice(basePrefix.length);
-      if (!relativeTarget) relativeTarget = "index.html";
-      let target = path.resolve(distRoot, ...relativeTarget.split("/"));
-      if (pathname.endsWith("/") || !path.extname(target)) target = path.join(target, "index.html");
+      const relativeTarget = pathname.slice(basePrefix.length);
+      let target;
+      if (!relativeTarget) {
+        target = path.join(distRoot, "index.html");
+      } else {
+        target = path.resolve(distRoot, ...relativeTarget.split("/"));
+        if (pathname.endsWith("/") || !path.extname(target)) target = path.join(target, "index.html");
+      }
       if (!target.startsWith(path.resolve(distRoot) + path.sep) && target !== path.join(path.resolve(distRoot), "index.html")) {
         issues.push(`${relativePage}: URL resolves outside dist: ${raw}`);
       } else if (!await exists(target)) {
