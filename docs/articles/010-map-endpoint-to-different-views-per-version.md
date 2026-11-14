@@ -405,7 +405,7 @@ A configured callable such as `UserViewSetV1.as_view({"get": "list"})` can be re
 
 This follows the package's canonical ViewSet/Router position: use routers for resource-shaped ViewSets and `@endpoint` for supported generic views and explicitly configured callables. The [DRF router documentation](https://www.django-rest-framework.org/api-guide/routers/) explains the router registration model.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 
 ## Trade-offs and scope
 
