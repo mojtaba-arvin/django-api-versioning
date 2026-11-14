@@ -7,7 +7,7 @@ author:
   url: "https://www.linkedin.com/in/mojtabaarvin/"
 keywords:
   - "DRF versioning schemes"
-  - "AcceptHeaderVersioning vs URLPathVersioning"
+  - "AcceptHeader vs URLPathVersioning"
   - "version branching patterns"
   - "NamespaceVersioning"
 ---
