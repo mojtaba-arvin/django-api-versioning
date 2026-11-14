@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from scripts.verify_distribution_contents import check_sdist, check_wheel
 from scripts.smoke_installed_wheel import digest_tree
+from scripts.verify_distribution_contents import check_sdist, check_wheel
 
 
 def _write_wheel(path: Path, names: list[str]) -> None:
