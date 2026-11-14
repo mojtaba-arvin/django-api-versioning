@@ -55,7 +55,7 @@ def main() -> None:
     from django_api_versioning.exceptions import VersionTypeError
 
     installed_package = Path(django_api_versioning.__file__).resolve().parent
-    if SOURCE_PACKAGE in installed_package.parents:
+    if installed_package == SOURCE_PACKAGE or SOURCE_PACKAGE in installed_package.parents:
         raise SystemExit(
             "The smoke test imported the repository checkout instead of the installed wheel."
         )
