@@ -104,7 +104,38 @@ def test_invalid_sunset_date_is_ignored(monkeypatch, caplog):
     response = middleware(_request("2"))
 
     assert response["Deprecation"] == "true"
+    assert "Sunset" not in response
     assert "Invalid sunset date" in caplog.text
+
+
+def test_non_string_sunset_is_ignored(monkeypatch, caplog):
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {"status": "deprecated", "sunset": 123},
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("2"))
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "true"
+    assert "Sunset" not in response
+    assert "Invalid sunset date" in caplog.text
+
+
+def test_timezone_aware_sunset_is_converted_to_utc(monkeypatch):
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {
+            "status": "deprecated",
+            "sunset": "2030-01-01T12:00:00+03:00",
+        },
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("2"))
+
+    assert response["Sunset"] == "Tue, 01 Jan 2030 09:00:00 GMT"
 
 
 # Tests for _extract_version() and _extract_version_from_path()
