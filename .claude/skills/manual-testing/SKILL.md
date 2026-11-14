@@ -84,9 +84,11 @@ uv --version || { echo "UV FAIL"; exit 1; }
 
 # 2. All six Pythons installed?
 uv python install 3.10 3.11 3.12 3.13 3.14 3.15
-COUNT=$(uv python list 2>/dev/null | grep -c 'cpython-')
-echo "Pythons installed: $COUNT"
-[ "$COUNT" -ge 6 ] || { echo "PYTHON COUNT FAIL ($COUNT < 6)"; exit 1; }
+for V in 3.10 3.11 3.12 3.13 3.14 3.15; do
+  uv python list 2>/dev/null | grep -q "cpython-$V" \
+    || { echo "MISSING PYTHON $V"; exit 1; }
+done
+echo "All six Python versions required by the current tox matrix are available."
 
 # 3. tox + tox-uv installed?
 uv venv /tmp/tox --python 3.15
