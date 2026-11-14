@@ -77,7 +77,8 @@ def main() -> None:
     current_evidence_hashes = evidence_hashes(ROOT)
     if recorded_evidence_hashes != current_evidence_hashes:
         raise SystemExit(
-            "Generated route evidence is stale: test or integration input hashes differ."
+            "Generated route evidence is stale: test or integration "
+            "input hashes differ."
         )
 
     import django
