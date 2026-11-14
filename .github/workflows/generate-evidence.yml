@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/generate-evidence.yml"
       - "django_api_versioning/**"
+      - "tests/**"
+      - "pytest.ini"
       - "integration_test_project/**"
       - "pyproject.toml"
       - "requirements.txt"
