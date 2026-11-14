@@ -22,6 +22,7 @@ Documentation-only edits under `docs/website/`, root agent instructions, and oth
 - Python tests and artifact validation run as independent workflows and can execute concurrently.
 - A concurrency group cancels obsolete in-progress runs for the same PR/ref.
 - Pull-request workflows run at review start (`opened`, `reopened`, `ready_for_review`), not for every commit pushed to a long-lived review branch. Use `workflow_dispatch` to run explicit checkpoints after a meaningful batch of changes.
+- These PR runs are review checkpoints, not a green status for every later commit SHA. Do not mark them as required merge checks unless a lightweight per-synchronization gate is introduced or a manual checkpoint is run against the exact final SHA.
 - Pushes to `main` remain automatic and path-filtered.
 
 Path filters are a cost boundary, not a replacement for testing. If a change crosses a boundary, update the corresponding path list in the workflow in the same commit.
