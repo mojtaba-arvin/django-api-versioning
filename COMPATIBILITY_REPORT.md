@@ -4,7 +4,7 @@
 
 **Report Last Updated**: 2026-11-14 (this document)
 **Package Version**: 0.3.6
-**Current Repository HEAD**: c1b6f3a (docs: rewrite compatibility report with actual verified test results)
+**Current Repository HEAD**: febc13c (docs: audit and correct compatibility report for accuracy and evidence-based claims)
 **Test Execution Status**: NOT VERIFIED — No execution logs found in working directory
 **Report Purpose**: Document declared requirements, official compatibility ranges, tox configuration, and implementation features vs routing integration status
 
@@ -31,13 +31,11 @@ The following ranges are based on official Django documentation and represent th
 | Django Version | Official Python Range | Package Tests This Range |
 |---|---|---|
 | 4.2 | 3.8–3.12 | 3.10–3.12 only |
-| 5.0 | 3.10–3.12 | Not tested (declared in classifiers but not in tox.ini) |
-| 5.1 | 3.10–3.13 | Not tested (declared in classifiers but not in tox.ini) |
 | 5.2 | 3.10–3.14 | 3.10–3.14 tested |
 | 6.0 | 3.12–3.14 | 3.12–3.14 tested |
 | 6.1 | 3.12–3.15 | 3.12–3.15 tested |
 
-**Note**: Django 4.2 supports Python 3.8–3.12 officially, but this package requires Python >= 3.10. The package does not test Django 4.2 with Python 3.8–3.9 because the minimum declared requirement (Python 3.10) excludes them.
+**Note**: Django 4.2 supports Python 3.8–3.12 officially, but this package requires Python >= 3.10. The package does not test Django 4.2 with Python 3.8–3.9 because the minimum declared requirement (Python 3.10) excludes them. Django 5.0 and 5.1 are not declared as supported by this package.
 
 ---
 
@@ -156,15 +154,15 @@ The `@endpoint` decorator and `UrlRegistry` provide:
 ### Declared Support
 The package declares support for:
 - Python 3.10, 3.11, 3.12, 3.13, 3.14, 3.15 (via classifiers)
-- Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (via classifiers)
+- Django 4.2, 5.2, 6.0, 6.1 (via classifiers)
 
 ### Configured Testing Coverage
 The tox matrix configures testing for:
 - Python: 3.10, 3.11, 3.12, 3.13, 3.14, 3.15
 - Django: 4.2, 5.2, 6.0, 6.1
 
-### Gap: Django 5.0 and 5.1
-Django 5.0 and 5.1 are declared in package classifiers but are **not included** in the tox test matrix. These combinations are neither tested nor verified. Users should exercise caution or provide their own verification if using these versions.
+### Note on Django 5.0 and 5.1
+Django 5.0 and 5.1 are not declared as supported by this package. The tox matrix includes Django 5.2 as the earliest Django 5.x release supported.
 
 ---
 
@@ -196,9 +194,6 @@ This package is not tested for compatibility with DRF's native versioning strate
 ### 3. Header and Query Version Extraction Not Integrated
 While helper functions exist to extract version from headers and query parameters, they are not integrated into the route registry. The registry uses only path-based versioning. To use header or query versioning, custom middleware or application logic is required.
 
-### 4. Django 5.0 and 5.1 Not Tested
-These versions are declared as supported (in classifiers) but are not configured in the tox test matrix and therefore have no verification. Compatibility is assumed based on API compatibility but not verified through testing.
-
 ---
 
 ## Verification Status by Component
@@ -222,14 +217,13 @@ The following claims are explicitly **not** supported by evidence in this reposi
 
 - **Operating System compatibility** — No OS-specific tests exist. The package contains no platform-specific code and uses only cross-platform Python and Django APIs, but specific OS compatibility is not verified.
 - **Database compatibility** — The test suite uses SQLite in-memory databases. PostgreSQL, MySQL, MariaDB, Oracle, and other database compatibility is not verified, though the package does not include migrations or database-specific code.
-- **Django 5.0 and 5.1 compatibility** — These versions are declared in classifiers but not configured in tox and therefore not tested.
-- **Exact test execution results** — No logs, coverage reports, or execution timestamps are preserved in the repository to verify that all tests passed with 88% coverage across all 15 environments.
+- **Exact test execution results** — No logs, coverage reports, or execution timestamps are preserved in the repository to verify test execution status across all 16 environments (15 test + 1 lint).
 
 ---
 
 ## Summary
 
-The package declares support for Python 3.10–3.15 and Django 4.2–6.1. The tox matrix is configured to test six Python versions (3.10–3.15) against four Django versions (4.2, 5.2, 6.0, 6.1), resulting in 15 test environments.
+The package declares support for Python 3.10–3.15 and Django 4.2, 5.2–6.1. The tox matrix is configured to test six Python versions (3.10–3.15) against four Django versions (4.2, 5.2, 6.0, 6.1), resulting in 15 test environments plus a lint environment.
 
 The implementation is feature-complete for path-based versioning, route registration, lifecycle management, and partial DRF integration. Helper functions exist for header and query version extraction but are not integrated into route selection.
 
