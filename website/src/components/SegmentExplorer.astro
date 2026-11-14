@@ -1,5 +1,5 @@
 ---
-import { scenarioNames, scenario, segmentsOf } from "../lib/data";
+import { scenarioNames, scenario, segmentsOf, colourSlots } from "../lib/data";
 import SegmentDiagram from "./SegmentDiagram.astro";
 
 interface Props {
@@ -10,8 +10,18 @@ const { initialScenario = "main", initialPostfix = "users/" } = Astro.props;
 const scenarios = scenarioNames.map((name) => {
   const current = scenario(name);
   const settings = current.effective_settings["django_api_versioning.settings.api_settings"];
+  const slots = colourSlots(current);
   const routes = Object.keys(current.matrix)
-    .map((postfix) => ({ postfix, segments: segmentsOf(current, postfix) }))
+    .map((postfix) => ({
+      postfix,
+      segments: segmentsOf(current, postfix).map((segment) => ({
+        start: segment.from,
+        end: segment.to,
+        sourceVersion: segment.source_version,
+        callback: segment.callback,
+        slot: slots.get(segment.callback) ?? 0,
+      })),
+    }))
     .filter((route) => route.segments.length > 0);
   const error = current.urlconf_import.error?.message
     ?? current.recorded_errors?.map((item) => item.message).filter(Boolean).join(" ")
