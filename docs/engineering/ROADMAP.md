@@ -226,3 +226,12 @@ Do not mark a phase complete merely because its checklist was drafted. Phase com
 - Verification performed: re-fetched the changed files and confirmed their committed contents and PR head.
 - Verification not performed: Python tests, lint, tox, package build, and runtime integration tests. A local clone attempt could not resolve github.com in the available execution environment; the GitHub workflow run lookup currently returned no runs. These changes remain unvalidated by an executed test suite.
 - Follow-up: obtain actual CI execution evidence, then continue Phase 0 provenance/inventory and Phase 1 CI remediation.
+
+
+### 2026-11-15 — Additional core validation work
+
+- `dd93379` — Strengthened the DRF ViewSet registration test to require the concrete class name and actionable `as_view()` example.
+- `c1e5188` — Prevented the ViewSet-specific `TypeError` from being swallowed by a broad inspection exception handler. Signature inspection failures are now handled separately.
+- Verification performed: re-fetched the changed source and test files; confirmed the PR-triggered GitHub Actions workflow was queued for the updated head.
+- Verification pending: the workflow run for the latest head is still queued/in progress. No local Python test execution has occurred.
+- Follow-up: inspect the completed workflow result and logs; expand tests for registry collisions, URL resolution, and class-based view edge cases.
