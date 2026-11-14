@@ -318,7 +318,7 @@ If you want to keep a ViewSet, you have two options:
 
 The package example uses generic views, not ViewSets. It demonstrates versioned endpoint registration and view inheritance, but it is not a drop-in replacement for all router-generated ViewSet functionality.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
 
 ## Trade-offs and scope
 
