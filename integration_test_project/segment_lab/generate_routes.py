@@ -136,6 +136,7 @@ def provenance() -> dict:
         "evidence_files": evidence_files,
     }
 
+
 # --------------------------------------------------------------------------
 # Source references: line numbers parsed from the repository checkout
 # --------------------------------------------------------------------------
