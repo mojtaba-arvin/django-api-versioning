@@ -429,9 +429,9 @@ class TestDRFViewSetRegistration:
             registry.register("api/v1/users", UserViewSet)
 
         error_msg = str(exc_info.value)
-        # Error should mention ViewSet and suggest as_view() with actions
-        assert "ViewSet" in error_msg or "actions" in error_msg
+        assert "UserViewSet" in error_msg
         assert "as_view" in error_msg
+        assert "'get': 'list'" in error_msg
 
     def test_viewset_with_actions_succeeds(self, clear_registry):
         """ViewSet with action configuration via as_view() succeeds."""
