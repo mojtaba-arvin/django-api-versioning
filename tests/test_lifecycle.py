@@ -1,9 +1,8 @@
 from datetime import date, timedelta
 
+import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
-
-import pytest
 
 from django_api_versioning.lifecycle import LifecycleMiddleware
 from django_api_versioning.settings import api_settings as settings
