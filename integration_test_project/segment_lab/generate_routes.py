@@ -92,7 +92,10 @@ def provenance() -> dict:
                 "--porcelain",
                 "--",
                 "django_api_versioning",
+                "tests",
                 "pyproject.toml",
+                "pytest.ini",
+                "requirements-ci.txt",
                 "integration_test_project",
             ],
             cwd=REPO_ROOT,
@@ -102,8 +105,8 @@ def provenance() -> dict:
         )
         if dirty.stdout.strip():
             raise SystemExit(
-                "Package source or pyproject.toml has uncommitted changes; "
-                "commit them before generating evidence."
+                "Package source, tests, or evidence inputs have uncommitted "
+                "changes; commit them before generating evidence."
             )
 
     commit = supplied_commit or checkout_commit
@@ -119,15 +122,23 @@ def provenance() -> dict:
                 }
             )
 
-    evidence_inputs = [REPO_ROOT / "pyproject.toml"]
-    evidence_inputs.extend(sorted(INTEGRATION_ROOT.rglob("*.py")))
+    evidence_inputs = [
+        REPO_ROOT / "pyproject.toml",
+        REPO_ROOT / "pytest.ini",
+        REPO_ROOT / "requirements-ci.txt",
+    ]
+    evidence_inputs.extend(sorted((REPO_ROOT / "tests").rglob("*.py")))
+    evidence_inputs.extend(INTEGRATION_ROOT.rglob("*.py"))
+    evidence_inputs = sorted(
+        {path for path in evidence_inputs if path.is_file()},
+        key=lambda path: path.as_posix(),
+    )
     evidence_files = [
         {
             "file": path.relative_to(REPO_ROOT).as_posix(),
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         }
         for path in evidence_inputs
-        if path.is_file()
     ]
 
     return {
