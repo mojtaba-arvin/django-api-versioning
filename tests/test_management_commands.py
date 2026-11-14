@@ -353,7 +353,7 @@ class TestMigrateEndpointsRewriting:
             ),
             (
                 '"users", version=3, backward=True, forward=False',
-                '"users", versions=ver_range(1, 3)',
+                '"users", versions=list(range(1, 4))',
             ),
             (
                 '"users", version=3, backward=False, forward=False',
@@ -385,7 +385,7 @@ class TestMigrateEndpointsRewriting:
     def test_preserves_escaped_quotes_and_commas_in_string_literals(self):
         args = r'"users, \"admin\"", version=3, backward=True, forward=False'
         assert _rewrite_args(args) == (
-            r'"users, \"admin\"", versions=ver_range(1, 3)'
+            r'"users, \"admin\"", versions=list(range(1, 4))'
         )
 
     def test_suggest_ignores_modern_and_noop_declarations(self):
@@ -409,7 +409,7 @@ class TestMigrateEndpointsRewriting:
             (
                 decorator,
                 '@endpoint("users,admin", app_name="public", '
-                "versions=ver_range(1, 2))",
+                "versions=list(range(1, 3)))",
             )
         ]
 
@@ -423,7 +423,7 @@ class TestMigrateEndpointsRewriting:
             (
                 decorator,
                 '@endpoint("users", app_name=build_name("public", suffix="v1"), '
-                "versions=ver_range(1, 2))",
+                "versions=list(range(1, 3)))",
             )
         ]
 
@@ -476,7 +476,7 @@ class TestMigrateEndpointsCommand:
 
         output = out.getvalue()
         assert str(view_file) in output
-        assert "versions=ver_range(1, 2)" in output
+        assert "versions=list(range(1, 3))" in output
         assert view_file.read_text() == source
         assert migration_file.read_text() == source
 
@@ -509,12 +509,36 @@ class TestMigrateEndpointsCommand:
         out = StringIO()
         call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
 
-        assert "versions=ver_range(1, 2)" in view_file.read_text()
+        assert "versions=list(range(1, 3))" in view_file.read_text()
         assert migration_file.read_text() == source
         assert unrelated_file.read_text() == "def plain():\n    return None\n"
         assert modern_file.read_text() == modern_source
         assert external_file.read_text() == source
         assert str(view_file) in out.getvalue()
+
+    def test_default_write_result_executes_without_ver_range_import(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            'def view(request):\\n'
+            '    return None\\n'
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            stdout=StringIO(),
+        )
+
+        captured = {}
+
+        def endpoint(postfix, **kwargs):
+            captured.update(kwargs)
+            return lambda view: view
+
+        exec(view_file.read_text(), {"endpoint": endpoint})
+        assert captured["versions"] == [1, 2]
 
     def test_default_write_updates_multiple_decorators_by_source_position(
         self, tmp_path
@@ -537,6 +561,6 @@ class TestMigrateEndpointsCommand:
         )
 
         updated = view_file.read_text()
-        assert "versions=ver_range(1, 2)" in updated
+        assert "versions=list(range(1, 3))" in updated
         assert "versions=[3]" in updated
         ast.parse(updated)
