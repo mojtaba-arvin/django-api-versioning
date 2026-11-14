@@ -7,7 +7,7 @@ on:
       - ".github/workflows/black-format-preview.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   preview:
@@ -18,5 +18,15 @@ jobs:
         with:
           python-version: "3.15"
       - run: python -m pip install black
-      - name: Print formatter diff
-        run: black --diff .
+      - name: Apply Black formatting
+        run: black .
+      - name: Commit formatted Python files
+        run: |
+          git diff --check
+          if ! git diff --quiet; then
+            git config user.name "Mojtaba Arvin"
+            git config user.email "m.arvin@live.com"
+            git add -u
+            git commit -m "style: apply Black formatting to Python sources"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
