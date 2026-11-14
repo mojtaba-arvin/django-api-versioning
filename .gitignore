@@ -34,8 +34,6 @@ website/dist/
 website/.netlify/
 
 # Generated Astro content copied from the canonical docs/articles corpus.
-website/src/content/articles/
-
 # Website build-time mirrors and public evidence copies
 website/src/content/articles/
 website/src/data/generated/search-index.json

@@ -1,0 +1,29 @@
+name: Generate website npm lockfile
+
+on:
+  push:
+    branches: [audit/comprehensive-package-review]
+    paths:
+      - ".github/workflows/website-lock.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22.12.0"
+      - name: Generate deterministic npm lockfile
+        working-directory: website
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Commit lockfile
+        run: |
+          git add website/package-lock.json
+          git config user.name "Mojtaba Arvin"
+          git config user.email "m.arvin@live.com"
+          git commit -m "build(site): lock frontend dependencies"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
