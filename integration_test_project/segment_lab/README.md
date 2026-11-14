@@ -2,7 +2,7 @@
 
 ## Current status
 
-The recovered Netlify scenario code has been ported into this directory and adapted to run inside the repository's existing Django integration project. The harness contains 18 executable scenarios and has passed the integration suite on the current package source. The latest focused CI checkpoint recorded 206 unit tests (95% package coverage) and 249 integration tests passing. The full compatibility matrix passed all 15 Python/Django environments at commit `04faa625272d76bb9c1576cda33cc7ea213f6eed`; lint passed after the final Black formatting pass. The full matrix is being re-run once more against the formatted regression-test source.
+The recovered Netlify scenario code has been ported into this directory and adapted to run inside the repository's existing Django integration project. The harness contains 18 executable scenarios and has passed the integration suite on the current package source. The latest focused CI checkpoint recorded 211 unit tests (96% package coverage) and 249 integration tests passing. The full compatibility matrix passed all 15 Python/Django environments and the lint environment at commit `9b09d66c931f6e99687664da7442ddf9198595cb`.
 
 The harness reuses:
 - `../manage.py`

@@ -57,7 +57,7 @@ The latest focused and compatibility checkpoints completed successfully:
 - Unit tests: 211 passed in 0.67 seconds (96% package coverage).
 - Integration tests: 249 passed in 13.31 seconds.
 - Python test workflow wall time: 38 seconds, including runner setup and dependency installation.
-- Package artifact workflow: 18 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
+- Package artifact workflow: 19 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
 - Full compatibility matrix: all 15 Python/Django environments and the lint environment passed in 44 seconds.
 
 The focused test run, package artifact run, and full matrix were all recorded at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`. These are observed runs, not guaranteed future durations. The previous Docker-based workflow took approximately 143 seconds for one combined run.

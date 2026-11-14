@@ -8,7 +8,7 @@
 **Audited Source Revision**: `9b09d66c931f6e99687664da7442ddf9198595cb`
 **Focused Test Run**: [GitHub Actions run 43630604568](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604568), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`
 **Compatibility Matrix**: [GitHub Actions run 43630604572](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604572), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`; 15 test environments and 1 lint environment passed
-**Package Artifacts**: [GitHub Actions run 43630604567](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604567); wheel, sdist, Twine metadata, and package-content checks passed
+**Package Artifacts**: [GitHub Actions run 43630834718](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630834718), source commit `14f19b3ccce511af04621597b944c2f9e61162b2`; wheel, sdist, Twine metadata, and package-content checks passed
 **Evidence Qualification**: The focused test, compatibility matrix, and package artifact runs are linked above. GitHub Actions retains the raw execution logs; they are not copied into the repository.
 **Report Purpose**: Document declared requirements, official compatibility ranges, configured test environments, recorded test results, and implementation boundaries.
 
@@ -268,7 +268,7 @@ The pytest execution counts include parametrized cases and therefore are not equ
 
 The implementation provides path-based versioned route registration, forward segment inheritance, lifecycle management, and partial DRF integration. Header and query version extraction helpers exist but are not integrated into route selection.
 
-**Evidence limitation:** The successful historical tox run is recorded by the project, but raw per-environment logs and resolved dependency records are not retained for independent reproduction.
+**Evidence limitation:** Current GitHub Actions logs are linked in report metadata. The repository does not pin a fully resolved dependency lock for every tox environment, so future reruns may resolve newer dependency versions.
 
 ---
 
