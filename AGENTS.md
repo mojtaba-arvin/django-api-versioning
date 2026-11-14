@@ -57,6 +57,17 @@ Keep these distinctions explicit:
 
 Do not infer behaviour from article wording alone. Verify package claims against the exact source baseline and executable evidence. Preserve known limitations and negative findings.
 
+## CI execution policy
+
+- `.github/workflows/tests.yml` runs the Python unit and integration suites only when package, test, integration-project, Python dependency, or test-workflow files change. Documentation-only and website-only changes do not run Python CI.
+- `.github/workflows/package-artifacts.yml` builds and validates wheel/sdist only when package source or packaging inputs change. It runs independently from the Python tests.
+- Both workflows use native GitHub-hosted Python with `setup-python` pip caching; CI must not build the development Docker image.
+- Pull-request checks run when a PR is opened/reopened or marked ready for review, not on every synchronization commit. Use the Actions `workflow_dispatch` entry to run explicit validation checkpoints after a batch of commits. Pushes to `main` remain automatic.
+- `requirements-ci.txt` contains only dependencies needed by pytest and the integration project. Do not add formatter/type-checker/pre-commit dependencies to it unless CI actually runs those tools.
+- `requirements-build.txt` contains only wheel/sdist build and metadata-validation tools.
+- The root `Dockerfile` and `entrypoint.sh` remain the full local development workflow; BuildKit pip caching is enabled and pre-commit hook environments are installed lazily only when requested.
+- When the Astro application is complete, add a separate website workflow triggered by `website/**` and `docs/articles/**`. It should run Node/Astro checks and static-output tests, never the Python Docker image. Until then, do not claim website CI has been established.
+
 ## Quality gates
 
 Before calling website work complete:
