@@ -61,7 +61,7 @@ class Command(BaseCommand):
             if not rewrites:
                 continue
 
-            self.stdout.write(f"\\n{py_file}:")
+            self.stdout.write(f"\n{py_file}:")
             for _, _, old, new in rewrites:
                 self.stdout.write(f"  - @{old}")
                 self.stdout.write(f"  + @{new}")
@@ -100,12 +100,18 @@ def _rewrite_call(text: str, call: ast.Call) -> str | None:
             keywords[keyword.arg] = keyword.value
 
     version_node = keywords.get("version")
-    if not isinstance(version_node, ast.Constant) or type(version_node.value) is not int:
+    if (
+        not isinstance(version_node, ast.Constant)
+        or type(version_node.value) is not int
+    ):
         return None
 
     backward_node = keywords.get("backward")
     if backward_node is not None:
-        if not isinstance(backward_node, ast.Constant) or type(backward_node.value) is not bool:
+        if (
+            not isinstance(backward_node, ast.Constant)
+            or type(backward_node.value) is not bool
+        ):
             return None
         backward = backward_node.value
     else:
