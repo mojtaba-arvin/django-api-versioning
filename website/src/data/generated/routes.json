@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T22:09:31+00:00",
+  "generated_at": "2026-11-14T22:11:25+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -2007,7 +2007,7 @@
               "code": "import_module(settings.ROOT_URLCONF)",
               "file": "<integration_test_project>/segment_lab/probe.py",
               "function": "run",
-              "line": 193
+              "line": 194
             },
             {
               "code": "views = import_module(settings.LAB_VIEWS_MODULE) if settings.LAB_VIEWS_MODULE else None",
@@ -7809,7 +7809,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "723a3a44f16023bf1e133abd3eee0467a8596ccd",
+    "commit": "6f8a5f9df30be17f2b2712529e81f1a8118e99fe",
     "evidence_files": [
       {
         "file": "pyproject.toml",
@@ -7853,7 +7853,7 @@
       },
       {
         "file": "integration_test_project/segment_lab/probe.py",
-        "sha256": "27dba922f1ea31e5d4b85783d66abdba074d4e94ffed18f44f0dfe993490556a"
+        "sha256": "e8a892a191124a7ac7851c4f85a0b3c150428b2a3f41fa3e1face3ccbbf9d684"
       },
       {
         "file": "integration_test_project/segment_lab/scenario_catalog.py",
@@ -7921,7 +7921,7 @@
       },
       {
         "file": "integration_test_project/segment_lab/test_generator.py",
-        "sha256": "afe660ed65ce44290861e723bf667725d6ccf0047fc0860b1c6137e1cea866ba"
+        "sha256": "7e8253303740f59168ab92ad6574784ff34beca2a2c21d01f4067b22c6184678"
       },
       {
         "file": "integration_test_project/segment_lab/urls.py",
@@ -7979,7 +7979,7 @@
       },
       {
         "file": "django_api_versioning/reverse.py",
-        "sha256": "bcbe2a4e1c59b221cf7f578495131d00c1a44570ec6052b2947a9d00388185de"
+        "sha256": "85731f7f931e18790fe163476b543df11cf753c33dc181818b17e8bff4aafc29"
       },
       {
         "file": "django_api_versioning/settings.py",
@@ -7995,7 +7995,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/723a3a44f16023bf1e133abd3eee0467a8596ccd",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/6f8a5f9df30be17f2b2712529e81f1a8118e99fe",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
@@ -8071,7 +8071,7 @@
       "reverse_ambiguous": {
         "code": "if version is None and len(matches) > 1:",
         "file": "django_api_versioning/reverse.py",
-        "line": 38
+        "line": 43
       },
       "route_string": {
         "code": "route = f\"{base_path}{app_name_part}{postfix}\"",
@@ -8170,7 +8170,7 @@
         "start": 129
       },
       "api_reverse": {
-        "end": 83,
+        "end": 88,
         "file": "django_api_versioning/reverse.py",
         "start": 13
       },
