@@ -5,7 +5,7 @@
 > **Latest successful website checkpoint:** `330a9553310ae4c9d44fb9787f607ac2ba0c114a` (GitHub Actions run [43638777904](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43638777904))  
 > **Deployment status:** Not deployed. The static application and its two hosting-base builds pass, but browser-level accessibility/performance review and an actual hosting deployment remain open.
 
-This document records verified implementation state and the remaining delivery plan. A green build is not equivalent to a complete release.
+This document records verified implementation state and the remaining delivery plan. A green build is not equivalent to a complete release. The broader package roadmap is maintained in [Project Engineering Roadmap](../engineering/ROADMAP.md).
 
 ## 1. Verified repository baseline
 
@@ -125,3 +125,14 @@ The full A–MM review must also verify package-first positioning, exactly one a
 5. Fetch the current branch head before every Git write and update the ref with an expected SHA.
 6. A passing static build does not authorize deployment while browser/accessibility/content gates remain open.
 7. At each phase boundary, define the next phase from the remaining confirmed work and continue.
+
+## 7. Current engineering work log — 2026-11-15
+
+- Article 024 received a targeted correction: its description now meets the metadata limit, and its CI section reflects the native GitHub Actions unit/integration workflow, the manual tox compatibility matrix, and the recorded 0.3.7 test checkpoint.
+- Articles 002 and 005 received metadata cleanup: the overlong keyword was shortened, and the plain YAML keyword scalars were normalized to the canonical quoted style.
+- Added `website/src/lib/article-metadata.mjs`, regression tests, and matching Astro collection constraints for the canonical article front matter.
+- The article sync script now validates every article and checks slug uniqueness before deleting or rewriting the generated mirror.
+- A source-level metadata audit was applied to all 25 canonical article files; all 25 passed the same validation rules and no duplicate slugs were found.
+- The validator and its 11 focused test cases were executed in an isolated Node 22.16 sandbox; 11 passed. This was not a run from the repository checkout and does not replace `npm test`, `astro check`, or the production build.
+- The website preflight workflow was updated to include the active audit branch and its own workflow file in push triggers. No new GitHub Actions run appeared for the commits created in this session, so the actual repository CI result remains pending.
+- The complete A–MM technical/editorial review of articles 001–025 remains open. Article 024's targeted correction is not a full article approval.
