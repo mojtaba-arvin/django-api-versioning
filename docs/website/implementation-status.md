@@ -1,130 +1,124 @@
-# Website implementation status and delivery plan
+# Website and repository delivery status
 
-> **Status date:** 2026-11-14  
-> **Audited branch:** `audit/comprehensive-package-review`  
-> **Audited source commit:** `9b09d66c931f6e99687664da7442ddf9198595cb`  
-> **Deployment status:** Not deployable; no successful Astro production build or static-host smoke test has been recorded.
+> **Status date:** 2026-11-15  
+> **Branch:** `audit/comprehensive-package-review`  
+> **Implementation checkpoint:** `f6f1a53ad3a4946a296cc8d77b11c3acd6285520`  
+> **Deployment status:** Not deployed. The static application and its two hosting-base builds pass, but browser-level accessibility/performance review and an actual hosting deployment remain open.
 
-This is a working engineering status document, not a claim that any unfinished gate has passed. Update it at each completed milestone using the exact commit and commands that were verified.
+This document records verified implementation state and the remaining delivery plan. A green build is not equivalent to a complete release.
 
-## 1. Current repository baseline
+## 1. Verified repository baseline
 
-| Area | Current state | Delivery assessment |
+| Area | Current state | Evidence / qualification |
 | --- | --- | --- |
-| Python package | Version 0.3.7; package source and tests are present | 211 unit tests, 249 integration tests, and 96% package coverage; all 15 tox environments and lint passed at the audited checkpoint |
-| Package distribution | Package allowlist, sdist pruning, and artifact-content verification are present | Re-run wheel/sdist build and inspect actual artifacts before release |
-| Django integration project | Existing project is retained and extended | Do not create a parallel integration project |
-| Segment Lab | 18 executable scenario definitions and a generator/probe are present | Provenance and scenario tests passed across the full compatibility matrix; generated website evidence is not yet committed |
-| Article corpus | 25 canonical Markdown articles under `docs/articles/` | Preserve as the only editable source |
-| Astro application | Partial foundation: config, layout, styles, data helpers, article sync and logo | Incomplete; cannot yet build |
-| Website deployment | No verified `dist/`, Netlify deployment, or GitHub Pages deployment | Not ready |
+| Python package | Version 0.3.7; package source and tests remain isolated from the website | The package source has not changed since the verified compatibility checkpoint at `9b09d66c931f6e99687664da7442ddf9198595cb` |
+| Python tests | 211 unit tests and 249 integration tests passed | Recorded at the compatibility checkpoint; full 15-environment tox matrix and lint passed |
+| Package artifacts | Separate wheel/sdist build, Twine validation, and forbidden-content verification workflow exists | Last observed artifact workflow passed at the optimized CI checkpoint; rerun at the exact release commit |
+| Integration project | Existing `integration_test_project/` retained | No parallel Django project created |
+| Segment Lab | 18 executable scenarios | Evidence regenerated and checked from source commit `01462339a958c268bb15de50955c664cca05f69c` |
+| Evidence provenance | 14 package-source hashes and 30 evidence-input hashes | Present in the committed `routes.json`; generator `--check` passed |
+| Article corpus | 25 canonical Markdown articles in `docs/articles/` | Single editable source; preliminary metadata audit has identified cleanup items, and full A–MM technical/editorial review remains open |
+| Astro application | Homepage, article index/detail routes, evidence page, Segment Explorer, shared layout, styles, search, and site interactions are implemented | Production static builds and output smoke tests passed |
+| Static hosting | Root-hosted and GitHub Pages project-base builds both pass | Base path tested as `/django-api-versioning`; no actual deployment has been performed |
 
-### 1.1 Concrete Astro build blockers
+## 2. Website build and verification checkpoint
 
-The audited tree currently has these gaps:
+The website uses Node 22.23.4, Astro 7.4.10, and the explicit Unified Markdown processor from `@astrojs/markdown-remark` 7.3.9. Dependencies are locked in `website/package-lock.json`.
 
-- No `website/src/pages/` routes: no homepage, article index/detail routes, evidence page, or explorer page.
-- `website/src/layouts/Base.astro` imports `src/styles/site.css` and `src/scripts/site.ts`, but neither file exists.
-- `website/src/lib/data.ts` imports `src/data/generated/routes.json`, but no generated evidence JSON exists in the tree.
-- No `website/package-lock.json` is present, so dependency installation is not yet reproducibly locked.
-- `package.json` exposes `serve:dist` and `test:dist`, but their referenced `scripts/serve-dist.mjs` and `scripts/check-dist.mjs` are absent.
-- The layout preloads `/fonts/*.woff2` paths, while no corresponding `website/public/fonts/` assets are tracked.
-- The layout and stylesheet use root-absolute paths. Astro's configurable `base` alone does not rewrite arbitrary authored `href="/..."`, `src="/..."`, or CSS `url("/...")` values for GitHub Pages project-site deployments.
-- `website/README.md` previously described the Astro app as not scaffolded, which no longer matches the partial application files that are present.
+The successful website CI run on implementation commit `f6f1a53ad3a4946a296cc8d77b11c3acd6285520` completed:
 
-These are blockers, not cosmetic cleanup. Do not configure a production deployment until the pages, evidence input, lockfile, scripts, assets, and base-path behavior are implemented and tested.
+- `npm ci`;
+- `npm audit --audit-level=high` (no High or Critical advisory caused the gate to fail);
+- 20 Node tests, all passing;
+- `astro check`, with zero errors, warnings, and hints;
+- production build and `test:dist` for root hosting;
+- production build and `test:dist` for `PUBLIC_BASE_PATH=/django-api-versioning`.
 
-## 2. Segment Lab evidence integrity
+The output verifier checks the ten homepage section IDs, the 25 article detail pages, the 18 evidence scenarios, required static data files, and local HTML references. Static path-resolution tests also cover project base paths, path traversal, and symlink escapes.
 
-The current lab contains 18 scenarios, including the existing integration project and DRF router, import-order behavior, explicit versions, minimum-version boundaries, route identity, DRF request-version behavior, ViewSet rejection, lifecycle middleware, and invalid declarations. The latest full matrix passed all 15 Python/Django environments plus lint at commit `9b09d66c931f6e99687664da7442ddf9198595cb`.
+These checks validate generated files. They do not yet replace browser-based keyboard, screen-reader, contrast, responsive-layout, or Core Web Vitals testing.
 
-The generator runs each scenario in a fresh interpreter because the package registry and settings are process-global/import-time state. It reads the package version from `pyproject.toml`, records the checked-out commit, and derives source references from the checked-out package.
+## 3. Evidence provenance and regeneration
 
-A provenance gap was found during this audit: before commit `34ffa802d9acbd94edd900e35287941a7779c42a`, the generator rejected dirty package files but did not reject dirty executable lab files, and it did not hash the scenario/generator inputs. That commit now:
-- rejects uncommitted changes under `integration_test_project/` as well as package source and `pyproject.toml`;
-- records SHA-256 hashes for `pyproject.toml` and Python files in the integration project as `source.evidence_files`;
-- verifies those hashes in the generator tests; and
-- updates the TypeScript data contract for the new provenance field.
+The committed evidence snapshot was regenerated by the source-evidence workflow:
 
-The provenance hardening has now been exercised by the full compatibility matrix: the generator tests verify the package hashes and the `evidence_files` hashes for `pyproject.toml` and the executable integration project. The evidence snapshot itself has not yet been generated or committed.
+- Source commit: `01462339a958c268bb15de50955c664cca05f69c`.
+- Scenario count: 18.
+- Package-source hash entries: 14.
+- Evidence-input hash entries: 30.
+- Generator generation and `--check`: passed.
+- The generated `check_versions_output.txt` matches the recorded successful management-command output.
 
-Do not fabricate `routes.json` or copy the old Agent's 0.3.5 outputs. Generate the snapshot from one clean, committed checkout and commit the resulting data only after reviewing its provenance and scenario results.
+The evidence workflow now responds to changes in `django_api_versioning/**`, `integration_test_project/**`, `pyproject.toml`, Python requirements, or its own workflow definition. It regenerates the snapshot and runs the website checks/builds in the same workflow because GitHub's token-created evidence commit does not trigger another workflow run.
 
-## 3. Recovered Netlify Agent work
+Do not hand-edit `routes.json` or the recorded command output. Change the executable scenario/generator and regenerate from a clean checkout.
 
-The captured Agent session was interrupted by exhausted credits. It did not complete a site, run an Astro build, or deploy. Its evidence was tied to package 0.3.5 and must not be reused as current behavior.
+## 4. Preliminary article-corpus findings
 
-Useful code has been adapted into the current repository as follows:
+All 25 files are being reviewed against the canonical front matter and the package's verified routing contract. The first metadata-only pass found these items; they are not a substitute for the full article review:
 
-| Captured Agent area | Current repository location | Treatment |
-| --- | --- | --- |
-| Astro config, layout, logo, global design tokens | `website/astro.config.mjs`, `website/src/layouts/`, `website/src/components/Logo.astro`, `website/src/styles/global.css` | Foundation retained; imports, paths, and runtime behavior still need completion |
-| Content collection and article-link plugins | `website/src/content.config.ts`, `website/src/lib/`, `website/scripts/sync-articles.mjs` | Adapted to canonical `docs/articles/`; requires link and route tests |
-| Typed evidence access | `website/src/lib/data.ts` | Adapted; generated JSON is not present yet |
-| Django scenarios and probe | `integration_test_project/segment_lab/` | Adapted to current source and expanded to 18 scenarios |
-| Evidence generator | `integration_test_project/segment_lab/generate_routes.py` | Reworked for current checkout provenance; package and lab input hashes are covered by passing matrix tests |
-| Distribution verifier | `scripts/verify_distribution_contents.py` | Repository implementation is present; validate against actual build artifacts |
+| Article | Preliminary finding |
+| --- | --- |
+| 002 | Description is 187 characters; canonical maximum is 160 |
+| 004 | Title is 71 characters, description is 176 characters, and there are 6 keywords |
+| 006 | Description is 172 characters |
+| 010 | Author LinkedIn URL contains a spelling error in the profile slug |
+| 014 | Description is 167 characters |
+| 019 | Description is 165 characters |
+| 024 | Description is 167 characters |
 
-The temporary `s.py` scratch experiment is excluded. The missing old `routes.json` and `tools/README.md` were not reconstructed from guesses.
+Canonical front matter requires valid YAML; a slug beginning with the article ID and followed by a lowercase hyphenated suffix (maximum 100 characters); a title matching the H1 (maximum 70); one accurate description (maximum 160); author Mojtaba Arvin with the plain LinkedIn URL; and 2–5 relevant keywords of at most 40 characters each.
 
-## 4. Delivery phases and acceptance gates
+The full review must also verify package-first positioning, exactly one appropriate package CTA where required, author relationship disclosure, code/import/URL correctness, inheritance and routing semantics, DRF boundaries, lifecycle/deprecation claims, reverse behavior, canonical links, and cross-article consistency. Preserve the established positive patterns and do not approve a later article while an earlier blocking/process gate remains unresolved.
 
-### Phase A — Baseline and source audit
-- Re-read the current package, tests, integration project, articles, reference contract, workflows, and recovered Agent source.
-- Resolve inconsistencies between code, tests, changelog, README, reference docs, and article claims.
-- Keep findings classified as confirmed defect, documentation drift, compatibility decision, or unverified hypothesis.
-- **Accept when:** every public behavior claim used by the site has an implementation/test locator or is explicitly marked unverified.
+## 5. Delivery phases and acceptance gates
 
-### Phase B — Package correctness and compatibility
-- Audit registration precedence, route identity, URL reversal, import-order requirements, settings validation, lifecycle behavior, management commands, typing, and error paths.
-- Audit Python/Django/DRF compatibility claims against the actual tox matrix and compatibility report.
-- Add focused regression tests for confirmed defects; avoid tests that merely restate implementation details.
-- **Accept when:** unit and integration suites pass at the chosen source commit, and all known defects are fixed or explicitly accepted with rationale.
+### Phase A — Package contract and implementation audit
+- Reconcile the public API, settings, decorators, registry, URL generation, reverse helper, lifecycle middleware, management commands, typing, and error paths.
+- Search all package source before making negative scope claims.
+- Retain the established package boundary: endpoint registration/routing, not serializer selection, request-version negotiation, response-contract enforcement, or automatic DRF router/ViewSet integration.
+- Keep `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` accurately documented as validated settings that do not currently participate in route selection; do not silently remove this public configuration.
+- **Accept when:** every public behavior claim has a source/test locator and confirmed defects are fixed or explicitly accepted.
 
-### Phase C — Documentation and article corpus
-- Audit all 25 articles against the canonical versioning contract and current source.
-- Verify code examples, imports, URLconf patterns, DRF boundaries, package-version statements, internal links, metadata, and duplicate/colliding slugs.
-- Preserve article meaning and useful editorial intent; do not silently replace a technical claim with generic guidance.
-- **Accept when:** all blocking technical/editorial findings are resolved and corpus-wide consistency checks pass.
+### Phase B — Article corpus A–MM audit
+- Review articles 001–025 in order against the complete editorial/technical standard and current package source.
+- Verify all examples, imports, URLconf setup, DRF comparisons, ViewSet/router boundaries, lifecycle behavior, reverse semantics, package-version claims, links, CTA placement, author disclosure, metadata, and corpus consistency.
+- Classify blockers separately from non-blocking editorial improvements and justified omissions.
+- Provide complete corrected Markdown for any article that needs changes, then re-audit the affected article and its cross-article references.
+- **Accept when:** all blocking findings and process gates are resolved and the complete corpus passes the metadata/link/content checks.
 
-### Phase D — Reproducible evidence pipeline
-- Execute every Segment Lab scenario against the same clean commit.
-- Validate request results, registry rows, reverse lookups, command output, errors, logs, source references, and source hashes.
-- Add deterministic `--check` validation and tests for expected failure scenarios as well as successful scenarios.
-- **Accept when:** generated evidence is reproducible, provenance is complete, and no scenario output is hand-authored.
+### Phase C — Reproducible evidence hardening
+- Keep the 18 scenarios executable and source-pinned.
+- Add regression coverage when the package contract changes.
+- Verify failure scenarios, import-order behavior, DRF integration boundaries, registry rows, reverse lookups, lifecycle responses, command output, and source hashes.
+- **Accept when:** generation is deterministic, source hashes match the checked-out inputs, and the workflow regenerates and validates evidence on every relevant source change.
 
-### Phase E — Astro application completion
-- Add the ten homepage sections in the order defined by `architecture.md`.
-- Add article index and detail routes, evidence route, and Segment Explorer.
-- Complete the shared layout, site runtime, CSS, font strategy, search, theme, mobile navigation, reading progress, heading anchors, code copy, version/provenance panel, and reduced-motion behavior.
-- Implement a shared base-path-aware URL strategy for internal links, public assets, and CSS assets.
-- Add a committed lockfile and working local preview/static-server scripts.
-- **Accept when:** clean dependency installation, Astro checks, and a production static build all pass.
+### Phase D — Browser, accessibility, and performance verification
+- Test the actual built site in a browser at both root and project base paths.
+- Verify keyboard-only operation, visible focus, semantic landmarks, mobile navigation, search interaction, code-copy feedback, heading anchors, theme persistence, and reduced-motion behavior.
+- Verify useful no-JavaScript fallbacks and test at mobile/tablet/desktop widths.
+- Run an automated accessibility scan and a manual WCAG 2.2 AA review; investigate contrast and focus-order findings.
+- Measure layout stability, asset loading, and performance; do not claim CLS=0 or Core Web Vitals compliance without measurement.
+- **Accept when:** no unresolved accessibility blocker remains and performance claims are tied to recorded measurements.
 
-### Phase F — Accessibility, correctness, and performance
-- Test keyboard-only use, focus visibility, semantic landmarks, dialog behavior, mobile navigation, reduced motion, no-JavaScript fallbacks, and contrast.
-- Verify all internal article links, heading anchors, search results, source permalinks, and route data.
-- Smoke-test nested routes and assets from a generic static server under both root and non-root base paths.
-- Measure build output, image/font loading, layout stability, and Core Web Vitals where a deployed environment is available.
-- **Accept when:** WCAG 2.2 AA review has no unresolved blocker, static-host tests pass, and performance claims are measured rather than assumed.
+### Phase E — CI/CD and hosting
+- Keep Python tests, package-artifact validation, compatibility matrix, website checks, and evidence generation as separate scoped workflows.
+- Verify workflow behavior after the latest trigger changes and ensure source-evidence generation cannot leave the website unbuilt.
+- Configure Netlify with base directory `website`, build command `npm run build`, publish directory `dist`; configure GitHub Pages with `PUBLIC_BASE_PATH=/django-api-versioning`.
+- **Accept when:** the exact artifact is deployed to a static host and nested routes, assets, base paths, and 404 behavior pass an external smoke test.
 
-### Phase G — CI/CD and hosting
-- Add a separate Node/Astro workflow for `website/**` and `docs/articles/**`; keep it independent of Python tests and PyPI packaging.
-- Preserve the optimized Python and artifact workflows, with explicit validation checkpoints and honest PR-status semantics.
-- Add GitHub Pages deployment only after its base path and artifact have been tested; configure Netlify with base `website`, command `npm run build`, publish directory `dist`.
-- **Accept when:** CI validates the same commands used locally and a deployment smoke test confirms the exact artifact.
+### Phase F — Release readiness
+- Re-check package metadata, changelog, README, license, classifiers, dependency bounds, wheel/sdist contents, and installation from built artifacts.
+- Run the relevant unit/integration suite and full compatibility matrix at the release checkpoint.
+- Publish only after the final immutable source SHA and artifacts have been verified.
+- **Accept when:** PyPI package artifacts and website deployment correspond to the documented source commit and no repository-only assets leak into the Python distribution.
 
-### Phase H — Release readiness
-- Verify package metadata, version, changelog, license, README links, wheel and sdist contents, installability from built artifacts, and compatibility claims.
-- Run the complete release checklist from a clean checkout.
-- Publish only after explicit final validation; verify the published artifact and release page.
-- **Accept when:** PyPI artifacts and website deployment both correspond to documented, immutable source commits.
+## 6. Working rules
 
-## 5. Working rules
-
-1. A completed phase must have a commit trail and recorded validation evidence.
-2. Prefer small, cohesive commits; do not create filler commits to inflate a count.
-3. Run focused checks after each meaningful code change and broader checks at phase checkpoints.
-4. Do not report a test, build, deployment, or release as successful unless it was actually executed.
-5. Re-check the branch head before every Git write and use an expected-SHA update.
-6. After each phase, define the next phase from the remaining confirmed work; do not stop at a status report.
+1. Every completed phase has a commit trail and recorded validation evidence.
+2. Prefer cohesive commits; do not create filler commits or optimize for an arbitrary commit count.
+3. Run focused checks after meaningful changes and broad checks at phase boundaries.
+4. Never report a test, build, deployment, or release as successful unless it actually ran.
+5. Fetch the current branch head before every Git write and update the ref with an expected SHA.
+6. A passing static build does not authorize deployment while browser/accessibility/content gates remain open.
+7. At each phase boundary, define the next phase from the remaining confirmed work and continue.

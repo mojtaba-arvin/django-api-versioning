@@ -2,36 +2,41 @@
 
 ## Goals
 
-CI is a set of scoped quality gates, not a command that rebuilds every environment for every file change. Keep the package, its integration project, packaging artifacts, and the future static website independently testable.
+CI is a set of scoped quality gates, not a command that rebuilds every environment for every file change. Keep the Python package, its integration project, packaging artifacts, generated website evidence, and Astro application independently testable.
 
-The workflows are deliberately separate:
+## Workflow boundaries
 
 | Workflow | What it validates | Trigger scope |
-|---|---|---|
-| `Python tests` | Package unit tests and the existing Django integration project, including Segment Lab | Package source, tests, integration project, Python runtime/test requirements, pytest configuration |
-| `Python package artifacts` | Wheel and sdist creation, Twine metadata validation, and forbidden-content checks | Package source plus every tracked sdist input, including tests, README, Changelog, license, requirements, and pytest configuration |
-| `Compatibility matrix` | Full tox matrix: 15 Python/Django combinations plus lint | Manual `workflow_dispatch` checkpoint; not part of routine PR or push CI |
-| Future website workflow | Astro checks, static build, and built-site smoke tests | `website/**` and `docs/articles/**` |
+| --- | --- | --- |
+| `Python tests` | Package unit tests and the existing Django integration project | Package source, tests, integration project, Python runtime/test requirements, pytest configuration |
+| `Python package artifacts` | Wheel/sdist creation, Twine metadata validation, and forbidden-content checks | Package source plus every tracked sdist input |
+| `Compatibility matrix` | Full tox matrix: 15 Python/Django combinations plus lint | Manual `workflow_dispatch` checkpoint |
+| `Website build and static verification` | Locked npm install, dependency audit, Node tests, Astro checks, root and project-base builds, static-output smoke tests | `website/**` and `docs/articles/**` (package manifest changes are handled by the lock workflow) |
+| `Generate source-pinned website evidence` | Segment Lab generation/check, source provenance, website tests, Astro checks, and both static builds | Package source, integration project, `pyproject.toml`, Python requirements, or evidence workflow |
+| `Generate website npm lockfile and verify the site` | Lockfile generation, `npm ci`, dependency audit, Node/Astro checks, and both static builds | `website/package.json` or lock workflow |
 
-Documentation-only edits under `docs/website/`, root agent instructions, and other editorial material must not invoke Python tests or package builds. The website workflow is intentionally deferred until the Astro application and its static-output checks are complete.
+Documentation-only edits under `docs/website/`, root agent instructions, and other editorial material do not invoke Python tests or package builds. Website-only work does not invoke Python package tests. Evidence generation runs Python only when package/integration inputs change.
 
 ## Cost controls
 
-- CI uses `actions/setup-python` and its pip cache. It does not build the local development Docker image.
+- Python CI uses `actions/setup-python` and pip caching. It does not build the local development Docker image.
 - `requirements-ci.txt` contains only Django, DRF, pytest, pytest-django, and pytest-cov.
 - `requirements-build.txt` contains only `build` and `twine`.
-- Python tests and artifact validation run as independent workflows and can execute concurrently.
-- A concurrency group cancels obsolete in-progress runs for the same PR/ref.
-- Pull-request workflows run at review start (`opened`, `reopened`, `ready_for_review`), not for every commit pushed to a long-lived review branch. Use `workflow_dispatch` to run explicit checkpoints after a meaningful batch of changes.
-- These PR runs are review checkpoints, not a green status for every later commit SHA. Do not mark them as required merge checks unless a lightweight per-synchronization gate is introduced or a manual checkpoint is run against the exact final SHA.
+- Python tests and artifact validation are independent workflows and can execute concurrently.
+- Website dependencies are installed from `package-lock.json` with `npm ci`; npm cache is keyed to the lockfile.
+- The website audit fails on High or Critical dependency vulnerabilities.
+- Website checks and Python tests use separate workflows and runner environments.
+- Concurrency groups cancel obsolete in-progress runs for the same branch/ref.
+- Pull-request Python workflows run at review start (`opened`, `reopened`, `ready_for_review`), not for every commit pushed to a long-lived review branch. Use explicit validation checkpoints after a meaningful batch.
+- These PR runs are review checkpoints, not a green status for every later commit SHA. Do not mark them as required merge checks unless a per-synchronization gate or final-SHA manual checkpoint is introduced.
 - Pushes to `main` remain automatic and path-filtered.
-- The full compatibility matrix is manual-only. It covers Python 3.10–3.15 against Django 4.2, 5.2, 6.0, and 6.1 where supported, plus lint; run it at deliberate compatibility/release checkpoints rather than on every commit.
+- The full compatibility matrix is manual-only; run it at deliberate compatibility/release checkpoints rather than on every commit.
 
 Path filters are a cost boundary, not a replacement for testing. If a change crosses a boundary, update the corresponding path list in the workflow in the same commit.
 
 ## Local commands
 
-Run the same focused suites without Docker:
+Python tests:
 
 ```bash
 python -m pip install -r requirements-ci.txt
@@ -39,7 +44,7 @@ python -m pytest --capture=no tests
 python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
 ```
 
-Validate packaging separately:
+Package artifacts:
 
 ```bash
 python -m pip install -r requirements-build.txt
@@ -48,30 +53,42 @@ python -m twine check --strict dist/*
 python scripts/verify_distribution_contents.py dist
 ```
 
-The root `Dockerfile` and `entrypoint.sh` remain available for the complete local development workflow, including optional pre-commit execution. BuildKit caches pip downloads, and pre-commit hook environments are installed lazily only when requested.
+Website checks (from `website/`):
 
-## Current baseline measurement
+```bash
+npm ci
+npm audit --audit-level=high
+npm test
+npm run check
+npm run build
+npm run test:dist
+```
 
-The latest focused and compatibility checkpoints completed successfully:
+For GitHub Pages project-site verification, set `PUBLIC_BASE_PATH=/django-api-versioning` for both the build and static-output check.
 
-- Unit tests: 211 passed in 0.67 seconds (96% package coverage).
-- Integration tests: 249 passed in 13.31 seconds.
-- Python test workflow wall time: 38 seconds, including runner setup and dependency installation.
-- Package artifact workflow: 19 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
-- Full compatibility matrix: all 15 Python/Django environments and the lint environment passed in 44 seconds.
+The root `Dockerfile` and `entrypoint.sh` remain the complete local development workflow, including optional pre-commit execution. BuildKit caches pip downloads, and pre-commit hook environments are installed lazily only when requested.
 
-The focused test run, package artifact run, and full matrix were all recorded at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`. These are observed runs, not guaranteed future durations. The previous Docker-based workflow took approximately 143 seconds for one combined run.
+## Observed baselines
 
-## Website workflow acceptance criteria
+The latest Python focused and compatibility checkpoints completed successfully at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`:
 
-When the Astro project is complete, add a dedicated workflow with Node dependency caching and a lockfile-based install (`npm ci`). It should run:
+- Unit tests: 211 passed; 96% package coverage.
+- Integration tests: 249 passed.
+- All 15 Python/Django compatibility environments and lint passed.
+- Optimized Python workflow wall time: approximately 38–42 seconds.
+- Package artifact workflow: approximately 19–22 seconds.
 
-1. Article synchronization in checkable/deterministic mode.
-2. Astro content/type checks.
-3. Production static build.
-4. Static output smoke tests, including nested article URLs and base-path asset resolution.
-5. Internal-link and generated-content consistency checks.
+The website checkpoint on implementation commit `f6f1a53ad3a4946a296cc8d77b11c3acd6285520` passed:
+- 20 Node tests;
+- Astro check with zero errors, warnings, and hints;
+- `npm audit --audit-level=high`;
+- root-hosted build and static-output verification;
+- GitHub Pages project-base build and static-output verification.
 
-It must not install Python development tools, run Django tests, or build the Python development Docker image unless a website test explicitly needs a Python-generated evidence fixture. If evidence generation is required, run only the Segment Lab generator against the checked-out package commit and cache Python dependencies separately.
+These are observed runs, not guaranteed future durations. The previous Docker-based Python workflow took approximately 143 seconds for one combined run.
 
-Do not enable this workflow against the current incomplete website scaffold. First implement its scripts and verify their contracts locally.
+## Acceptance criteria and remaining gates
+
+Static website build checks are established. The next website gate is browser-level verification: keyboard-only operation, focus visibility, mobile navigation, search, code copy, theme controls, reduced motion, no-JavaScript fallback, responsive layout, accessibility scan, and measured performance.
+
+Do not deploy until the article corpus review and browser/accessibility/performance gates in `docs/website/implementation-status.md` are accepted. Netlify uses base directory `website`, command `npm run build`, and publish directory `dist`; GitHub Pages publishes only `website/dist/`.

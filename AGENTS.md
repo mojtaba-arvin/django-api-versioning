@@ -67,16 +67,20 @@ Do not infer behaviour from article wording alone. Verify package claims against
 - `requirements-ci.txt` contains only dependencies needed by pytest and the integration project. Do not add formatter/type-checker/pre-commit dependencies to it unless CI actually runs those tools.
 - `requirements-build.txt` contains only wheel/sdist build and metadata-validation tools.
 - The root `Dockerfile` and `entrypoint.sh` remain the full local development workflow; BuildKit pip caching is enabled and pre-commit hook environments are installed lazily only when requested.
-- When the Astro application is complete, add a separate website workflow triggered by `website/**` and `docs/articles/**`. It should run Node/Astro checks and static-output tests, never the Python Docker image. Until then, do not claim website CI has been established.
+- `.github/workflows/website-data-preflight.yml` runs Node/Astro checks and static-output tests for `website/**` and `docs/articles/**`; it never builds the Python development Docker image.
+- `.github/workflows/website-lock.yml` regenerates the npm lockfile when `website/package.json` changes and runs the complete website verification sequence.
+- `.github/workflows/generate-evidence.yml` runs when package/integration evidence inputs change, regenerates source-pinned Segment Lab evidence, then runs website checks and both static builds in the same workflow because a GITHUB_TOKEN-created commit does not trigger another workflow.
+- Keep these website workflows separate from Python tests and PyPI artifact workflows.
 
 ## Quality gates
 
 Before calling website work complete:
 1. run the package's relevant tests without changing their meaning;
 2. run the evidence generator in check mode and confirm it is deterministic;
-3. run Astro type/content checks and production build;
-4. test the built `dist/` from a generic static server, including nested article routes and asset paths;
-5. check internal links, article count, keyboard navigation, visible focus, reduced motion, responsive layout, and no-JavaScript fallbacks;
-6. verify that `website/`, `docs/`, and `integration_test_project/` are absent from both wheel and sdist unless a deliberate, documented packaging change says otherwise.
+3. run Astro type/content checks, npm audit, and production builds for root and project base paths;
+4. test the built `dist/` from a generic static server, including nested article routes, assets, path traversal, and base-path behavior;
+5. verify internal links, article count, keyboard navigation, visible focus, reduced motion, responsive layout, and no-JavaScript fallbacks;
+6. complete browser-level WCAG 2.2 AA and measured performance review;
+7. verify that `website/`, `docs/`, and `integration_test_project/` are absent from both wheel and sdist unless a deliberate, documented packaging change says otherwise.
 
 Do not mark a gate as passed unless it was actually run. Do not deploy from an incomplete or failing build.

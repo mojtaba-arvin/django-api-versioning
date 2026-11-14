@@ -1,6 +1,17 @@
-# Netlify Agent handoff
+# Static website hosting handoff
 
-Use this file together with the repository-root `AGENTS.md`.
+Use this file together with the repository-root `AGENTS.md` and `architecture.md`.
+
+## Current state
+
+The Astro application is implemented and its CI checks have passed for:
+- root-hosted static output;
+- GitHub Pages project-site output with `PUBLIC_BASE_PATH=/django-api-versioning`;
+- 25 article detail pages;
+- 18 source-pinned Segment Lab scenarios;
+- local HTML link targets and required output files.
+
+The site has not been deployed. Do not describe a Netlify or GitHub Pages deployment as successful until the external hosting smoke test is actually run.
 
 ## Where to find things
 
@@ -10,49 +21,59 @@ Use this file together with the repository-root `AGENTS.md`.
 | Package version | `pyproject.toml` → `[project].version` |
 | Package unit tests | `tests/` |
 | Existing Django integration project | `integration_test_project/` |
-| Existing long-form articles (25 files) | `docs/articles/` |
+| Segment Lab and evidence generator | `integration_test_project/segment_lab/` |
+| Canonical long-form articles | `docs/articles/` |
 | Versioning contract | `docs/reference/versioning-contract.md` |
-| Website architecture | `docs/website/architecture.md` |
-| Website handoff rules | `AGENTS.md` and this file |
+| Website architecture and phase gates | `docs/website/architecture.md` and `docs/website/implementation-status.md` |
 | Astro application root | `website/` |
 | Generated evidence destination | `website/src/data/generated/` |
-| Python-generated evidence source | Extend/reuse `integration_test_project/`; do not create another top-level lab |
 | PyPI inclusion/exclusion policy | `pyproject.toml` and `MANIFEST.in` |
 
-## Build/deploy configuration
+## Netlify configuration
 
-The intended Netlify configuration is:
 - Base directory: `website`
 - Build command: `npm run build`
-- Publish directory: `dist`
+- Publish directory: `dist` (relative to the base directory)
+- Node requirement: 22.23.4 or newer
+- Install command: `npm ci` (Netlify's dependency install should use the committed lockfile)
 
-These values describe the target configuration. The repository currently contains only the website handoff scaffold; do not report a successful build or deployment until the Astro project and lockfile have been created and verified.
+Netlify's `URL` environment variable may be used as the canonical site URL. The site must remain static and must not depend on Netlify runtime functions.
 
-## Implementation constraints
+## GitHub Pages configuration
 
-1. Inspect the current source and integration project before writing code. Do not recreate the Django test project.
-2. Use the checked-out package commit as the evidence baseline. Read the package version from `pyproject.toml`. Do not reuse the old 0.3.5 / `e5a5466...` evidence.
-3. Preserve `docs/articles/` as the only tracked article corpus. Do not download or commit duplicate article copies.
-4. Keep all Astro/Node code under `website/`.
-5. Generate evidence from executable scenarios; include full commit provenance. Do not fabricate a missing JSON snapshot or CLI output.
-6. Build static output only. No Netlify runtime functions.
-7. Implement all ten homepage sections in the order defined by `docs/website/architecture.md`.
-8. Keep explanatory diagrams clearly distinguished from actual Python execution.
-9. Implement accessibility and no-JavaScript fallbacks before declaring completion.
-10. Run package tests, evidence checks, Astro checks, production build, and static-host smoke tests. Report exact commands and results; never infer a pass.
+For the repository project site, build with:
 
-## Recovered Agent work: reuse versus revalidate
+```bash
+PUBLIC_BASE_PATH=/django-api-versioning npm run build
+PUBLIC_BASE_PATH=/django-api-versioning npm run test:dist
+```
 
-A previous Netlify Agent session created useful Astro foundation code and a Django Segment Lab, but stopped before implementing pages or running an Astro build.
+Publish only `website/dist/`. The same application and canonical article corpus are used; no second website implementation is permitted.
 
-Useful design/code references from the captured session:
-- Astro static output configuration and Markdown remark/rehype plugins.
-- Typed data-access helpers for registry rows, request records, scenarios, and source references.
-- Content collection design that uses Markdown file identity rather than assuming article slugs are unique.
-- Segment Point logo concept and design tokens.
-- Django scenarios covering basic forward inheritance, explicit version lists/ranges, minimum-version behaviour, import order, route-string identity, duplicate declarations, invalid declarations, lifecycle middleware, DRF defaults/URLPathVersioning, bare ViewSet decoration, and coexistence with a DRF router.
-- A provenance-first generator design and a distribution comparison script.
+## Build and verification commands
 
-Do not copy the old generator or output blindly. Its dependency pin targets 0.3.5 and its source-line assertions/output schema were authored for that package snapshot. Revalidate and adapt them against the current source before using them. The log did not contain the generated `routes.json` or generated `tools/README.md`; neither may be guessed.
+From `website/`:
 
-The previous frontend was incomplete: it did not contain the homepage or article pages, and the log did not show successful Astro checks, production build, or static-output tests. Treat it as a source of implementation ideas, not a completed application.
+```bash
+npm ci
+npm audit --audit-level=high
+npm test
+npm run check
+npm run build
+npm run test:dist
+```
+
+The source-evidence workflow additionally runs the Python Segment Lab against the triggering source commit, verifies generator determinism, and then runs the website checks and both static builds.
+
+## Non-negotiable implementation constraints
+
+1. The Python package source is the behavioral source of truth.
+2. Keep `docs/articles/` as the only editable article corpus.
+3. Reuse the existing `integration_test_project/`; do not create a parallel Django project.
+4. Do not reuse the Agent's old package 0.3.5 evidence.
+5. Do not hand-edit generated route evidence or command output.
+6. Keep static output independent of Netlify runtime functions.
+7. Preserve the ten-section homepage contract.
+8. Label Segment Diagram/Explorer as explanatory visualization, not actual Python execution, and preserve no-JavaScript fallback.
+9. Keep DRF request-version identification separate from package endpoint registration.
+10. Do not claim accessibility, performance, or deployment acceptance until those checks have actually run.
