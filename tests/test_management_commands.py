@@ -446,7 +446,7 @@ class TestMigrateEndpointsRewriting:
 
 
 class TestMigrateEndpointsCommand:
-    """Test preview and explicit write behavior against isolated files."""
+    """Test dry-run and default write behavior against isolated files."""
 
     def test_migrate_endpoints_runs(self, tmp_path):
         out = StringIO()
@@ -480,27 +480,7 @@ class TestMigrateEndpointsCommand:
         assert view_file.read_text() == source
         assert migration_file.read_text() == source
 
-    def test_default_mode_previews_changes_without_modifying_files(self, tmp_path):
-        source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\n'
-            'def view(request):\n'
-            '    return None\n'
-        )
-        view_file = tmp_path / "views.py"
-        view_file.write_text(source)
-        migrations = tmp_path / "migrations"
-        migrations.mkdir()
-        migration_file = migrations / "0001_initial.py"
-        migration_file.write_text(source)
-
-        out = StringIO()
-        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
-
-        assert "versions=ver_range(1, 2)" in out.getvalue()
-        assert view_file.read_text() == source
-        assert migration_file.read_text() == source
-
-    def test_write_mode_applies_changes_but_skips_migrations(self, tmp_path):
+    def test_default_mode_writes_changes_but_skips_migrations(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
             'def view(request):\n'
@@ -527,7 +507,7 @@ class TestMigrateEndpointsCommand:
         external_file.write_text(source)
 
         out = StringIO()
-        call_command("migrate_endpoints", path=str(tmp_path), write=True, stdout=out)
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
 
         assert "versions=ver_range(1, 2)" in view_file.read_text()
         assert migration_file.read_text() == source
@@ -536,7 +516,7 @@ class TestMigrateEndpointsCommand:
         assert external_file.read_text() == source
         assert str(view_file) in out.getvalue()
 
-    def test_write_mode_updates_multiple_decorators_by_source_position(self, tmp_path):
+    def test_default_write_updates_multiple_decorators_by_source_position(self, tmp_path):
         source = (
             '@endpoint("first", version=2, backward=True, forward=False)\n'
             'def first(request):\n'
@@ -551,7 +531,6 @@ class TestMigrateEndpointsCommand:
         call_command(
             "migrate_endpoints",
             path=str(tmp_path),
-            write=True,
             stdout=StringIO(),
         )
 
