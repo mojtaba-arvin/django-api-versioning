@@ -2,7 +2,7 @@
 
 > **Status date:** 2026-11-15  
 > **Branch:** `audit/comprehensive-package-review`  
-> **Implementation checkpoint:** `f6f1a53ad3a4946a296cc8d77b11c3acd6285520`  
+> **Latest successful website checkpoint:** `330a9553310ae4c9d44fb9787f607ac2ba0c114a` (GitHub Actions run [43638777904](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43638777904))  
 > **Deployment status:** Not deployed. The static application and its two hosting-base builds pass, but browser-level accessibility/performance review and an actual hosting deployment remain open.
 
 This document records verified implementation state and the remaining delivery plan. A green build is not equivalent to a complete release.
@@ -53,25 +53,26 @@ The evidence workflow now responds to changes in `django_api_versioning/**`, `in
 
 Do not hand-edit `routes.json` or the recorded command output. Change the executable scenario/generator and regenerate from a clean checkout.
 
-## 4. Preliminary article-corpus findings
+## 4. Article-corpus review and metadata quality gate
 
-All 25 files are being reviewed against the canonical front matter and the package's verified routing contract. The first metadata-only pass found these items; they are not a substitute for the full article review:
+All 25 canonical Markdown articles are being reviewed against the editorial rules A–MM and the package's verified routing contract. The full technical/editorial review remains open; a metadata pass alone does not approve an article.
 
-| Article | Preliminary finding |
-| --- | --- |
-| 002 | Description is 187 characters; canonical maximum is 160 |
-| 004 | Title is 71 characters, description is 176 characters, and there are 6 keywords |
-| 006 | Description is 172 characters |
-| 010 | Author LinkedIn URL contains a spelling error in the profile slug |
-| 014 | Description is 167 characters |
-| 019 | Description is 165 characters |
-| 024 | Resolved 2026-11-15: corrected description length, replaced obsolete Docker-based CI description with the native GitHub Actions workflow, and updated recorded test counts/coverage to the verified v0.3.7 checkpoint |
+A static front-matter inspection of the current article set identified two remaining consistency defects, now corrected:
+- Article 002 had a keyword longer than the 40-character limit. Its wording was shortened without changing the topic.
+- Article 005 used unquoted YAML keyword scalars while the canonical corpus convention uses quoted strings. The values were normalized without changing their meaning.
 
-Canonical front matter requires valid YAML; a slug beginning with the article ID and followed by a lowercase hyphenated suffix (maximum 100 characters); a title matching the H1 (maximum 70); one accurate description (maximum 160); author Mojtaba Arvin with the plain LinkedIn URL; and 2–5 relevant keywords of at most 40 characters each.
+Earlier title/description-length and author-URL findings recorded by the preliminary audit are no longer present in the current front matter. Article 024's metadata and CI explanation were corrected on 2026-11-15.
 
-The full review must also verify package-first positioning, exactly one appropriate package CTA where required, author relationship disclosure, code/import/URL correctness, inheritance and routing semantics, DRF boundaries, lifecycle/deprecation claims, reverse behavior, canonical links, and cross-article consistency. Preserve the established positive patterns and do not approve a later article while an earlier blocking/process gate remains unresolved.
+The canonical metadata contract is now enforced in two places:
+- `website/src/lib/article-metadata.mjs` validates the source Markdown before the website mirror is replaced: file/article ID format, slug format and ID prefix, title/H1 equality, title and description limits, canonical author identity/profile URL, and keyword count/length.
+- `website/src/content.config.ts` applies matching Zod constraints when Astro loads the mirrored collection.
+- The article synchronization script validates every article and checks slug uniqueness before deleting or rewriting generated content. Invalid editorial input therefore fails before the existing mirror is touched.
 
-**Targeted review completed — article 024:** On 2026-11-15, the article's metadata and compatibility/CI explanation were reconciled with the current branch's `.github/workflows/tests.yml`, `.github/workflows/compatibility.yml`, `tox.ini`, `pyproject.toml`, and `COMPATIBILITY_REPORT.md`. The obsolete Docker-based GitHub Actions description and historical 175/245 test counts were replaced with the observed native-runner workflow and the 211-unit/249-integration, 96%-coverage checkpoint at `9b09d66c931f6e99687664da7442ddf9198595cb`. This is a targeted correction, not a claim that article 024 has passed the complete A–MM review or that the website checks were rerun for this edit.
+The source-level inspection indicates the 25 current articles conform to the declared metadata limits after the corrections. The new Node regression tests and Astro schema have **not yet been executed** against this commit; this metadata gate remains pending CI confirmation.
+
+The full A–MM review must also verify package-first positioning, exactly one appropriate package CTA where required, author relationship disclosure, code/import/URL correctness, inheritance and routing semantics, DRF boundaries, lifecycle/deprecation claims, reverse behavior, canonical links, and cross-article consistency. Preserve established positive patterns and do not approve a later article while an earlier blocking/process gate remains unresolved.
+
+**Targeted technical review completed — article 024:** Its compatibility/CI explanation was reconciled with the current branch's `.github/workflows/tests.yml`, `.github/workflows/compatibility.yml`, `tox.ini`, `pyproject.toml`, and `COMPATIBILITY_REPORT.md`. The obsolete Docker-based GitHub Actions description and historical 175/245 test counts were replaced with the observed native-runner workflow and the 211-unit/249-integration, 96%-coverage checkpoint at `9b09d66c931f6e99687664da7442ddf9198595cb`. This is a targeted correction, not a claim that article 024 has passed the complete A–MM review.
 
 ## 5. Delivery phases and acceptance gates
 
