@@ -214,3 +214,15 @@ Record each completed work unit with:
 - Remaining risks and follow-up tasks.
 
 Do not mark a phase complete merely because its checklist was drafted. Phase completion requires evidence for its exit criteria.
+
+
+### 2026-11-15 — Initial execution
+
+- `be30ea7` — Added this evidence-driven roadmap and recorded the observed v0.3.7 repository baseline.
+- `60febe7` — Added regression cases for non-string and unhashable `API_VERSIONING_CHANNELS` entries.
+- `cdcb334` — Updated channel validation to reject invalid entry types with `VersioningError` before set membership is evaluated.
+- `4b50070` — Added regression tests for timezone-aware sunset timestamps and HTTP-date conversion.
+- `696b1b2` — Normalized offset-aware sunset timestamps to UTC while preserving the existing UTC interpretation for naive timestamps.
+- Verification performed: re-fetched the changed files and confirmed their committed contents and PR head.
+- Verification not performed: Python tests, lint, tox, package build, and runtime integration tests. A local clone attempt could not resolve github.com in the available execution environment; the GitHub workflow run lookup currently returned no runs. These changes remain unvalidated by an executed test suite.
+- Follow-up: obtain actual CI execution evidence, then continue Phase 0 provenance/inventory and Phase 1 CI remediation.
