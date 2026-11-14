@@ -10,7 +10,7 @@ The site has passed CI checks and production builds for both root hosting and a 
 - Package implementation: `../django_api_versioning/`.
 - Integration scenarios and evidence generation: `../integration_test_project/segment_lab/`.
 - Versioning contract: `../docs/reference/versioning-contract.md`.
-- Architecture and phase gates: `../docs/website/architecture.md` and `../docs/website/implementation-status.md`.
+- Architecture and final handoff gates: `../docs/website/architecture.md` and `../docs/website/netlify-agent-handoff.md`.
 
 ## Requirements
 
@@ -78,4 +78,4 @@ Do not hand-edit `src/data/generated/routes.json` or `check_versions_output.txt`
 
 ## Hosting status
 
-No Netlify or GitHub Pages deployment has been performed. Do not configure production publishing until the browser, accessibility, performance, content, and external static-host checks in `../docs/website/implementation-status.md` have passed.
+No production deployment has been performed. Do not configure production publishing until the browser, accessibility, performance, content, and external static-host checks listed in `../docs/website/netlify-agent-handoff.md` have passed.
