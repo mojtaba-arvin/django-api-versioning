@@ -20,7 +20,7 @@ export function remarkArticleLinks() {
     if (firstH1 !== -1) tree.children.splice(firstH1, 1);
     visit(tree, "link", (node) => {
       const href = node.url;
-      if (!href || /^(https?:|mailto:|#)/.test(href)) return;
+      if (!href || /^(?:[a-z][a-z0-9+.-]*:|\\/\\/|#)/i.test(href)) return;
       const id = resolveArticleLink(href, articles);
       if (id) {
         const suffixIndex = href.search(/[?#]/);
