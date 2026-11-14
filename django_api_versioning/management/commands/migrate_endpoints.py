@@ -115,6 +115,8 @@ def _literal_forward(node: ast.expr | None) -> bool | None:
 
 
 def _legacy_options(call: ast.Call) -> tuple[int, bool, bool] | None:
+    if any(keyword.arg == "versions" for keyword in call.keywords):
+        return None
     if not any(keyword.arg in {"backward", "forward"} for keyword in call.keywords):
         return None
 
