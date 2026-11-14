@@ -528,9 +528,8 @@ There is an important standards limitation: the package's lifecycle middleware c
 The middleware also enforces the configured sunset date:
 
 - A sunset date in the past triggers `410 Gone`.
-- The accepted status values are `"active"` and `"deprecated"`; `"retired"` is not a valid status value.
-- The `sunset` date controls when the middleware returns `410 Gone`. A configured sunset date can trigger 410 after it passes, even when the status is `"active"`.
-- The `Deprecation` header is emitted only when the status is `"deprecated"`; an `"active"` version with a future sunset date can have a `Sunset` header without a `Deprecation` header.
+- A `retired` status without a past sunset date does not, by itself, trigger `410 Gone`.
+- A future sunset date with `retired` status does not produce the same deprecation headers as `deprecated` status.
 - The middleware does not generate a `Link` header pointing to migration documentation.
 
 If the application emits an RFC 9745 deprecation date separately, ensure that the `Sunset` date is not earlier than the deprecation date.

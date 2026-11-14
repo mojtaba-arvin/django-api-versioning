@@ -740,9 +740,8 @@ For a version configured as `deprecated` with a sunset date, the middleware adds
 
 There are important distinctions:
 
-- The accepted status values are `"active"` and `"deprecated"`; `"retired"` is not a valid status value.
-- The `sunset` date controls when the middleware returns `410 Gone`. A configured sunset date can therefore trigger 410 after it passes, even if the status is `"active"`.
-- The `Deprecation` header is emitted only when the status is `"deprecated"`; an `"active"` version with a future sunset date can have a `Sunset` header without a `Deprecation` header.
+- A `retired` status by itself does not trigger `410 Gone`; the middleware uses the sunset date to determine when to return 410.
+- A future sunset date with `retired` status does not produce the deprecation headers; those are associated with the `deprecated` status.
 - The current middleware emits `Deprecation: true`. That is a legacy draft form, not the date-valued Structured Field specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html).
 - The middleware does not automatically generate a `Link` header with `rel="deprecation"`.
 
