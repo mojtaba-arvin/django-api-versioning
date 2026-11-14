@@ -156,13 +156,12 @@ def run(out_path: str) -> None:
     from django.test import Client
     from django.urls import Resolver404, resolve
     from django.urls import reverse as django_reverse
+    from segment_lab.scenario_catalog import active_scenario
 
     from django_api_versioning import api_reverse
     from django_api_versioning.registry import registry
     from django_api_versioning.settings import api_settings
     from django_api_versioning.testing import build_version_matrix
-
-    from segment_lab.scenario_catalog import active_scenario
 
     scenario = active_scenario()
 
