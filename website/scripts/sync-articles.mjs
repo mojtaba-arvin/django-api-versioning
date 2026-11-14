@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArticleMetadata } from "../src/lib/article-metadata.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const websiteRoot = path.resolve(scriptDirectory, "..");
@@ -16,41 +17,46 @@ const sourceFiles = (await readdir(sourceDirectory))
   .sort((a, b) => a.localeCompare(b, "en", { numeric: true }));
 if (!sourceFiles.length) throw new Error("No canonical Markdown articles found in docs/articles.");
 
+// Validate every source article before touching the generated mirror. A bad
+// metadata change must not erase the last usable generated content.
+const sourceEntries = await Promise.all(
+  sourceFiles.map(async (name) => {
+    const content = await readFile(path.join(sourceDirectory, name));
+    const article = parseArticleMetadata(name, content);
+    return { name, content, article };
+  }),
+);
+
+const slugOwners = new Map();
+for (const { name, article } of sourceEntries) {
+  const previous = slugOwners.get(article.slug);
+  if (previous) {
+    throw new Error(
+      "Duplicate article slug " + article.slug + " in " + previous + " and " + name + ".",
+    );
+  }
+  slugOwners.set(article.slug, name);
+}
+
+// All source files and cross-article slugs are valid. It is now safe to replace
+// the generated mirror and search index.
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
 const manifestFiles = [];
 const searchIndex = [];
 
-function scalar(frontMatter, key) {
-  const raw = new RegExp("^" + key + ":\\s*(.*)$", "m").exec(frontMatter)?.[1]?.trim() ?? "";
-  return raw.replace(/^['\"]|['\"]$/g, "");
-}
-
-function articleSearchEntry(name, content) {
-  const text = content.toString("utf8");
-  const frontMatter = /^---\s*\n([\s\S]*?)\n---(?:\s|$)/.exec(text)?.[1] ?? "";
-  const id = name.replace(/\.md$/, "");
-  const title = scalar(frontMatter, "title");
-  const description = scalar(frontMatter, "description");
-  const slug = scalar(frontMatter, "slug");
-  if (!title || !description || !slug) {
-    throw new Error("Article " + name + " is missing title, description or slug front matter.");
-  }
-  const keywordBlock = /^keywords:\s*\n((?:[ \t]+-\s*.*(?:\n|$))*)/m.exec(frontMatter)?.[1] ?? "";
-  const keywords = keywordBlock
-    .split("\n")
-    .map((line) => line.replace(/^\s*-\s*/, "").trim().replace(/^['\"]|['\"]$/g, ""))
-    .filter(Boolean);
-  return { type: "article", id, title, description, slug, keywords, href: "/articles/" + id + "/" };
-}
-
-for (const name of sourceFiles) {
-  const sourcePath = path.join(sourceDirectory, name);
+for (const { name, content, article } of sourceEntries) {
   const outputPath = path.join(outputDirectory, name);
-  const content = await readFile(sourcePath);
-  await copyFile(sourcePath, outputPath);
-  manifestFiles.push({ path: name, sha256: createHash("sha256").update(content).digest("hex") });
-  searchIndex.push(articleSearchEntry(name, content));
+  await copyFile(path.join(sourceDirectory, name), outputPath);
+  manifestFiles.push({
+    path: name,
+    sha256: createHash("sha256").update(content).digest("hex"),
+  });
+  searchIndex.push({
+    type: "article",
+    ...article,
+    href: "/articles/" + article.id + "/",
+  });
 }
 
 const commit = process.env.SOURCE_COMMIT || process.env.COMMIT_REF || execFileSync(
