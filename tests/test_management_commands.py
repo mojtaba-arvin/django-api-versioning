@@ -397,7 +397,7 @@ class TestMigrateEndpointsRewriting:
     def test_invalid_syntax_is_not_rewritten(self):
         args = '"users", version=2, backward=True, forward='
         assert _rewrite_args(args) == args
-        assert _suggest('@endpoint(\\n') == []
+        assert _suggest("@endpoint(\\n") == []
 
     def test_tokenizer_errors_are_treated_as_unsafe_comments(self):
         assert _has_comments("endpoint(\\n")
@@ -421,11 +421,11 @@ class TestMigrateEndpointsRewriting:
     def test_suggest_ignores_modern_and_noop_declarations(self):
         source = (
             '@endpoint("users", version=2)\n'
-            'def users(request):\n'
-            '    return None\n'
+            "def users(request):\n"
+            "    return None\n"
             '@endpoint("posts", forward=True)\n'
-            'def posts(request):\n'
-            '    return None\n'
+            "def posts(request):\n"
+            "    return None\n"
         )
         assert _suggest(source) == []
 
@@ -434,7 +434,7 @@ class TestMigrateEndpointsRewriting:
             '@endpoint("users,admin", version=2, backward=True, '
             'forward=False, app_name="public")'
         )
-        source = decorator + '\ndef view(request):\n    return None\n'
+        source = decorator + "\ndef view(request):\n    return None\n"
         assert _suggest(source) == [
             (
                 decorator,
@@ -448,7 +448,7 @@ class TestMigrateEndpointsRewriting:
             '@endpoint("users", version=2, backward=True, forward=False, '
             'app_name=build_name("public", suffix="v1"))'
         )
-        source = decorator + '\ndef view(request):\n    return None\n'
+        source = decorator + "\ndef view(request):\n    return None\n"
         assert _suggest(source) == [
             (
                 decorator,
@@ -461,16 +461,16 @@ class TestMigrateEndpointsRewriting:
         source = (
             '# @endpoint("users", version=2, backward=True, forward=False)\n'
             'example = \'@endpoint("users", version=2, backward=True, '
-            'forward=False)\'\n'
+            "forward=False)'\n"
         )
         assert _suggest(source) == []
 
     def test_suggest_leaves_decorators_with_comments_unchanged(self):
         source = (
             '@endpoint("users", version=2, backward=True, # keep this note\n'
-            '          forward=False)\n'
-            'def view(request):\n'
-            '    return None\n'
+            "          forward=False)\n"
+            "def view(request):\n"
+            "    return None\n"
         )
         assert _suggest(source) == []
 
@@ -491,8 +491,8 @@ class TestMigrateEndpointsCommand:
     def test_dry_run_reports_changes_without_modifying_files(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
-            'def view(request):\n'
-            '    return None\n'
+            "def view(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -518,8 +518,8 @@ class TestMigrateEndpointsCommand:
     def test_default_mode_previews_changes_without_modifying_files(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
-            'def view(request):\n'
-            '    return None\n'
+            "def view(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -532,8 +532,8 @@ class TestMigrateEndpointsCommand:
         modern_file = tmp_path / "modern.py"
         modern_source = (
             '@endpoint("modern", version=2)\n'
-            'def modern(request):\n'
-            '    return None\n'
+            "def modern(request):\n"
+            "    return None\n"
         )
         modern_file.write_text(modern_source)
         hidden_file = tmp_path / ".hidden.py"
@@ -561,13 +561,11 @@ class TestMigrateEndpointsCommand:
         assert str(view_file) in out.getvalue()
         symlink_target.unlink()
 
-    def test_default_write_result_executes_without_ver_range_import(
-        self, tmp_path
-    ):
+    def test_default_write_result_executes_without_ver_range_import(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
-            'def view(request):\n'
-            '    return None\n'
+            "def view(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -593,11 +591,11 @@ class TestMigrateEndpointsCommand:
     ):
         source = (
             '@endpoint("first", version=2, backward=True, forward=False)\n'
-            'def first(request):\n'
-            '    return None\n'
+            "def first(request):\n"
+            "    return None\n"
             '@endpoint("second", version=3, backward=False, forward=False)\n'
-            'def second(request):\n'
-            '    return None\n'
+            "def second(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
