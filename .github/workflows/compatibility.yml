@@ -4,6 +4,16 @@ on:
   # Expensive cross-version validation is an explicit release/review checkpoint.
   # Do not run this matrix on every synchronization commit.
   workflow_dispatch:
+  push:
+    branches: [audit/comprehensive-package-review]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "tox.ini"
+      - "CHANGELOG.md"
+      - ".github/workflows/compatibility.yml"
 
 permissions:
   contents: read
