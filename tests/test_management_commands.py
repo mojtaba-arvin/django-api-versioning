@@ -516,11 +516,13 @@ class TestMigrateEndpointsCommand:
         assert external_file.read_text() == source
         assert str(view_file) in out.getvalue()
 
-    def test_default_write_result_executes_without_ver_range_import(self, tmp_path):
+    def test_default_write_result_executes_without_ver_range_import(
+        self, tmp_path
+    ):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            'def view(request):\\n'
-            '    return None\\n'
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            'def view(request):\n'
+            '    return None\n'
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
