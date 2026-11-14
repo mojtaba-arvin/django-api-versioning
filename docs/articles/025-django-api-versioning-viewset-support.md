@@ -959,6 +959,17 @@ The `resolve()` assertions are particularly relevant to the package-based patter
 
 These are still route and dispatch smoke tests. They do not verify serializer contracts, ordering semantics, permissions, pagination, or filtering behavior. Those require separate assertions against the API's intended response behavior.
 
+### Configured-callable integration coverage
+
+The repository's integration project also exercises the package-specific configured-callable pattern without requiring a database-backed model. It registers plain DRF ViewSet methods through `@endpoint(...)(ViewSet.as_view(...))` and checks:
+
+- v1 and v2 route dispatch, including v2's forward inheritance into v3;
+- the `detail` initialization value for collection and detail callables;
+- URL parameter delivery to a configured `retrieve` action;
+- `reverse_action()` when its generated name matches the `view_name` registered by `@endpoint`.
+
+The corresponding fixtures are in `integration_test_project/api/views.py`, and the request-level assertions are in `ConfiguredViewSetCallableIntegrationTestCase` in `integration_test_project/test_integration.py`. This coverage verifies the package/DRF routing boundary; it does not claim that direct `as_view()` reproduces router-managed `@action` configuration.
+
 A method's existence on a Python class does not automatically create a URL.
 
 In the router pattern, the router generates routes for the standard ViewSet actions and the `@action` methods it discovers.
