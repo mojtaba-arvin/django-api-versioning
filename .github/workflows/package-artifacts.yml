@@ -1,0 +1,59 @@
+name: Python package artifacts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "pyproject.toml"
+      - "MANIFEST.in"
+      - "README.md"
+      - "LICENSE*"
+      - "requirements-build.txt"
+      - "scripts/verify_distribution_contents.py"
+      - ".github/workflows/package-artifacts.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "pyproject.toml"
+      - "MANIFEST.in"
+      - "README.md"
+      - "LICENSE*"
+      - "requirements-build.txt"
+      - "scripts/verify_distribution_contents.py"
+      - ".github/workflows/package-artifacts.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-artifacts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.15"
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+
+      - name: Install build tools
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Build source and wheel distributions
+        run: python -m build --outdir dist
+
+      - name: Validate distribution metadata
+        run: python -m twine check --strict dist/*
+
+      - name: Verify package contents
+        run: python scripts/verify_distribution_contents.py dist

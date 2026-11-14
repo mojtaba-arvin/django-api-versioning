@@ -1,20 +1,38 @@
-name: Run tests
+name: Python tests
 
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "requirements.txt"
+      - "requirements-ci.txt"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
   pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "requirements.txt"
+      - "requirements-ci.txt"
+      - "pyproject.toml"
+      - ".github/workflows/tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -22,13 +40,25 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.15"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-ci.txt
+
       - name: Verify and export source commit
         run: |
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Build Docker image
-        run: docker build -t django-api-versioning-test .
+      - name: Run package unit tests
+        run: python -m pytest --capture=no tests
 
-      - name: Run tests in Docker
-        run: docker run --rm -e SOURCE_COMMIT="$SOURCE_COMMIT" django-api-versioning-test
+      - name: Run Django integration tests
+        run: python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
