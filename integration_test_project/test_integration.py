@@ -2861,18 +2861,14 @@ class ConfiguredViewSetCallableIntegrationTestCase(TestCase):
         self.assertEqual(v1.status_code, 200)
         self.assertEqual(v1.json()["version"], 1)
         self.assertTrue(
-            v1.json()["action_url"].endswith(
-                "/api/v1/configured-products/popular/"
-            )
+            v1.json()["action_url"].endswith("/api/v1/configured-products/popular/")
         )
 
         v2 = self.client.get("/api/v2/configured-products/popular/")
         self.assertEqual(v2.status_code, 200)
         self.assertEqual(v2.json()["version"], 2)
         self.assertTrue(
-            v2.json()["action_url"].endswith(
-                "/api/v2/configured-products/popular/"
-            )
+            v2.json()["action_url"].endswith("/api/v2/configured-products/popular/")
         )
 
 
