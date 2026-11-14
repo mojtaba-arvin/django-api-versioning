@@ -403,6 +403,37 @@ class TestMigrateEndpointsRewriting:
         ]
 
 
+
+    def test_suggest_handles_nested_unrelated_expressions(self):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False, '
+            'app_name=build_name("public", suffix="v1"))'
+        )
+        assert _suggest(source) == [
+            (
+                source,
+                '@endpoint("users", app_name=build_name("public", suffix="v1"), '
+                "versions=ver_range(1, 2))",
+            )
+        ]
+
+    def test_suggest_ignores_comments_and_string_literals(self):
+        source = (
+            '# @endpoint("users", version=2, backward=True, forward=False)\\n'
+            'example = \'@endpoint("users", version=2, backward=True, forward=False)\'\\n'
+        )
+        assert _suggest(source) == []
+
+    def test_suggest_leaves_decorators_with_comments_unchanged(self):
+        source = (
+            '@endpoint("users", version=2, backward=True, # keep this note\\n'
+            '          forward=False)\\n'
+            'def view(request):\\n'
+            '    return None\\n'
+        )
+        assert _suggest(source) == []
+
+
 class TestMigrateEndpointsCommand:
     """Test dry-run and write behavior against isolated temporary files."""
 
@@ -434,8 +465,24 @@ class TestMigrateEndpointsCommand:
         assert view_file.read_text() == source
         assert migration_file.read_text() == source
 
-    def test_default_mode_writes_changes_but_skips_migrations(self, tmp_path):
-        source = '@endpoint("users", version=2, backward=True, forward=False)\n'
+    def test_default_mode_previews_changes_without_modifying_files(self, tmp_path):
+        source = '@endpoint("users", version=2, backward=True, forward=False)\\n'
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+        migrations = tmp_path / "migrations"
+        migrations.mkdir()
+        migration_file = migrations / "0001_initial.py"
+        migration_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        assert "versions=ver_range(1, 2)" in out.getvalue()
+        assert view_file.read_text() == source
+        assert migration_file.read_text() == source
+
+    def test_write_mode_applies_changes_but_skips_migrations(self, tmp_path):
+        source = '@endpoint("users", version=2, backward=True, forward=False)\\n'
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
         migrations = tmp_path / "migrations"
@@ -443,16 +490,16 @@ class TestMigrateEndpointsCommand:
         migration_file = migrations / "0001_initial.py"
         migration_file.write_text(source)
         unrelated_file = tmp_path / "plain.py"
-        unrelated_file.write_text("def plain():\n    return None\n")
+        unrelated_file.write_text("def plain():\\n    return None\\n")
         modern_file = tmp_path / "modern.py"
-        modern_source = '@endpoint("modern", version=2)\n'
+        modern_source = '@endpoint("modern", version=2)\\n'
         modern_file.write_text(modern_source)
 
         out = StringIO()
-        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+        call_command("migrate_endpoints", path=str(tmp_path), write=True, stdout=out)
 
         assert "versions=ver_range(1, 2)" in view_file.read_text()
         assert migration_file.read_text() == source
-        assert unrelated_file.read_text() == "def plain():\n    return None\n"
+        assert unrelated_file.read_text() == "def plain():\\n    return None\\n"
         assert modern_file.read_text() == modern_source
         assert str(view_file) in out.getvalue()
