@@ -10,7 +10,7 @@ if [[ "${TASK:-}" == "publish" ]]; then
 
   echo "Publishing to PyPI..."
   : "${PYPI_API_TOKEN:?PYPI_API_TOKEN must be set for publishing}"
-  python -m twine upload dist/\* \
+  python -m twine upload dist/* \
     --repository-url https://upload.pypi.org/legacy/ \
     -u "__token__" \
     -p "$PYPI_API_TOKEN"
