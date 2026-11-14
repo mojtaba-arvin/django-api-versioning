@@ -560,7 +560,7 @@ The distinction is where shared view logic lives and how versioned URLs are regi
 | URL registration | Manual `path()` entries | Manual `path()` entries | Generated from declarations |
 | Adding a version | Add views and URL entries | Add subclasses and URL entries | Increase `API_MAX_VERSION`; add declarations for changed endpoints |
 | Unchanged endpoint behavior | Must be registered explicitly | Must be registered explicitly | Carries forward from its latest applicable declaration |
-| Import-order requirement | No package-specific requirement | No package-specific requirement | Import declaration modules before reading generated patterns |
+| Import-order requirement | No package-specific requirement | No package-specific requirement | Import decorated modules during URLconf initialization; exported urlpatterns is a shared list, not a frozen copy |
 
 The first two approaches are valid DRF-only solutions. The package-based approach keeps the same Python inheritance model as the second approach, but moves versioned URL registration from a growing set of manual `path()` declarations to the endpoint declarations themselves.
 
