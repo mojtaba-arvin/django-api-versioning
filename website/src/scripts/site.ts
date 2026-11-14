@@ -76,7 +76,7 @@ let searchIndex: Array<{ type: string; title: string; description?: string; keyw
 try { searchIndex = JSON.parse(searchDataElement?.textContent ?? "[]"); } catch { searchIndex = []; }
 let activeResult = -1;
 let lastSearchOpener: HTMLElement | null = null;
-const normalize = (value: string) => value.toLocaleLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "").trim();
+const normalize = (value: string) => value.toLocaleLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim();
 function scoreResult(item: (typeof searchIndex)[number], query: string): number {
   const title = normalize(item.title);
   const text = normalize([item.title, item.description, ...(item.keywords ?? [])].join(" "));
