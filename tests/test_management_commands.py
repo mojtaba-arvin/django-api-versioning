@@ -5,10 +5,12 @@ from io import StringIO
 
 import pytest
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.http import JsonResponse
 
 from django_api_versioning.decorators import endpoint
 from django_api_versioning.management.commands.migrate_endpoints import (
+    _has_comments,
     _rewrite_args,
     _suggest,
 )
@@ -372,6 +374,22 @@ class TestMigrateEndpointsRewriting:
         args = '"users", backward=True, forward=False'
         assert _rewrite_args(args) == args
 
+    def test_forward_defaults_to_true_when_omitted(self):
+        args = '"users", version=2, backward=True'
+        assert _rewrite_args(args) == '"users", version=1'
+
+    def test_duplicate_legacy_flags_are_not_rewritten(self):
+        args = '"users", version=2, backward=True, backward=False'
+        assert _rewrite_args(args) == args
+
+    def test_invalid_syntax_is_not_rewritten(self):
+        args = '"users", version=2, backward=True, forward='
+        assert _rewrite_args(args) == args
+        assert _suggest('@endpoint(\\n') == []
+
+    def test_tokenizer_errors_are_treated_as_unsafe_comments(self):
+        assert _has_comments("endpoint(\\n")
+
     @pytest.mark.parametrize(
         "args",
         [
@@ -453,6 +471,11 @@ class TestMigrateEndpointsCommand:
         call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
         assert out.getvalue() == ""
 
+    def test_non_directory_path_raises_command_error(self, tmp_path):
+        missing = tmp_path / "does-not-exist"
+        with pytest.raises(CommandError, match="Migration path is not a directory"):
+            call_command("migrate_endpoints", path=str(missing))
+
     def test_dry_run_reports_changes_without_modifying_files(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
@@ -501,6 +524,12 @@ class TestMigrateEndpointsCommand:
             '    return None\n'
         )
         modern_file.write_text(modern_source)
+        hidden_file = tmp_path / ".hidden.py"
+        hidden_file.write_text(source)
+        external_file = tmp_path.parent / f"{tmp_path.name}-outside.py"
+        external_file.write_text(source)
+        symlink_file = tmp_path / "linked.py"
+        symlink_file.symlink_to(external_file)
         virtualenv = tmp_path / ".venv" / "site-packages" / "example"
         virtualenv.mkdir(parents=True)
         external_file = virtualenv / "views.py"
@@ -513,8 +542,10 @@ class TestMigrateEndpointsCommand:
         assert migration_file.read_text() == source
         assert unrelated_file.read_text() == "def plain():\n    return None\n"
         assert modern_file.read_text() == modern_source
+        assert hidden_file.read_text() == source
         assert external_file.read_text() == source
         assert str(view_file) in out.getvalue()
+        external_file.unlink()
 
     def test_default_write_result_executes_without_ver_range_import(
         self, tmp_path
