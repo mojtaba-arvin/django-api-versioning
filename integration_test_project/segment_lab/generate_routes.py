@@ -72,12 +72,21 @@ def provenance() -> dict:
             "Git HEAD is unavailable. Set SOURCE_COMMIT from a verified checkout."
         )
 
-    # When Git metadata is present, reject uncommitted package changes. Some
-    # build containers intentionally omit .git; there SOURCE_COMMIT is supplied
-    # by the host workflow after it verifies the checkout SHA.
+    # Evidence depends on both the package and the executable lab. When Git
+    # metadata is present, reject uncommitted changes to either input tree.
+    # Some build containers intentionally omit .git; there SOURCE_COMMIT is
+    # supplied by the host workflow after it verifies the checkout SHA.
     if checkout_commit:
         dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--", "django_api_versioning", "pyproject.toml"],
+            [
+                "git",
+                "status",
+                "--porcelain",
+                "--",
+                "django_api_versioning",
+                "pyproject.toml",
+                "integration_test_project",
+            ],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -102,6 +111,17 @@ def provenance() -> dict:
                 }
             )
 
+    evidence_inputs = [REPO_ROOT / "pyproject.toml"]
+    evidence_inputs.extend(sorted(INTEGRATION_ROOT.rglob("*.py")))
+    evidence_files = [
+        {
+            "file": path.relative_to(REPO_ROOT).as_posix(),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+        for path in evidence_inputs
+        if path.is_file()
+    ]
+
     return {
         "repository": REPOSITORY,
         "package": PACKAGE,
@@ -113,6 +133,7 @@ def provenance() -> dict:
         "source_mode": "repository-checkout",
         "package_dir": package_dir,
         "files": files,
+        "evidence_files": evidence_files,
     }
 
 # --------------------------------------------------------------------------

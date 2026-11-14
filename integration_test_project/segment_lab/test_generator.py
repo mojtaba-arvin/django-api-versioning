@@ -31,10 +31,17 @@ def test_provenance_is_from_the_current_repository_checkout() -> None:
     assert result["install_method"] == "repository-checkout"
     assert result["files"]
 
-    for item in result["files"]:
+    for item in result["files"] + result["evidence_files"]:
         path = REPO_ROOT / item["file"]
         assert path.is_file()
         assert hashlib.sha256(path.read_bytes()).hexdigest() == item["sha256"]
+
+    evidence_paths = {item["file"] for item in result["evidence_files"]}
+    assert "pyproject.toml" in evidence_paths
+    assert "integration_test_project/segment_lab/generate_routes.py" in evidence_paths
+    assert "integration_test_project/segment_lab/scenario_catalog.py" in evidence_paths
+    assert "integration_test_project/api/views.py" in evidence_paths
+    assert "integration_test_project/project/urls.py" in evidence_paths
 
 
 def test_all_scenario_view_modules_resolve() -> None:

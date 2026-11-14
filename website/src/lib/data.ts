@@ -105,6 +105,7 @@ export interface RoutesData {
     source_mode: string;
     archive_sha256: string | null;
     files: { file: string; sha256: string }[];
+    evidence_files: { file: string; sha256: string }[];
   };
   environment: { python: string; implementation: string; django: string; djangorestframework: string };
   source_refs: {
