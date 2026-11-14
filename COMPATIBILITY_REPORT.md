@@ -5,7 +5,7 @@
 **Report Last Updated**: 2026-11-14
 **Package Version**: 0.3.6
 **Audited Branch**: `audit/comprehensive-package-review`
-**Audited Source Revision**: `bb8e512a1ea89cc1eccdc4c5c27b8c93b7d0b9be`
+**Audited Source Revision**: `1354bd0063e5e8e3a2afc8bb46bc0491e55c8362`
 **Recorded Test Run**: 2026-11-14, source commit `06f2867`
 **Recorded Test Result**: tox exit code 0; 15 test environments and 1 lint environment passed
 **Evidence Qualification**: The test results are recorded in the project compatibility report. Raw per-environment execution logs are not retained in the repository.
