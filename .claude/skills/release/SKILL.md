@@ -32,23 +32,10 @@ no `version` line.
 
 ### 2. Full test suite via tox
 
-```bash
-set -o pipefail
-PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-release.log
-TOX_EXIT=${PIPESTATUS[0]}
-echo "TOX_EXIT=$TOX_EXIT"
-```
-
-On the user's local machine, first verify `tox` and the `tox-uv` plugin are available. Preserve the tox exit code when piping output:
-
-```bash
-set -o pipefail
-tox 2>&1 | tee /tmp/tox-release.log
-TOX_EXIT=${PIPESTATUS[0]}
-echo "TOX_EXIT=$TOX_EXIT"
-```
-
-Before running Full, use the current `tox.ini` as the source of truth. Verify that it declares `tox-uv`, that the integration test settings file exists, and that every Python interpreter required by the matrix is installed. The current matrix requires Python 3.10–3.15:
+Before running Full, use the current `tox.ini` as the source of truth.
+Verify that it declares `tox-uv`, that the integration test settings
+file exists, and that every Python interpreter required by the matrix
+is installed. The current matrix requires Python 3.10–3.15:
 
 ```bash
 command -v uv >/dev/null || { echo "uv is required"; exit 1; }
@@ -66,11 +53,25 @@ fi
 /tmp/tox/bin/tox --version
 ```
 
-Do not start tox if any interpreter or prerequisite is missing. Do not accept a partial matrix or `NOT-RUN` environments as a successful release test. Re-read `tox.ini` and derive the expected environment count from its current envlist rather than hardcoding an old count.
+Do not start tox if any interpreter or prerequisite is missing.
+Do not accept a partial matrix or `NOT-RUN` environments as a
+successful release test. Re-read `tox.ini` and derive the expected
+environment count from its current envlist rather than hardcoding
+an old count.
+
+Run the complete matrix and preserve tox's real exit code:
+
+```bash
+set -o pipefail
+PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-release.log
+TOX_EXIT=${PIPESTATUS[0]}
+echo "TOX_EXIT=$TOX_EXIT"
+```
 
 If `TOX_EXIT` is non-zero, STOP. Parse `/tmp/tox-release.log` for
-failing envs. Do not bump version. Do not tag. Report the failing
-env names.
+failing and `NOT-RUN` envs. Do not bump version. Do not tag.
+Report the exact failing or unrun env names and classify test failures
+separately from environment/setup failures.
 
 Do NOT run `/compat-matrix` — that skill was removed. tox is the
 only matrix.
@@ -292,23 +293,37 @@ Do not proceed if the remote tag is absent or its SHA differs.
 
 ### 10. Install `gh` if missing (best-effort)
 
+Use the installed binary when available. Otherwise detect the OS and
+architecture; do not assume Linux x86_64:
+
 ```bash
-if ! [ -x "$HOME/.local/bin/gh" ]; then
+GH_BIN=$(command -v gh || true)
+if [ -z "$GH_BIN" ]; then
+  OS=$(uname -s)
+  ARCH=$(uname -m)
+  case "$OS:$ARCH" in
+    Darwin:x86_64) PLATFORM="macOS_amd64" ;;
+    Darwin:arm64) PLATFORM="macOS_arm64" ;;
+    Linux:x86_64) PLATFORM="linux_amd64" ;;
+    Linux:aarch64|Linux:arm64) PLATFORM="linux_arm64" ;;
+    *) echo "Unsupported gh platform: $OS $ARCH"; exit 1 ;;
+  esac
+  LATEST=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))')
   mkdir -p "$HOME/.local/bin"
-  LATEST=$(curl -s https://api.github.com/repos/cli/cli/releases/latest \
-    | grep -oP '(?<=tag_name": "v)[^"]+')
-  curl -fsSL "https://github.com/cli/cli/releases/download/v${LATEST}/gh_${LATEST}_linux_amd64.tar.gz" \
+  curl -fsSL "https://github.com/cli/cli/releases/download/v${LATEST}/gh_${LATEST}_${PLATFORM}.tar.gz" \
     -o /tmp/gh.tar.gz
   tar -xzf /tmp/gh.tar.gz -C /tmp
-  cp "/tmp/gh_${LATEST}_linux_amd64/bin/gh" "$HOME/.local/bin/gh"
+  cp "/tmp/gh_${LATEST}_${PLATFORM}/bin/gh" "$HOME/.local/bin/gh"
   chmod +x "$HOME/.local/bin/gh"
   rm -f /tmp/gh.tar.gz
+  GH_BIN="$HOME/.local/bin/gh"
 fi
-"$HOME/.local/bin/gh" --version
+"$GH_BIN" --version
 ```
 
-If install exits non-zero, skip to Step 12 and report the URL
-only. Do not retry more than once.
+If installation exits non-zero, do not retry. Skip GitHub release
+creation, report the manual release URL, and continue to Step 12.
 
 ### 11. Create GitHub release
 
