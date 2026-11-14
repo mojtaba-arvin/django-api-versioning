@@ -80,7 +80,7 @@ const normalize = (value: string) => value.toLocaleLowerCase().normalize("NFKD")
 function scoreResult(item: (typeof searchIndex)[number], query: string): number {
   const title = normalize(item.title);
   const text = normalize([item.title, item.description, ...(item.keywords ?? [])].join(" "));
-  const tokens = normalize(query).split(/\\s+/).filter(Boolean);
+  const tokens = normalize(query).split(/\s+/).filter(Boolean);
   let score = 0;
   for (const token of tokens) {
     if (title === token) score += 12;
