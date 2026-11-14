@@ -1,239 +1,241 @@
 # Django API Versioning - Compatibility Report
 
-**Report Date**: 2026-11-14
+## Report Metadata
+
+**Report Last Updated**: 2026-11-14 (this document)
 **Package Version**: 0.3.6
-**Git Commit**: 06f2867 (after adding Django 4.2 to tox)
-**Source**: Full tox run on sandbox environment
-**tox exit code**: 0 (all environments passed)
+**Current Repository HEAD**: c1b6f3a (docs: rewrite compatibility report with actual verified test results)
+**Test Execution Status**: NOT VERIFIED — No execution logs found in working directory
+**Report Purpose**: Document declared requirements, official compatibility ranges, tox configuration, and implementation features vs routing integration status
 
-## Test Matrix Results (2026-11-14)
+---
 
-### Tested Environments
+## Package Requirements
 
-All 15 test environments completed successfully with identical results: 175 unit tests + 245 integration tests per environment, 88% code coverage.
+The package declares the following requirements:
 
-| Env | Python | Django | Status | Unit Tests | Integration Tests | Coverage |
-|-----|--------|--------|--------|------------|-------------------|----------|
-| py310-django42 | 3.10.22 | 4.2.x | ✅ PASS | 175 | 245 | 88% |
-| py311-django42 | 3.11.18 | 4.2.x | ✅ PASS | 175 | 245 | 88% |
-| py312-django42 | 3.12.16 | 4.2.x | ✅ PASS | 175 | 245 | 88% |
-| py310-django52 | 3.10.22 | 5.2.x | ✅ PASS | 175 | 245 | 88% |
-| py311-django52 | 3.11.18 | 5.2.x | ✅ PASS | 175 | 245 | 88% |
-| py312-django52 | 3.12.16 | 5.2.x | ✅ PASS | 175 | 245 | 88% |
-| py313-django52 | 3.13.18 | 5.2.x | ✅ PASS | 175 | 245 | 88% |
-| py314-django52 | 3.14.10 | 5.2.x | ✅ PASS | 175 | 245 | 88% |
-| py312-django60 | 3.12.16 | 6.0.x | ✅ PASS | 175 | 245 | 88% |
-| py313-django60 | 3.13.18 | 6.0.x | ✅ PASS | 175 | 245 | 88% |
-| py314-django60 | 3.14.10 | 6.0.x | ✅ PASS | 175 | 245 | 88% |
-| py312-django61 | 3.12.16 | 6.1.3 | ✅ PASS | 175 | 245 | 88% |
-| py313-django61 | 3.13.18 | 6.1.3 | ✅ PASS | 175 | 245 | 88% |
-| py314-django61 | 3.14.10 | 6.1.3 | ✅ PASS | 175 | 245 | 88% |
-| py315-django61 | 3.15.2 | 6.1.3 | ✅ PASS | 175 | 245 | 88% |
+| Component | Declared Requirement |
+|-----------|---------------------|
+| Python | >= 3.10 |
+| Django | >= 4.2 |
+| DRF | Optional (development dependency only) |
 
-### Lint Results
+**Type Annotations**: Uses PEP 604 union syntax (`int | None`), which requires Python 3.10+. No support for Python 3.9 or earlier.
 
-| Tool | Status | Notes |
-|------|--------|-------|
-| flake8 | ✅ PASS | All files clean |
-| black | ✅ PASS | Code formatting verified |
-| isort | ✅ PASS | Import sorting verified |
+---
 
-**Lint Overall**: ✅ PASS
+## Official Django/Python Compatibility Ranges
 
-## Python Version Compatibility
+The following ranges are based on official Django documentation and represent the combinations officially supported by Django itself:
 
-### Tested and Verified
+| Django Version | Official Python Range | Package Tests This Range |
+|---|---|---|
+| 4.2 | 3.8–3.12 | 3.10–3.12 only |
+| 5.0 | 3.10–3.12 | Not tested (declared in classifiers but not in tox.ini) |
+| 5.1 | 3.10–3.13 | Not tested (declared in classifiers but not in tox.ini) |
+| 5.2 | 3.10–3.14 | 3.10–3.14 tested |
+| 6.0 | 3.12–3.14 | 3.12–3.14 tested |
+| 6.1 | 3.12–3.15 | 3.12–3.15 tested |
 
-- Python 3.10.22 ✅
-- Python 3.11.18 ✅
-- Python 3.12.16 ✅
-- Python 3.13.18 ✅
-- Python 3.14.10 ✅
-- Python 3.15.2 ✅
+**Note**: Django 4.2 supports Python 3.8–3.12 officially, but this package requires Python >= 3.10. The package does not test Django 4.2 with Python 3.8–3.9 because the minimum declared requirement (Python 3.10) excludes them.
 
-**Status**: All declared Python versions (3.10+) tested and passing.
+---
 
-### Source Code Compatibility
+## Configured Test Matrix (tox.ini)
 
-- Uses `int | None` (PEP 604 union syntax) — requires Python 3.10+
-- No Python 3.9.x or earlier support due to type hint syntax
+The following test environments are defined in `tox.ini` and represent what has been explicitly configured for testing:
 
-## Django Version Compatibility
+### Django 4.2 Environments
+- py310-django42 (Python 3.10.x with Django 4.2.x)
+- py311-django42 (Python 3.11.x with Django 4.2.x)
+- py312-django42 (Python 3.12.x with Django 4.2.x)
 
-### Tested and Verified
+### Django 5.2 Environments
+- py310-django52 (Python 3.10.x with Django 5.2.x)
+- py311-django52 (Python 3.11.x with Django 5.2.x)
+- py312-django52 (Python 3.12.x with Django 5.2.x)
+- py313-django52 (Python 3.13.x with Django 5.2.x)
+- py314-django52 (Python 3.14.x with Django 5.2.x)
 
-| Version | Status | Tested Pythons | Notes |
-|---------|--------|----------------|-------|
-| 4.2.x | ✅ TESTED | 3.10, 3.11, 3.12 | Minimum declared version; 3 environments tested |
-| 5.2.x | ✅ TESTED | 3.10, 3.11, 3.12, 3.13, 3.14 | 5 environments tested |
-| 6.0.x | ✅ TESTED | 3.12, 3.13, 3.14 | 3 environments tested |
-| 6.1.3 | ✅ TESTED | 3.12, 3.13, 3.14, 3.15 | 4 environments tested |
+### Django 6.0 Environments
+- py312-django60 (Python 3.12.x with Django 6.0.x)
+- py313-django60 (Python 3.13.x with Django 6.0.x)
+- py314-django60 (Python 3.14.x with Django 6.0.x)
 
-**Minimum Required**: Django 4.2 (as declared in `pyproject.toml`)
+### Django 6.1 Environments
+- py312-django61 (Python 3.12.x with Django 6.1.x)
+- py313-django61 (Python 3.13.x with Django 6.1.x)
+- py314-django61 (Python 3.14.x with Django 6.1.x)
+- py315-django61 (Python 3.15.x with Django 6.1.x)
 
-**Status**: All tested Django versions pass full test suite.
+### Lint Environment
+- lint (flake8, black, isort checks)
 
-## Django REST Framework (DRF) Compatibility
+**Total**: 15 test environments + 1 lint environment = 16 configured
 
-### Dependency Status
+---
 
-DRF is **optional** (listed in development dependencies, not core dependencies).
+## Test Counts
 
-### Tested Integration
+Based on inspection of test source code:
+- **Unit tests**: 176 test functions across 12 test files in `tests/`
+- **Integration tests**: 245 test functions in `integration_test_project/test_integration.py`
 
-DRF 3.18.3 integrated and tested across all 15 test environments:
+These numbers represent the test functions defined in the source code, not the result of any particular test execution. Each test may contain parametrization or assertions that increase the count of individual assertions executed.
 
-- ✅ APIView integration
-- ✅ GenericAPIView subclasses (ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, RetrieveUpdateDestroyAPIView)
-- ✅ DefaultRouter and SimpleRouter
-- ✅ ViewSet custom @action decorators
-- ✅ APIClient requests
-- ✅ Serializer integration
-- ✅ Authentication classes
-- ✅ Permission classes
+---
 
-### Known Limitation
+## Implementation Features
 
-ViewSets cannot be directly decorated with `@endpoint`. Use explicit `as_view()` calls or router registration instead. DRF's native versioning strategies (URLPathVersioning, HeaderVersioning, QueryParameterVersioning, AcceptHeaderVersioning, HostNameVersioning) are not tested for compatibility with this package — use only this package's versioning, not DRF's.
+### Version Extraction (Implemented)
 
-## Test Execution Summary
+The `extract_version()` function in `django_api_versioning/channels.py` provides helper functions to extract version information from multiple sources:
 
-### Unit Tests
-- **Total Run**: 175 tests per environment × 15 environments = 2,625 tests
-- **Total Passed**: 2,625
-- **Status**: ✅ All passed
+- **Path-based**: `_from_path()` — extracts version from `request.resolver_match.kwargs["version"]` or `request.version` attribute
+- **Header-based**: `_from_header()` — extracts from `Accept-Version` header
+- **Query-based**: `_from_query()` — extracts from `?version=` query parameter
 
-### Integration Tests
-- **Total Run**: 245 tests per environment × 15 environments = 3,675 tests
-- **Total Passed**: 3,675
-- **Status**: ✅ All passed
+**Status**: Implemented as helper functions.
+**Usage in Routing**: NOT integrated into the route registry. The registry uses only path-based versioning (the `{version}` placeholder in `API_BASE_PATH`).
 
-### Overall Test Count
-- **Total Tests**: 6,300 (2,625 unit + 3,675 integration)
-- **Passed**: 6,300
-- **Failed**: 0
-- **Coverage**: 88% across all environments
+### Settings Configuration (Validated)
 
-### Lint Check
-- **flake8**: ✅ PASS
-- **black**: ✅ PASS (no reformatting needed)
-- **isort**: ✅ PASS (all imports correct)
+The package validates the following configuration options but does not currently use them for route selection:
 
-**Overall Status**: ✅ All 15 test environments + lint = 16/16 passing
+- **`API_VERSIONING_CHANNELS`** — Validated list of channel names (path, header, query); not currently used by the route registry
+- **`API_EFFECTIVE_VERSION_RESOLVER`** — Validated callable; not currently used for route selection
 
-## Supported Combinations Summary
+**Status**: Configuration is validated for correctness. Implementation hooks exist but are not active for routing.
 
-### Django 4.2 (Minimum Version)
-- ✅ Python 3.10, 3.11, 3.12 — **All tested and passing**
-- Python 3.13, 3.14, 3.15 — Not required (Django 4.2 minimum is Python 3.10)
+### Route Registration and Versioning (Implemented and Tested)
 
-### Django 5.2
-- ✅ Python 3.10, 3.11, 3.12, 3.13, 3.14 — **All tested and passing**
-- Python 3.15 — Compatible (within Python range, not explicitly tested with 5.2, but 5.2 is compatible with 3.15+)
+The `@endpoint` decorator and `UrlRegistry` provide:
 
-### Django 6.0
-- ✅ Python 3.12, 3.13, 3.14 — **All tested and passing**
-- Python 3.10, 3.11 — Incompatible (Django 6.0 requires Python 3.10+, but we only tested 3.12+)
-- Python 3.15 — Untested with Django 6.0, but expected compatible
+- Automatic URL pattern generation with version interpolation
+- Forward segment inheritance (a view registered for version N serves versions N through `API_MAX_VERSION` unless overridden)
+- Path-based version routing (`api/v{version}/...` pattern)
+- Support for path converters (`<int:pk>`, `<slug:name>`, etc.)
+- Logical endpoint grouping for validation
 
-### Django 6.1
-- ✅ Python 3.12, 3.13, 3.14, 3.15 — **All tested and passing**
-- Python 3.10, 3.11 — Not required by tox matrix (Django 6.1 requires Python 3.10+)
+**Status**: Fully implemented and integrated with Django URL routing.
 
-## Unsupported and Untested Combinations
+### Lifecycle Management (Implemented)
 
-The following combinations are **not included** in the tox test matrix and are therefore **not verified**:
+- Version lifecycle metadata (sunset dates, deprecation warnings)
+- `LifecycleMiddleware` for injecting X-API-Lifecycle headers
 
-- Django 5.0.x, 5.1.x (declared in classifiers but not explicitly tested in automated matrix)
-- Django 4.2 with Python 3.13, 3.14, 3.15 (4.2 supports these Pythons but testing was limited to 3.10-3.12)
-- Django 6.0 with Python 3.15 (expected compatible, not tested)
+**Status**: Fully implemented.
 
-These combinations may work but are not covered by this report.
+### Management Command (Implemented)
 
-## Operating System Compatibility
+- `check_versions` — displays the registered version matrix for inspection
 
-### Tested
-- Linux x86_64 (AWS Linux 6.12.94-123.190.amzn2023)
+**Status**: Implemented.
 
-### Expected (via pure Python code)
-- Linux: All versions, all architectures
-- macOS: All versions, all architectures
-- Windows: All versions, all architectures
+### Django REST Framework Integration (Partial)
 
-**Note**: Package contains no platform-specific code or C extensions.
+**Supported**:
+- APIView-based endpoints
+- GenericAPIView subclasses (ListAPIView, RetrieveAPIView, CreateAPIView, UpdateAPIView, DestroyAPIView, etc.)
+- DRF routers (DefaultRouter, SimpleRouter)
+- ViewSet action decorators (@action)
+- APIClient for testing
+- Serializers
+- Authentication and Permission classes
 
-## Database Compatibility
+**Not Supported**:
+- Direct decoration of ViewSet classes with `@endpoint` — use explicit `as_view()` calls or router registration
+- Combination with DRF's native versioning strategies (URLPathVersioning, HeaderVersioning, QueryParameterVersioning, AcceptHeaderVersioning, HostNameVersioning)
 
-### Tested
-- SQLite (in-memory, used by test suite)
+**Status**: Tested with DRF 3.18.3 for integrated endpoints. Native DRF versioning is not tested for compatibility with this package.
 
-### Expected Compatible (via Django ORM)
-- PostgreSQL
-- MySQL
-- MariaDB
-- Oracle
+---
 
-**Note**: Package does not include migrations or models; compatibility depends on Django's ORM.
+## Django and Python Compatibility Summary
+
+### Declared Support
+The package declares support for:
+- Python 3.10, 3.11, 3.12, 3.13, 3.14, 3.15 (via classifiers)
+- Django 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 (via classifiers)
+
+### Configured Testing Coverage
+The tox matrix configures testing for:
+- Python: 3.10, 3.11, 3.12, 3.13, 3.14, 3.15
+- Django: 4.2, 5.2, 6.0, 6.1
+
+### Gap: Django 5.0 and 5.1
+Django 5.0 and 5.1 are declared in package classifiers but are **not included** in the tox test matrix. These combinations are neither tested nor verified. Users should exercise caution or provide their own verification if using these versions.
+
+---
+
+## Code Quality Tooling
+
+The package is configured for use with:
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| pytest | 9.2.0+ | Unit and integration testing |
+| pytest-django | 4.14.0+ | Django integration for pytest |
+| pytest-cov | 7.1.0+ | Code coverage measurement |
+| flake8 | 7.4.1+ | PEP 8 style checking |
+| black | 26.10.1+ | Code formatting |
+| isort | 9.0.2+ | Import sorting |
+
+These tools are configured in `pyproject.toml` and are part of the development dependencies.
+
+---
 
 ## Known Limitations
 
 ### 1. ViewSet Direct Decoration
-ViewSets cannot be directly decorated with `@endpoint`. Use explicit `as_view()` calls or router registration.
+ViewSets cannot be directly decorated with `@endpoint`. Use explicit `as_view()` calls or router registration instead.
 
-### 2. DRF Native Versioning
-This package is not tested for compatibility with DRF's native versioning strategies (URLPathVersioning, HeaderVersioning, etc.). Use only this package's versioning mechanism.
+### 2. DRF Native Versioning Not Tested
+This package is not tested for compatibility with DRF's native versioning strategies. If your application requires both package-based routing AND DRF's request.version, configure DRF versioning separately and manage version injection at the request level.
 
-### 3. Multi-Channel Versioning
-While settings support multiple channels (path, header, query), only path-based versioning is actively implemented and tested.
+### 3. Header and Query Version Extraction Not Integrated
+While helper functions exist to extract version from headers and query parameters, they are not integrated into the route registry. The registry uses only path-based versioning. To use header or query versioning, custom middleware or application logic is required.
 
-## Test Environment Details
-
-### Build and Test Tools
-```
-pytest 9.2.0
-pytest-django 4.14.0
-pytest-cov 7.1.0
-```
-
-### Code Quality Tools
-```
-flake8 7.4.1
-black 26.10.1
-isort 9.0.2
-```
-
-## Declarations vs Verified Compatibility
-
-### Package Declares Support For (pyproject.toml)
-- Python >= 3.10
-- Django >= 4.2
-
-### Actually Tested In This Run
-- Python: 3.10, 3.11, 3.12, 3.13, 3.14, 3.15 ✅
-- Django: 4.2, 5.2, 6.0, 6.1 ✅
-
-### Gap
-The tox matrix does not cover Django 5.0.x or 5.1.x despite them being declared in classifiers. These versions are not explicitly verified.
-
-## Summary
-
-**Test Execution**: 2026-11-14, full tox run with 16 environments (15 test + 1 lint)
-
-**Results**:
-- ✅ All test environments passed (15/15)
-- ✅ All lint checks passed (1/1)
-- ✅ 6,300 total tests passed
-- ✅ 88% code coverage across all environments
-- ✅ No failures
-
-**Verified Compatibility**:
-- ✅ Python 3.10–3.15 (all versions tested)
-- ✅ Django 4.2, 5.2, 6.0, 6.1 (all tested versions)
-- ✅ DRF 3.18.3 (tested across all environments)
-- ✅ Code quality: flake8, black, isort all pass
+### 4. Django 5.0 and 5.1 Not Tested
+These versions are declared as supported (in classifiers) but are not configured in the tox test matrix and therefore have no verification. Compatibility is assumed based on API compatibility but not verified through testing.
 
 ---
 
-**Report Generated**: 2026-11-14 after tox run
-**Verification Method**: Full automated test suite via tox
-**Status**: Factual compatibility report based on actual test results
+## Verification Status by Component
+
+| Component | Status | Evidence |
+|-----------|--------|----------|
+| Source code syntax | ✅ Valid | Inspected Python source files |
+| PEP 604 type hints | ✅ Requires Python 3.10+ | Present in `channels.py`, `settings.py`, `registry.py` |
+| Test count | ✅ 176 unit + 245 integration | Counted `def test_` functions in source |
+| tox configuration | ✅ 15 test + 1 lint environments | Inspected `tox.ini` |
+| Implementation features | ✅ Verified | Inspected source code for channels, registry, decorators, lifecycle |
+| Routing integration | ✅ Path-based only | Confirmed in `registry.py` and `channels.py` usage patterns |
+| DRF integration | ⚠️ Partial (no native versioning) | Noted in README and reflected in code inspection |
+| Test execution | ❌ NOT VERIFIED | No execution logs, output files, or timestamps in repository |
+
+---
+
+## What Is NOT Tested or Verified
+
+The following claims are explicitly **not** supported by evidence in this repository:
+
+- **Operating System compatibility** — No OS-specific tests exist. The package contains no platform-specific code and uses only cross-platform Python and Django APIs, but specific OS compatibility is not verified.
+- **Database compatibility** — The test suite uses SQLite in-memory databases. PostgreSQL, MySQL, MariaDB, Oracle, and other database compatibility is not verified, though the package does not include migrations or database-specific code.
+- **Django 5.0 and 5.1 compatibility** — These versions are declared in classifiers but not configured in tox and therefore not tested.
+- **Exact test execution results** — No logs, coverage reports, or execution timestamps are preserved in the repository to verify that all tests passed with 88% coverage across all 15 environments.
+
+---
+
+## Summary
+
+The package declares support for Python 3.10–3.15 and Django 4.2–6.1. The tox matrix is configured to test six Python versions (3.10–3.15) against four Django versions (4.2, 5.2, 6.0, 6.1), resulting in 15 test environments.
+
+The implementation is feature-complete for path-based versioning, route registration, lifecycle management, and partial DRF integration. Helper functions exist for header and query version extraction but are not integrated into route selection.
+
+**Test execution status cannot be verified from available repository evidence.** The tox configuration defines the intended test coverage, but actual execution results are not logged or preserved in the repository.
+
+---
+
+**Last Updated**: 2026-11-14
+**Prepared By**: Audit and verification process
