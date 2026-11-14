@@ -48,7 +48,7 @@ class TestBasePathValidation:
         "base_path",
         [
             "api/v{version}/v{version}/",
-            "api/v{version}/<other>/",
+            "api/v{version}/{other}/",
             "api/v{version:02d}/",
             "api/v{version!s}/",
             "api/v{version/",
