@@ -79,7 +79,7 @@ The latest Python focused and compatibility checkpoints completed successfully a
 - Optimized Python workflow wall time: approximately 38–42 seconds.
 - Package artifact workflow: approximately 19–22 seconds.
 
-The website checkpoint on implementation commit `f6f1a53ad3a4946a296cc8d77b11c3acd6285520` passed:
+The latest recorded website checkpoint on implementation commit `330a9553310ae4c9d44fb9787f607ac2ba0c114a` ([GitHub Actions run 43638777904](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43638777904)) passed:
 - 20 Node tests;
 - Astro check with zero errors, warnings, and hints;
 - `npm audit --audit-level=high`;
