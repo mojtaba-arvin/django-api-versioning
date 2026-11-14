@@ -10,6 +10,7 @@ Continue on `audit/comprehensive-package-review`. This is a final review of an e
 - The committed Segment Lab snapshot is generated from the repository checkout, not the historical Netlify package 0.3.5 run. Never reuse that historical output.
 - Review the existing site against the ten-section homepage contract, then focus on browser-level keyboard/mobile/accessibility checks, reduced motion, layout shift, and static-host behavior. Make only evidence-backed corrections and add focused tests.
 - Do not run the full Python compatibility matrix for CSS/content-only changes. Run it only for package/runtime changes or the final release checkpoint.
+- A version tag cannot publish to PyPI until the reusable 15-environment compatibility matrix and lint job pass; the publish workflow then builds and smoke-tests the exact tagged wheel.
 - Do not publish to PyPI or deploy to production without explicit approval.
 
 ### Framework security exception
