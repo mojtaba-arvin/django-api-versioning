@@ -143,6 +143,7 @@ document.querySelectorAll<HTMLElement>("[data-search-open]").forEach((opener) =>
   opener.addEventListener("click", (event) => { event.preventDefault(); openSearch(opener); });
 });
 document.querySelector<HTMLButtonElement>("[data-search-close]")?.addEventListener("click", () => searchDialog?.close());
+document.querySelector<HTMLFormElement>("[data-search-form]")?.addEventListener("submit", (event) => event.preventDefault());
 searchDialog?.addEventListener("click", (event) => { if (event.target === searchDialog) searchDialog.close(); });
 searchDialog?.addEventListener("close", () => lastSearchOpener?.focus());
 searchInput?.addEventListener("input", renderSearch);
