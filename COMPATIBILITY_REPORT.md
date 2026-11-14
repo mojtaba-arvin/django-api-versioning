@@ -2,13 +2,14 @@
 
 ## Report Metadata
 
-**Report Last Updated**: 2026-11-14
+**Report Last Updated**: 2026-11-15
 **Package Version**: 0.3.7 (declared in `pyproject.toml`)
 **Audited Branch**: `audit/comprehensive-package-review`
 **Audited Source Revision**: `9b09d66c931f6e99687664da7442ddf9198595cb`
-**Focused Test Run**: [GitHub Actions run 43630604568](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604568), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`
+**Full Compatibility Test Run**: [GitHub Actions run 43630604568](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604568), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`
 **Compatibility Matrix**: [GitHub Actions run 43630604572](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604572), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`; 15 test environments and 1 lint environment passed
-**Package Artifacts**: [GitHub Actions run 43630834718](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630834718), source commit `14f19b3ccce511af04621597b944c2f9e61162b2`; wheel, sdist, Twine metadata, and package-content checks passed
+**Subsequent Focused Test Run**: [GitHub Actions run 43642849997](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43642849997), source commit `1580abca5ceae639d55fdb12f94177c5239aebdb`; 211 unit tests, 252 integration tests, and 96% coverage passed
+**Latest Package Artifacts**: [GitHub Actions run 43642742970](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43642742970), source commit `46399121b551f45301d73ff7e53100f5f39d69ef`; wheel, sdist, Twine metadata, and package-content checks passed
 **Evidence Qualification**: The focused test, compatibility matrix, and package artifact runs are linked above. GitHub Actions retains the raw execution logs; they are not copied into the repository.
 **Report Purpose**: Document declared requirements, official compatibility ranges, configured test environments, recorded test results, and implementation boundaries.
 
@@ -85,7 +86,17 @@ The focused Python test workflow at source commit `9b09d66c931f6e99687664da7442d
 - **Integration tests**: 249 passed
 - **Code coverage**: 96%
 
-The full tox matrix at the same source commit completed successfully across all 15 configured Python/Django environments and the lint environment. The independent package artifact workflow also passed wheel and sdist builds, strict Twine metadata validation, and distribution-content verification.
+The full tox matrix at the same source commit completed successfully across all 15 configured Python/Django environments and the lint environment.
+
+A subsequent focused run on the active audit branch at source `1580abca5ceae639d55fdb12f94177c5239aebdb` completed successfully after three configured-ViewSet integration tests were added:
+
+- **Unit tests**: 211 passed
+- **Integration tests**: 252 passed
+- **Code coverage**: 96%
+
+This later run validates the focused Python 3.15 workflow only; it does not replace or update the source revision of the 15-environment tox result above.
+
+The latest independent package artifact workflow at source `46399121b551f45301d73ff7e53100f5f39d69ef` also passed wheel and sdist builds, strict Twine metadata validation, and distribution-content verification.
 
 The 211 and 249 values are pytest execution counts. Parametrized tests may produce multiple executed cases from one source-level test function; do not interpret these values as counts of `def test_*` declarations.
 
@@ -227,7 +238,7 @@ While helper functions exist to extract version from headers and query parameter
 |-----------|--------|----------|
 | Source code syntax | ✅ Valid | Inspected Python source files |
 | PEP 604 type hints | ✅ Requires Python 3.10+ | Present in `channels.py`, `settings.py`, `registry.py` |
-| Test execution | ✅ 211 unit + 249 integration | Focused Python test workflow at source revision `9b09d66` |
+| Test execution | ✅ 211 unit + 249 integration at the full-matrix checkpoint; 211 unit + 252 integration at the later focused checkpoint | Runs at source revisions `9b09d66` and `1580abca` respectively |
 | tox configuration | ✅ 15 test + 1 lint environments | Inspected `tox.ini` |
 | Implementation features | ✅ Verified | Inspected source code for channels, registry, decorators, lifecycle |
 | Routing integration | ✅ Path-based only | Confirmed in `registry.py` and `channels.py` usage patterns |
