@@ -376,10 +376,7 @@ class TestMigrateEndpointsRewriting:
         assert _rewrite_args(args) == args
 
     def test_suggest_ignores_modern_and_noop_declarations(self):
-        source = (
-            '@endpoint("users", version=2)\n'
-            '@endpoint("posts", forward=True)\n'
-        )
+        source = '@endpoint("users", version=2)\n' '@endpoint("posts", forward=True)\n'
         assert _suggest(source) == []
 
     def test_suggest_preserves_unrelated_arguments_and_string_contents(self):
@@ -391,7 +388,7 @@ class TestMigrateEndpointsRewriting:
             (
                 source,
                 '@endpoint("users,admin", app_name="public", '
-                'versions=ver_range(1, 2))',
+                "versions=ver_range(1, 2))",
             )
         ]
 
@@ -405,9 +402,7 @@ class TestMigrateEndpointsCommand:
         assert out.getvalue() == ""
 
     def test_dry_run_reports_changes_without_modifying_files(self, tmp_path):
-        source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\n'
-        )
+        source = '@endpoint("users", version=2, backward=True, forward=False)\n'
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
         migrations = tmp_path / "migrations"
@@ -430,9 +425,7 @@ class TestMigrateEndpointsCommand:
         assert migration_file.read_text() == source
 
     def test_default_mode_writes_changes_but_skips_migrations(self, tmp_path):
-        source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\n'
-        )
+        source = '@endpoint("users", version=2, backward=True, forward=False)\n'
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
         migrations = tmp_path / "migrations"
