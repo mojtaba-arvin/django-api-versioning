@@ -4,7 +4,7 @@
 
 The static Astro application is implemented and has passed CI checks and production builds for root hosting and a GitHub Pages project-site base path. It is not yet deployed. Browser-level accessibility/performance review and external hosting smoke tests remain open.
 
-The generated route snapshot is the source of truth for package behavior and evidence provenance. `COMPATIBILITY_REPORT.md` records the package test matrix; browser-level accessibility, performance, and external-host acceptance gates are tracked in `netlify-agent-handoff.md`.
+The generated route snapshot is the source of truth for package behavior and evidence provenance. `../../COMPATIBILITY_REPORT.md` records the package test matrix; browser-level accessibility, performance, and external-host acceptance gates are tracked in `netlify-agent-handoff.md`.
 
 ## Source-of-truth map
 
