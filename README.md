@@ -216,9 +216,6 @@ from django.urls import include, path
 
 from your_app import views  # noqa: F401
 
-
-from your_app import views  # noqa: F401
-
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 urlpatterns = [
