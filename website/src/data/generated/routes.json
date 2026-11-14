@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T21:29:45+00:00",
+  "generated_at": "2026-11-14T21:56:35+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -7809,7 +7809,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "cecea6320cb546be08c727e0f87cd510983479af",
+    "commit": "e03596283aff5d4d890e4f9cdc48febdc4cbb859",
     "evidence_files": [
       {
         "file": "pyproject.toml",
@@ -7849,7 +7849,7 @@
       },
       {
         "file": "integration_test_project/segment_lab/generate_routes.py",
-        "sha256": "3550b4794f67fbe6a5589db5736743ea6e9c9e6f4af300288f93194b1343ef45"
+        "sha256": "1f75c2e4b45b63f1cea3cce7f5d463498d6d35d75813bc78e21111142378fe31"
       },
       {
         "file": "integration_test_project/segment_lab/probe.py",
@@ -7930,6 +7930,10 @@
       {
         "file": "integration_test_project/test_integration.py",
         "sha256": "b2036a90fc9cb4f9ab22c9eabcd1a4fd6361788b2b853976b78fb00d6fcac3ff"
+      },
+      {
+        "file": "integration_test_project/test_segment_lab_generator.py",
+        "sha256": "c593ff4b3b361356aa3f91ac856f14c0b8b2a949ccd9d40cf73cad8d0ebe14c7"
       }
     ],
     "files": [
@@ -7991,7 +7995,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/cecea6320cb546be08c727e0f87cd510983479af",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/e03596283aff5d4d890e4f9cdc48febdc4cbb859",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
@@ -8094,22 +8098,10 @@
       "API_EFFECTIVE_VERSION_RESOLVER": [
         {
           "file": "django_api_versioning/settings.py",
-          "line": 43
-        },
-        {
-          "file": "django_api_versioning/settings.py",
           "line": 160
-        },
-        {
-          "file": "django_api_versioning/settings.py",
-          "line": 79
         }
       ],
       "API_VERSIONING_CHANNELS": [
-        {
-          "file": "django_api_versioning/settings.py",
-          "line": 40
-        },
         {
           "file": "django_api_versioning/settings.py",
           "line": 152
@@ -8117,10 +8109,6 @@
         {
           "file": "django_api_versioning/settings.py",
           "line": 150
-        },
-        {
-          "file": "django_api_versioning/settings.py",
-          "line": 76
         }
       ],
       "channels_module_imported_by": []
