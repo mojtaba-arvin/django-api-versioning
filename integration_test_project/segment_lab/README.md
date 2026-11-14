@@ -2,7 +2,7 @@
 
 ## Current status
 
-The recovered Netlify scenario code has been ported into this directory and adapted to run inside the repository's existing Django integration project. The harness is now code, not merely an inventory, but it is **not yet verified**: its first full run against the current package must pass before any generated output is treated as published evidence.
+The recovered Netlify scenario code has been ported into this directory and adapted to run inside the repository's existing Django integration project. The harness contains 18 executable scenarios and has passed the integration suite on the current package source. The latest focused CI checkpoint recorded 195 unit tests and 249 integration tests passing; the full Python/Django matrix is being re-run after the Python 3.10 and formatting fixes.
 
 The harness reuses:
 - `../manage.py`
@@ -15,7 +15,7 @@ It does not create a second `manage.py`, a second top-level Django project, or a
 
 ## Scenarios
 
-The catalogue contains the 17 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router. Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
+The catalogue contains the 17 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router (18 scenarios total). Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
 
 The recovered scenario definitions are test inputs, not trusted results. All outputs must be regenerated against the current checkout.
 
@@ -30,7 +30,7 @@ python integration_test_project/segment_lab/generate_routes.py --check
 
 The generator imports `django_api_versioning` directly from this repository checkout. It does not install 0.3.5, fetch a GitHub archive, or compare against PyPI. It records the full Git commit, package version, Python/Django/DRF versions, package source hashes, scenario observations, CLI output, and source references.
 
-Generation fails when package source or `pyproject.toml` is dirty, when a source symbol/line locator is stale, or when a scenario probe fails. Generated evidence belongs in `website/src/data/generated/`.
+Generation fails when package source, `pyproject.toml`, or the executable `integration_test_project/` tree is dirty, when a source symbol/line locator is stale, or when a scenario probe fails. Provenance records SHA-256 hashes for package files and for `pyproject.toml` plus every Python file in the integration project, so the evidence harness itself is traceable. Python 3.10 uses the conditional `tomli` development dependency because `tomllib` is only in the standard library from Python 3.11 onward. Generated evidence belongs in `website/src/data/generated/`.
 
 ## Historical baseline
 
