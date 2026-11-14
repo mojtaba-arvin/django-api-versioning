@@ -167,7 +167,7 @@ One Python, unit + integration. Full instructions in
 ### Full — Phase 10 and before `/release`
 
     set -o pipefail
-    PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
+    PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox run-parallel -p auto 2>&1 | tee /tmp/tox-full.log
     TOX_EXIT=${PIPESTATUS[0]}
     echo "TOX_EXIT=$TOX_EXIT"
 

@@ -9,7 +9,8 @@ Triggered by "release X.Y.Z". Do exactly this. No improvisation.
 - `docs/articles/` exists; enumerate the current article files at execution time rather than assuming a fixed count.
 
 ## Environment
-- `DAV_GITHUB_TOKEN` set in the sandbox.
+- Git's configured credential helper is authenticated for the repository;
+  verify with `git ls-remote origin HEAD` and `git push --dry-run` before release.
 - Check whether `gh` is installed with `command -v gh`; do not assume an OS or architecture.
 - Each Bash call runs in a fresh shell. Re-establish required PATH entries in every call.
 
@@ -59,11 +60,11 @@ successful release test. Re-read `tox.ini` and derive the expected
 environment count from its current envlist rather than hardcoding
 an old count.
 
-Run the complete matrix and preserve tox's real exit code:
+Run the complete matrix in parallel, using the available CPU count, and preserve tox's real exit code:
 
 ```bash
 set -o pipefail
-PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-release.log
+PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox run-parallel -p auto 2>&1 | tee /tmp/tox-release.log
 TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
@@ -329,7 +330,7 @@ creation, report the manual release URL, and continue to Step 12.
 
 ```bash
 GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
-GH_TOKEN="$DAV_GITHUB_TOKEN" "$GH_BIN" release create "v$NEW_VERSION" \
+GH_TOKEN="$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')" "$GH_BIN" release create "v$NEW_VERSION" \
   --title "v$NEW_VERSION" \
   --generate-notes
 ```
@@ -338,7 +339,7 @@ Verify:
 
 ```bash
 GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
-GH_TOKEN="$DAV_GITHUB_TOKEN" "$GH_BIN" release view "v$NEW_VERSION" \
+GH_TOKEN="$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')" "$GH_BIN" release view "v$NEW_VERSION" \
   --json tagName,isDraft,url
 ```
 

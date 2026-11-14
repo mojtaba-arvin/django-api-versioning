@@ -992,8 +992,11 @@ Run the complete configured Python/Django test matrix:
 
 ```bash
 python -m pip install tox
-tox
+tox run-parallel -p auto
 ```
+
+The parallel run uses the available CPU count; use `tox run-parallel -p 4`
+to limit concurrency on memory-constrained machines.
 
 Run pre-commit checks:
 
