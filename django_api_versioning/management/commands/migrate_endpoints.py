@@ -174,7 +174,9 @@ def _collect_rewrites(text: str) -> list[tuple[int, int, str, str]]:
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             continue
         for decorator in node.decorator_list:
-            if not isinstance(decorator, ast.Call) or not _is_endpoint_call(decorator.func):
+            if not isinstance(decorator, ast.Call) or not _is_endpoint_call(
+                decorator.func
+            ):
                 continue
 
             replacement = _rewrite_call(text, decorator)
