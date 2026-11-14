@@ -197,25 +197,24 @@ This produces 15 test environments plus one lint environment.
 
 ### Recorded test results
 
-The focused Python test workflow completed successfully at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`:
+The latest focused Python workflow completed successfully at source revision `ef664d343b53e16bd121b0d564379bdbe0e89b72`:
 
-- 211 unit tests passed.
-- 249 integration tests passed.
-- 96% package code coverage was reported by the focused run.
-
-The full tox compatibility matrix completed successfully at the same source commit across all 15 configured Python/Django test environments and the lint environment.
-
-A newer focused Python test run on the active audit branch also completed successfully at source commit `1580abca5ceae639d55fdb12f94177c5239aebdb`:
-
-- 211 unit tests passed.
-- 252 integration tests passed.
+- 246 unit tests passed.
+- 258 Django integration tests passed.
 - 96% package code coverage was reported.
 
-This is the focused Python 3.15 workflow, not a rerun of the full tox compatibility matrix. The 15-environment compatibility result above remains tied to its earlier recorded source revision.
+The full compatibility matrix then completed successfully at source/test revision `035a4054f3e0d7e3e47adfeef1889e89e0660443`:
 
-The independent package-artifact workflow completed successfully at source commit `14f19b3ccce511af04621597b944c2f9e61162b2`. It built the wheel and source distribution, validated metadata with Twine, and checked that repository-only assets were excluded from the distributions.
+- All 15 configured Python/Django environments passed.
+- Each environment passed 246 unit tests and 258 integration tests.
+- Each environment reported 96% package coverage.
+- The separate lint environment passed flake8, Black, and isort.
 
-These results are linked from the project's [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md). GitHub Actions retains the execution logs for those runs; the repository does not copy the raw logs into its source tree.
+See [the full compatibility matrix run](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43651972913) for the execution result and [the compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the tested combinations.
+
+The package-artifact workflow also passed at source revision `c238c05249ab52ffb12a0884d8043895190d5f94`: it built the wheel and source distribution, passed strict Twine checks, validated distribution contents, and smoke-tested the installed wheel. All package source files were unchanged after that artifact run.
+
+These results are tied to the cited source revisions. They are not a guarantee for Python/Django combinations absent from the tox matrix or for future dependency resolutions.
 
 ### Dependency resolution
 
