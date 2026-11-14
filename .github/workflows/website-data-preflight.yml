@@ -11,6 +11,7 @@ on:
       - "website/**"
       - "!website/package.json"
       - "docs/articles/**"
+      - ".github/workflows/website-data-preflight.yml"
   pull_request:
     types: [opened, reopened, ready_for_review]
     branches: [main]
@@ -18,6 +19,7 @@ on:
       - "website/**"
       - "!website/package.json"
       - "docs/articles/**"
+      - ".github/workflows/website-data-preflight.yml"
 
 permissions:
   contents: read
