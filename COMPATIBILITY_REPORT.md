@@ -262,7 +262,7 @@ The package declares support for Python 3.10–3.15 and Django 4.2, 5.2, 6.0, an
 
 The tox matrix configures six Python versions across four Django versions, resulting in 15 test environments plus one lint environment.
 
-The latest 2026-11-14 checkpoint at source revision `9b09d66c931f6e99687664da7442ddf9198595cb` reports:
+The full 2026-11-14 compatibility checkpoint at source revision `9b09d66c931f6e99687664da7442ddf9198595cb` reports:
 
 - 211 unit tests passed.
 - 249 integration tests passed.
@@ -270,6 +270,10 @@ The latest 2026-11-14 checkpoint at source revision `9b09d66c931f6e99687664da744
 - All 15 tox environments passed.
 - The lint environment passed.
 - The package artifact workflow passed wheel/sdist, Twine, and content checks.
+
+A subsequent focused run at source `1580abca5ceae639d55fdb12f94177c5239aebdb` passed 211 unit tests and 252 integration tests with 96% coverage. This is a focused Python 3.15 run, not a new full tox matrix result.
+
+The latest package artifact validation at source `46399121b551f45301d73ff7e53100f5f39d69ef` also passed wheel/sdist, Twine, and package-content checks.
 
 The recorded run identifies DRF 3.18.3 as the resolved version. However, DRF is not pinned to an exact version in `tox.ini`, so future executions may resolve a different release.
 
@@ -283,5 +287,5 @@ The implementation provides path-based versioned route registration, forward seg
 
 ---
 
-**Last Updated**: 2026-11-14
+**Last Updated**: 2026-11-15
 **Prepared By**: Audit and verification process
