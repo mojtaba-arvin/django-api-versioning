@@ -464,7 +464,7 @@ class TestMigrateEndpointsRewriting:
 
 
 class TestMigrateEndpointsCommand:
-    """Test dry-run and default write behavior against isolated files."""
+    """Test safe preview defaults and explicit writes against isolated files."""
 
     def test_migrate_endpoints_runs(self, tmp_path):
         out = StringIO()
@@ -503,7 +503,7 @@ class TestMigrateEndpointsCommand:
         assert view_file.read_text() == source
         assert migration_file.read_text() == source
 
-    def test_default_mode_writes_changes_but_skips_migrations(self, tmp_path):
+    def test_default_mode_previews_changes_without_modifying_files(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
             'def view(request):\n'
@@ -538,7 +538,8 @@ class TestMigrateEndpointsCommand:
         out = StringIO()
         call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
 
-        assert "versions=list(range(1, 3))" in view_file.read_text()
+        assert "versions=list(range(1, 3))" in out.getvalue()
+        assert view_file.read_text() == source
         assert migration_file.read_text() == source
         assert unrelated_file.read_text() == "def plain():\n    return None\n"
         assert modern_file.read_text() == modern_source
@@ -562,6 +563,7 @@ class TestMigrateEndpointsCommand:
         call_command(
             "migrate_endpoints",
             path=str(tmp_path),
+            write=True,
             stdout=StringIO(),
         )
 
@@ -591,6 +593,7 @@ class TestMigrateEndpointsCommand:
         call_command(
             "migrate_endpoints",
             path=str(tmp_path),
+            write=True,
             stdout=StringIO(),
         )
 
