@@ -432,7 +432,7 @@ The URLconf then supplies the outer prefix:
 
 from django.urls import include, path
 
-from . import views  # noqa: F401 — import first to execute decorators
+from . import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -482,7 +482,7 @@ This callable can be registered as a route, but it does not generate the full se
 
 For resource-oriented ViewSets, use DRF routers. For generic views and individual endpoints, `@endpoint` provides version-based registration without a separate router configuration.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows router-based ViewSet registration alongside decorator-based endpoint registration. See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py) shows router-based ViewSet registration alongside decorator-based endpoint registration. See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
 
 ## Trade-offs and scope
 
