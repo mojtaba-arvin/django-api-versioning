@@ -3,9 +3,9 @@ from typing import Callable, TypeVar
 
 from .exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
-    VersioningError,
 )
 from .registry import registry
 from .settings import api_settings as settings
@@ -62,9 +62,7 @@ def endpoint(
     if not isinstance(postfix, str):
         raise TypeError("postfix must be a string.")
     if postfix.startswith("/"):
-        raise VersioningError(
-            "postfix must be relative and must not start with '/'."
-        )
+        raise VersioningError("postfix must be relative and must not start with '/'.")
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
 
