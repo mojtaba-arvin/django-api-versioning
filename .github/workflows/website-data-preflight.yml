@@ -1,19 +1,28 @@
 name: Website build and static verification
 
 on:
+  # Run once when a PR enters review; use workflow_dispatch for later checkpoints.
+  # Main remains automatically validated after relevant website/content changes.
+  workflow_dispatch:
   push:
-    branches: [audit/comprehensive-package-review]
+    branches: [main]
     paths:
       - "website/**"
       - "!website/package.json"
       - "docs/articles/**"
-  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    branches: [main]
+    paths:
+      - "website/**"
+      - "!website/package.json"
+      - "docs/articles/**"
 
 permissions:
   contents: read
 
 concurrency:
-  group: website-build-${{ github.ref }}
+  group: website-build-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,6 +31,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v6
         with:
           node-version: "22.23.4"

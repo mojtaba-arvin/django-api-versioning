@@ -11,7 +11,7 @@ CI is a set of scoped quality gates, not a command that rebuilds every environme
 | `Python tests` | Package unit tests and the existing Django integration project | Package source, tests, integration project, Python runtime/test requirements, pytest configuration |
 | `Python package artifacts` | Wheel/sdist creation, Twine metadata validation, and forbidden-content checks | Package source plus every tracked sdist input |
 | `Compatibility matrix` | Full tox matrix: 15 Python/Django combinations plus lint | Manual `workflow_dispatch` checkpoint |
-| `Website build and static verification` | Locked npm install, dependency audit, Node tests, Astro checks, root and project-base builds, static-output smoke tests | `website/**` and `docs/articles/**` (package manifest changes are handled by the lock workflow) |
+| `Website build and static verification` | Locked npm install, dependency audit, Node tests, Astro checks, root and project-base builds, static-output smoke tests | PR review-start checkpoint and relevant pushes to `main`; manual checkpoints |
 | `Generate source-pinned website evidence` | Segment Lab generation/check, source provenance, website tests, Astro checks, and both static builds | Package source, integration project, `pyproject.toml`, Python requirements, or evidence workflow |
 | `Generate website npm lockfile and verify the site` | Lockfile generation, `npm ci`, dependency audit, Node/Astro checks, and both static builds | `website/package.json` or lock workflow |
 
@@ -27,10 +27,11 @@ Documentation-only edits under `docs/website/`, root agent instructions, and oth
 - The website audit fails on High or Critical dependency vulnerabilities.
 - Website checks and Python tests use separate workflows and runner environments.
 - Concurrency groups cancel obsolete in-progress runs for the same branch/ref.
-- Pull-request Python workflows run at review start (`opened`, `reopened`, `ready_for_review`), not for every commit pushed to a long-lived review branch. Use explicit validation checkpoints after a meaningful batch.
+- Python and website PR workflows run when review starts (`opened`, `reopened`, `ready_for_review`), not for every synchronization commit. Use explicit `workflow_dispatch` checkpoints after a meaningful batch.
 - These PR runs are review checkpoints, not a green status for every later commit SHA. Do not mark them as required merge checks unless a per-synchronization gate or final-SHA manual checkpoint is introduced.
 - Pushes to `main` remain automatic and path-filtered.
 - The full compatibility matrix is manual-only; run it at deliberate compatibility/release checkpoints rather than on every commit.
+- The website preflight does not run on every documentation correction in a long-lived review branch. Its PR checkpoint validates the reviewed snapshot; the `main` push validates merged website/article changes.
 
 Path filters are a cost boundary, not a replacement for testing. If a change crosses a boundary, update the corresponding path list in the workflow in the same commit.
 
