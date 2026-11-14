@@ -9,6 +9,8 @@ on:
       - "tests/**"
       - "pytest.ini"
       - "integration_test_project/**"
+      - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
       - "pyproject.toml"
       - "requirements.txt"
       - "requirements-ci.txt"
