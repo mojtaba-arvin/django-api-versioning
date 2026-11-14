@@ -36,7 +36,7 @@ The existing `integration_test_project/` is the home for additional executable i
 - Keep generated evidence distinct from authored presentation code.
 - Build a fully static site. The generated `website/dist/` must work on a generic static host and must not require Netlify runtime functions.
 - Support GitHub Pages project-site base paths as well as a custom domain. Do not hard-code root-relative asset paths that break under a Pages base path.
-- Netlify's future Base directory is `website`; its publish directory is `dist` relative to that base directory. Do not claim the site is deploy-ready until the Astro application, lockfile, build, and static-output checks actually exist and pass.
+- Netlify's future Base directory is `website`; its publish directory is `dist` relative to that base directory. Do not claim production deploy-readiness until the Astro application, lockfile, build, static-output checks, browser-level keyboard/accessibility checks, reduced-motion behavior, CLS review, and external-host smoke test all pass.
 - Keep Node dependencies and all website assets inside `website/`.
 
 ## Content and technical accuracy
@@ -61,7 +61,7 @@ Do not infer behaviour from article wording alone. Verify package claims against
 
 - `.github/workflows/tests.yml` runs the Python unit and integration suites on relevant pushes to `main` and `audit/comprehensive-package-review`, PR review-start checkpoints, and manual dispatch when package, test, integration-project, Python dependency, or test-workflow files change. Documentation-only and website-only changes do not run Python CI.
 - `.github/workflows/package-artifacts.yml` builds and validates wheel/sdist on relevant pushes to `main` and `audit/comprehensive-package-review`, PR review-start checkpoints, and manual dispatch when package source or packaging inputs change. It runs independently from the Python tests.
-- `.github/workflows/compatibility.yml` runs the full 15-environment Python/Django tox matrix plus lint as a manual `workflow_dispatch` checkpoint. Keep it out of routine push/PR triggers; use it before compatibility-sensitive releases or major package changes.
+- `.github/workflows/compatibility.yml` runs the full 15-environment Python/Django tox matrix plus lint as a manual `workflow_dispatch` checkpoint and reusable `workflow_call`. Keep it out of routine push/PR triggers; the tag-based PyPI workflow calls it before building or publishing a release.
 - Both workflows use native GitHub-hosted Python with `setup-python` pip caching; CI must not build the development Docker image.
 - Pull-request checks run when a PR is opened/reopened or marked ready for review, not on every synchronization commit. Use the Actions `workflow_dispatch` entry to run explicit validation checkpoints after a batch of commits. Pushes to `main` remain automatic.
 - `requirements-ci.txt` contains only dependencies needed by pytest and the integration project. Do not add formatter/type-checker/pre-commit dependencies to it unless CI actually runs those tools.
