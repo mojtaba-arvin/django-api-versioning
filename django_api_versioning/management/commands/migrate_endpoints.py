@@ -38,7 +38,7 @@ class Command(BaseCommand):
 
         for py_file in root.rglob("*.py"):
             relative_parts = py_file.relative_to(root).parts
-            if any(
+            if py_file.is_symlink() or py_file.name.startswith(".") or any(
                 part in _EXCLUDED_DIRS or part.startswith(".")
                 for part in relative_parts[:-1]
             ):
