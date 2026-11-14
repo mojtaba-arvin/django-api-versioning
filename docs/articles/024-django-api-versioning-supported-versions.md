@@ -205,6 +205,14 @@ The focused Python test workflow completed successfully at source commit `9b09d6
 
 The full tox compatibility matrix completed successfully at the same source commit across all 15 configured Python/Django test environments and the lint environment.
 
+A newer focused Python test run on the active audit branch also completed successfully at source commit `1580abca5ceae639d55fdb12f94177c5239aebdb`:
+
+- 211 unit tests passed.
+- 252 integration tests passed.
+- 96% package code coverage was reported.
+
+This is the focused Python 3.15 workflow, not a rerun of the full tox compatibility matrix. The 15-environment compatibility result above remains tied to its earlier recorded source revision.
+
 The independent package-artifact workflow completed successfully at source commit `14f19b3ccce511af04621597b944c2f9e61162b2`. It built the wheel and source distribution, validated metadata with Twine, and checked that repository-only assets were excluded from the distributions.
 
 These results are linked from the project's [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md). GitHub Actions retains the execution logs for those runs; the repository does not copy the raw logs into its source tree.
