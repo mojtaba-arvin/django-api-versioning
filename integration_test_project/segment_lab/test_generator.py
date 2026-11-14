@@ -57,6 +57,9 @@ def test_provenance_is_from_the_current_repository_checkout() -> None:
     assert "tests/test_reverse.py" in evidence_paths
     assert "pytest.ini" in evidence_paths
     assert "requirements-ci.txt" in evidence_paths
+    assert "requirements.txt" in evidence_paths
+    assert "scripts/verify_distribution_contents.py" in evidence_paths
+    assert "scripts/smoke_installed_wheel.py" in evidence_paths
 
 
 def test_all_scenario_view_modules_resolve() -> None:
