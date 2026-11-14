@@ -22,7 +22,9 @@ def digest_tree(directory: Path) -> dict[str, str]:
 
 
 def main() -> None:
+    import sys
     import tomllib
+    from types import ModuleType
 
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     expected_version = project["project"]["version"]
@@ -36,11 +38,14 @@ def main() -> None:
     import django
     from django.conf import settings
 
+    urlconf = ModuleType("installed_wheel_smoke_urlconf")
+    sys.modules[urlconf.__name__] = urlconf
+
     settings.configure(
         SECRET_KEY="installed-wheel-smoke-test",
         DEBUG=False,
         ALLOWED_HOSTS=["testserver"],
-        ROOT_URLCONF="__main__",
+        ROOT_URLCONF=urlconf.__name__,
         INSTALLED_APPS=["django_api_versioning"],
         MIDDLEWARE=[],
         API_BASE_PATH="api/v{version}/",
@@ -92,7 +97,7 @@ def main() -> None:
     def user_detail(request, pk):
         return JsonResponse({"version": 1, "pk": pk})
 
-    urlpatterns = [path("", include("django_api_versioning.urls"))]
+    urlconf.urlpatterns = [path("", include("django_api_versioning.urls"))]
 
     client = Client()
     expected_responses = {
