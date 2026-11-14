@@ -6,7 +6,7 @@ from django.urls import NoReverseMatch
 from .exceptions import AmbiguousVersionError
 from .registry import registry
 
-# Matches ``<int:pk>``, ``<slug:name>``, and ``<pk>`` (no converter).
+# Matches Django path parameters, with or without an explicit converter.
 _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
 
 
@@ -59,7 +59,25 @@ def api_reverse(
             raise NoReverseMatch(
                 f"Missing required parameter {name!r} for {view_name!r}."
             )
-        return str(kwargs[name])
+
+        converter = route_pattern.converters.get(name)
+        try:
+            value = converter.to_url(kwargs[name]) if converter else kwargs[name]
+        except (TypeError, ValueError) as exc:
+            raise NoReverseMatch(
+                f"Invalid value for parameter {name!r} in {view_name!r}: {exc}"
+            ) from exc
+        return str(value)
 
     route = _CONVERTER_RE.sub(_substitute, route)
+
+    # A converter's to_url() method does not necessarily validate its output.
+    # Match the completed route against Django's compiled RoutePattern so
+    # api_reverse() cannot return a URL that the same route would not resolve.
+    if not route_pattern.regex.fullmatch(route):
+        raise NoReverseMatch(
+            f"Invalid parameter value for {view_name!r}; "
+            f"the generated path does not match {route_pattern!r}."
+        )
+
     return "/" + route.lstrip("/")
