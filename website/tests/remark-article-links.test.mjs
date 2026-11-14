@@ -33,7 +33,11 @@ test("root-relative home and section links respect the site base path", () => {
 
 
 test("non-HTTP URI schemes and protocol-relative links are left unchanged", () => {
-  const urls = ["//cdn.example.com/image.svg", "tel:+15551234567", "ftp://example.com/file"];
+  const urls = [
+    "//cdn.example.com/image.svg",
+    "tel:+15551234567",
+    "ftp://example.com/file",
+  ];
   const links = urls.map((url) => ({
     type: "link",
     url,
