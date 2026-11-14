@@ -254,6 +254,30 @@ class TestVersionExtraction:
         # Should fall back to path and get 2
         assert version == 2
 
+    @pytest.mark.parametrize("invalid_version", [True, 2.5, "2.5", " 2 "])
+    def test_non_integer_request_versions_are_not_truncated(self, invalid_version):
+        """Booleans, floats and malformed strings must not alias an integer version."""
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/unrelated/")
+        request.version = invalid_version
+        request.resolver_match = None
+
+        assert _extract_version(request) is None
+
+    def test_non_integer_resolver_version_is_not_truncated(self):
+        """Resolver kwargs use the same strict version parsing as request.version."""
+        from unittest.mock import Mock
+
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/unrelated/")
+        request.version = None
+        request.resolver_match = Mock()
+        request.resolver_match.kwargs = {"version": 2.5}
+
+        assert _extract_version(request) is None
+
     def test_extract_version_empty_lifecycle_config(self):
         """Version extraction works even with empty lifecycle config."""
         from django_api_versioning.lifecycle import _extract_version
