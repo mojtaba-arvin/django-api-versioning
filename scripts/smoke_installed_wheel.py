@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from importlib import metadata
 from pathlib import Path
 
@@ -21,6 +22,21 @@ def digest_tree(directory: Path) -> dict[str, str]:
     }
 
 
+def evidence_hashes(root: Path) -> dict[str, str]:
+    inputs = [
+        root / "pyproject.toml",
+        root / "pytest.ini",
+        root / "requirements-ci.txt",
+        *sorted((root / "tests").rglob("*.py")),
+        *sorted((root / "integration_test_project").rglob("*.py")),
+    ]
+    return {
+        path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(set(inputs), key=lambda item: item.as_posix())
+        if path.is_file()
+    }
+
+
 def main() -> None:
     import tomllib
 
@@ -31,6 +47,37 @@ def main() -> None:
         raise SystemExit(
             f"Installed wheel version {installed_version} does not match "
             f"pyproject version {expected_version}."
+        )
+
+    routes_data = json.loads(
+        (ROOT / "website/src/data/generated/routes.json").read_text(encoding="utf-8")
+    )
+    recorded_source = routes_data["source"]
+    if recorded_source["version"] != expected_version:
+        raise SystemExit(
+            "Generated route evidence package version does not match pyproject."
+        )
+    recorded_package_hashes = {
+        item["file"].removeprefix("django_api_versioning/"): item["sha256"]
+        for item in recorded_source["files"]
+    }
+    current_package_hashes = {
+        name: digest
+        for name, digest in digest_tree(SOURCE_PACKAGE).items()
+        if name.endswith(".py")
+    }
+    if recorded_package_hashes != current_package_hashes:
+        raise SystemExit(
+            "Generated route evidence is stale: package source hashes differ."
+        )
+
+    recorded_evidence_hashes = {
+        item["file"]: item["sha256"] for item in recorded_source["evidence_files"]
+    }
+    current_evidence_hashes = evidence_hashes(ROOT)
+    if recorded_evidence_hashes != current_evidence_hashes:
+        raise SystemExit(
+            "Generated route evidence is stale: test or integration input hashes differ."
         )
 
     import django
