@@ -58,8 +58,7 @@ const manifest = {
 
 await writeFile(
   path.join(outputDirectory, "_source.json"),
-  JSON.stringify(manifest, null, 2) + "
-",
+  JSON.stringify(manifest, null, 2) + "\n",
 );
 
 console.log(

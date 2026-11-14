@@ -32,3 +32,6 @@ website/node_modules/
 website/.astro/
 website/dist/
 website/.netlify/
+
+# Generated Astro content copied from the canonical docs/articles corpus.
+website/src/content/articles/

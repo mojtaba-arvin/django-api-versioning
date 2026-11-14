@@ -3,7 +3,7 @@ Record the actual behaviour of django-api-versioning for ONE scenario.
 
 Usage (normally invoked by generate_routes.py):
 
-    LAB_SCENARIO=main python -m lab.probe /tmp/out.json
+    LAB_SCENARIO=main python -m segment_lab.probe /tmp/out.json
 
 Runs in its own interpreter because the package keeps a process-global
 registry and reads its settings once, at import time.
@@ -83,8 +83,9 @@ def sanitize(text):
     import django
 
     replacements = [
-        (str(Path(django.__file__).resolve().parent.parent), "<site-packages>"),
         (str(INTEGRATION_ROOT), "<integration_test_project>"),
+        (str(REPO_ROOT), "<repo>"),
+        (str(Path(django.__file__).resolve().parent.parent), "<site-packages>"),
         (sys.prefix, "<venv>"),
     ]
     for old, new in replacements:

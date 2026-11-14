@@ -102,6 +102,7 @@ export interface RoutesData {
     commit: string;
     install_url: string;
     install_method: string;
+    source_mode: string;
     archive_sha256: string | null;
     files: { file: string; sha256: string }[];
   };

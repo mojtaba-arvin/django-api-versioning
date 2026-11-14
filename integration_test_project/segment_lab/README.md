@@ -1,49 +1,37 @@
 # Segment Lab evidence harness
 
-## Status
+## Current status
 
-This directory is reserved for a reproducible evidence harness that extends the existing integration test project. The harness has not yet been ported or verified against the current package source. Do not treat it as executable or as a source of published behavioural claims.
+The recovered Netlify scenario code has been ported into this directory and adapted to run inside the repository's existing Django integration project. The harness is now code, not merely an inventory, but it is **not yet verified**: its first full run against the current package must pass before any generated output is treated as published evidence.
 
-The existing integration project remains authoritative and must be preserved:
+The harness reuses:
 - `../manage.py`
-- `../project/`
-- `../api/`
-- `../test_integration.py`
+- `../project/settings.py` as its base settings
+- `../project/urls.py` for the `existing_integration_project` scenario
+- `../api/views.py` for that same scenario
+- the package source at the repository root
 
-Do not replace or duplicate the existing integration suite.
+It does not create a second `manage.py`, a second top-level Django project, or a second copy of the package.
 
-## Recovered scenario inventory
+## Scenarios
 
-The interrupted Netlify Agent session produced a separate Django mini-project with these useful scenario ideas:
+The catalogue contains the 17 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router. Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
 
-- Main v1/v3 endpoint declarations and forward inheritance.
-- Declarations loaded in reverse import order.
-- Explicit `versions=[...]` and `ver_range(...)`.
-- Declarations below `API_MIN_VERSION`.
-- No import of a module containing endpoint declarations.
-- Literal route identity (trailing slash and converter-name differences).
-- Duplicate declarations at the same route/version.
-- Invalid declarations and the point at which validation occurs.
-- Lifecycle middleware headers and sunset responses.
-- DRF default request-version behaviour.
-- DRF `URLPathVersioning`, including allowed/default versions.
-- Bare DRF ViewSet class decoration.
-- A configured ViewSet callable and a DRF router mounted beside package routes.
+The recovered scenario definitions are test inputs, not trusted results. All outputs must be regenerated against the current checkout.
 
-These are scenario proposals from the captured implementation, not verified results for the current package version. Each scenario must be inspected, adapted if necessary, executed, and recorded against one immutable source commit before the website may present its output.
+## Generator and provenance
 
-## Provenance requirements
+Run from the repository root:
 
-A future generator should record:
-- full repository commit SHA;
-- package version from root `pyproject.toml`;
-- Python, Django, and DRF versions;
-- scenario identifier and exact command;
-- registry/matrix/HTTP/CLI observations actually produced;
-- source-file hashes and source line references where applicable.
+```bash
+python integration_test_project/segment_lab/generate_routes.py
+python integration_test_project/segment_lab/generate_routes.py --check
+```
 
-The generator must fail on an unknown or stale source locator rather than silently emitting misleading line references. Generated output should be stored under `website/src/data/generated/`, not mixed into the existing integration test suite.
+The generator imports `django_api_versioning` directly from this repository checkout. It does not install 0.3.5, fetch a GitHub archive, or compare against PyPI. It records the full Git commit, package version, Python/Django/DRF versions, package source hashes, scenario observations, CLI output, and source references.
 
-## Historical baseline warning
+Generation fails when package source or `pyproject.toml` is dirty, when a source symbol/line locator is stale, or when a scenario probe fails. Generated evidence belongs in `website/src/data/generated/`.
 
-The captured Agent run installed package commit `e5a5466ac0fab1eb1ef41d8d570ccac1301f2cd9` (version 0.3.5). It is not the current branch baseline. In particular, its `check_versions` output must not be reused as current evidence.
+## Historical baseline
+
+The captured Agent run used package commit `e5a5466ac0fab1eb1ef41d8d570ccac1301f2cd9` (version 0.3.5). Its generated output is historical only and must never be reused as evidence for the current package.

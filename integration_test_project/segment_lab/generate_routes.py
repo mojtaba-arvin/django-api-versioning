@@ -3,17 +3,17 @@
 Bootstrap the Segment Lab Django project, record what django-api-versioning
 actually does, and write:
 
-  ../src/data/routes.json          every scenario, consumed by the website
-  check_versions_output.txt        stdout of `python manage.py check_versions`
+  ../../website/src/data/generated/routes.json          every recorded scenario
+  ../../website/src/data/generated/check_versions_output.txt  main-scenario CLI output
 
 Usage (from anywhere):
 
-  python tools/generate_routes.py            # regenerate
-  python tools/generate_routes.py --check    # fail if routes.json is stale
+  python integration_test_project/segment_lab/generate_routes.py
+  python integration_test_project/segment_lab/generate_routes.py --check
 
-Nothing in the output is typed by hand: every value comes from the installed
-package (registry, management command, test client, api_reverse) or from
-parsing the installed package's source files.
+Nothing in the output is typed by hand: every behavioural value comes from
+the repository package source (registry, management command, test client,
+api_reverse), and source references are parsed from that same checkout.
 """
 from __future__ import annotations
 
@@ -27,8 +27,8 @@ import re
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
 import tomllib
+from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
 
@@ -100,7 +100,7 @@ def provenance() -> dict:
     }
 
 # --------------------------------------------------------------------------
-# Source references: line numbers parsed from the installed package
+# Source references: line numbers parsed from the repository checkout
 # --------------------------------------------------------------------------
 SYMBOLS = {
     "endpoint": ("decorators.py", "endpoint"),
@@ -240,7 +240,7 @@ def _env(scenario: str) -> dict:
     return env
 
 
-def _sanitize(text: str, package_dir: Path) -> str:
+def _sanitize(text: str) -> str:
     for old, new in (
         (str(INTEGRATION_ROOT), "<integration_test_project>"),
         (str(REPO_ROOT), "<repo>"),
@@ -250,18 +250,18 @@ def _sanitize(text: str, package_dir: Path) -> str:
     return text
 
 
-def run_check_versions(scenario: str, extra: list[str], package_dir: Path) -> dict:
+def run_check_versions(scenario: str, extra: list[str]) -> dict:
     cmd = [sys.executable, "manage.py", "check_versions", *extra]
     proc = subprocess.run(
         cmd, cwd=INTEGRATION_ROOT, env=_env(scenario), capture_output=True, text=True, timeout=120
     )
-    stderr = _sanitize(proc.stderr, package_dir)
+    stderr = _sanitize(proc.stderr)
     stderr_lines = stderr.strip().splitlines()
     return {
         "command": " ".join(["python", "manage.py", "check_versions", *extra]),
         "env": {"LAB_SCENARIO": scenario},
         "exit_code": proc.returncode,
-        "stdout": _sanitize(proc.stdout, package_dir),
+        "stdout": _sanitize(proc.stdout),
         # Tracebacks are long; keep the exception line (last line) and size.
         "stderr": stderr if len(stderr_lines) <= 20 else None,
         "stderr_last_line": stderr_lines[-1] if stderr_lines else "",
@@ -340,9 +340,9 @@ def build() -> tuple[dict, str]:
     for name, spec in SCENARIOS.items():
         print(f"  recording {name} ...", file=sys.stderr)
         probe = run_probe(name)
-        cv = [run_check_versions(name, [], package_dir)]
+        cv = [run_check_versions(name, [])]
         for variant in spec.get("check_versions_variants", []):
-            cv.append(run_check_versions(name, variant, package_dir))
+            cv.append(run_check_versions(name, variant))
         if name == "main":
             main_stdout = cv[0]["stdout"]
         data["scenarios"][name] = {
