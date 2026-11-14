@@ -15,6 +15,8 @@ keywords:
 
 # How API v2 can inherit endpoints from v1 and override changed views
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 When releasing API v2, most endpoints often remain unchanged while a smaller set needs new behavior. Two separate mechanisms help manage that transition:
 
 - **Python class inheritance** reuses view methods and shared logic between view classes. This is standard Python and Django REST Framework behavior.
@@ -30,7 +32,7 @@ The examples also assume that `ArticleSerializerV1` and `ArticleSerializerV2` ar
 
 ## Routing inheritance with django-api-versioning
 
-The package's `@endpoint` decorator registers a view for a version range. A declaration using `version=N` applies from version N through `API_MAX_VERSION`, inclusive.
+The package's `@endpoint` decorator registers a view for a version range. A declaration using `version=N` applies from version N through `API_MAX_VERSION`, inclusive. It selects the callable by matching generated URL patterns; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present.
 
 For example, with `API_MIN_VERSION = 1` and `API_MAX_VERSION = 2`, a view registered at version 1 is available in both v1 and v2. If another view is registered for the same path at version 2, that registration replaces the v2 route without changing the v1 route.
 
@@ -134,13 +136,13 @@ There is no v2 declaration for `ArticleListView`. Its v1 registration remains ac
 
 ### Register the generated URL patterns
 
-Import the modules containing the decorated views before importing the package's URL patterns. The imports execute the decorators and populate the route registry.
+Import the modules containing decorated views during URLconf initialization so their decorators register routes before Django first resolves requests.
 
 ```python
 # project/urls.py
 from django.urls import include, path
 
-from api import views  # noqa: F401 — import first to register endpoints
+from api import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -148,6 +150,8 @@ urlpatterns = [
     path("", include(api_urlpatterns)),
 ]
 ```
+
+The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view module does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
 With the default `API_BASE_PATH = "api/v{version}/"`, the registrations produce:
 
@@ -178,7 +182,7 @@ Two different forms of inheritance are involved:
 
 **Scope: routing only.** The package selects which view handles each versioned URL. It does not determine whether a response change is backward compatible, merge serializers, or guarantee that an unchanged implementation still satisfies the v2 API contract. Test each supported version's response behavior and contract separately.
 
-For the package's exact registration, collision, and ViewSet behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the package's exact registration, collision, and ViewSet behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
 
 ## DRF ViewSet alternative: Python inheritance with per-version routers
 
@@ -300,11 +304,14 @@ If you want to keep a ViewSet, you have two options:
 2. **Register a configured `as_view()` callable** for an individual route:
 
    ```python
-   @endpoint("articles/", version=1)
-   ArticleViewSetV1.as_view({
-       "get": "list",
-       "post": "create",
-   })
+   from django_api_versioning import endpoint
+
+   endpoint("articles/", version=1)(
+       ArticleViewSetV1.as_view({
+           "get": "list",
+           "post": "create",
+       })
+   )
    ```
 
    This registers that configured callable for the specified route. It does not automatically register the ViewSet's detail routes or custom `@action` handlers.
@@ -339,8 +346,6 @@ The important distinction is that route reuse does not prove API contract compat
 
 ## Next steps
 
-If your API has several versions and a growing set of unchanged endpoints, compare the registration model with your current routing structure. The package's [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py) contains the exact signature and version-range registration logic.
-
-Disclosure: I maintain `django-api-versioning`, the package discussed in this article.
+If your API has several versions and a growing set of unchanged endpoints, compare the registration model with your current routing structure. The package's [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/decorators.py) contains the exact signature and version-range registration logic.
 
 To evaluate the package against your own versioning requirements, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
