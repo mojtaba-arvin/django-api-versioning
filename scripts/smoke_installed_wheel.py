@@ -13,9 +13,9 @@ SOURCE_PACKAGE = ROOT / "django_api_versioning"
 
 def digest_tree(directory: Path) -> dict[str, str]:
     return {
-        path.relative_to(directory).as_posix(): hashlib.sha256(
-            path.read_bytes()
-        ).hexdigest()
+        path.relative_to(directory)
+        .as_posix(): hashlib.sha256(path.read_bytes())
+        .hexdigest()
         for path in sorted(directory.rglob("*"))
         if path.is_file() and (path.suffix == ".py" or path.name == "py.typed")
     }
@@ -54,11 +54,11 @@ def main() -> None:
     )
     django.setup()
 
-    import django_api_versioning
     from django.http import JsonResponse
     from django.test import Client
     from django.urls import NoReverseMatch, include, path
 
+    import django_api_versioning
     from django_api_versioning import api_reverse, endpoint
     from django_api_versioning.exceptions import VersionTypeError
 
