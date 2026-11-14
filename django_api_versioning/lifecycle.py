@@ -137,9 +137,22 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
     return None
 
 
+def _parse_sunset_datetime(date_str: str) -> datetime:
+    """Parse a sunset timestamp and normalize it to UTC.
+
+    Naive ISO timestamps retain the package's historical UTC interpretation.
+    A timestamp with an explicit offset represents an absolute instant and
+    must be converted to UTC rather than having its offset overwritten.
+    """
+    parsed = datetime.fromisoformat(date_str)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _is_past(date_str: str) -> bool:
     try:
-        date = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+        date = _parse_sunset_datetime(date_str)
     except ValueError:
         logger.warning("Invalid sunset date %r; ignoring.", date_str)
         return False
@@ -148,7 +161,7 @@ def _is_past(date_str: str) -> bool:
 
 def _to_http_date(date_str: str) -> str:
     try:
-        date = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+        date = _parse_sunset_datetime(date_str)
     except ValueError:
         return date_str
     return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
