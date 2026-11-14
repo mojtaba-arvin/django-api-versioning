@@ -14,6 +14,7 @@ on:
       - "requirements-ci.txt"
       - "pyproject.toml"
       - ".github/workflows/tests.yml"
+      - "!**/*.md"
   pull_request:
     types: [opened, reopened, ready_for_review]
     branches: [main]
