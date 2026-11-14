@@ -6,10 +6,10 @@ author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
 keywords:
-  - Django REST Framework
-  - API Versioning
-  - Django URL Routing
-  - Endpoint Registration
+  - "Django REST Framework"
+  - "API Versioning"
+  - "Django URL Routing"
+  - "Endpoint Registration"
 ---
 
 # How to support v1 and v2 endpoints in a Django REST API
