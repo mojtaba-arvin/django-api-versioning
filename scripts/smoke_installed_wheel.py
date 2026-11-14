@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-import tomllib
 from importlib import metadata
 from pathlib import Path
 
@@ -23,6 +22,8 @@ def digest_tree(directory: Path) -> dict[str, str]:
 
 
 def main() -> None:
+    import tomllib
+
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     expected_version = project["project"]["version"]
     installed_version = metadata.version("django-api-versioning")
