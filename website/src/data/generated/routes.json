@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T22:16:49+00:00",
+  "generated_at": "2026-11-14T22:19:57+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -7809,12 +7809,8 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "90b441ccb069d4d99289d071881e4aaa24b89e0f",
+    "commit": "00062d84c6143e7a57d55448603abe909a23251e",
     "evidence_files": [
-      {
-        "file": "pyproject.toml",
-        "sha256": "3e7269ddbe983a45225505dcc0f636846e45742aa77c478b8f0817bc85b3b24d"
-      },
       {
         "file": "integration_test_project/api/__init__.py",
         "sha256": "587e30a5076286a435acc32b14a6b982a5dbffef7e022fb01f5a3acc25762319"
@@ -7849,7 +7845,7 @@
       },
       {
         "file": "integration_test_project/segment_lab/generate_routes.py",
-        "sha256": "52ed98a6c42c1a0fb323bb0b43495ba4a153cd7e717f429693c0ed484bc629a9"
+        "sha256": "5ebfcac627f236ae675d75a87d2f6fd24574a3aaa57f1f0429cdcfc918d00692"
       },
       {
         "file": "integration_test_project/segment_lab/probe.py",
@@ -7921,7 +7917,7 @@
       },
       {
         "file": "integration_test_project/segment_lab/test_generator.py",
-        "sha256": "7e8253303740f59168ab92ad6574784ff34beca2a2c21d01f4067b22c6184678"
+        "sha256": "e6e2433788813b0e45c5c969a3cebb671daf8abb100bcf347c4faad81f602b88"
       },
       {
         "file": "integration_test_project/segment_lab/urls.py",
@@ -7934,6 +7930,82 @@
       {
         "file": "integration_test_project/test_segment_lab_generator.py",
         "sha256": "588a5d4182a37ea006edf2a06870168a063aa97a69389225b74fea602105e79b"
+      },
+      {
+        "file": "pyproject.toml",
+        "sha256": "3e7269ddbe983a45225505dcc0f636846e45742aa77c478b8f0817bc85b3b24d"
+      },
+      {
+        "file": "pytest.ini",
+        "sha256": "a1c50df33d20efe5fa506cf4e1f4221a5d4b30915439ddc2cd178a529e1209ac"
+      },
+      {
+        "file": "requirements-ci.txt",
+        "sha256": "ebd1bf430a0a4bcf4aa2a1f6ee6557fd6cf957456f649977de5ed552e1bbd8a9"
+      },
+      {
+        "file": "tests/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "file": "tests/conftest.py",
+        "sha256": "3bf5710def2adbef442d3726592abe969fcdb3785edf74e2b6e80cfdb097af51"
+      },
+      {
+        "file": "tests/settings.py",
+        "sha256": "f0d56df5ad6fe919c867e8c46218a73424d2c578615812fa789358008756aadc"
+      },
+      {
+        "file": "tests/test_channels.py",
+        "sha256": "1e54e8fa0219018fb0bfd848bfa5c5265bd2c4bd9d5d14a532a56ce66d7534ff"
+      },
+      {
+        "file": "tests/test_channels_extra.py",
+        "sha256": "b00ab868c35e831c63ba96a50b9a33776ae2a30c14336bd0e890838035853ad1"
+      },
+      {
+        "file": "tests/test_decorators.py",
+        "sha256": "468536afe19d910e6e9bb32066b621ab088fa277321039ebfc825116b56112b3"
+      },
+      {
+        "file": "tests/test_distribution_contents.py",
+        "sha256": "842e5288dfc1b95a45e7501ddf6d3da64f9b70d936b426e77bb59a736384ac0c"
+      },
+      {
+        "file": "tests/test_exceptions.py",
+        "sha256": "6156e13a815cc5461774af0d56b7739fd7bd4bdabb465046b881905f09022631"
+      },
+      {
+        "file": "tests/test_lifecycle.py",
+        "sha256": "f11aa5e8c2b9dc86995b1f2c82faec01a881a392f6e937289d7d9e388511a528"
+      },
+      {
+        "file": "tests/test_management_commands.py",
+        "sha256": "2b95783ebfd4add214dc91eab894487fac85d90fc1de3ded3ac177874f5665e3"
+      },
+      {
+        "file": "tests/test_registry.py",
+        "sha256": "61b9635ec18e46096b6a5d5b9b31172d04938a14fc64a182b1072a37aa324394"
+      },
+      {
+        "file": "tests/test_reverse.py",
+        "sha256": "619e9ebd16095a99132f263ba3222687ab1fdaa35add066987a6a89e8b1b029e"
+      },
+      {
+        "file": "tests/test_segment_model.py",
+        "sha256": "b468277d66ccda51431ea5e6dac9ab51c990aeebc019edc76f682a0e71daa470"
+      },
+      {
+        "file": "tests/test_settings.py",
+        "sha256": "f2d06849c55d1534ed9af701943000c733e29dceeaa952b360bdae2c076d6424"
+      },
+      {
+        "file": "tests/test_testing_utils.py",
+        "sha256": "327217a866eb9909f27fb6afa494bf7590af48f619d9db0b112d0e71afe67e54"
+      },
+      {
+        "file": "tests/test_urls.py",
+        "sha256": "00f67ea85c742c64fba04f42bd149aba9fffcdd9bf66fee419c12272943c8340"
       }
     ],
     "files": [
@@ -7971,7 +8043,7 @@
       },
       {
         "file": "django_api_versioning/management/commands/migrate_endpoints.py",
-        "sha256": "551485a84a10b75855035cefe7e5ac189acae12ce4725738627ee2b838def23d"
+        "sha256": "36a8b438c4b69c3e9d7da3a301b8d691cbb062031cad6cf42dcebc495b7d6a7a"
       },
       {
         "file": "django_api_versioning/registry.py",
@@ -7995,7 +8067,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/90b441ccb069d4d99289d071881e4aaa24b89e0f",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/00062d84c6143e7a57d55448603abe909a23251e",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
