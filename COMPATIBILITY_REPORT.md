@@ -3,12 +3,13 @@
 ## Report Metadata
 
 **Report Last Updated**: 2026-11-14
-**Package Version**: 0.3.6
+**Package Version**: 0.3.7 (declared in `pyproject.toml`)
 **Audited Branch**: `audit/comprehensive-package-review`
-**Audited Source Revision**: `1354bd0063e5e8e3a2afc8bb46bc0491e55c8362`
-**Recorded Test Run**: 2026-11-14, source commit `06f2867`
-**Recorded Test Result**: tox exit code 0; 15 test environments and 1 lint environment passed
-**Evidence Qualification**: The test results are recorded in the project compatibility report. Raw per-environment execution logs are not retained in the repository.
+**Audited Source Revision**: `9b09d66c931f6e99687664da7442ddf9198595cb`
+**Focused Test Run**: [GitHub Actions run 43630604568](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604568), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`
+**Compatibility Matrix**: [GitHub Actions run 43630604572](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604572), source commit `9b09d66c931f6e99687664da7442ddf9198595cb`; 15 test environments and 1 lint environment passed
+**Package Artifacts**: [GitHub Actions run 43630604567](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43630604567); wheel, sdist, Twine metadata, and package-content checks passed
+**Evidence Qualification**: The focused test, compatibility matrix, and package artifact runs are linked above. GitHub Actions retains the raw execution logs; they are not copied into the repository.
 **Report Purpose**: Document declared requirements, official compatibility ranges, configured test environments, recorded test results, and implementation boundaries.
 
 ---
@@ -78,26 +79,22 @@ The following test environments are defined in `tox.ini` and represent what has 
 
 ## Test Counts and Execution Evidence
 
-Based on inspection of test source code:
+The focused Python test workflow at source commit `9b09d66c931f6e99687664da7442ddf9198595cb` completed successfully:
 
-- **Unit tests**: 176 test functions across 12 test files in `tests/`
-- **Integration tests**: 245 test functions in `integration_test_project/test_integration.py`
+- **Unit tests**: 211 passed
+- **Integration tests**: 249 passed
+- **Code coverage**: 96%
 
-These numbers represent test functions defined in the source code. They are not execution results.
+The full tox matrix at the same source commit completed successfully across all 15 configured Python/Django environments and the lint environment. The independent package artifact workflow also passed wheel and sdist builds, strict Twine metadata validation, and distribution-content verification.
 
-The recorded 2026-11-14 tox run reports the following results for each test environment:
+The 211 and 249 values are pytest execution counts. Parametrized tests may produce multiple executed cases from one source-level test function; do not interpret these values as counts of `def test_*` declarations.
 
-- **Unit tests**: 175 passed
-- **Integration tests**: 245 passed
-- **Code coverage**: 88%
+Historical results are retained separately for context:
 
-The source-level unit test function count and the reported unit test execution count differ by one. The repository does not preserve the detailed pytest collection, skip, or deselection output needed to reconcile this difference.
+- The earlier 0.3.6 compatibility record reported 175 unit tests, 245 integration tests, and 88% coverage.
+- The 0.3.6 changelog separately recorded an earlier release verification of 160 unit tests and 236 integration tests.
 
-The v0.3.6 CHANGELOG separately reports 160 unit tests and 236 integration tests during release verification. Those figures describe an earlier release verification record and must not be combined with the later tox matrix results.
-
-The recorded tox run completed with exit code 0 across 15 test environments and one lint environment. Raw per-environment execution logs are not retained in the repository, so the historical results cannot be independently reproduced from committed logs alone.
-
----
+Those historical figures describe different source snapshots and must not be combined with the 0.3.7 checkpoint above.
 
 ## Implementation Features
 
@@ -229,12 +226,12 @@ While helper functions exist to extract version from headers and query parameter
 |-----------|--------|----------|
 | Source code syntax | ✅ Valid | Inspected Python source files |
 | PEP 604 type hints | ✅ Requires Python 3.10+ | Present in `channels.py`, `settings.py`, `registry.py` |
-| Test count | ✅ 176 unit + 245 integration | Counted `def test_` functions in source |
+| Test execution | ✅ 211 unit + 249 integration | Focused Python test workflow at source revision `9b09d66` |
 | tox configuration | ✅ 15 test + 1 lint environments | Inspected `tox.ini` |
 | Implementation features | ✅ Verified | Inspected source code for channels, registry, decorators, lifecycle |
 | Routing integration | ✅ Path-based only | Confirmed in `registry.py` and `channels.py` usage patterns |
 | DRF integration | ⚠️ Partial (no native versioning) | Noted in README and reflected in code inspection |
-| Test execution | ⚠️ Historically reported | The 2026-11-14 tox report records 15 passing test environments and 1 passing lint environment; raw per-environment logs are not retained |
+| Test execution | ✅ Verified | Focused Python tests, 15 tox environments, and lint passed at source revision `9b09d66`; GitHub Actions logs are linked in report metadata |
 
 ---
 
@@ -254,13 +251,14 @@ The package declares support for Python 3.10–3.15 and Django 4.2, 5.2, 6.0, an
 
 The tox matrix configures six Python versions across four Django versions, resulting in 15 test environments plus one lint environment.
 
-The recorded 2026-11-14 tox run reports:
+The latest 2026-11-14 checkpoint at source revision `9b09d66c931f6e99687664da7442ddf9198595cb` reports:
 
-- All 15 test environments passed.
+- 211 unit tests passed.
+- 249 integration tests passed.
+- 96% code coverage in the focused Python run.
+- All 15 tox environments passed.
 - The lint environment passed.
-- 175 unit tests and 245 integration tests passed in each test environment.
-- 88% code coverage was reported.
-- The tox process exited with code 0.
+- The package artifact workflow passed wheel/sdist, Twine, and content checks.
 
 The recorded run identifies DRF 3.18.3 as the resolved version. However, DRF is not pinned to an exact version in `tox.ini`, so future executions may resolve a different release.
 

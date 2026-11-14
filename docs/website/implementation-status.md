@@ -2,7 +2,7 @@
 
 > **Status date:** 2026-11-14  
 > **Audited branch:** `audit/comprehensive-package-review`  
-> **Audited source commit:** `937dd3ce67a0a30f2c680966cff54f9a640900e4`  
+> **Audited source commit:** `9b09d66c931f6e99687664da7442ddf9198595cb`  
 > **Deployment status:** Not deployable; no successful Astro production build or static-host smoke test has been recorded.
 
 This is a working engineering status document, not a claim that any unfinished gate has passed. Update it at each completed milestone using the exact commit and commands that were verified.
@@ -11,7 +11,7 @@ This is a working engineering status document, not a claim that any unfinished g
 
 | Area | Current state | Delivery assessment |
 | --- | --- | --- |
-| Python package | Version 0.3.7; package source and tests are present | 195 unit tests and 249 integration tests passed; all 15 tox environments and lint passed at the audited checkpoint |
+| Python package | Version 0.3.7; package source and tests are present | 211 unit tests, 249 integration tests, and 96% package coverage; all 15 tox environments and lint passed at the audited checkpoint |
 | Package distribution | Package allowlist, sdist pruning, and artifact-content verification are present | Re-run wheel/sdist build and inspect actual artifacts before release |
 | Django integration project | Existing project is retained and extended | Do not create a parallel integration project |
 | Segment Lab | 18 executable scenario definitions and a generator/probe are present | Provenance and scenario tests passed across the full compatibility matrix; generated website evidence is not yet committed |
@@ -36,7 +36,7 @@ These are blockers, not cosmetic cleanup. Do not configure a production deployme
 
 ## 2. Segment Lab evidence integrity
 
-The current lab contains 18 scenarios, including the existing integration project and DRF router, import-order behavior, explicit versions, minimum-version boundaries, route identity, DRF request-version behavior, ViewSet rejection, lifecycle middleware, and invalid declarations. The latest full matrix passed all 15 Python/Django environments plus lint at commit `937dd3ce67a0a30f2c680966cff54f9a640900e4`.
+The current lab contains 18 scenarios, including the existing integration project and DRF router, import-order behavior, explicit versions, minimum-version boundaries, route identity, DRF request-version behavior, ViewSet rejection, lifecycle middleware, and invalid declarations. The latest full matrix passed all 15 Python/Django environments plus lint at commit `9b09d66c931f6e99687664da7442ddf9198595cb`.
 
 The generator runs each scenario in a fresh interpreter because the package registry and settings are process-global/import-time state. It reads the package version from `pyproject.toml`, records the checked-out commit, and derives source references from the checked-out package.
 

@@ -54,13 +54,13 @@ The root `Dockerfile` and `entrypoint.sh` remain available for the complete loca
 
 The latest focused and compatibility checkpoints completed successfully:
 
-- Unit tests: 195 passed in 0.79 seconds (89% package coverage).
-- Integration tests: 249 passed in 17.11 seconds.
-- Python test workflow wall time: 37 seconds, including runner setup and dependency installation.
-- Package artifact workflow: 17 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
+- Unit tests: 211 passed in 0.67 seconds (96% package coverage).
+- Integration tests: 249 passed in 13.31 seconds.
+- Python test workflow wall time: 38 seconds, including runner setup and dependency installation.
+- Package artifact workflow: 18 seconds, including dependency installation, wheel/sdist build, Twine validation, and package-content verification.
 - Full compatibility matrix: all 15 Python/Django environments and the lint environment passed in 44 seconds.
 
-The focused test run was recorded at `f783d93d758b4159e594ad9771ea191c31392d34`; the full matrix passed at `937dd3ce67a0a30f2c680966cff54f9a640900e4`. These are observed runs, not guaranteed future durations. The previous Docker-based workflow took approximately 143 seconds for one combined run.
+The focused test run, package artifact run, and full matrix were all recorded at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`. These are observed runs, not guaranteed future durations. The previous Docker-based workflow took approximately 143 seconds for one combined run.
 
 ## Website workflow acceptance criteria
 

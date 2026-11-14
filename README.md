@@ -167,7 +167,7 @@ API_MIN_VERSION = 1
 API_MAX_VERSION = 3
 ```
 
-`API_BASE_PATH` must contain the `{version}` placeholder.
+`API_BASE_PATH` must contain exactly one plain `{version}` format field. Additional format fields, conversions, and format specifications are rejected.
 
 The default values for `API_MIN_VERSION` and `API_MAX_VERSION` are both `1`. Set `API_MAX_VERSION` to the highest route version your project intends to register.
 
@@ -736,7 +736,7 @@ This allows the middleware to identify versions from the package's static versio
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `API_BASE_PATH` | `"api/v{version}/"` | Base path template for versioned routes. Must contain `{version}`. |
+| `API_BASE_PATH` | `"api/v{version}/"` | Base path template for versioned routes. Must contain exactly one plain `{version}` format field and no other format fields. |
 | `API_MIN_VERSION` | `1` | Lowest valid route version. |
 | `API_MAX_VERSION` | `1` | Highest valid route version. |
 | `API_VERSION_LIFECYCLE` | `{}` | Per-version lifecycle metadata. |
@@ -937,7 +937,7 @@ python manage.py migrate_endpoints --dry-run
 python manage.py migrate_endpoints
 ```
 
-The command scans Python files for `@endpoint` declarations containing legacy `forward` or `backward` arguments and suggests or applies textual replacements.
+The command scans Python files for `@endpoint` declarations containing legacy `forward` or `backward` arguments and suggests or applies textual replacements. It rewrites only integer `version` values and literal boolean flags; declarations using dynamic flag expressions are left unchanged for manual migration.
 
 **Review the output before accepting it.** The command uses source-text matching and rewriting; it is not an AST-based semantic migration tool. It cannot guarantee that every rewritten declaration preserves the application's intended routing behavior.
 

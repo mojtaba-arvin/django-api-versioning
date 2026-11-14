@@ -2,7 +2,7 @@
 # django-api-versioning: canonical routing contract
 
 > **Applies to:** django-api-versioning 0.3.7
-> **Verified against:** source revision `927d1699877565ee4f76084e0cddf2505d1ae43c` on 2026-11-14. The package implementation is unchanged through the 0.3.7 source baseline `f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855`.
+> **Verified against:** source revision `9b09d66c931f6e99687664da7442ddf9198595cb` on 2026-11-14. This revision passed the focused Python test workflow, the 15-environment tox compatibility matrix, and the lint environment.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
@@ -49,7 +49,7 @@ Import the generated URL patterns from:
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 ```
 
-The decorator signature in 0.3.5 is:
+The decorator signature in 0.3.7 is:
 
 ```python
 endpoint(
@@ -108,7 +108,7 @@ With the package URL patterns included at the project root, a request for user I
 
 ### API_BASE_PATH
 
-`API_BASE_PATH` must contain the literal `{version}` placeholder.
+`API_BASE_PATH` must contain exactly one plain `{version}` field. Other format fields, conversions, and format specifications are rejected during settings validation.
 
 The default is:
 
@@ -547,13 +547,13 @@ Your application remains responsible for API contract design, serializer selecti
 
 The contract above is based on the following implementation and project files:
 
-- [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/django_api_versioning/decorators.py)
-- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/django_api_versioning/registry.py)
-- [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/django_api_versioning/reverse.py)
-- [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/django_api_versioning/urls.py)
-- [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/django_api_versioning/settings.py)
-- [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/integration_test_project/project/urls.py)
-- [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/f6ad3c6afbc197f0f8df8f37cb6df23b75e4e855/README.md)
+- [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/decorators.py)
+- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/registry.py)
+- [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/reverse.py)
+- [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/urls.py)
+- [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/settings.py)
+- [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py)
+- [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/README.md)
 - [DRF ViewSets documentation](https://www.django-rest-framework.org/api-guide/viewsets/)
 - [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/)
 - [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/)
