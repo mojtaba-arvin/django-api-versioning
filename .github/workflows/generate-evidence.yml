@@ -68,6 +68,7 @@ jobs:
             git fetch origin "${GITHUB_REF_NAME}"
             remote_sha="$(git rev-parse FETCH_HEAD)"
             current_sha="$(git rev-parse HEAD)"
+            export SOURCE_COMMIT="$current_sha"
 
             if [ "$remote_sha" != "$current_sha" ]; then
               git reset --hard "$remote_sha"
