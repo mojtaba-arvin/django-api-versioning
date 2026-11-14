@@ -136,7 +136,9 @@ Every session that will run Full must first verify:
     uv --version
 
     uv python install 3.10 3.11 3.12 3.13 3.14 3.15
-    uv python list | grep -c 'cpython-'   # must print 6
+    for v in 3.10 3.11 3.12 3.13 3.14 3.15; do
+      uv python list | grep -q "cpython-$v" || { echo "missing Python $v"; exit 1; }
+    done
 
     uv venv /tmp/tox --python 3.15
     uv pip install --python /tmp/tox/bin/python tox tox-uv
@@ -147,8 +149,8 @@ Every session that will run Full must first verify:
     [ -f integration_test_project/pytest.ini ] \
       || { echo "missing integration_test_project/pytest.ini";  exit 1; }
 
-If `uv python list` shows fewer than 6 versions, or `tox.ini` does
-not have `tox-uv`, do NOT run tox. Fix first. Do not fabricate a
+If any required Python version is missing, or `tox.ini` does not have
+`tox-uv`, do NOT run tox. Fix first. Do not fabricate a
 "NOT-RUN is infrastructure limitation" result.
 
 ### Quick — after code or test changes
