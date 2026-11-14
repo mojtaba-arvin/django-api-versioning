@@ -14,11 +14,17 @@ const articles = defineCollection({
     generateId: ({ entry }) => entry.replace(/\.md$/, ""),
   }),
   schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    slug: z.string(),
-    keywords: z.array(z.string()).optional(),
-    author: z.object({ name: z.string(), url: z.string().optional() }).optional(),
+    title: z.string().min(1).max(70),
+    description: z.string().min(1).max(160),
+    slug: z
+      .string()
+      .max(100)
+      .regex(/^\\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    keywords: z.array(z.string().min(1).max(40)).min(2).max(5),
+    author: z.object({
+      name: z.literal("Mojtaba Arvin"),
+      url: z.literal("https://www.linkedin.com/in/mojtabaarvin/"),
+    }),
   }),
 });
 
