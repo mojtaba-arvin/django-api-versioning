@@ -27,4 +27,5 @@ dist/
 
 # Pytest & Coverage
 .coverage
+.coverage.*
 .pytest_cache/

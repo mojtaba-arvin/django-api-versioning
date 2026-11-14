@@ -1,8 +1,8 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Applies to:** django-api-versioning 0.3.5
-> **Verified against:** the v0.3.5 release source on 2026-11-12.
+> **Applies to:** django-api-versioning 0.3.6
+> **Verified against:** the `audit/comprehensive-package-review` source revision `927d169` on 2026-11-14.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >

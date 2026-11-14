@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-11-14
+
+### Changed
+
+- Run the full tox test matrix in parallel by default, with separate coverage data per environment.
+
+### Verified
+
+- ✅ All 175 unit tests and 245 integration tests passing in each of the 15 Python/Django environments
+- ✅ Tox lint environment passing
+
 ## [0.3.6] - 2026-11-13
 
 ### Fixed

@@ -18,7 +18,7 @@
 - Never commit without reviewing the full diff. Stage explicit paths.
 - Never run `git clean`, `git reset --hard`, `git checkout .`
   without per-occurrence approval.
-- No GitHub Actions for testing. No new CI workflow files.
+- Do not manually dispatch or create GitHub Actions test workflows. Existing push/PR workflows may run automatically; their Docker job is not a substitute for the tox matrix. No new CI workflow files.
 - No tag push or PyPI release without explicit authorization.
 - Never add `Co-authored-by`, `Co-Authored-By`, or "Generated with
   Claude Code". Author is always `Mojtaba Arvin <m.arvin@live.com>`.
@@ -99,11 +99,11 @@ Verify after every commit:
 Both must be `Mojtaba Arvin <m.arvin@live.com>`.
 
 ## 6. Environment
-- Ephemeral sandbox. Sessions disconnect without warning.
-- System `python3` is 3.8.10 — never use for tests.
-- Use `uv` for Python installs and venv: `uv python install 3.15`.
-- `ssh` not installed. `.claude/push.sh` handles auth.
-- `commit-msg` hook may be lost on reset. Re-create at session start.
+- The execution environment may be local or ephemeral. Inspect it instead of assuming a fixed OS, Python version, or repository path.
+- Use `uv` to install Python interpreters and create isolated environments; do not use an unverified system Python for project tests.
+- Check required tools with `command -v` before assuming they are or are not installed.
+- `.claude/push.sh` handles GitHub authentication; never print or expose `DAV_GITHUB_TOKEN`.
+- A `commit-msg` hook may be absent in a fresh clone; inspect and recreate it only when required.
 
 Token diagnostic (run first if push fails):
 
@@ -118,8 +118,9 @@ Token diagnostic (run first if push fails):
 
 ## 7. Testing
 
-Three modes. Never use system `python3` (3.8.10) for Single or Quick.
-`tox.ini` is the source of truth for the supported matrix.
+Three modes. Use Quick only with the project's active virtual environment; if no suitable environment is active, skip Quick and use Single or Full. `tox.ini` is the source of truth for the configured test matrix. Re-read it before relying on environment counts or combinations.
+
+At this branch's current configuration, `tox.ini` defines 15 test environments plus one lint environment (16 total): Django 4.2 / Python 3.10–3.12; Django 5.2 / Python 3.10–3.14; Django 6.0 / Python 3.12–3.14; Django 6.1 / Python 3.12–3.15. This is a configured matrix, not proof that every environment passed.
 
 ### Required tooling (must exist before Full)
 
@@ -135,7 +136,9 @@ Every session that will run Full must first verify:
     uv --version
 
     uv python install 3.10 3.11 3.12 3.13 3.14 3.15
-    uv python list | grep -c 'cpython-'   # must print 6
+    for v in 3.10 3.11 3.12 3.13 3.14 3.15; do
+      uv python list | grep -q "cpython-$v" || { echo "missing Python $v"; exit 1; }
+    done
 
     uv venv /tmp/tox --python 3.15
     uv pip install --python /tmp/tox/bin/python tox tox-uv
@@ -146,13 +149,15 @@ Every session that will run Full must first verify:
     [ -f integration_test_project/pytest.ini ] \
       || { echo "missing integration_test_project/pytest.ini";  exit 1; }
 
-If `uv python list` shows fewer than 6 versions, or `tox.ini` does
-not have `tox-uv`, do NOT run tox. Fix first. Do not fabricate a
+If any required Python version is missing, or `tox.ini` does not have
+`tox-uv`, do NOT run tox. Fix first. Do not fabricate a
 "NOT-RUN is infrastructure limitation" result.
 
-### Quick — after EVERY file change
+### Quick — after code or test changes
 
-    python -m pytest <touched_test_file> -v
+Run the relevant test file(s) for the changed code, or the touched test file when changing tests. Documentation-only changes do not require pytest. Run Quick only when the project's intended virtual environment is active.
+
+    python -m pytest <relevant_test_file> -v
 
 ### Single — Phase 1 baseline
 
@@ -161,23 +166,19 @@ One Python, unit + integration. Full instructions in
 
 ### Full — Phase 10 and before `/release`
 
-    PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
+    set -o pipefail
+    PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox run-parallel -p auto 2>&1 | tee /tmp/tox-full.log
+    TOX_EXIT=${PIPESTATUS[0]}
+    echo "TOX_EXIT=$TOX_EXIT"
 
-After run, check BEFORE believing the result:
+After the run, inspect the actual `tox.ini` envlist and the complete log. At this branch's current configuration, expect 16 successful tox environments: 15 test environments and one lint environment.
 
-1. `grep -c 'commands succeeded' /tmp/tox-full.log` — must be 13.
+1. `grep -c 'commands succeeded' /tmp/tox-full.log` — must be 16 for the current matrix.
 2. `grep -c 'interpreter not found' /tmp/tox-full.log` — must be 0.
-3. `grep -E '[0-9]+ passed' /tmp/tox-full.log | head -5` — each env
-   must show a count large enough to include both unit and integration
-   (300+ combined, not ~170).
-4. Each env's log section must contain two `passed` lines — one from
-   `pytest tests`, one from `pytest integration_test_project`.
-   `tox.ini` commands split them so each uses its own `pytest.ini`.
+3. Inspect each of the 15 test-environment log sections. Each must show two successful pytest invocations: `pytest tests` and `pytest integration_test_project`. The lint environment runs flake8, black, and isort; it does not produce pytest pass lines.
+4. Confirm `TOX_EXIT == 0`. Do not infer success from summary counts alone.
 
-If any check fails, the tox setup is broken — NOT the code. Report
-the failure; do not certify the package. Do not claim "sandbox
-limitation" as an excuse; the sandbox can install all Pythons via
-`uv python install`.
+If an environment is `NOT-RUN` because an interpreter or dependency is unavailable, report an environment/setup problem. If pytest reports failures, report them as test/code failures. If the success count differs from 16, inspect the environment summary and do not classify the cause without evidence. Never certify the matrix from a partial run.
 
 ### Never
 
@@ -186,8 +187,7 @@ limitation" as an excuse; the sandbox can install all Pythons via
   "compatible via type hints".
 - Never write `CERTIFIED` or `PRODUCTION READY` if any env is
   `NOT-RUN` or `FAIL`.
-- Never run `tox` before confirming 6 Pythons installed and
-  `tox-uv` present in `tox.ini`.
+- Before Full, verify that every Python version required by the current `tox.ini` matrix is available and that `tox-uv` is declared in `tox.ini` and installed in the tox runner environment.
 - Never run `tox` in Phase 1 — that is Single's job.
 
 ## 8. Documentation

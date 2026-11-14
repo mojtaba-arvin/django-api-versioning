@@ -6,13 +6,13 @@ Triggered by "release X.Y.Z". Do exactly this. No improvisation.
 - Working tree clean (`git status`).
 - On `audit/comprehensive-package-review`.
 - User has authorized a PyPI release for THIS version.
-- `docs/articles/` exists (25 user-authored articles).
+- `docs/articles/` exists; enumerate the current article files at execution time rather than assuming a fixed count.
 
 ## Environment
-- `DAV_GITHUB_TOKEN` set in the sandbox.
-- `gh` is NOT pre-installed. Install at Step 11.
-- Each Bash call runs in a fresh shell. Use full paths:
-  `$HOME/.local/bin/gh`.
+- Git's configured credential helper is authenticated for the repository;
+  verify with `git ls-remote origin HEAD` and `git push --dry-run` before release.
+- Check whether `gh` is installed with `command -v gh`; do not assume an OS or architecture.
+- Each Bash call runs in a fresh shell. Re-establish required PATH entries in every call.
 
 ## Steps
 
@@ -33,25 +33,46 @@ no `version` line.
 
 ### 2. Full test suite via tox
 
+Before running Full, use the current `tox.ini` as the source of truth.
+Verify that it declares `tox-uv`, that the integration test settings
+file exists, and that every Python interpreter required by the matrix
+is installed. The current matrix requires Python 3.10–3.15:
+
+```bash
+command -v uv >/dev/null || { echo "uv is required"; exit 1; }
+uv python install 3.10 3.11 3.12 3.13 3.14 3.15
+for v in 3.10 3.11 3.12 3.13 3.14 3.15; do
+  uv python list | grep -q "cpython-$v" || { echo "missing Python $v"; exit 1; }
+done
+grep -q 'requires = tox-uv' tox.ini || { echo "tox.ini does not declare tox-uv"; exit 1; }
+[ -f integration_test_project/pytest.ini ] || { echo "missing integration_test_project/pytest.ini"; exit 1; }
+
+if [ ! -x /tmp/tox/bin/tox ]; then
+  uv venv /tmp/tox --python 3.15
+  uv pip install --python /tmp/tox/bin/python tox tox-uv
+fi
+/tmp/tox/bin/tox --version
+```
+
+Do not start tox if any interpreter or prerequisite is missing.
+Do not accept a partial matrix or `NOT-RUN` environments as a
+successful release test. Re-read `tox.ini` and derive the expected
+environment count from its current envlist rather than hardcoding
+an old count.
+
+Run the complete matrix in parallel, using the available CPU count, and preserve tox's real exit code:
+
 ```bash
 set -o pipefail
-PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-release.log
+PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox run-parallel -p auto 2>&1 | tee /tmp/tox-release.log
 TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
 
-On the user's local machine (tox already installed): `tox 2>&1 | tee /tmp/tox-release.log`
-
-If `/tmp/tox/bin/tox` does not exist, install first:
-
-```bash
-uv venv /tmp/tox --python 3.15
-uv pip install --python /tmp/tox/bin/python tox
-```
-
 If `TOX_EXIT` is non-zero, STOP. Parse `/tmp/tox-release.log` for
-failing envs. Do not bump version. Do not tag. Report the failing
-env names.
+failing and `NOT-RUN` envs. Do not bump version. Do not tag.
+Report the exact failing or unrun env names and classify test failures
+separately from environment/setup failures.
 
 Do NOT run `/compat-matrix` — that skill was removed. tox is the
 only matrix.
@@ -70,9 +91,11 @@ If `.claude/push.sh` exits non-zero: STOP. Do not continue.
 
 ### 4. Update `CHANGELOG.md`
 
-Add a dated section for `X.Y.Z`. Include Added / Changed / Fixed /
-Removed. Include the unit and integration test counts recorded
-in Step 2.
+Add a dated section for `X.Y.Z`. Use only the Keep a Changelog
+categories that actually apply; do not add empty headings merely
+to include every category. Record the unit and integration test
+counts observed in the successful Step 2 log. Never infer or reuse
+historical counts.
 
 ```bash
 git add CHANGELOG.md
@@ -90,20 +113,25 @@ If push fails: STOP.
 LAST_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
 if [ -z "$LAST_TAG" ]; then
   TECH=yes
-  REASON="no previous tag — assuming full impact"
+  REASON="no previous tag — inspect the full release diff"
 else
-  N=$(git log --oneline "$LAST_TAG"..HEAD \
-    | grep -cE '^(feat|fix)(\(|:)' || true)
-  if [ "$N" -gt 0 ]; then
-    TECH=yes
-    REASON="$N feat/fix commits since $LAST_TAG"
-  else
-    TECH=no
-    REASON="no feat/fix commits since $LAST_TAG"
-  fi
+  echo "Commits since $LAST_TAG:"
+  git log --oneline "$LAST_TAG"..HEAD
+  echo "Changed paths since $LAST_TAG:"
+  git diff --name-status "$LAST_TAG"..HEAD
 fi
-echo "TECH=$TECH REASON=$REASON"
 ```
+
+Do not decide technical impact from commit prefixes alone. Inspect the
+actual diffs for every `feat:` and `fix:` commit and any other
+package-facing changes. Set `TECH=yes` only when package runtime
+behavior, public API, supported configuration, or user-facing
+integration examples changed. Test-only changes, import cleanup,
+formatting, CI changes, and documentation-only corrections do not
+by themselves make `TECH=yes`. Record the relevant commits and
+the evidence for the classification. If there is no previous tag,
+inspect the complete diff and default to asking rather than silently
+assuming that all articles need content changes.
 
 #### 5b. If TECH=yes: STOP and ask
 
@@ -121,8 +149,8 @@ Report:
 
 Ask exactly this:
 
-> "The release includes technical changes. These 25 articles
-> reference the package: <list>. I will update package version
+> "The release includes technical changes. These are the current article files
+> that reference the package: <list>. I will update package version
 > strings in all articles. If any article needs CONTENT updates
 > (examples, API, behavior), tell me which article and what to
 > change. Otherwise reply 'proceed' and I will only update
@@ -251,30 +279,58 @@ git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 
 If exit != 0: STOP. Do not create GitHub release.
 
-### 10. Install `gh` if missing (best-effort)
+Verify that the annotated tag object was pushed to the remote:
 
 ```bash
-if ! [ -x "$HOME/.local/bin/gh" ]; then
-  mkdir -p "$HOME/.local/bin"
-  LATEST=$(curl -s https://api.github.com/repos/cli/cli/releases/latest \
-    | grep -oP '(?<=tag_name": "v)[^"]+')
-  curl -fsSL "https://github.com/cli/cli/releases/download/v${LATEST}/gh_${LATEST}_linux_amd64.tar.gz" \
-    -o /tmp/gh.tar.gz
-  tar -xzf /tmp/gh.tar.gz -C /tmp
-  cp "/tmp/gh_${LATEST}_linux_amd64/bin/gh" "$HOME/.local/bin/gh"
-  chmod +x "$HOME/.local/bin/gh"
-  rm -f /tmp/gh.tar.gz
-fi
-"$HOME/.local/bin/gh" --version
+LOCAL_TAG_SHA=$(git rev-parse "refs/tags/v$NEW_VERSION")
+REMOTE_TAG_SHA=$(git ls-remote origin "refs/tags/v$NEW_VERSION" | awk '{print $1}')
+echo "LOCAL_TAG_SHA=$LOCAL_TAG_SHA REMOTE_TAG_SHA=$REMOTE_TAG_SHA"
+[ -n "$REMOTE_TAG_SHA" ] && [ "$LOCAL_TAG_SHA" = "$REMOTE_TAG_SHA" ] || {
+  echo "Tag push verification failed"; exit 1;
+}
 ```
 
-If install exits non-zero, skip to Step 12 and report the URL
-only. Do not retry more than once.
+Do not proceed if the remote tag is absent or its SHA differs.
+
+### 10. Install `gh` if missing (best-effort)
+
+Use the installed binary when available. Otherwise detect the OS and
+architecture; do not assume Linux x86_64:
+
+```bash
+GH_BIN=$(command -v gh || true)
+if [ -z "$GH_BIN" ]; then
+  OS=$(uname -s)
+  ARCH=$(uname -m)
+  case "$OS:$ARCH" in
+    Darwin:x86_64) PLATFORM="macOS_amd64" ;;
+    Darwin:arm64) PLATFORM="macOS_arm64" ;;
+    Linux:x86_64) PLATFORM="linux_amd64" ;;
+    Linux:aarch64|Linux:arm64) PLATFORM="linux_arm64" ;;
+    *) echo "Unsupported gh platform: $OS $ARCH"; exit 1 ;;
+  esac
+  LATEST=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))')
+  mkdir -p "$HOME/.local/bin"
+  curl -fsSL "https://github.com/cli/cli/releases/download/v${LATEST}/gh_${LATEST}_${PLATFORM}.tar.gz" \
+    -o /tmp/gh.tar.gz
+  tar -xzf /tmp/gh.tar.gz -C /tmp
+  cp "/tmp/gh_${LATEST}_${PLATFORM}/bin/gh" "$HOME/.local/bin/gh"
+  chmod +x "$HOME/.local/bin/gh"
+  rm -f /tmp/gh.tar.gz
+  GH_BIN="$HOME/.local/bin/gh"
+fi
+"$GH_BIN" --version
+```
+
+If installation exits non-zero, do not retry. Skip GitHub release
+creation, report the manual release URL, and continue to Step 12.
 
 ### 11. Create GitHub release
 
 ```bash
-GH_TOKEN="$DAV_GITHUB_TOKEN" "$HOME/.local/bin/gh" release create "v$NEW_VERSION" \
+GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
+GH_TOKEN="$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')" "$GH_BIN" release create "v$NEW_VERSION" \
   --title "v$NEW_VERSION" \
   --generate-notes
 ```
@@ -282,7 +338,8 @@ GH_TOKEN="$DAV_GITHUB_TOKEN" "$HOME/.local/bin/gh" release create "v$NEW_VERSION
 Verify:
 
 ```bash
-GH_TOKEN="$DAV_GITHUB_TOKEN" "$HOME/.local/bin/gh" release view "v$NEW_VERSION" \
+GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
+GH_TOKEN="$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')" "$GH_BIN" release view "v$NEW_VERSION" \
   --json tagName,isDraft,url
 ```
 
@@ -300,9 +357,9 @@ Tag push triggers `.github/workflows/publish.yml` (trigger:
 ```bash
 for i in $(seq 1 6); do
   sleep 30
-  V=$(curl -s https://pypi.org/pypi/django-api-versioning/json \
-    | python3 -c "import sys,json;print(json.load(sys.stdin)['info']['version'])")
-  echo "attempt $i: PyPI shows $V"
+  V=$(curl -fsS "https://pypi.org/pypi/django-api-versioning/$NEW_VERSION/json" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['info']['version'])") || V=""
+  echo "attempt $i: PyPI release endpoint shows ${V:-not available}"
   [ "$V" = "$NEW_VERSION" ] && break
 done
 ```
@@ -311,8 +368,10 @@ If after 3 minutes PyPI does not show `$NEW_VERSION`, report:
 
     https://github.com/mojtaba-arvin/django-api-versioning/actions
 
-Do NOT claim publication success unless the curl output shows
-`$NEW_VERSION`.
+Do NOT claim publication success unless the version-specific PyPI
+endpoint returns `$NEW_VERSION`. Checking only the package's
+latest-version endpoint is insufficient because a later release
+could already have become the latest.
 
 ### 13. Report
 

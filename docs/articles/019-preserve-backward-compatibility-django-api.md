@@ -22,7 +22,7 @@ A practical compatibility strategy has two separate layers:
 - **Contract compatibility:** deciding which request and response shapes remain available to clients.
 - **Routing compatibility:** making each API version resolve to the implementation that provides its contract.
 
-For Django REST Framework projects, [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/0.3.5/) provides declarative registration for versioned endpoint implementations. Its `@endpoint` decorator registers a route for the declared version and later versions, until another declaration takes precedence for that route.
+For Django REST Framework projects, [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/) provides declarative registration for versioned endpoint implementations. Its `@endpoint` decorator registers a route for the declared version and later versions, until another declaration takes precedence for that route.
 
 The package handles routing, not compatibility policy. You still decide which changes are additive, which changes require a new contract, and how long older contracts remain available.
 
