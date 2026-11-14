@@ -20,4 +20,8 @@ test("Segment Explorer labels the model and keeps a server-rendered fallback", a
   assert.match(source, /<noscript>/);
   assert.match(source, /initial\.question/);
   assert.match(source, /initialRoute/);
+  assert.match(source, /start: segment\.from/);
+  assert.match(source, /end: segment\.to/);
+  assert.match(source, /sourceVersion: segment\.source_version/);
+  assert.match(source, /slot: slots\.get\(segment\.callback\)/);
 });
