@@ -23,22 +23,12 @@ _LEGACY_FLAGS = {"backward", "forward", "version"}
 
 class Command(BaseCommand):
     help = (
-        "Preview 0.3.0 replacements for 0.2.0 @endpoint declarations. "
-        "Pass --write to apply the suggested changes."
+        "Migrate 0.2.0 @endpoint flags to 0.3.0 declarations. "
+        "Use --dry-run to preview changes."
     )
 
     def add_arguments(self, parser):
-        mode = parser.add_mutually_exclusive_group()
-        mode.add_argument(
-            "--write",
-            action="store_true",
-            help="Apply the suggested changes to source files.",
-        )
-        mode.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Preview changes without modifying source files (the default).",
-        )
+        parser.add_argument("--dry-run", action="store_true", default=False)
         parser.add_argument("--path", default=".")
 
     def handle(self, *args, **options):
@@ -66,7 +56,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  - @{old}")
                 self.stdout.write(f"  + @{new}")
 
-            if options["write"]:
+            if not options["dry_run"]:
                 updated = _apply_rewrites(text, rewrites)
                 if updated != text:
                     py_file.write_bytes(updated.encode(encoding))
