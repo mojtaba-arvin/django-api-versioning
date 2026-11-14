@@ -19,7 +19,7 @@ const articles = defineCollection({
     slug: z
       .string()
       .max(100)
-      .regex(/^\\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      .regex(/^\d{3}-[a-z0-9]+(?:-[a-z0-9]+)*$/),
     keywords: z.array(z.string().min(1).max(40)).min(2).max(5),
     author: z.object({
       name: z.literal("Mojtaba Arvin"),
