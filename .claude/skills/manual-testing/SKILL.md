@@ -19,9 +19,9 @@ Three modes. `tox.ini` is the source of truth for the supported matrix.
 
 There are currently 15 test environments plus one lint environment (16 total). This describes configured environments only; it does not establish that they have passed. DRF is not a separate tox matrix dimension.
 
-## Quick — after EVERY file change
+## Quick — after code or test changes
 
-Run only the touched test file. Seconds.
+Run the relevant test file(s) for changed code, or the touched test file when changing tests. Documentation-only changes do not require pytest. Seconds.
 
 ```bash
 set -o pipefail
