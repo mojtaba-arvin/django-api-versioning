@@ -20,8 +20,6 @@ When an API evolves, existing clients may need to continue using `/api/v1/` whil
 
 This article demonstrates the package's approach and compares it with explicit Django URL routing. The examples use integer version identifiers such as `1` and `2`; the default URL configuration renders them as `v1` and `v2`.
 
-The examples target `django-api-versioning` 0.3.5. The package is maintained by the author of this article.
-
 ## 1. Declarative versioned endpoints
 
 Consider an API that exposes a list and detail endpoint for books. Version 1 returns a basic representation, while version 2 adds author and publication information to the list response.

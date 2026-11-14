@@ -17,9 +17,9 @@ keywords:
 
 `django-api-versioning` registers versioned Django URL patterns through the `@endpoint` decorator. You declare an endpoint at its starting version, and the package generates its URL patterns through the configured maximum version. Later declarations can replace selected implementations without requiring a separate declaration for every unchanged endpoint.
 
-This guide covers installation, version settings, endpoint registration, URL reversal, lifecycle middleware, and integration testing. The examples target version `0.3.5`.
+This guide covers installation, version settings, endpoint registration, URL reversal, lifecycle middleware, and integration testing.
 
-The package is maintained by the author of this article; implementation and metadata details below refer to version `0.3.5`.
+The package is maintained by the author of this article. For current release metadata and compatibility information, consult the package metadata and compatibility report linked below.
 
 ## Install
 
@@ -27,12 +27,6 @@ Install the package from [PyPI](https://pypi.org/project/django-api-versioning/)
 
 ```bash
 pip install django-api-versioning
-```
-
-To install the exact version used in this guide:
-
-```bash
-pip install django-api-versioning==0.3.6
 ```
 
 Check the installed version:
@@ -43,12 +37,9 @@ pip show django-api-versioning
 
 ### Python, Django, and DRF requirements
 
-Version `0.3.5` declares these runtime requirements:
+The package's runtime requirements are declared in its project metadata. Django REST Framework is not required to install the core package; it is used by the DRF integration examples and the project's development and testing setup.
 
-- Python `>=3.10`.
-- Django `>=4.2`.
-
-Django REST Framework is not a runtime dependency of the package. It is used by the DRF integration examples and is listed in the package's development dependencies.
+For the current Python and Django requirements, see the [package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/pyproject.toml). For tested environment combinations, see the [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md).
 
 If your project uses DRF, install it separately:
 
@@ -56,7 +47,7 @@ If your project uses DRF, install it separately:
 pip install djangorestframework
 ```
 
-The development dependency does not define a supported DRF version range. Check the package's [version 0.3.5 project metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/pyproject.toml) and test the Python, Django, and DRF combination used by your application.
+The development dependency does not define a supported DRF version range. Check the package's [current project metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/pyproject.toml) and test the Python, Django, and DRF combination used by your application.
 
 ## Configure Django settings
 
@@ -184,7 +175,7 @@ Import the decorator from the package's public API:
 from django_api_versioning import endpoint
 ```
 
-Its public signature in version `0.3.5` is:
+Its public signature is:
 
 ```python
 def endpoint(
@@ -427,13 +418,13 @@ There is an important integration detail for DRF: Django middleware runs before 
 
 ### Deprecation header standards
 
-Version `0.3.5` currently emits:
+The lifecycle middleware currently emits:
 
 ```http
 Deprecation: true
 ```
 
-This is a legacy draft-style value, not the date-based value specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html). The middleware does not expose a deprecation-date setting or generate the RFC 9745 date value.
+This is a legacy draft-style value, not the date-based value specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html). Check the [current lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py) for the exact header behavior. Applications requiring RFC 9745 compliance need to provide the appropriate date-valued header themselves or use an implementation that supports it.
 
 The `Sunset` header is generated as an HTTP-date from the configured ISO date. The middleware returns `410 Gone` when the configured sunset date is in the past. That enforcement is based on the date, not on `status="retired"`.
 
@@ -518,7 +509,7 @@ The package generates routes at registration time. A missing import or an incorr
 
 ## What the package does not provide
 
-`django-api-versioning` v0.3.5 handles URL registration, provides `api_reverse()`, and includes lifecycle middleware. It does not implement every part of a production API versioning policy.
+`django-api-versioning` handles URL registration, provides `api_reverse()`, and includes lifecycle middleware. It does not implement every part of a production API versioning policy. See the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for its routing responsibilities and limitations.
 
 ### Version discovery
 
@@ -779,9 +770,9 @@ from django_api_versioning import (
 )
 ```
 
-Names such as `VersionedEndpoint` and `register_versioned_routers` are not part of this public API in v0.3.5.
+Do not assume that internal or third-party names such as `VersionedEndpoint` and `register_versioned_routers` are part of the package's public API. Verify available imports against the package's current public exports.
 
-Check your imports against the [package exports](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/django_api_versioning/__init__.py), [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/django_api_versioning/decorators.py), and [reverse implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v0.3.5/django_api_versioning/reverse.py).
+Check your imports against the [package exports](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/__init__.py), [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py), and [reverse implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/reverse.py).
 
 ## Trade-offs and scope
 

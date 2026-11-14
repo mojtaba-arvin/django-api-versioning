@@ -1,7 +1,7 @@
 ---
 slug: "021-django-api-versioning-production-requirements"
 title: "Production Evaluation of django-api-versioning"
-description: "Evaluate django-api-versioning v0.3.5 through route inheritance, version isolation, lifecycle handling, routing inspection, and regression tests."
+description: "Evaluate django-api-versioning through route inheritance, version isolation, lifecycle handling, routing inspection, and regression tests."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -19,7 +19,7 @@ keywords:
 
 A production API versioning strategy needs more than a version number in a URL. The application must resolve each version to the intended view, preserve older response contracts, expose a predictable routing structure, and manage the eventual retirement of older versions.
 
-This article evaluates those requirements through **django-api-versioning v0.3.5**. Rather than treating versioned routing as a collection of manually maintained URL patterns, it examines how the package's declarative registration model works, what it automates, and which production responsibilities remain with the application.
+This article evaluates those requirements through **django-api-versioning**. Rather than treating versioned routing as a collection of manually maintained URL patterns, it examines how the package's declarative registration model works, what it automates, and which production responsibilities remain with the application. For release-specific requirements and compatibility information, consult the project's package metadata and compatibility report.
 
 The package provides:
 
@@ -32,7 +32,7 @@ The package provides:
 
 **Scope: routing and its supporting lifecycle behavior.** The package does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
 
-The author maintains `django-api-versioning`. The examples and package-specific claims in this article refer to v0.3.5.
+The author maintains `django-api-versioning`. Package-specific behavior described in this article is documented in the project's canonical routing contract and source code.
 
 Install the package from [PyPI](https://pypi.org/project/django-api-versioning/).
 
@@ -354,7 +354,7 @@ Routing and lifecycle management are related, but they are not the same responsi
 
 An application may need to communicate that a version is deprecated and eventually reject requests to it. The relevant HTTP standards include [RFC 9745 for the Deprecation response header](https://www.rfc-editor.org/rfc/rfc9745) and [RFC 8594 for the Sunset HTTP header](https://www.rfc-editor.org/rfc/rfc8594).
 
-`django-api-versioning` v0.3.5 provides `LifecycleMiddleware` and the `API_VERSION_LIFECYCLE` setting for configured lifecycle behavior.
+`django-api-versioning` provides `LifecycleMiddleware` and the `API_VERSION_LIFECYCLE` setting for configured lifecycle behavior. See the [lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py) and [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for the current behavior and configuration rules.
 
 For example, an application can define lifecycle metadata:
 
@@ -385,7 +385,7 @@ Replace the date placeholder with the actual planned sunset date before deployme
 
 The middleware can identify the version from the request and, when necessary, extract it from the package's static URL path. It does not require DRF's `request.version` to be populated for that path-based extraction.
 
-The v0.3.5 behavior has important details:
+The lifecycle behavior has important details:
 
 - A version with `status: "deprecated"` receives a `Deprecation` response header.
 - If a sunset date is configured for that deprecated version, the middleware also sends a `Sunset` header.
@@ -416,7 +416,7 @@ def report_list(request):
 
 The configured range may include v2, but this endpoint is not registered for v2.
 
-If clients need endpoint-level discovery, derive the response from a verified routing matrix or maintain an explicit application-level policy. `django-api-versioning` v0.3.5 does not provide a built-in version-discovery endpoint.
+If clients need endpoint-level discovery, derive the response from a verified routing matrix or maintain an explicit application-level policy. The package's routing registry should not be treated as a public version-discovery endpoint; implement discovery at the application level when clients require it.
 
 API documentation is a separate concern as well. Tools such as [drf-spectacular](https://drf-spectacular.readthedocs.io/) and [drf-yasg](https://drf-yasg.readthedocs.io/) generate API documentation. Registering multiple URL patterns does not automatically guarantee correctly separated OpenAPI documents for each version.
 
@@ -505,4 +505,4 @@ The package supplies concrete mechanisms for the routing-related rows. The remai
 
 ## Next step
 
-If your project uses Django and DRF and its versioned URL registrations are becoming repetitive, evaluate the v0.3.5 registration model against your current route matrix. Start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning), review the canonical routing contract, and verify the generated matrix before migrating production routes.
+If your project uses Django and DRF and its versioned URL registrations are becoming repetitive, evaluate the package's registration model against your current route matrix. Start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning), review the canonical routing contract, and verify the generated matrix before migrating production routes.
