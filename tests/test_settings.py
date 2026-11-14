@@ -94,3 +94,17 @@ class TestResolverValidation:
 
         settings = APISettings(API_EFFECTIVE_VERSION_RESOLVER=resolver)
         assert settings.API_EFFECTIVE_VERSION_RESOLVER is resolver
+
+
+@pytest.mark.parametrize(
+    "channels",
+    [
+        [None],
+        [[]],
+        [{}],
+    ],
+)
+def test_invalid_channel_entry_raises_versioning_error(channels):
+    """Invalid channel entries fail with the package's configuration error."""
+    with pytest.raises(VersioningError, match="channel"):
+        APISettings(API_VERSIONING_CHANNELS=channels)
