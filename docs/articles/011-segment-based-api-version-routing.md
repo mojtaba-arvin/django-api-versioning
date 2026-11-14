@@ -201,7 +201,7 @@ api/
     urls.py
 ```
 
-The URLconf must import both view modules before reading the package's URL patterns:
+Import both view modules during URLconf initialization. The package's exported `urlpatterns` is the registry's shared list, not a copy, so importing it before those modules does not freeze an empty snapshot:
 
 ```python
 # api/urls.py
@@ -519,7 +519,7 @@ The practical boundary is:
 
 The package does not automatically integrate with or inherit DRF router registrations.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 
 ## Trade-offs and scope
 
