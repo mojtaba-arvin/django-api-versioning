@@ -242,6 +242,27 @@ def _symbol_lines(tree: ast.AST, dotted: str) -> tuple[int, int]:
     return start, node.end_lineno
 
 
+def _setting_references(tree: ast.AST):
+    """Yield actual identifier reads; ignore docstrings and string literals."""
+    setting_names = {
+        "API_VERSIONING_CHANNELS",
+        "API_EFFECTIVE_VERSION_RESOLVER",
+    }
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr in setting_names
+            and isinstance(node.ctx, ast.Load)
+        ):
+            yield node.attr, node.lineno
+        elif (
+            isinstance(node, ast.Name)
+            and node.id in setting_names
+            and isinstance(node.ctx, ast.Load)
+        ):
+            yield node.id, node.lineno
+
+
 def source_refs(package_dir: Path) -> dict:
     refs: dict = {"symbols": {}, "lines": {}}
     trees: dict[str, tuple[ast.AST, list[str]]] = {}
@@ -281,20 +302,9 @@ def source_refs(package_dir: Path) -> dict:
         rel = path.relative_to(package_dir.parent).as_posix()
         text = path.read_text()
         tree = ast.parse(text)
+        for name, line in _setting_references(tree):
+            usage[name].append({"file": rel, "line": line})
         for node in ast.walk(tree):
-            names = []
-            if isinstance(node, ast.Name):
-                names.append(node.id)
-            elif isinstance(node, ast.Attribute):
-                names.append(node.attr)
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                names.append(node.value)
-            for name in names:
-                if name in (
-                    "API_VERSIONING_CHANNELS",
-                    "API_EFFECTIVE_VERSION_RESOLVER",
-                ):
-                    usage[name].append({"file": rel, "line": node.lineno})
             if (
                 isinstance(node, ast.ImportFrom)
                 and node.module
