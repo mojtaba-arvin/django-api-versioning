@@ -5,7 +5,7 @@
 **Verified source/test revision:** `035a4054f3e0d7e3e47adfeef1889e89e0660443`  
 **Full compatibility run:** [GitHub Actions #22](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43651972913) — **15/15 test environments and lint passed**
 
-The verified package and test files are unchanged in the branch after this run; later commits only restore manual-only workflow triggering and update generated website evidence.
+The verified package and test files are unchanged in the branch after this run; later commits only change workflow wiring, generated website evidence, and documentation.
 
 ## Test matrix
 
