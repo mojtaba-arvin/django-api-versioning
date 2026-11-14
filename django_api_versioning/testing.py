@@ -20,10 +20,26 @@ def build_version_matrix() -> dict:
     matrix = {}
     for route, versions in registry.get_version_matrix().items():
         matrix[route] = {
-            str(v) if v is not None else "unversioned": cb.__name__
-            for v, cb in versions.items()
+            str(v) if v is not None else "unversioned": _callback_name(callback)
+            for v, callback in versions.items()
         }
     return matrix
+
+
+def _callback_name(callback: object) -> str:
+    """Return a stable display name for function, class-based, or callable views."""
+    view_class = getattr(callback, "view_class", None)
+    if view_class is not None:
+        return view_class.__name__
+
+    viewset_class = getattr(callback, "cls", None)
+    if viewset_class is not None:
+        return viewset_class.__name__
+
+    name = getattr(callback, "__name__", None)
+    if isinstance(name, str) and name:
+        return name
+    return type(callback).__name__
 
 
 def assert_version_matrix(
