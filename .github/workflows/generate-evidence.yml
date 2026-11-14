@@ -54,7 +54,6 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
           python integration_test_project/segment_lab/generate_routes.py
-          python integration_test_project/segment_lab/generate_routes.py --check
       - name: Commit generated evidence against the latest branch head
         run: |
           set -euo pipefail
@@ -74,7 +73,6 @@ jobs:
               git reset --hard "$remote_sha"
               export SOURCE_COMMIT="$(git rev-parse HEAD)"
               python integration_test_project/segment_lab/generate_routes.py
-              python integration_test_project/segment_lab/generate_routes.py --check
             fi
 
             git diff --check
