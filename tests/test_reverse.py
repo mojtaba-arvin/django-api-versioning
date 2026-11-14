@@ -83,6 +83,14 @@ class TestApiReverse:
         with pytest.raises(NoReverseMatch, match="Missing required parameter"):
             api_reverse("user-detail", version=1)
 
+    def test_unexpected_kwarg_raises_no_reverse_match(self):
+        @endpoint("users/<int:pk>/", version=1, view_name="user-detail-extra")
+        def user_detail(request, pk):
+            return JsonResponse({"pk": pk})
+
+        with pytest.raises(NoReverseMatch, match="Unexpected parameter"):
+            api_reverse("user-detail-extra", version=1, pk=42, username="alice")
+
     def test_invalid_int_parameter_raises_no_reverse_match(self):
         @endpoint("users/<int:pk>/", version=1, view_name="user-detail-invalid-int")
         def user_detail(request, pk):
