@@ -1,4 +1,4 @@
-name: Generate website npm lockfile
+name: Generate website npm lockfile and verify the site
 
 on:
   push:
@@ -10,21 +10,61 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: website-dependencies-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lock:
+  lock-and-verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
       - name: Generate deterministic npm lockfile
         working-directory: website
         run: npm install --package-lock-only --ignore-scripts
-      - name: Commit lockfile
+      - name: Commit lockfile when changed
         run: |
           git add website/package-lock.json
-          git config user.name "Mojtaba Arvin"
-          git config user.email "m.arvin@live.com"
-          git commit -m "build(site): lock frontend dependencies"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          if git diff --cached --quiet; then
+            echo "Lockfile is already up to date."
+          else
+            git config user.name "Mojtaba Arvin"
+            git config user.email "m.arvin@live.com"
+            git commit -m "build(site): lock frontend dependencies"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - name: Install the exact locked dependency tree
+        working-directory: website
+        run: npm ci
+      - name: Audit frontend dependencies
+        working-directory: website
+        run: npm audit --audit-level=high
+      - name: Run frontend unit tests
+        working-directory: website
+        run: |
+          node --check scripts/sync-articles.mjs
+          node --check scripts/sync-evidence.mjs
+          node --check scripts/check-dist.mjs
+          node --check scripts/serve-dist.mjs
+          npm test
+      - name: Run Astro type and content checks
+        working-directory: website
+        run: npm run check
+      - name: Build and inspect root-hosted artifact
+        working-directory: website
+        run: |
+          npm run build
+          npm run test:dist
+      - name: Build and inspect GitHub Pages project-site artifact
+        working-directory: website
+        env:
+          PUBLIC_BASE_PATH: /django-api-versioning
+        run: |
+          npm run build
+          npm run test:dist
