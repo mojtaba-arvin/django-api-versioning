@@ -58,11 +58,15 @@ This skill provides a systematic framework for auditing the django-api-versionin
 **Procedures**:
 
 1. **Test Matrix Setup**
-   ```
-   - Python versions: 3.10, 3.11, 3.12
-   - Django versions: 4.2, 5.0, 5.1, 5.2, 6.0, 6.1
-   - DRF versions: 3.14, 3.15, 3.18 (if used)
-   ```
+   Read `tox.ini` at audit time and derive the exact Python/Django pairs from its `envlist`. On this branch, the configured test matrix is:
+   - Django 4.2: Python 3.10, 3.11, 3.12
+   - Django 5.2: Python 3.10, 3.11, 3.12, 3.13, 3.14
+   - Django 6.0: Python 3.12, 3.13, 3.14
+   - Django 6.1: Python 3.12, 3.13, 3.14, 3.15
+
+   This is 15 test environments plus one lint environment. It is the configured matrix, not evidence of successful execution. Verify actual results from the current run's logs and exit code.
+
+   DRF is not a separate tox matrix dimension. `tox.ini` installs `djangorestframework` without an exact pin; record the resolved version from the actual environment when available. Do not claim a DRF compatibility matrix unless one is separately configured and executed.
 
 2. **Test Integration Patterns**
    - Function-based views (@endpoint on function)
@@ -426,36 +430,34 @@ This skill provides a systematic framework for auditing the django-api-versionin
 
 ## Output Format
 
-Document audit findings in a clear, structured format:
+Document audit findings in a clear, structured format. Populate all counts, versions, and coverage from the current source or a specific recorded test run; never reuse historical numbers as current results.
 
 **VERIFIED FACTS**:
-- [X] Unit tests: 104/104 passing
-- [X] Integration tests: 222/222 passing
-- [X] Code coverage: 85%
+- [ ] Unit tests: `<count from the identified run>`; command and exit code recorded
+- [ ] Integration tests: `<count from the identified run>`; command and exit code recorded
+- [ ] Coverage: `<value from the identified run>`
+- [ ] Configured tox matrix: `<environment list read from current tox.ini>`
+- [ ] Actual environment results: `<PASS / FAIL / NOT-RUN per environment>`
 
 **SUSPECTED ISSUES** (unverified):
-- [ ] Feature X may have edge case handling issue
-- [ ] Setting Y documentation might be unclear
+- [ ] State the observation and the evidence still needed.
 
 **IMPLEMENTED CAPABILITIES**:
-- [X] Forward versioning
-- [X] Endpoint inheritance
-- [X] DRF APIView integration
-- [X] URL reversal
+- [ ] List only behavior verified in current source and tests.
 
 **PARTIAL CAPABILITIES**:
-- [△] Multi-channel versioning (configured but not routed)
-- [△] ViewSet direct decoration (workaround provided)
+- [ ] Version-channel parsing utility supports `path`, `header`, and `query` in `channels.py`; verify call sites before describing this as end-to-end request routing. In the current source tree, the utility is tested directly, but is not wired into the endpoint registry's request dispatch.
+- [ ] DRF ViewSet classes cannot be registered directly without an action map; a specifically configured callable such as `MyViewSet.as_view({"get": "list"})` can be registered, while router-style route generation remains the application's responsibility.
 
 **KNOWN LIMITATIONS**:
-- Direct ViewSet decoration not supported (use as_view())
-- Multi-channel versioning not implemented (path-only)
-- Python <3.10 not supported
+- Direct ViewSet class decoration is not supported as a substitute for DRF router/action configuration.
+- `API_VERSIONING_CHANNELS` and `extract_version()` do not currently provide end-to-end header/query-based routing through the package registry.
+- Python versions below 3.10 are outside the declared package requirement.
 
 **RECOMMENDATIONS**:
-- Consider implementing multi-channel routing
-- Add ViewSet decorator support
-- Expand documentation with more examples
+- If header/query-based request routing is a product goal, trace and test the integration from channel extraction through request dispatch before claiming support.
+- Keep ViewSet/router responsibilities explicit in documentation.
+- Expand documentation only where it adds verified behavior or clarifies a real limitation.
 
 ## When to Use This Skill
 
