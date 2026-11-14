@@ -1,128 +1,225 @@
-import re
+import ast
+import io
+import tokenize
 from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+
+
+_EXCLUDED_DIRS = {
+    ".git",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "site-packages",
+    "__pycache__",
+    "migrations",
+    "build",
+    "dist",
+}
+_LEGACY_FLAGS = {"backward", "forward", "version"}
 
 
 class Command(BaseCommand):
-    help = "Suggest 0.3.0 replacements for 0.2.0 @endpoint declarations."
+    help = (
+        "Preview 0.3.0 replacements for 0.2.0 @endpoint declarations. "
+        "Pass --write to apply the suggested changes."
+    )
 
     def add_arguments(self, parser):
-        parser.add_argument("--dry-run", action="store_true", default=False)
+        mode = parser.add_mutually_exclusive_group()
+        mode.add_argument(
+            "--write",
+            action="store_true",
+            help="Apply the suggested changes to source files.",
+        )
+        mode.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Preview changes without modifying source files (the default).",
+        )
         parser.add_argument("--path", default=".")
 
     def handle(self, *args, **options):
-        dry_run = options["dry_run"]
-        root = Path(options["path"])
+        root = Path(options["path"]).expanduser().resolve()
+        if not root.is_dir():
+            raise CommandError(f"Migration path is not a directory: {root}")
+
         for py_file in root.rglob("*.py"):
-            if "migrations" in py_file.parts:
+            relative_parts = py_file.relative_to(root).parts
+            if any(
+                part in _EXCLUDED_DIRS or part.startswith(".")
+                for part in relative_parts[:-1]
+            ):
                 continue
-            text = py_file.read_text()
-            if "@endpoint" not in text:
+
+            raw = py_file.read_bytes()
+            encoding, _ = tokenize.detect_encoding(io.BytesIO(raw).readline)
+            text = raw.decode(encoding)
+            rewrites = _collect_rewrites(text)
+            if not rewrites:
                 continue
-            changes = _suggest(text)
-            if not changes:
+
+            self.stdout.write(f"\\n{py_file}:")
+            for _, _, old, new in rewrites:
+                self.stdout.write(f"  - @{old}")
+                self.stdout.write(f"  + @{new}")
+
+            if options["write"]:
+                updated = _apply_rewrites(text, rewrites)
+                if updated != text:
+                    py_file.write_bytes(updated.encode(encoding))
+
+
+def _is_endpoint_call(func: ast.expr) -> bool:
+    return (isinstance(func, ast.Name) and func.id == "endpoint") or (
+        isinstance(func, ast.Attribute) and func.attr == "endpoint"
+    )
+
+
+def _has_comments(source: str) -> bool:
+    try:
+        return any(
+            token.type == tokenize.COMMENT
+            for token in tokenize.generate_tokens(io.StringIO(source).readline)
+        )
+    except tokenize.TokenError:
+        return True
+
+
+def _rewrite_call(text: str, call: ast.Call) -> str | None:
+    if not any(keyword.arg in {"backward", "forward"} for keyword in call.keywords):
+        return None
+
+    keywords: dict[str, ast.expr] = {}
+    for keyword in call.keywords:
+        if keyword.arg in _LEGACY_FLAGS:
+            if keyword.arg in keywords:
+                return None
+            keywords[keyword.arg] = keyword.value
+
+    version_node = keywords.get("version")
+    if not isinstance(version_node, ast.Constant) or type(version_node.value) is not int:
+        return None
+
+    backward_node = keywords.get("backward")
+    if backward_node is not None:
+        if not isinstance(backward_node, ast.Constant) or type(backward_node.value) is not bool:
+            return None
+        backward = backward_node.value
+    else:
+        backward = False
+
+    forward_node = keywords.get("forward")
+    if forward_node is not None:
+        if not isinstance(forward_node, ast.Constant) or (
+            type(forward_node.value) is not bool and forward_node.value is not None
+        ):
+            return None
+        forward = forward_node.value is True
+    else:
+        forward = True
+
+    call_source = ast.get_source_segment(text, call)
+    function_source = ast.get_source_segment(text, call.func)
+    if not call_source or not function_source or _has_comments(call_source):
+        return None
+
+    remaining = []
+    for argument in call.args:
+        segment = ast.get_source_segment(text, argument)
+        if segment is None:
+            return None
+        remaining.append(segment)
+
+    for keyword in call.keywords:
+        if keyword.arg in _LEGACY_FLAGS:
+            continue
+        segment = ast.get_source_segment(text, keyword)
+        if segment is None:
+            return None
+        remaining.append(segment)
+
+    version = version_node.value
+    if backward and forward:
+        replacement = "version=1"
+    elif backward and not forward:
+        replacement = f"versions=ver_range(1, {version})"
+    elif not backward and not forward:
+        replacement = f"versions=[{version}]"
+    else:
+        replacement = f"version={version}"
+
+    remaining.append(replacement)
+    return f"{function_source}({', '.join(remaining)})"
+
+
+def _absolute_offset(text: str, lineno: int, utf8_column: int) -> int:
+    lines = text.splitlines(keepends=True)
+    prefix = sum(len(line) for line in lines[: lineno - 1])
+    line = lines[lineno - 1]
+    character_column = len(line.encode("utf-8")[:utf8_column].decode("utf-8"))
+    return prefix + character_column
+
+
+def _collect_rewrites(text: str) -> list[tuple[int, int, str, str]]:
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+
+    rewrites = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        for decorator in node.decorator_list:
+            if not isinstance(decorator, ast.Call) or not _is_endpoint_call(decorator.func):
                 continue
-            self.stdout.write(f"\n{py_file}:")
-            for old, new in changes:
-                self.stdout.write(f"  - {old}")
-                self.stdout.write(f"  + {new}")
-                if not dry_run:
-                    text = text.replace(old, new)
-            if not dry_run:
-                py_file.write_text(text)
+
+            replacement = _rewrite_call(text, decorator)
+            if replacement is None:
+                continue
+
+            old = ast.get_source_segment(text, decorator)
+            if old is None:
+                continue
+            start = _absolute_offset(text, decorator.lineno, decorator.col_offset)
+            end = _absolute_offset(text, decorator.end_lineno, decorator.end_col_offset)
+            if replacement != old:
+                rewrites.append((start, end, old, replacement))
+
+    return sorted(rewrites, key=lambda item: item[0])
 
 
-def _suggest(text: str):
-    changes = []
-    pattern = re.compile(r"@endpoint\((?P<args>[^)]*)\)")
-    for match in pattern.finditer(text):
-        args = match.group("args")
-        if "forward" not in args and "backward" not in args:
-            continue
-        old = match.group(0)
-        new = _rewrite_args(args)
-        replacement = f"@endpoint({new})"
-        if replacement != old:
-            changes.append((old, replacement))
-    return changes
+def _apply_rewrites(text: str, rewrites: list[tuple[int, int, str, str]]) -> str:
+    updated = text
+    for start, end, _, replacement in reversed(rewrites):
+        updated = updated[:start] + replacement + updated[end:]
+    return updated
 
 
-def _normalize_argument_spacing(args: str) -> str:
-    """Normalize separators without changing commas inside string literals."""
-    result = []
-    quote = None
-    escaped = False
-    index = 0
-
-    while index < len(args):
-        char = args[index]
-        if quote:
-            result.append(char)
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == quote:
-                quote = None
-            index += 1
-            continue
-
-        if char in {"'", '"'}:
-            quote = char
-            result.append(char)
-            index += 1
-            continue
-
-        if char == ",":
-            result.append(",")
-            index += 1
-            while index < len(args) and args[index].isspace():
-                index += 1
-            if index < len(args) and args[index] not in "),":
-                result.append(" ")
-            continue
-
-        result.append(char)
-        index += 1
-
-    return "".join(result).strip().rstrip(",")
+def _suggest(text: str) -> list[tuple[str, str]]:
+    return [
+        (f"@{old}", f"@{new}")
+        for _, _, old, new in _collect_rewrites(text)
+    ]
 
 
 def _rewrite_args(args: str) -> str:
-    version_match = re.search(r"version\s*=\s*(\d+)", args)
-    if not version_match:
+    source = f"__endpoint({args})"
+    try:
+        tree = ast.parse(source, mode="eval")
+    except SyntaxError:
         return args
 
-    version = int(version_match.group(1))
-
-    # 0.2.0 defaults: backward=False, forward=True (segment behaviour).
-    backward_match = re.search(r"backward\s*=\s*(True|False)", args)
-    forward_match = re.search(r"forward\s*=\s*(True|False|None)", args)
-
-    # Do not turn dynamic flag expressions into syntactically valid but
-    # semantically incorrect migrations.
-    if re.search(r"\bbackward\s*=", args) and not backward_match:
-        return args
-    if re.search(r"\bforward\s*=", args) and not forward_match:
+    call = tree.body
+    if not isinstance(call, ast.Call):
         return args
 
-    backward = (backward_match.group(1) == "True") if backward_match else False
-    forward = (forward_match.group(1) == "True") if forward_match else True
+    replacement = _rewrite_call(source, call)
+    if replacement is None:
+        return args
 
-    # Strip version / backward / forward from the original args.
-    cleaned = re.sub(r"version\s*=\s*\d+\s*,?", "", args)
-    cleaned = re.sub(r"backward\s*=\s*(True|False)\s*,?", "", cleaned)
-    cleaned = re.sub(r"forward\s*=\s*(True|False|None)\s*,?", "", cleaned)
-    cleaned = _normalize_argument_spacing(cleaned)
-
-    prefix = f"{cleaned}, " if cleaned else ""
-
-    if backward and forward:
-        return f"{prefix}version=1"
-    if backward and not forward:
-        return f"{prefix}versions=ver_range(1, {version})"
-    if not backward and not forward:
-        return f"{prefix}versions=[{version}]"
-    # backward=False, forward=True  →  segment, unchanged
-    return f"{prefix}version={version}"
+    opening = replacement.find("(")
+    return replacement[opening + 1 : -1]
