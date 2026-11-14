@@ -371,9 +371,21 @@ class TestMigrateEndpointsRewriting:
         args = '"users", backward=True, forward=False'
         assert _rewrite_args(args) == args
 
-    def test_dynamic_flag_expressions_are_not_rewritten(self):
-        args = '"users", version=3, forward=FORWARD_FLAG'
+    @pytest.mark.parametrize(
+        "args",
+        [
+            '"users", version=3, forward=FORWARD_FLAG',
+            '"users", version=3, backward=BACKWARD_FLAG',
+        ],
+    )
+    def test_dynamic_flag_expressions_are_not_rewritten(self, args):
         assert _rewrite_args(args) == args
+
+    def test_preserves_escaped_quotes_and_commas_in_string_literals(self):
+        args = r'"users, \\"admin\\"", version=3, backward=True, forward=False'
+        assert _rewrite_args(args) == (
+            r'"users, \\"admin\\"", versions=ver_range(1, 3)'
+        )
 
     def test_suggest_ignores_modern_and_noop_declarations(self):
         source = '@endpoint("users", version=2)\n' '@endpoint("posts", forward=True)\n'
@@ -434,6 +446,9 @@ class TestMigrateEndpointsCommand:
         migration_file.write_text(source)
         unrelated_file = tmp_path / "plain.py"
         unrelated_file.write_text("def plain():\n    return None\n")
+        modern_file = tmp_path / "modern.py"
+        modern_source = '@endpoint("modern", version=2)\n'
+        modern_file.write_text(modern_source)
 
         out = StringIO()
         call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
@@ -441,4 +456,5 @@ class TestMigrateEndpointsCommand:
         assert "versions=ver_range(1, 2)" in view_file.read_text()
         assert migration_file.read_text() == source
         assert unrelated_file.read_text() == "def plain():\n    return None\n"
+        assert modern_file.read_text() == modern_source
         assert str(view_file) in out.getvalue()
