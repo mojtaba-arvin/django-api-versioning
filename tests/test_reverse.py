@@ -74,6 +74,31 @@ class TestApiReverse:
         with pytest.raises(NoReverseMatch, match="Missing required parameter"):
             api_reverse("user-detail", version=1)
 
+    def test_invalid_int_parameter_raises_no_reverse_match(self):
+        @endpoint("users/<int:pk>/", version=1, view_name="user-detail-invalid-int")
+        def user_detail(request, pk):
+            return JsonResponse({"pk": pk})
+
+        with pytest.raises(NoReverseMatch):
+            api_reverse("user-detail-invalid-int", version=1, pk="not-an-int")
+
+    def test_string_parameter_rejects_path_separator(self):
+        @endpoint("users/<str:username>/", version=1, view_name="user-detail-slash")
+        def user_detail(request, username):
+            return JsonResponse({"username": username})
+
+        with pytest.raises(NoReverseMatch):
+            api_reverse("user-detail-slash", version=1, username="alice/admin")
+
+    def test_path_converter_accepts_path_separator(self):
+        @endpoint("files/<path:resource>/", version=1, view_name="file-detail")
+        def file_detail(request, resource):
+            return JsonResponse({"resource": resource})
+
+        assert api_reverse("file-detail", version=1, resource="reports/annual.pdf") == (
+            "/api/v1/files/reports/annual.pdf/"
+        )
+
     def test_kwarg_with_backslash_not_treated_as_regex_escape(self):
         """Ensure parameters with backslashes don't trigger regex escape sequences."""
 
