@@ -805,7 +805,7 @@ try:  # noqa: C901
 
     endpoint(
         "configured-products/popular/",
-        version=1,
+        versions=[1],
         view_name="configured-product-popular-v1",
     )(
         ConfiguredProductViewSetV1.as_view(
@@ -816,7 +816,7 @@ try:  # noqa: C901
     )
     endpoint(
         "configured-products/popular/",
-        version=2,
+        versions=[2],
         view_name="configured-product-popular-v2",
     )(
         ConfiguredProductViewSetV2.as_view(
