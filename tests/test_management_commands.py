@@ -430,7 +430,8 @@ class TestMigrateEndpointsRewriting:
     def test_suggest_ignores_comments_and_string_literals(self):
         source = (
             '# @endpoint("users", version=2, backward=True, forward=False)\n'
-            'example = \'@endpoint("users", version=2, backward=True, forward=False)\'\n'
+            'example = \'@endpoint("users", version=2, backward=True, '
+            'forward=False)\'\n'
         )
         assert _suggest(source) == []
 
