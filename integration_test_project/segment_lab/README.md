@@ -1,8 +1,8 @@
 # Segment Lab evidence harness
 
-## Current status
+## Purpose
 
-The recovered Netlify scenario code has been ported into this directory and adapted to run inside the repository's existing Django integration project. The harness contains 18 executable scenarios and has passed the integration suite on the current package source. The latest focused CI checkpoint recorded 211 unit tests (96% package coverage) and 249 integration tests passing. The full compatibility matrix passed all 15 Python/Django environments and the lint environment at commit `9b09d66c931f6e99687664da7442ddf9198595cb`.
+The recovered Netlify scenario code has been ported into this directory and adapted to the repository's existing Django integration project. The harness contains 18 executable scenarios. Test counts and pass/fail status belong to the linked GitHub Actions runs, not this operational guide; do not copy transient CI counts here.
 
 The harness reuses:
 - `../manage.py`
@@ -30,7 +30,7 @@ python integration_test_project/segment_lab/generate_routes.py --check
 
 The generator imports `django_api_versioning` directly from this repository checkout. It does not install 0.3.5, fetch a GitHub archive, or compare against PyPI. It records the full Git commit, package version, Python/Django/DRF versions, package source hashes, scenario observations, CLI output, and source references.
 
-Generation fails when package source, `pyproject.toml`, or the executable `integration_test_project/` tree is dirty, when a source symbol/line locator is stale, or when a scenario probe fails. Provenance records SHA-256 hashes for package files and for `pyproject.toml` plus every Python file in the integration project, so the evidence harness itself is traceable. Python 3.10 uses the conditional `tomli` development dependency because `tomllib` is only in the standard library from Python 3.11 onward. Generated evidence belongs in `website/src/data/generated/`.
+Generation fails when package source, unit tests, package/evidence inputs, or the executable `integration_test_project/` tree is dirty, when a source symbol/line locator is stale, or when a scenario probe fails. Provenance records SHA-256 hashes for package files and for `pyproject.toml`, test files, requirements, verification scripts, and every Python file in the integration project, so the evidence inputs are traceable. Python 3.10 uses the conditional `tomli` development dependency because `tomllib` is only in the standard library from Python 3.11 onward. Generated evidence belongs in `website/src/data/generated/`.
 
 ## Historical baseline
 
