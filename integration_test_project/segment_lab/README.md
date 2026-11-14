@@ -35,3 +35,25 @@ Generation fails when package source, `pyproject.toml`, or the executable `integ
 ## Historical baseline
 
 The captured Agent run used package commit `e5a5466ac0fab1eb1ef41d8d570ccac1301f2cd9` (version 0.3.5). Its generated output is historical only and must never be reused as evidence for the current package.
+
+## Local validation
+
+Run these commands from the repository root. Python 3.10 is supported; the
+conditional `tomli` dependency supplies TOML parsing before Python 3.11.
+
+```bash
+python -m pip install -r requirements-ci.txt
+python -m pytest --capture=no tests
+python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
+```
+
+Generate the evidence only from a clean, committed checkout:
+
+```bash
+python integration_test_project/segment_lab/generate_routes.py
+python integration_test_project/segment_lab/generate_routes.py --check
+```
+
+The generator records the checkout commit and hashes the package and executable
+lab inputs. Do not set `SOURCE_COMMIT` to a different revision, and do not edit
+generated evidence by hand.
