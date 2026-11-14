@@ -516,7 +516,9 @@ class TestMigrateEndpointsCommand:
         assert external_file.read_text() == source
         assert str(view_file) in out.getvalue()
 
-    def test_default_write_updates_multiple_decorators_by_source_position(self, tmp_path):
+    def test_default_write_updates_multiple_decorators_by_source_position(
+        self, tmp_path
+    ):
         source = (
             '@endpoint("first", version=2, backward=True, forward=False)\n'
             'def first(request):\n'
