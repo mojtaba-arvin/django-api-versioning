@@ -42,7 +42,9 @@ def _suggest(text: str):
             continue
         old = match.group(0)
         new = _rewrite_args(args)
-        changes.append((old, f"@endpoint({new})"))
+        replacement = f"@endpoint({new})"
+        if replacement != old:
+            changes.append((old, replacement))
     return changes
 
 
@@ -56,6 +58,13 @@ def _rewrite_args(args: str) -> str:
     # 0.2.0 defaults: backward=False, forward=True (segment behaviour).
     backward_match = re.search(r"backward\s*=\s*(True|False)", args)
     forward_match = re.search(r"forward\s*=\s*(True|False|None)", args)
+
+    # Do not turn dynamic flag expressions into syntactically valid but
+    # semantically incorrect migrations.
+    if re.search(r"\bbackward\s*=", args) and not backward_match:
+        return args
+    if re.search(r"\bforward\s*=", args) and not forward_match:
+        return args
 
     backward = (backward_match.group(1) == "True") if backward_match else False
     forward = (forward_match.group(1) == "True") if forward_match else True
