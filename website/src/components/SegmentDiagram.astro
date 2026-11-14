@@ -20,7 +20,7 @@ const slots = colourSlots(scenario);
     {segments.map((segment) => {
       const slot = slots.get(segment.callback) ?? 0;
       return (
-        <>
+        <Fragment>
           <div class="segment-label">
             <strong>{segment.callback}</strong>
             <span>
@@ -47,7 +47,7 @@ const slots = colourSlots(scenario);
               );
             })}
           </div>
-        </>
+        </Fragment>
       );
     })}
     <div class="segment-legend">
