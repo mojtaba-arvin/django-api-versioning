@@ -30,3 +30,20 @@ test("root-relative home and section links respect the site base path", () => {
   assert.equal(home.url, "/project-docs/");
   assert.equal(section.url, "/project-docs/#capabilities");
 });
+
+
+test("non-HTTP URI schemes and protocol-relative links are left unchanged", () => {
+  const urls = ["//cdn.example.com/image.svg", "tel:+15551234567", "ftp://example.com/file"];
+  const links = urls.map((url) => ({
+    type: "link",
+    url,
+    children: [{ type: "text", value: url }],
+  }));
+  const tree = { type: "root", children: [{ type: "paragraph", children: links }] };
+
+  remarkArticleLinks()(tree, {
+    path: process.cwd() + "/src/content/articles/sample.md",
+  });
+
+  assert.deepEqual(links.map((link) => link.url), urls);
+});
