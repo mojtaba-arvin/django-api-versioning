@@ -650,6 +650,10 @@ The v1 router uses `basename="v1-product"`, so the corresponding name is `v1-pro
 
 In the configured-callable pattern, there is no router and no `@action` metadata. You must make the `basename`, `view_name`, and `reverse_action()` argument consistent yourself.
 
+There is one additional versioning constraint. `reverse_action()` delegates to Django URL reversing; it does not receive the package's selected API version. A registration with `version=2` is carried forward through `API_MAX_VERSION`, so the same `view_name` can exist on several versioned paths. In that situation, reversing that name may select a different matching version path from the request that invoked the action.
+
+When an action must reverse to one specific version, register it with an explicit version set such as `versions=[2]` and give each version a distinct `view_name`. The integration project uses this pattern for its configured-callable `popular` routes and verifies the generated action URLs.
+
 Consider this registration:
 
 ```python
