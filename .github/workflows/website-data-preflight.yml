@@ -1,4 +1,4 @@
-name: Website data preflight
+name: Website build and static verification
 
 on:
   push:
@@ -9,17 +9,44 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: website-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  data:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: "22.12.0"
-      - name: Validate generated-data scripts and Node tests
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Install locked dependencies
+        working-directory: website
+        run: npm ci
+      - name: Validate scripts and unit tests
         working-directory: website
         run: |
           node --check scripts/sync-articles.mjs
           node --check scripts/sync-evidence.mjs
+          node --check scripts/check-dist.mjs
+          node --check scripts/serve-dist.mjs
           npm test
+      - name: Run Astro type and content checks
+        working-directory: website
+        run: npm run check
+      - name: Build and inspect root-hosted artifact
+        working-directory: website
+        run: |
+          npm run build
+          npm run test:dist
+      - name: Build and inspect GitHub Pages project-site artifact
+        working-directory: website
+        env:
+          PUBLIC_BASE_PATH: /django-api-versioning
+        run: |
+          npm run build
+          npm run test:dist
