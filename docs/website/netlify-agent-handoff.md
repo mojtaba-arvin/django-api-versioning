@@ -1,5 +1,22 @@
 # Static website hosting handoff
 
+## Final-agent scope
+
+Continue on `audit/comprehensive-package-review`. This is a final review of an existing implementation, not a greenfield build.
+
+- Do not recreate the Astro app, the Django mini-project, the article corpus, route evidence, or the original Netlify Agent's generated files.
+- The recovered scenario code is already integrated into `integration_test_project/segment_lab/`; use its generator and tests. Do not create a parallel `tools/` Django project.
+- `docs/articles/` is the only editable article source. The website synchronizes all 25 articles automatically.
+- The committed Segment Lab snapshot is generated from the repository checkout, not the historical Netlify package 0.3.5 run. Never reuse that historical output.
+- Review the existing site against the ten-section homepage contract, then focus on browser-level keyboard/mobile/accessibility checks, reduced motion, layout shift, and static-host behavior. Make only evidence-backed corrections and add focused tests.
+- Do not run the full Python compatibility matrix for CSS/content-only changes. Run it only for package/runtime changes or the final release checkpoint.
+- Do not publish to PyPI or deploy to production without explicit approval.
+
+### Framework security exception
+
+The original brief requested Astro 6. The Astro 6.4.8 baseline is no longer acceptable for a release candidate: current advisories include critical issues fixed only in later Astro 7 releases. The branch therefore intentionally targets Astro 7.4.12, with patched `esbuild` 0.28.1 and `sharp` 0.35.5 overrides. Do not downgrade to Astro 6 merely to match the original version line; any framework-major change must be justified by current security advisories and verified by the full website workflow.
+
+
 Use this file together with the repository-root `AGENTS.md` and `architecture.md`.
 
 ## Current state
