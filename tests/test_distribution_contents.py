@@ -147,7 +147,6 @@ def test_sdist_rejects_repository_only_assets(
         check_sdist(sdist)
 
 
-
 def test_installed_wheel_digest_includes_only_package_source_files(
     tmp_path: Path,
 ) -> None:
