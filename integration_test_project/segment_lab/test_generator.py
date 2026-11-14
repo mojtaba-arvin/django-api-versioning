@@ -138,7 +138,6 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
     assert scenarios["order_reversed"]["matrix_equal_to"]["equal"] is True
 
 
-
 def test_callback_info_uses_stable_names_for_callable_instances() -> None:
     class CallableView:
         def __call__(self, request):
