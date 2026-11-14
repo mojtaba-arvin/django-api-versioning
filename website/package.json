@@ -1,0 +1,31 @@
+{
+  "name": "django-api-versioning-site",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Static evidence site for the django-api-versioning Python package.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "sync:articles": "node scripts/sync-articles.mjs",
+    "dev": "npm run sync:articles && astro dev",
+    "build": "npm run sync:articles && astro build",
+    "build:offline": "npm run sync:articles && astro build",
+    "preview": "astro preview",
+    "serve:dist": "node scripts/serve-dist.mjs",
+    "test:dist": "node scripts/check-dist.mjs",
+    "check": "npm run sync:articles && astro check"
+  },
+  "dependencies": {
+    "astro": "6.4.8",
+    "unist-util-visit": "5.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/ibm-plex-sans": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "typescript": "5.9.3"
+  }
+}
