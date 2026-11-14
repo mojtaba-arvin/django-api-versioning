@@ -179,11 +179,14 @@ async function copyText(value: string): Promise<void> {
   if (!ok) throw new Error("Clipboard copy is unavailable in this browser.");
 }
 function addCopyButton(pre: HTMLPreElement): void {
-  if (pre.closest(".codeblock")) return;
-  const wrapper = document.createElement("figure");
-  wrapper.className = "codeblock";
-  pre.parentNode?.insertBefore(wrapper, pre);
-  wrapper.append(pre);
+  const existingWrapper = pre.closest<HTMLElement>(".codeblock");
+  if (existingWrapper?.querySelector(".copy-btn")) return;
+  const wrapper = existingWrapper ?? document.createElement("figure");
+  if (!existingWrapper) {
+    wrapper.className = "codeblock";
+    pre.parentNode?.insertBefore(wrapper, pre);
+    wrapper.append(pre);
+  }
   const button = document.createElement("button");
   button.className = "copy-btn copy-floating";
   button.type = "button";
@@ -200,7 +203,7 @@ function addCopyButton(pre: HTMLPreElement): void {
   });
   wrapper.append(button);
 }
-document.querySelectorAll<HTMLPreElement>(".prose pre.astro-code, .prose pre.terminal").forEach(addCopyButton);
+document.querySelectorAll<HTMLPreElement>(".prose pre.astro-code, .prose pre.terminal, pre.terminal").forEach(addCopyButton);
 
 // Scroll-driven CSS is preferred; this is the fallback for browsers without scroll timelines.
 const progress = document.querySelector<HTMLElement>(".reading-progress");
@@ -215,3 +218,128 @@ if (progress && !CSS.supports("animation-timeline: scroll()")) {
   window.addEventListener("resize", update, { passive: true });
   update();
 }
+
+function initSegmentExplorer(): void {
+  const root = document.querySelector<HTMLElement>("[data-segment-explorer]");
+  if (!root) return;
+  const dataElement = root.querySelector<HTMLScriptElement>("#explorer-data");
+  const scenarioSelect = root.querySelector<HTMLSelectElement>("[data-explorer-scenario]");
+  const routeSelect = root.querySelector<HTMLSelectElement>("[data-explorer-route]");
+  const output = root.querySelector<HTMLElement>("[data-explorer-output]");
+  const status = root.querySelector<HTMLElement>("[data-explorer-status]");
+  if (!dataElement || !scenarioSelect || !routeSelect || !output || !status) return;
+
+  type Segment = { start: number; end: number; sourceVersion: number; callback: string; slot: number };
+  type Route = { postfix: string; segments: Segment[] };
+  type Scenario = {
+    name: string; title: string; question: string; min: number; max: number;
+    routes: Route[]; error: string; registrySize: number; requestCount: number;
+  };
+  let scenarios: Scenario[] = [];
+  try { scenarios = JSON.parse(dataElement.textContent ?? "[]"); } catch { return; }
+
+  const setRoutes = (scenario: Scenario, preferred?: string): void => {
+    routeSelect.replaceChildren();
+    for (const route of scenario.routes) {
+      const option = document.createElement("option");
+      option.value = route.postfix;
+      option.textContent = route.postfix;
+      routeSelect.append(option);
+    }
+    routeSelect.disabled = scenario.routes.length === 0;
+    if (preferred && scenario.routes.some((route) => route.postfix === preferred)) {
+      routeSelect.value = preferred;
+    }
+  };
+
+  const render = (): void => {
+    const scenario = scenarios.find((item) => item.name === scenarioSelect.value);
+    if (!scenario) return;
+    const route = scenario.routes.find((item) => item.postfix === routeSelect.value);
+    const question = document.createElement("p");
+    question.className = "explorer-question";
+    question.textContent = scenario.question;
+    if (!route) {
+      const note = document.createElement("p");
+      note.className = "note";
+      note.textContent = scenario.error || "No versioned route segments were registered in this scenario.";
+      output.replaceChildren(question, note);
+      status.textContent = scenario.title + ": no versioned route segments.";
+      return;
+    }
+
+    const visual = document.createElement("div");
+    visual.className = "segment-visual";
+    visual.style.setProperty("--version-count", String(scenario.max - scenario.min + 1));
+    const axis = document.createElement("div");
+    axis.className = "segment-axis";
+    axis.setAttribute("aria-hidden", "true");
+    for (let version = scenario.min; version <= scenario.max; version += 1) {
+      const cell = document.createElement("span");
+      cell.textContent = "v" + version;
+      axis.append(cell);
+    }
+    visual.append(axis);
+
+    for (const segment of route.segments) {
+      const label = document.createElement("div");
+      label.className = "segment-label";
+      const callback = document.createElement("strong");
+      callback.textContent = segment.callback;
+      const detail = document.createElement("span");
+      detail.textContent = "declared at v" + segment.sourceVersion + " · active v" + segment.start + "–v" + segment.end;
+      label.append(callback, detail);
+      visual.append(label);
+
+      const track = document.createElement("div");
+      track.className = "segment-track";
+      for (let version = scenario.min; version <= scenario.max; version += 1) {
+        const cell = document.createElement("span");
+        cell.className = "segment-cell";
+        const active = version >= segment.start && version <= segment.end;
+        if (active) {
+          cell.dataset.slot = String(segment.slot);
+          cell.textContent = "v" + version;
+          cell.title = version === segment.sourceVersion
+            ? "Declaration point at version " + version
+            : "Inherited from declaration at version " + segment.sourceVersion;
+          if (version === segment.sourceVersion) cell.classList.add("is-declaration");
+        } else {
+          cell.setAttribute("aria-hidden", "true");
+        }
+        track.append(cell);
+      }
+      visual.append(track);
+    }
+
+    const legend = document.createElement("div");
+    legend.className = "segment-legend";
+    const declaration = document.createElement("span");
+    declaration.textContent = "Declaration point = version where this view is registered";
+    const inherited = document.createElement("span");
+    inherited.textContent = "Other active cells = forward inheritance";
+    legend.append(declaration, inherited);
+    visual.append(legend);
+    output.replaceChildren(question, visual);
+    status.textContent = scenario.title + " · " + route.postfix + " · " + route.segments.length + " declaration segment(s).";
+  };
+
+  const requestedScenario = new URLSearchParams(window.location.search).get("scenario");
+  if (requestedScenario && scenarios.some((item) => item.name === requestedScenario)) {
+    scenarioSelect.value = requestedScenario;
+  }
+  const initial = scenarios.find((item) => item.name === scenarioSelect.value) ?? scenarios[0];
+  if (!initial) return;
+  const requestedRoute = new URLSearchParams(window.location.search).get("route") ?? root.dataset.initialRoute;
+  setRoutes(initial, requestedRoute);
+  render();
+
+  scenarioSelect.addEventListener("change", () => {
+    const selected = scenarios.find((item) => item.name === scenarioSelect.value);
+    if (!selected) return;
+    setRoutes(selected);
+    render();
+  });
+  routeSelect.addEventListener("change", render);
+}
+initSegmentExplorer();

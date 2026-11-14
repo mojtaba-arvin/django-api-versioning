@@ -616,3 +616,24 @@ caption { text-align: left; padding: 0.6rem 0.75rem; font-size: var(--step--1); 
   .search-form { flex-wrap: wrap; }
   .search-form input { order: 2; flex-basis: 100%; }
 }
+
+/* ---------- Code blocks and source references ---------- */
+.codeblock { position: relative; margin: 1.25rem 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg-sunk); }
+.codeblock-header { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--line); color: var(--muted); font: 0.7rem/1.3 var(--font-mono); }
+.codeblock pre, .codeblock .terminal { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+.copy-btn { position: absolute; inset-block-start: 0.4rem; inset-inline-end: 0.45rem; z-index: 2; min-height: 1.8rem; padding: 0.25rem 0.55rem; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); color: var(--ink); font: 0.7rem var(--font-mono); cursor: pointer; }
+.copy-btn:hover { border-color: var(--accent); }
+.codeblock-header + pre + .copy-btn { inset-block-start: 0.4rem; }
+.source-link { color: var(--accent); font: 0.76rem var(--font-mono); overflow-wrap: anywhere; }
+.explorer-question { margin: 0 0 0.8rem; color: var(--muted); }
+.explorer-status { margin: 0.75rem 0; color: var(--muted); font-size: 0.78rem; }
+.segment-caption { margin: 0.7rem 0 0; color: var(--muted); font-size: 0.75rem; }
+.segment-diagram h3 { margin: 0 0 0.8rem; font-size: var(--step-1); }
+.segment-track { position: relative; }
+.segment-cell { text-align: center; }
+.segment-cell.is-declaration { outline: 2px solid var(--ink); outline-offset: -3px; font-weight: 750; }
+.segment-legend i { flex: none; border-radius: 2px; }
+.source-list { display: grid; gap: 0.35rem; padding: 0; list-style: none; }
+.source-list li { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; padding: 0.45rem 0; border-bottom: 1px solid var(--line); font-size: 0.78rem; }
+.prose .heading-anchor { margin-left: 0.5rem; color: var(--muted); text-decoration: none; opacity: 0; font: 0.8em var(--font-mono); }
+.prose h2:hover .heading-anchor, .prose h3:hover .heading-anchor, .prose h4:hover .heading-anchor, .prose .heading-anchor:focus-visible { opacity: 1; }
