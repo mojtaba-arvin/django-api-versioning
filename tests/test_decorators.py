@@ -8,6 +8,7 @@ from django_api_versioning.exceptions import (
     InvalidVersionError,
     VersionRangeError,
     VersionTypeError,
+    VersioningError,
 )
 from django_api_versioning.registry import registry
 from django_api_versioning.settings import api_settings as settings
@@ -88,6 +89,14 @@ class TestExplicitVersions:
 
 
 class TestValidation:
+    def test_non_string_postfix_raises(self):
+        with pytest.raises(TypeError, match="postfix must be a string"):
+            endpoint(123, version=1)
+
+    def test_leading_slash_postfix_is_rejected(self):
+        with pytest.raises(VersioningError, match="must not start with"):
+            endpoint("/users/", version=1)
+
     def test_both_version_and_versions_raises(self):
         with pytest.raises(VersionRangeError):
             endpoint("x", version=3, versions=[3])
