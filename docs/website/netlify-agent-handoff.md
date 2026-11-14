@@ -42,7 +42,7 @@ The site has not been deployed. Do not describe a Netlify or GitHub Pages deploy
 | Segment Lab and evidence generator | `integration_test_project/segment_lab/` |
 | Canonical long-form articles | `docs/articles/` |
 | Versioning contract | `docs/reference/versioning-contract.md` |
-| Website architecture and phase gates | `docs/website/architecture.md` and `docs/website/implementation-status.md` |
+| Website architecture and handoff gates | `docs/website/architecture.md` and this file |
 | Astro application root | `website/` |
 | Generated evidence destination | `website/src/data/generated/` |
 | PyPI inclusion/exclusion policy | `pyproject.toml` and `MANIFEST.in` |
