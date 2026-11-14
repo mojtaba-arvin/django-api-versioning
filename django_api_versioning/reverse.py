@@ -57,9 +57,7 @@ def api_reverse(
         )
 
     route = route_pattern._route
-    parameter_names = {
-        match.group(1) for match in _CONVERTER_RE.finditer(route)
-    }
+    parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
     unexpected_parameters = sorted(set(kwargs) - parameter_names)
     if unexpected_parameters:
         raise NoReverseMatch(
