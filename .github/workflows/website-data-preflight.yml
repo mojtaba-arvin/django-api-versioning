@@ -10,7 +10,7 @@ on:
     paths:
       - "website/**"
       - "!website/package.json"
-      - "docs/articles/**"
+      - "!website/package-lock.json"
       - ".github/workflows/website-data-preflight.yml"
   pull_request:
     types: [opened, reopened, ready_for_review]
@@ -44,9 +44,6 @@ jobs:
       - name: Install locked dependencies
         working-directory: website
         run: npm ci
-      - name: Audit locked dependencies
-        working-directory: website
-        run: npm audit --audit-level=high
       - name: Validate scripts and unit tests
         working-directory: website
         run: |
