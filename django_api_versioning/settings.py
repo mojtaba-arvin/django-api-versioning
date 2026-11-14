@@ -105,6 +105,11 @@ class APISettings:
                 "and no other format fields."
             )
 
+        if self.API_BASE_PATH.startswith("/"):
+            raise VersioningError(
+                "API_BASE_PATH must be relative and must not start with '/'."
+            )
+
         if not self.API_BASE_PATH.endswith("/"):
             logger.warning(
                 "API_BASE_PATH should end with a '/'. Adding '/' automatically."
