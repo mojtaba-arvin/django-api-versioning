@@ -26,12 +26,19 @@ However, its built-in lifecycle behavior is intentionally limited. It emits `Dep
 The built-in setting uses `API_VERSION_LIFECYCLE`; for example, a version can be marked deprecated with a `sunset` date string:
 
 ```python
+# settings.py
+
 API_VERSION_LIFECYCLE = {
     1: {
         "status": "deprecated",
         "sunset": "2027-06-30",
     },
 }
+
+MIDDLEWARE = [
+    # ...
+    "django_api_versioning.lifecycle.LifecycleMiddleware",
+]
 ```
 
 The later `API_DEPRECATION` setting in this article is different: it is application-defined for the custom middleware, and its `sunset_date` value is a timezone-aware `datetime`. It is not a setting consumed by the package's built-in `LifecycleMiddleware`.
@@ -767,7 +774,7 @@ Use a mixin when deprecation is specific to selected endpoints or when clients n
 
 For a version-wide retirement with resource-specific migration links, combining the two is reasonable.
 
-**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. Its built-in lifecycle support does not provide RFC 9745 date-valued deprecation metadata, migration links, resource-specific successor URLs, or client-usage monitoring. Those additional responsibilities remain with the application.
+**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. Its route registration does not configure a DRF versioning class or automatically populate DRF's `request.version`; it selects the registered callable through generated URL patterns. Its built-in lifecycle support does not provide RFC 9745 date-valued deprecation metadata, migration links, resource-specific successor URLs, or client-usage monitoring. Those additional responsibilities remain with the application.
 
 The same HTTP headers can be used with other Django routing and DRF versioning approaches, but the package-specific part of this implementation is the explicit registration of old and new routes and the use of `api_reverse()` to resolve a successor route from the package registry.
 
