@@ -54,6 +54,9 @@ def test_provenance_is_from_the_current_repository_checkout() -> None:
     assert "integration_test_project/segment_lab/scenario_catalog.py" in evidence_paths
     assert "integration_test_project/api/views.py" in evidence_paths
     assert "integration_test_project/project/urls.py" in evidence_paths
+    assert "tests/test_reverse.py" in evidence_paths
+    assert "pytest.ini" in evidence_paths
+    assert "requirements-ci.txt" in evidence_paths
 
 
 def test_all_scenario_view_modules_resolve() -> None:
