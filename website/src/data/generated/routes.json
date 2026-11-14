@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-14T22:24:15+00:00",
+  "generated_at": "2026-11-14T22:27:11+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -2025,13 +2025,13 @@
               "code": "_register_route(ver, source_version=version)",
               "file": "<repo>/django_api_versioning/decorators.py",
               "function": "decorator",
-              "line": 108
+              "line": 116
             },
             {
               "code": "registry.register(",
               "file": "<repo>/django_api_versioning/decorators.py",
               "function": "_register_route",
-              "line": 88
+              "line": 96
             },
             {
               "code": "pattern = self._create_pattern(route, view, name)",
@@ -4578,6 +4578,7 @@
             "django_api_versioning.lifecycle.LifecycleMiddleware": 1,
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
             "django_api_versioning.lifecycle.LifecycleMiddleware.__init__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -4617,6 +4618,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -4662,6 +4664,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -4707,6 +4710,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -4744,6 +4748,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -4786,6 +4791,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -4816,6 +4822,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 1
@@ -4841,6 +4848,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -5639,6 +5647,7 @@
             "django_api_versioning.lifecycle.LifecycleMiddleware": 1,
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
             "django_api_versioning.lifecycle.LifecycleMiddleware.__init__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2
@@ -5668,6 +5677,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2,
@@ -5698,6 +5708,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2,
@@ -5720,6 +5731,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2,
@@ -5747,6 +5759,7 @@
           "method": "GET",
           "package_calls": {
             "django_api_versioning.lifecycle.LifecycleMiddleware.__call__": 1,
+            "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2,
@@ -7809,7 +7822,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "492b8124718549cead13ec01a92dd19ecb7a994d",
+    "commit": "d4b58e2b57129f3b4328b04e25aeb8a92a6e0e90",
     "evidence_files": [
       {
         "file": "integration_test_project/api/__init__.py",
@@ -7965,7 +7978,7 @@
       },
       {
         "file": "tests/test_decorators.py",
-        "sha256": "468536afe19d910e6e9bb32066b621ab088fa277321039ebfc825116b56112b3"
+        "sha256": "8a4721a85a22746df199e8461914b539967fceadbc455fa81cb8295d1ca8cd39"
       },
       {
         "file": "tests/test_distribution_contents.py",
@@ -7977,7 +7990,7 @@
       },
       {
         "file": "tests/test_lifecycle.py",
-        "sha256": "f11aa5e8c2b9dc86995b1f2c82faec01a881a392f6e937289d7d9e388511a528"
+        "sha256": "83cf3f013ac470eb3e49506d7f4bfcfd2a78b649e531ce8806fd95988cd64de2"
       },
       {
         "file": "tests/test_management_commands.py",
@@ -7989,7 +8002,7 @@
       },
       {
         "file": "tests/test_reverse.py",
-        "sha256": "619e9ebd16095a99132f263ba3222687ab1fdaa35add066987a6a89e8b1b029e"
+        "sha256": "246c7d4646aa68074dde5732d31e0311490a12661cc252fcca49185a3881ce1e"
       },
       {
         "file": "tests/test_segment_model.py",
@@ -7997,7 +8010,7 @@
       },
       {
         "file": "tests/test_settings.py",
-        "sha256": "f2d06849c55d1534ed9af701943000c733e29dceeaa952b360bdae2c076d6424"
+        "sha256": "88e76769f38073171cb9c474fcf38d85cb7ce3710f1f8afe6393fafa8fb3fecd"
       },
       {
         "file": "tests/test_testing_utils.py",
@@ -8019,7 +8032,7 @@
       },
       {
         "file": "django_api_versioning/decorators.py",
-        "sha256": "c58193ddacc87bbaf770cd59c0ed94d8c19c6bec2ffae0cf6791e0580b74f5ee"
+        "sha256": "01bb874475dc03d9bedde85d8511dfdf47f79a0ef0be4a8aa8b4a398efc5ba51"
       },
       {
         "file": "django_api_versioning/exceptions.py",
@@ -8027,7 +8040,7 @@
       },
       {
         "file": "django_api_versioning/lifecycle.py",
-        "sha256": "b0ed00a0efe26112b7463ce7b104205f5cd81be368f0fb09da9cf8256c323ca6"
+        "sha256": "c05c15bb5e9fb7765897e59ddc91878bb7a103e99e96e356479be2043da8ebbd"
       },
       {
         "file": "django_api_versioning/management/__init__.py",
@@ -8043,7 +8056,7 @@
       },
       {
         "file": "django_api_versioning/management/commands/migrate_endpoints.py",
-        "sha256": "f38ea42fcd50c71a0bc30eb710aa85dd5f0631e777a743146a6fcf3e9bc6feaf"
+        "sha256": "206a6801ec5df0468bfdae3c8ff797cc2b7fc010f4d9f30d61b52a519553f1a6"
       },
       {
         "file": "django_api_versioning/registry.py",
@@ -8051,11 +8064,11 @@
       },
       {
         "file": "django_api_versioning/reverse.py",
-        "sha256": "85731f7f931e18790fe163476b543df11cf753c33dc181818b17e8bff4aafc29"
+        "sha256": "0dbc6eb655d90f84f22706c7b6a757181e70f0704e3aed9e99e2f262d21769be"
       },
       {
         "file": "django_api_versioning/settings.py",
-        "sha256": "52c23e9b340ab8c30a5c604f3fa0d2272908d9305207a8ecd9b18c73d141092a"
+        "sha256": "7a6274d513836432118461d5665ccf7ce5c9d2336104f9f01874af87b93bd9b4"
       },
       {
         "file": "django_api_versioning/testing.py",
@@ -8067,7 +8080,7 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/492b8124718549cead13ec01a92dd19ecb7a994d",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/d4b58e2b57129f3b4328b04e25aeb8a92a6e0e90",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
@@ -8078,7 +8091,7 @@
       "api_settings_singleton": {
         "code": "api_settings = APISettings.from_django_settings()",
         "file": "django_api_versioning/settings.py",
-        "line": 167
+        "line": 172
       },
       "as_view_call": {
         "code": "view = view.as_view()",
@@ -8088,12 +8101,12 @@
       "below_min_return": {
         "code": "return view",
         "file": "django_api_versioning/decorators.py",
-        "line": 106
+        "line": 114
       },
       "below_min_warning": {
         "code": "\"No routes will be registered.\",",
         "file": "django_api_versioning/decorators.py",
-        "line": 101
+        "line": 109
       },
       "callback_name": {
         "code": "callback_name = self._get_callback_name(versions[version])",
@@ -8108,7 +8121,7 @@
       "explicit_loop": {
         "code": "for ver in versions:",
         "file": "django_api_versioning/decorators.py",
-        "line": 110
+        "line": 118
       },
       "gap_warning": {
         "code": "self.style.WARNING(f\"  [{endpoint}] v{v} is not defined.\")",
@@ -8148,17 +8161,17 @@
       "route_string": {
         "code": "route = f\"{base_path}{app_name_part}{postfix}\"",
         "file": "django_api_versioning/decorators.py",
-        "line": 87
+        "line": 95
       },
       "segment_loop": {
         "code": "for ver in range(version, max_version + 1):",
         "file": "django_api_versioning/decorators.py",
-        "line": 107
+        "line": 115
       },
       "settings_read_in_decorator": {
         "code": "max_version: int = settings.API_MAX_VERSION",
         "file": "django_api_versioning/decorators.py",
-        "line": 68
+        "line": 76
       },
       "sunset_410": {
         "code": "if sunset_date and _is_past(sunset_date):",
@@ -8170,17 +8183,17 @@
       "API_EFFECTIVE_VERSION_RESOLVER": [
         {
           "file": "django_api_versioning/settings.py",
-          "line": 160
+          "line": 165
         }
       ],
       "API_VERSIONING_CHANNELS": [
         {
           "file": "django_api_versioning/settings.py",
-          "line": 152
+          "line": 157
         },
         {
           "file": "django_api_versioning/settings.py",
-          "line": 150
+          "line": 155
         }
       ],
       "channels_module_imported_by": []
@@ -8227,22 +8240,22 @@
         "start": 20
       },
       "_extract_version_from_path": {
-        "end": 138,
+        "end": 145,
         "file": "django_api_versioning/lifecycle.py",
-        "start": 99
+        "start": 106
       },
       "_parse_sunset": {
-        "end": 155,
+        "end": 162,
         "file": "django_api_versioning/lifecycle.py",
-        "start": 141
+        "start": 148
       },
       "_validate_version": {
-        "end": 135,
+        "end": 143,
         "file": "django_api_versioning/decorators.py",
-        "start": 129
+        "start": 137
       },
       "api_reverse": {
-        "end": 88,
+        "end": 96,
         "file": "django_api_versioning/reverse.py",
         "start": 13
       },
@@ -8267,9 +8280,9 @@
         "start": 11
       },
       "endpoint": {
-        "end": 126,
+        "end": 134,
         "file": "django_api_versioning/decorators.py",
-        "start": 27
+        "start": 28
       },
       "extract_version (channels)": {
         "end": 24,
@@ -8277,9 +8290,9 @@
         "start": 4
       },
       "ver_range": {
-        "end": 24,
+        "end": 25,
         "file": "django_api_versioning/decorators.py",
-        "start": 16
+        "start": 17
       }
     }
   }
