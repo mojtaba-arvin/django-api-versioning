@@ -382,36 +382,45 @@ class TestMigrateEndpointsRewriting:
         assert _rewrite_args(args) == args
 
     def test_preserves_escaped_quotes_and_commas_in_string_literals(self):
-        args = r'"users, \"admin\"", version=3, backward=True, forward=False'
-        assert _rewrite_args(args) == (r'"users, \"admin\"", versions=ver_range(1, 3)')
+        args = r'"users, \\"admin\\\"", version=3, backward=True, forward=False'
+        assert _rewrite_args(args) == (
+            r'"users, \\"admin\\\"", versions=ver_range(1, 3)'
+        )
 
     def test_suggest_ignores_modern_and_noop_declarations(self):
-        source = '@endpoint("users", version=2)\n' '@endpoint("posts", forward=True)\n'
+        source = (
+            '@endpoint("users", version=2)\\n'
+            'def users(request):\\n'
+            '    return None\\n'
+            '@endpoint("posts", forward=True)\\n'
+            'def posts(request):\\n'
+            '    return None\\n'
+        )
         assert _suggest(source) == []
 
     def test_suggest_preserves_unrelated_arguments_and_string_contents(self):
-        source = (
+        decorator = (
             '@endpoint("users,admin", version=2, backward=True, '
             'forward=False, app_name="public")'
         )
+        source = decorator + '\\ndef view(request):\\n    return None\\n'
         assert _suggest(source) == [
             (
-                source,
+                decorator,
                 '@endpoint("users,admin", app_name="public", '
                 "versions=ver_range(1, 2))",
             )
         ]
 
-
-
     def test_suggest_handles_nested_unrelated_expressions(self):
-        source = (
+        decorator = (
             '@endpoint("users", version=2, backward=True, forward=False, '
             'app_name=build_name("public", suffix="v1"))'
         )
+        source = decorator + '\\ndef view(request):\\n    return None\\n'
         assert _suggest(source) == [
             (
-                source,
+                decorator,
                 '@endpoint("users", app_name=build_name("public", suffix="v1"), '
                 "versions=ver_range(1, 2))",
             )
@@ -419,23 +428,62 @@ class TestMigrateEndpointsRewriting:
 
     def test_suggest_ignores_comments_and_string_literals(self):
         source = (
-            '# @endpoint("users", version=2, backward=True, forward=False)\n'
-            'example = \'@endpoint("users", version=2, backward=True, forward=False)\'\n'
+            '# @endpoint("users", version=2, backward=True, forward=False)\\n'
+            'example = \'@endpoint("users", version=2, backward=True, forward=False)\'\\n'
         )
         assert _suggest(source) == []
 
     def test_suggest_leaves_decorators_with_comments_unchanged(self):
         source = (
-            '@endpoint("users", version=2, backward=True, # keep this note\n'
-            '          forward=False)\n'
-            'def view(request):\n'
-            '    return None\n'
+            '@endpoint("users", version=2, backward=True, # keep this note\\n'
+            '          forward=False)\\n'
+            'def view(request):\\n'
+            '    return None\\n'
         )
         assert _suggest(source) == []
 
 
+class TestMigrateEndpointsCommand:
+    """Test preview and explicit write behavior against isolated files."""
+
+    def test_migrate_endpoints_runs(self, tmp_path):
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+        assert out.getvalue() == ""
+
+    def test_dry_run_reports_changes_without_modifying_files(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            'def view(request):\\n'
+            '    return None\\n'
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+        migrations = tmp_path / "migrations"
+        migrations.mkdir()
+        migration_file = migrations / "0001_initial.py"
+        migration_file.write_text(source)
+
+        out = StringIO()
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            dry_run=True,
+            stdout=out,
+        )
+
+        output = out.getvalue()
+        assert str(view_file) in output
+        assert "versions=ver_range(1, 2)" in output
+        assert view_file.read_text() == source
+        assert migration_file.read_text() == source
+
     def test_default_mode_previews_changes_without_modifying_files(self, tmp_path):
-        source = '@endpoint("users", version=2, backward=True, forward=False)\n'
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            'def view(request):\\n'
+            '    return None\\n'
+        )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
         migrations = tmp_path / "migrations"
@@ -451,7 +499,11 @@ class TestMigrateEndpointsRewriting:
         assert migration_file.read_text() == source
 
     def test_write_mode_applies_changes_but_skips_migrations(self, tmp_path):
-        source = '@endpoint("users", version=2, backward=True, forward=False)\n'
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            'def view(request):\\n'
+            '    return None\\n'
+        )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
         migrations = tmp_path / "migrations"
@@ -459,16 +511,44 @@ class TestMigrateEndpointsRewriting:
         migration_file = migrations / "0001_initial.py"
         migration_file.write_text(source)
         unrelated_file = tmp_path / "plain.py"
-        unrelated_file.write_text("def plain():\n    return None\n")
+        unrelated_file.write_text("def plain():\\n    return None\\n")
         modern_file = tmp_path / "modern.py"
-        modern_source = '@endpoint("modern", version=2)\n'
+        modern_source = (
+            '@endpoint("modern", version=2)\\n'
+            'def modern(request):\\n'
+            '    return None\\n'
+        )
         modern_file.write_text(modern_source)
+        virtualenv = tmp_path / ".venv" / "site-packages" / "example"
+        virtualenv.mkdir(parents=True)
+        external_file = virtualenv / "views.py"
+        external_file.write_text(source)
 
         out = StringIO()
         call_command("migrate_endpoints", path=str(tmp_path), write=True, stdout=out)
 
         assert "versions=ver_range(1, 2)" in view_file.read_text()
         assert migration_file.read_text() == source
-        assert unrelated_file.read_text() == "def plain():\n    return None\n"
+        assert unrelated_file.read_text() == "def plain():\\n    return None\\n"
         assert modern_file.read_text() == modern_source
+        assert external_file.read_text() == source
         assert str(view_file) in out.getvalue()
+
+    def test_write_mode_updates_multiple_decorators_by_source_position(self, tmp_path):
+        source = (
+            '@endpoint("first", version=2, backward=True, forward=False)\\n'
+            'def first(request):\\n'
+            '    return None\\n'
+            '@endpoint("second", version=3, backward=False, forward=False)\\n'
+            'def second(request):\\n'
+            '    return None\\n'
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        call_command("migrate_endpoints", path=str(tmp_path), write=True, stdout=StringIO())
+
+        updated = view_file.read_text()
+        assert "versions=ver_range(1, 2)" in updated
+        assert "versions=[3]" in updated
+        ast.parse(updated)
