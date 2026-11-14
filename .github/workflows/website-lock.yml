@@ -28,17 +28,43 @@ jobs:
       - name: Generate deterministic npm lockfile
         working-directory: website
         run: npm install --package-lock-only --ignore-scripts
-      - name: Commit lockfile when changed
+      - name: Commit lockfile against the latest branch head
         run: |
-          git add website/package-lock.json
-          if git diff --cached --quiet; then
-            echo "Lockfile is already up to date."
-          else
-            git config user.name "Mojtaba Arvin"
-            git config user.email "m.arvin@live.com"
+          set -euo pipefail
+          git config user.name "Mojtaba Arvin"
+          git config user.email "m.arvin@live.com"
+
+          # The branch may advance while npm resolves the lockfile. Regenerate
+          # from the latest package.json rather than force-pushing stale state.
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            remote_sha="$(git rev-parse FETCH_HEAD)"
+            current_sha="$(git rev-parse HEAD)"
+
+            if [ "$remote_sha" != "$current_sha" ]; then
+              git reset --hard "$remote_sha"
+              npm --prefix website install --package-lock-only --ignore-scripts
+            fi
+
+            git diff --check
+            git add website/package-lock.json
+
+            if git diff --cached --quiet; then
+              echo "Lockfile is already up to date."
+              exit 0
+            fi
+
             git commit -m "build(site): lock frontend dependencies"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+
+            echo "Branch advanced during lockfile push attempt $attempt; retrying."
+            git reset --hard "$remote_sha"
+          done
+
+          echo "Could not publish the lockfile after three concurrent-update retries." >&2
+          exit 1
       - name: Install the exact locked dependency tree
         working-directory: website
         run: npm ci
