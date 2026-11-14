@@ -67,7 +67,7 @@ Do not infer behaviour from article wording alone. Verify package claims against
 - `requirements-ci.txt` contains only dependencies needed by pytest and the integration project. Do not add formatter/type-checker/pre-commit dependencies to it unless CI actually runs those tools.
 - `requirements-build.txt` contains only wheel/sdist build and metadata-validation tools.
 - The root `Dockerfile` and `entrypoint.sh` remain the full local development workflow; BuildKit pip caching is enabled and pre-commit hook environments are installed lazily only when requested.
-- `.github/workflows/website-data-preflight.yml` runs Node/Astro checks and static-output tests for `website/**` and `docs/articles/**`; it never builds the Python development Docker image.
+- `.github/workflows/website-data-preflight.yml` runs Node/Astro checks and static-output tests for `website/**` and `docs/articles/**` on relevant pushes to `main` and `audit/comprehensive-package-review`, PR review-start checkpoints, and manual dispatch; it never builds the Python development Docker image.
 - `.github/workflows/website-lock.yml` regenerates the npm lockfile when `website/package.json` changes and runs the complete website verification sequence.
 - `.github/workflows/generate-evidence.yml` runs when package/integration evidence inputs change, regenerates source-pinned Segment Lab evidence, then runs website checks and both static builds in the same workflow because a GITHUB_TOKEN-created commit does not trigger another workflow.
 - Keep these website workflows separate from Python tests and PyPI artifact workflows.
