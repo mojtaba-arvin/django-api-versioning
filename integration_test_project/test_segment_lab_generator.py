@@ -44,7 +44,6 @@ def test_setting_references_only_reports_read_accesses():
     ]
 
 
-
 def test_unique_line_reference_returns_the_only_matching_line():
     assert _unique_line_reference(
         ["first", "    return view", "last"],
