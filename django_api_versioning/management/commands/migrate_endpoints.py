@@ -5,7 +5,6 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-
 _EXCLUDED_DIRS = {
     ".git",
     ".venv",
@@ -48,9 +47,13 @@ class Command(BaseCommand):
 
         for py_file in root.rglob("*.py"):
             relative_parts = py_file.relative_to(root).parts
-            if py_file.is_symlink() or py_file.name.startswith(".") or any(
-                part in _EXCLUDED_DIRS or part.startswith(".")
-                for part in relative_parts[:-1]
+            if (
+                py_file.is_symlink()
+                or py_file.name.startswith(".")
+                or any(
+                    part in _EXCLUDED_DIRS or part.startswith(".")
+                    for part in relative_parts[:-1]
+                )
             ):
                 continue
 
@@ -224,10 +227,7 @@ def _apply_rewrites(text: str, rewrites: list[tuple[int, int, str, str]]) -> str
 
 
 def _suggest(text: str) -> list[tuple[str, str]]:
-    return [
-        (f"@{old}", f"@{new}")
-        for _, _, old, new in _collect_rewrites(text)
-    ]
+    return [(f"@{old}", f"@{new}") for _, _, old, new in _collect_rewrites(text)]
 
 
 def _rewrite_args(args: str) -> str:
