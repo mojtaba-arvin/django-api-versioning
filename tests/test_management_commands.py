@@ -526,14 +526,14 @@ class TestMigrateEndpointsCommand:
         modern_file.write_text(modern_source)
         hidden_file = tmp_path / ".hidden.py"
         hidden_file.write_text(source)
-        external_file = tmp_path.parent / f"{tmp_path.name}-outside.py"
-        external_file.write_text(source)
+        symlink_target = tmp_path.parent / f"{tmp_path.name}-outside.py"
+        symlink_target.write_text(source)
         symlink_file = tmp_path / "linked.py"
-        symlink_file.symlink_to(external_file)
+        symlink_file.symlink_to(symlink_target)
         virtualenv = tmp_path / ".venv" / "site-packages" / "example"
         virtualenv.mkdir(parents=True)
-        external_file = virtualenv / "views.py"
-        external_file.write_text(source)
+        virtualenv_file = virtualenv / "views.py"
+        virtualenv_file.write_text(source)
 
         out = StringIO()
         call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
@@ -543,9 +543,10 @@ class TestMigrateEndpointsCommand:
         assert unrelated_file.read_text() == "def plain():\n    return None\n"
         assert modern_file.read_text() == modern_source
         assert hidden_file.read_text() == source
-        assert external_file.read_text() == source
+        assert symlink_target.read_text() == source
+        assert virtualenv_file.read_text() == source
         assert str(view_file) in out.getvalue()
-        external_file.unlink()
+        symlink_target.unlink()
 
     def test_default_write_result_executes_without_ver_range_import(
         self, tmp_path
