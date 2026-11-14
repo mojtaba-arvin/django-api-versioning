@@ -6,9 +6,9 @@ from django.http import JsonResponse
 from django_api_versioning.decorators import endpoint, ver_range
 from django_api_versioning.exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
-    VersioningError,
 )
 from django_api_versioning.registry import registry
 from django_api_versioning.settings import api_settings as settings
@@ -187,9 +187,7 @@ class TestIssue0SimultaneousVersionAndVersions:
 
 
 class TestExplicitVersionsBelowMin:
-    def test_explicit_versions_below_min_are_skipped(
-        self, monkeypatch, caplog
-    ):
+    def test_explicit_versions_below_min_are_skipped(self, monkeypatch, caplog):
         from django_api_versioning.decorators import settings as api_settings
 
         monkeypatch.setattr(api_settings, "API_MIN_VERSION", 2)
