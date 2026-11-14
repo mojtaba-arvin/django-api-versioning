@@ -6,6 +6,10 @@ import { listArticles, resolveArticleLink } from "./article-index.mjs";
  * - Rewrites upstream site-relative article links to /articles/<id>/.
  *   Unresolvable relative links are reported and left unchanged.
  */
+const rawBase = process.env.PUBLIC_BASE_PATH ?? "/";
+const basePrefix =
+  rawBase === "/" ? "" : `/${rawBase.split("/").filter(Boolean).join("/")}`;
+
 export function remarkArticleLinks() {
   return (tree, file) => {
     const filePath = String(file.path ?? file.history?.[0] ?? "");
@@ -16,10 +20,11 @@ export function remarkArticleLinks() {
     visit(tree, "link", (node) => {
       const href = node.url;
       if (!href || /^(https?:|mailto:|#)/.test(href)) return;
-      const [target, hash] = href.split("#");
-      const id = resolveArticleLink(target, articles);
+      const id = resolveArticleLink(href, articles);
       if (id) {
-        node.url = `/articles/${id}/${hash ? `#${hash}` : ""}`;
+        const suffixIndex = href.search(/[?#]/);
+        const suffix = suffixIndex === -1 ? "" : href.slice(suffixIndex);
+        node.url = `${basePrefix}/articles/${id}/${suffix}`;
       } else {
         console.warn(`[articles] unresolved link ${href} in ${filePath}`);
       }

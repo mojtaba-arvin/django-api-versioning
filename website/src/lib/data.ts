@@ -147,7 +147,7 @@ export function lineRef(key: string) {
   return { ...s, url: gh(s.file, s.line), label: `${s.file.replace("django_api_versioning/", "")}:${s.line}` };
 }
 
-export const pypiUrl = `https://pypi.org/project/${source.package}/${source.version}/`;
+export const pypiUrl = `https://pypi.org/project/${source.package}/`;
 export const repoUrl = source.repository;
 export const commitUrl = `${source.repository}/commit/${source.commit}`;
 export const docsUrl = `${source.repository}/blob/${source.commit}/README.md`;
