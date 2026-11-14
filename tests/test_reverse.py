@@ -4,7 +4,7 @@ from django.urls import NoReverseMatch
 
 from django_api_versioning import api_reverse
 from django_api_versioning.decorators import endpoint
-from django_api_versioning.exceptions import AmbiguousVersionError
+from django_api_versioning.exceptions import AmbiguousVersionError, VersionTypeError
 from django_api_versioning.settings import api_settings as settings
 
 
@@ -32,6 +32,15 @@ class TestApiReverse:
         assert api_reverse("users", version=3) == "/api/v3/users"
         assert api_reverse("users", version=4) == "/api/v4/users"
         assert api_reverse("users", version=5) == "/api/v5/users"
+
+    @pytest.mark.parametrize("invalid_version", [True, 1.0, "1"])
+    def test_non_integer_version_is_rejected(self, invalid_version):
+        @endpoint("typed-version/", versions=[1], view_name="typed-version")
+        def typed_version(request):
+            return JsonResponse({})
+
+        with pytest.raises(VersionTypeError, match="Version must be an integer"):
+            api_reverse("typed-version", version=invalid_version)
 
     def test_missing_version_raises_no_reverse_match(self, versions_1_to_5):
         _register_users()
