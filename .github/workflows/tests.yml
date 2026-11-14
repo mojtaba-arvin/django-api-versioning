@@ -19,9 +19,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify and export source commit
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Build Docker image
         run: docker build -t django-api-versioning-test .
 
       - name: Run tests in Docker
-        run: docker run --rm django-api-versioning-test
+        run: docker run --rm -e SOURCE_COMMIT="$SOURCE_COMMIT" django-api-versioning-test

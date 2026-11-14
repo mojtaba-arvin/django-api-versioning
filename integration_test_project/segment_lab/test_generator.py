@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import os
 import subprocess
 import tomllib
 from pathlib import Path
@@ -14,13 +15,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_provenance_is_from_the_current_repository_checkout() -> None:
     result = provenance()
     project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
-    commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
+    commit = os.environ.get("SOURCE_COMMIT")
+    if not commit:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
 
     assert result["version"] == project["project"]["version"]
     assert result["commit"] == commit

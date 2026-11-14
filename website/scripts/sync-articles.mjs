@@ -44,10 +44,13 @@ for (const name of sourceFiles) {
   });
 }
 
-const commit = execFileSync("git", ["rev-parse", "HEAD"], {
-  cwd: repositoryRoot,
-  encoding: "utf8",
-}).trim();
+const commit =
+  process.env.SOURCE_COMMIT ||
+  process.env.COMMIT_REF ||
+  execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  }).trim();
 
 const manifest = {
   repository: "https://github.com/mojtaba-arvin/django-api-versioning",

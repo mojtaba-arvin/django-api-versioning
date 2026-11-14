@@ -51,29 +51,45 @@ from segment_lab.scenario_catalog import SCENARIOS  # noqa: E402  (plain dict, n
 # --------------------------------------------------------------------------
 def provenance() -> dict:
     """Describe the exact package source in this repository checkout."""
-    dirty = subprocess.run(
-        ["git", "status", "--porcelain", "--", "django_api_versioning", "pyproject.toml"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    if dirty.stdout.strip():
-        raise SystemExit(
-            "Package source or pyproject.toml has uncommitted changes; "
-            "commit them before generating evidence."
-        )
-
-    commit = subprocess.run(
+    supplied_commit = os.environ.get("SOURCE_COMMIT", "").strip()
+    head = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        check=True,
-    ).stdout.strip()
-    if not re.fullmatch(r"[0-9a-f]{40}", commit):
-        raise SystemExit(f"Expected a full Git commit SHA, got {commit!r}.")
+        check=False,
+    )
+    checkout_commit = head.stdout.strip() if head.returncode == 0 else None
 
+    if supplied_commit and not re.fullmatch(r"[0-9a-f]{40}", supplied_commit):
+        raise SystemExit(f"SOURCE_COMMIT must be a full Git SHA, got {supplied_commit!r}.")
+    if supplied_commit and checkout_commit and supplied_commit != checkout_commit:
+        raise SystemExit(
+            f"SOURCE_COMMIT {supplied_commit} does not match checkout HEAD {checkout_commit}."
+        )
+    if not supplied_commit and not checkout_commit:
+        raise SystemExit(
+            "Git HEAD is unavailable. Set SOURCE_COMMIT from a verified checkout."
+        )
+
+    # When Git metadata is present, reject uncommitted package changes. Some
+    # build containers intentionally omit .git; there SOURCE_COMMIT is supplied
+    # by the host workflow after it verifies the checkout SHA.
+    if checkout_commit:
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain", "--", "django_api_versioning", "pyproject.toml"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        if dirty.stdout.strip():
+            raise SystemExit(
+                "Package source or pyproject.toml has uncommitted changes; "
+                "commit them before generating evidence."
+            )
+
+    commit = supplied_commit or checkout_commit
     project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
     package_dir = PACKAGE_DIR
     files = []
