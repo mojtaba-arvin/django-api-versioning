@@ -71,13 +71,18 @@ The root `Dockerfile` and `entrypoint.sh` remain the complete local development 
 
 ## Observed baselines
 
-The latest Python focused and compatibility checkpoints completed successfully at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`:
+The full tox compatibility checkpoint completed successfully at source commit `9b09d66c931f6e99687664da7442ddf9198595cb`:
 
-- Unit tests: 211 passed; 96% package coverage.
-- Integration tests: 249 passed.
+- 211 unit tests and 249 integration tests passed.
 - All 15 Python/Django compatibility environments and lint passed.
-- Optimized Python workflow wall time: approximately 38–42 seconds.
-- Package artifact workflow: approximately 19–22 seconds.
+
+The latest focused Python workflow on the active audit branch completed successfully at source `1580abca5ceae639d55fdb12f94177c5239aebdb` ([run 43642849997](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43642849997)):
+
+- 211 unit tests passed.
+- 252 integration tests passed.
+- 96% package coverage.
+
+The package artifact workflow completed successfully at source `46399121b551f45301d73ff7e53100f5f39d69ef` ([run 43642742970](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43642742970)); wheel/sdist creation, Twine validation, and package-content checks passed.
 
 The latest recorded website checkpoint on implementation commit `330a9553310ae4c9d44fb9787f607ac2ba0c114a` ([GitHub Actions run 43638777904](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43638777904)) passed:
 - 20 Node tests;
