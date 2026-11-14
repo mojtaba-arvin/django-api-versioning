@@ -1,5 +1,5 @@
 /**
- * Typed access to src/data/routes.json (written by tools/generate_routes.py).
+ * Typed access to src/data/generated/routes.json (written by integration_test_project/segment_lab/generate_routes.py).
  *
  * Everything the site shows about package behaviour is read from here.
  * Helpers below only *reshape* recorded values (group, filter, format);

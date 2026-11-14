@@ -9,14 +9,15 @@
   },
   "scripts": {
     "sync:articles": "node scripts/sync-articles.mjs",
-    "dev": "npm run sync:articles && astro dev",
-    "build": "npm run sync:articles && astro build",
-    "build:offline": "npm run sync:articles && astro build",
+    "sync:evidence": "node scripts/sync-evidence.mjs",
+    "dev": "npm run sync:articles && npm run sync:evidence && astro dev",
+    "build": "npm run sync:articles && npm run sync:evidence && astro build",
+    "build:offline": "npm run sync:articles && npm run sync:evidence && astro build",
     "preview": "astro preview",
     "serve:dist": "node scripts/serve-dist.mjs",
     "test:dist": "node scripts/check-dist.mjs",
-    "check": "npm run sync:articles && astro check",
-    "test": "node --test"
+    "check": "npm run sync:articles && npm run sync:evidence && astro check",
+    "test": "npm run sync:articles && npm run sync:evidence && node --test"
   },
   "dependencies": {
     "astro": "6.4.8",

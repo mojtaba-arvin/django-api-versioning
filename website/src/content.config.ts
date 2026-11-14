@@ -14,9 +14,9 @@ const articles = defineCollection({
     generateId: ({ entry }) => entry.replace(/\.md$/, ""),
   }),
   schema: z.object({
-    title: z.string().optional(),
-    description: z.string().optional(),
-    slug: z.string().optional(),
+    title: z.string(),
+    description: z.string(),
+    slug: z.string(),
     keywords: z.array(z.string()).optional(),
     author: z.object({ name: z.string(), url: z.string().optional() }).optional(),
   }),
