@@ -1,7 +1,7 @@
 ---
 slug: "004-api-routing-library"
-title: "API routing libraries: declarative versioning and automatic inheritance"
-description: "Explore declarative endpoint registration, forward route inheritance, and how routing libraries reduce repetitive URL configuration in multi-version Django REST Framework APIs."
+title: "API routing libraries: declarative registration and route inheritance"
+description: "Explore declarative endpoint registration and forward route inheritance as alternatives to repeating URL configuration across Django REST Framework APIs."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -10,11 +10,12 @@ keywords:
   - "DRF API versioning"
   - "declarative API registration"
   - "endpoint registration"
-  - "API routing patterns"
   - "forward route inheritance"
 ---
 
-# API routing libraries: declarative versioning and automatic inheritance
+# API routing libraries: declarative registration and route inheritance
+
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
 
 API versioning introduces a routing problem that grows with the number of endpoints and versions.
 
@@ -26,7 +27,7 @@ A routing library can move that responsibility out of the project's URL configur
 
 This article explores that design through `django-api-versioning`, including its routing model, Python inheritance, trade-offs, and the situations where declarative registration provides value.
 
-**Technical assessment date:** `2026-11-12`
+**Technical assessment date:** `2026-11-15`
 
 The examples target Django REST Framework class-based views and use path-based versioning.
 
@@ -136,7 +137,7 @@ It is a routing behavior, not Python class inheritance. The two concepts can be 
 
 ### Connecting generated routes to Django
 
-The modules containing decorated views must be imported before the package's generated URL patterns are imported.
+Import modules containing decorated views during URLconf initialization so their decorators register routes before Django first resolves requests.
 
 For example:
 
@@ -155,7 +156,7 @@ urlpatterns = [
 ]
 ```
 
-The `views` import executes the decorators and populates the registry. Importing `api_urlpatterns` before the endpoint declarations risks capturing an empty or incomplete pattern list.
+The `views` import executes the decorators and populates the registry. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view module does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
 Key point: you declare endpoint versions, not individual URLs. The library generates the URL patterns from those declarations.
 
@@ -625,7 +626,7 @@ DRF ViewSet classes are also not directly supported by `@endpoint`. A ViewSet's 
 
 Use DRF's `DefaultRouter` or `SimpleRouter` to register ViewSets and mount their generated URLs separately under the desired versioned prefixes. This router setup is separate from the package's endpoint registry; it is not automatic router integration.
 
-For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
 
 ## Getting started with django-api-versioning
 
@@ -633,10 +634,8 @@ The package is available on [PyPI](https://pypi.org/project/django-api-versionin
 
 The repository contains the integration example and implementation:
 
-- [Integration project's URL configuration](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py)
-- [Endpoint decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py)
-
-I maintain this package, and the examples in this article describe its routing model and implementation.
+- [Integration project's URL configuration](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py)
+- [Endpoint decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/decorators.py)
 
 If your API has many endpoints that evolve incrementally, declarative registration can make the routing layer reflect those changes with fewer repeated declarations.
 
