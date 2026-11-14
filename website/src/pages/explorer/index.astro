@@ -3,6 +3,8 @@ import Base from "../../layouts/Base.astro";
 import SegmentExplorer from "../../components/SegmentExplorer.astro";
 import SourceLink from "../../components/SourceLink.astro";
 import { data, source } from "../../lib/data";
+const basePath = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const evidenceHref = basePath + "evidence/";
 ---
 <Base
   title="Segment Explorer"
@@ -43,7 +45,7 @@ import { data, source } from "../../lib/data";
       <p class="muted">
         The underlying registry and expansion logic are in
         <SourceLink file={data.source_refs.lines.segment_loop.file} line={data.source_refs.lines.segment_loop.line} label="the package's segment expansion code" />.
-        Raw evidence is available from the <a href="../evidence/">evidence report</a>.
+        Raw evidence is available from the <a href={evidenceHref}>evidence report</a>.
       </p>
     </section>
   </div>

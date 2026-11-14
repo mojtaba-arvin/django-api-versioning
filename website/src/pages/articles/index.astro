@@ -29,7 +29,7 @@ const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
     <div class="article-grid">
       {articles.map((article) => (
         <a class="article-card" href={withBase(`/articles/${article.id}/`)}>
-          <span class="article-meta">{article.data.category ?? "Technical guide"} · {article.id}</span>
+          <span class="article-meta">{article.data.keywords?.[0] ?? "Technical article"} · {article.id}</span>
           <h2>{article.data.title}</h2>
           <p>{article.data.description}</p>
           {article.data.keywords?.length > 0 && (
