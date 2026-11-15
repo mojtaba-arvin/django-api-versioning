@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 """Dependency-free diagnostics, context selection, and validation for coding agents."""
 
-
 from __future__ import annotations
-
-# Temporary formatter diagnostics trigger.
-
 
 import argparse
 import json
