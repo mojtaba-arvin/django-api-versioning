@@ -12,7 +12,7 @@ Continue on `audit/comprehensive-package-review`. This task is a redesign of the
 - The committed Segment Lab snapshot is generated from the repository checkout, not the historical Netlify package 0.3.5 run. Never reuse that historical output.
 - Validate the redesigned site at browser level, including keyboard/mobile/accessibility checks, reduced motion, layout stability, and static-host behavior. Make evidence-backed technical claims and add focused tests for changed behavior.
 - Do not run the full Python compatibility matrix for frontend-only changes. Run it only for package/runtime changes or the final release checkpoint.
-- A version tag cannot publish to PyPI until the reusable 15-environment compatibility matrix and lint job pass; the publish workflow then builds and smoke-tests the exact tagged wheel.
+- A version tag cannot publish to PyPI until the reusable 15-environment compatibility matrix and lint job pass. The release workflow builds, validates, and smoke-tests distributions in a job without OIDC permissions, then passes a short-lived artifact to a separate minimal publish job. Only that final job receives `id-token: write`; it must not check out source or run build scripts.
 - Do not publish to PyPI or deploy to production without explicit approval.
 
 ### Framework security exception
