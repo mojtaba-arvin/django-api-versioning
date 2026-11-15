@@ -79,7 +79,7 @@ The path is derived from three elements:
 
 The Python class name does not determine the URL path or URL name. Use `view_name` when the route needs an explicit Django URL pattern name.
 
-The package's registration rules, import paths, version identifiers, route construction, and ViewSet boundary are documented in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md). That document is the reference for package-specific routing semantics used throughout this article.
+The package's registration rules, import paths, version identifiers, route construction, and ViewSet boundary are documented in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md). That document is the reference for package-specific routing semantics used throughout this article.
 
 ## 2. Route inheritance and version-specific implementations
 

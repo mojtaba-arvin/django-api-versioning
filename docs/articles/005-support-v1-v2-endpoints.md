@@ -128,7 +128,7 @@ The declarations above produce the following routes:
 
 The package generates standard Django URL patterns from the endpoint declarations. It does not change the view's business logic, configure a DRF versioning scheme, or automatically populate DRF's `request.version`. If view code needs that attribute, configure DRF version identification separately and verify that its URL keyword argument or namespace is present. The package does not automatically derive `request.version` from its literal version path segments. It also does not determine whether two API contracts are compatible.
 
-For the complete behavior of `version`, `versions`, URL construction, registration precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
+For the complete behavior of `version`, `versions`, URL construction, registration precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## 2. The explicit URL routing alternative
 

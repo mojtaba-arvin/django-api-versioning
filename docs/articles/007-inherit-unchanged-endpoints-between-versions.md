@@ -221,7 +221,7 @@ An endpoint first registered at v3 is therefore not available in v1 or v2. This 
 
 This is routing inheritance, not Python inheritance. The registry stores endpoint registrations and their source and route versions; it does not create Python subclasses or determine whether an API change is backward compatible.
 
-For the exact registration contract, including version-range behavior and collision resolution, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
+For the exact registration contract, including version-range behavior and collision resolution, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Python inheritance and DRF's built-in versioning
 
@@ -471,7 +471,7 @@ can be registered with `@endpoint` for a specific route. It is not a replacement
 
 DRF's `@action` decorator is intended for ViewSets and relies on router-based action mapping. It does not provide the same mechanism for `GenericAPIView` subclasses. For additional generic-view endpoints, define separate view classes and register each at its starting version.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
 
 This follows the package's canonical ViewSet and Router boundary described earlier.
 

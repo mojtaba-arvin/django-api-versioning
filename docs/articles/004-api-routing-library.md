@@ -626,7 +626,7 @@ DRF ViewSet classes are also not directly supported by `@endpoint`. A ViewSet's 
 
 Use DRF's `DefaultRouter` or `SimpleRouter` to register ViewSets and mount their generated URLs separately under the desired versioned prefixes. This router setup is separate from the package's endpoint registry; it is not automatic router integration.
 
-For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
+For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Getting started with django-api-versioning
 
@@ -634,8 +634,8 @@ The package is available on [PyPI](https://pypi.org/project/django-api-versionin
 
 The repository contains the integration example and implementation:
 
-- [Integration project's URL configuration](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py)
-- [Endpoint decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/decorators.py)
+- [Integration project's URL configuration](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py)
+- [Endpoint decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/decorators.py)
 
 If your API has many endpoints that evolve incrementally, declarative registration can make the routing layer reflect those changes with fewer repeated declarations.
 

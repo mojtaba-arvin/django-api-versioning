@@ -120,7 +120,7 @@ Now:
 
 This is registration-time route inheritance. It does not create a Python subclass, copy methods, merge serializers, configure a DRF versioning class, or establish that the API contracts are backward compatible. The package selects the callable by matching generated URL patterns; it does not automatically populate DRF's `request.version`. If view logic needs that attribute, configure DRF version identification separately and ensure its required URL keyword argument or namespace is present.
 
-For the exact version-range, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
+For the exact version-range, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Manual declarative registration with a configuration dictionary
 
@@ -482,7 +482,7 @@ This callable can be registered as a route, but it does not generate the full se
 
 For resource-oriented ViewSets, use DRF routers. For generic views and individual endpoints, `@endpoint` provides version-based registration without a separate router configuration.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/integration_test_project/project/urls.py) shows router-based ViewSet registration alongside decorator-based endpoint registration. See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) shows router-based ViewSet registration alongside decorator-based endpoint registration. See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
 
 ## Trade-offs and scope
 

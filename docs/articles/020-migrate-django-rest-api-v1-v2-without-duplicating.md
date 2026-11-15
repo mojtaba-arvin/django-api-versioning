@@ -27,7 +27,7 @@ This means an endpoint introduced in v1 can remain available in v2 without a sec
 
 The package manages routing, not semantic API compatibility. You still decide whether a response, request schema, permission rule, or other behavior is compatible with older clients.
 
-The examples in this article demonstrate the package's endpoint registration and routing model. For the exact registration and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md).
+The examples in this article demonstrate the package's endpoint registration and routing model. For the exact registration and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Register unchanged endpoints once
 
@@ -523,7 +523,7 @@ API_VERSION_LIFECYCLE = {
 
 For a version configured with `status="deprecated"`, the middleware adds a `Deprecation` header. If a sunset date is configured, it also adds a `Sunset` header.
 
-There is an important standards limitation: the package's lifecycle middleware currently emits `Deprecation: true`. RFC 9745 specifies a Structured Field Date value for this header, for example `Deprecation: @1688169599`. The emitted `true` value is not the RFC 9745 date format. Applications requiring RFC 9745 compliance need to provide the appropriate date-valued header themselves or use an implementation that supports it. Check the [current lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/django_api_versioning/lifecycle.py) for the exact behavior.
+There is an important standards limitation: the package's lifecycle middleware currently emits `Deprecation: true`. RFC 9745 specifies a Structured Field Date value for this header, for example `Deprecation: @1688169599`. The emitted `true` value is not the RFC 9745 date format. Applications requiring RFC 9745 compliance need to provide the appropriate date-valued header themselves or use an implementation that supports it. Check the [current lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/lifecycle.py) for the exact behavior.
 
 The middleware also enforces the configured sunset date:
 

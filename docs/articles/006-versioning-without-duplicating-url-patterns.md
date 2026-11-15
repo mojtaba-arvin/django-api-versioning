@@ -353,6 +353,6 @@ For APIs where the version should be identified from the request, DRF's built-in
 
 If you prefer separate endpoint implementations with generated versioned routes, explore [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
 
-The package's [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/9b09d66c931f6e99687664da7442ddf9198595cb/docs/reference/versioning-contract.md) documents the exact registration semantics, version boundaries, import behavior, and ViewSet limitations.
+The package's [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md) documents the exact registration semantics, version boundaries, import behavior, and ViewSet limitations.
 
 The key question is not how many versions your API has, but whether shared views or version-specific endpoint registrations are easier to maintain as its contract evolves.
