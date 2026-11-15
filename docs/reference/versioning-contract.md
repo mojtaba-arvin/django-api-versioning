@@ -2,7 +2,7 @@
 # django-api-versioning: canonical routing contract
 
 > **Applies to:** django-api-versioning 0.3.7
-> **Verified against:** package source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443` and test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`. GitHub Actions run [#32](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761441836) passed all 15 configured Python/Django environments, lint, and the tox/workflow matrix consistency check (17/17 jobs successful). The test revision includes a regression test for custom path-converter `to_url()` behavior.
+> **Verified against:** package source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443` and test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`. GitHub Actions run [#33](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761660736) passed all 15 configured Python/Django environments, lint, tox/workflow matrix consistency, and workflow YAML parsing (17/17 jobs successful). The test revision includes a regression test for custom path-converter `to_url()` behavior.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
