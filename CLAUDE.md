@@ -42,7 +42,7 @@ Before committing:
 
 A clean working tree is the desired checkpoint state after a completed logical unit, not an invariant that must hold between every edit and its commit. Do not interrupt a coherent multi-file change merely to commit an incomplete intermediate state.
 
-Push only when the current user instruction or an applicable previously granted task authorization permits it. This task explicitly authorizes commits and pushes to `audit/comprehensive-package-review`. Never force-push, rewrite remote history, or push to `main`. After each push, verify that the remote branch points to the expected commit. If push fails, preserve local commits, diagnose without exposing credentials, and stop further edits until the remote state is understood.
+Push only when the current user instruction or an applicable previously granted task authorization permits it. A current user instruction may authorize commits and pushes to a specific branch; that one-off authorization must not be treated as a standing repository permission. Never force-push, rewrite remote history, or push to `main`. After each push, verify that the remote branch points to the expected commit. If push fails, preserve local commits, diagnose without exposing credentials, and stop further edits until the remote state is understood.
 
 Commit messages use `feat:`, `fix:`, `docs:`, `test:`, or `chore:` and describe the domain change, not internal task numbering. Do not add co-author trailers or generated-by signatures.
 
@@ -79,6 +79,8 @@ Do not place the token in a command-line argument, shell trace, URL, log, or dia
 ## 7. Testing
 
 Three modes. Use Quick only with the project's active virtual environment; if no suitable environment is active, skip Quick and use Single or Full. `tox.ini` is the source of truth for the configured test matrix. Re-read it before relying on environment counts or combinations.
+
+Before running the full matrix, run `python scripts/check_tox_workflow_matrix.py` to verify the explicit Actions matrix matches the environments resolved from `tox.ini`.
 
 At this branch's current configuration, `tox.ini` defines 15 test environments plus one lint environment (16 total): Django 4.2 / Python 3.10–3.12; Django 5.2 / Python 3.10–3.14; Django 6.0 / Python 3.12–3.14; Django 6.1 / Python 3.12–3.15. This is a configured matrix, not proof that every environment passed.
 
