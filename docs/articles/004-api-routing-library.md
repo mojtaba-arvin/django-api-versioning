@@ -630,13 +630,6 @@ For the precise behavior of endpoint declarations, collision precedence, version
 
 ## Getting started with django-api-versioning
 
-The package is available on [PyPI](https://pypi.org/project/django-api-versioning/).
+Evaluate [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/) if your API has many endpoints that evolve incrementally and declarative registration may reduce repeated route declarations.
 
-The repository contains the integration example and implementation:
-
-- [Integration project's URL configuration](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py)
-- [Endpoint decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/decorators.py)
-
-If your API has many endpoints that evolve incrementally, declarative registration can make the routing layer reflect those changes with fewer repeated declarations.
-
-Explore the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning) to review the implementation and decide whether its routing model fits your API.
+The canonical routing contract and integration examples describe the exact behavior and setup requirements. Review those before adopting the package in an existing API.
