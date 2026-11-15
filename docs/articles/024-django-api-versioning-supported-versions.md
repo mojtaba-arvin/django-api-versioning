@@ -203,7 +203,7 @@ The latest focused Python workflow completed successfully at source revision `ef
 - 258 Django integration tests passed.
 - 96% package code coverage was reported.
 
-The full compatibility matrix completed successfully in GitHub Actions run [#32](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761441836), executed at workflow commit `bd47c3177ed4c770a5f9c77896426e2ddf0d0441`. All 17 jobs passed, including the matrix drift validator. The package implementation is unchanged from source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443`; test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21` adds coverage for custom path-converter formatting:
+The full compatibility matrix completed successfully in GitHub Actions run [#33](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761660736), executed at workflow commit `1d3538135a9f1b2a11c0d4f830cf9a4a1eed3a7f`. All 17 jobs passed, including tox-matrix drift validation and YAML parsing of every workflow and Dependabot file. The package implementation is unchanged from source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443`; test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21` adds coverage for custom path-converter formatting:
 
 - All 15 configured Python/Django environments passed.
 - Each environment passed 247 unit tests and 258 integration tests.
