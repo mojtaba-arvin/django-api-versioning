@@ -1026,18 +1026,25 @@ docker run --rm dapi:py315
 
 ### Releasing
 
-1. Update the `version` in `pyproject.toml` and document the release in `CHANGELOG.md`.
-2. Commit and push the release commit to `main`.
-3. Create and push a matching version tag:
+Releases are maintainer operations. Prepare the version bump and changelog
+on a dedicated release branch, run the complete compatibility and artifact
+checks, and submit the changes through a reviewed pull request to the
+project's protected default branch. Do not push directly to `main`.
 
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
+After the reviewed release commit is present on the default branch, create
+and push the matching version tag:
 
-Pushing a `v*` tag triggers GitHub Actions to build the package, validate
-the distribution with `twine check --strict`, and publish it to PyPI
-using PyPI Trusted Publishing (GitHub Actions OIDC).
+```bash
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+Pushing a `v*` tag triggers GitHub Actions to run the compatibility matrix,
+build and validate the exact distribution with `twine check --strict`,
+smoke-test the wheel, and publish it to PyPI using Trusted Publishing
+(GitHub Actions OIDC). A successful tag push alone does not prove that
+publication completed; verify the workflow and the version-specific PyPI
+release page before announcing the release.
 
 ### Reporting issues
 
