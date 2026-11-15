@@ -353,11 +353,13 @@ DRF's versioning classes handle version detection: they identify which version t
 - A **single URLconf included under multiple namespaces** is specific to `NamespaceVersioning`. It relies on Django's namespace-based URL organization and does not generalize to the other two schemes.
 - **Version-range registration** treats view organization as a first-class concern. Each endpoint is registered at the version where it becomes active, and remains active across subsequent versions unless overridden. The registration layer—not the view layer—decides which endpoint-version pairs exist.
 
+The package's exact registration and routing behavior is defined in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+
 ## Explore version-range registration
 
-If you're comparing DRF versioning approaches and want to avoid view branching or per-version URLconf duplication, evaluate [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/). The package implements version-range registration for Django views, DRF `APIView` classes, and generic views. For its exact decorator signature, route construction, and DRF boundary, consult the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+If you're comparing DRF versioning approaches and want to avoid view branching or per-version URLconf duplication, evaluate [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/). The package implements version-range registration for Django views, DRF `APIView` classes, and generic views.
 
-ViewSets are registered through DRF routers separately. See the integration project's URLconf in the package's repository for the router-based pattern, and the pinned [registry implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/registry.py) for the exact class-based-view and ViewSet behavior.
+ViewSets are registered through DRF routers separately. The package does not replace router-generated routes or infer ViewSet action mappings.
 
 The next articles show how to register endpoints correctly, handle version skipping, test versioned views, and manage deprecation.
 
