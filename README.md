@@ -937,9 +937,9 @@ python manage.py migrate_endpoints --dry-run
 python manage.py migrate_endpoints
 ```
 
-The command scans Python files for `@endpoint` declarations containing legacy `forward` or `backward` arguments and suggests or applies textual replacements. It rewrites only integer `version` values and literal boolean flags; declarations using dynamic flag expressions are left unchanged for manual migration.
+The command parses Python source into an AST and uses tokenizer-aware checks to identify supported `@endpoint` declarations containing legacy `forward` or `backward` arguments. It rewrites only literal integer `version` values and literal boolean flags. Dynamic expressions, comments inside a decorator, unsupported forms, and files with syntax errors are left unchanged for manual migration.
 
-**Review the output before accepting it.** The command uses source-text matching and rewriting; it is not an AST-based semantic migration tool. It cannot guarantee that every rewritten declaration preserves the application's intended routing behavior.
+**Review every proposed change before applying it.** This syntax-aware rewrite is not a proof of semantic equivalence: confirm the intended version coverage, inspect the generated route matrix with `check_versions`, and test request behavior for every affected API version.
 
 After migration:
 
