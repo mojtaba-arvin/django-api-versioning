@@ -185,7 +185,7 @@ python -m pytest tests --maxfail=1 --disable-warnings -q
 python -m pytest integration_test_project --maxfail=1 --disable-warnings -q
 ```
 
-The `.github/workflows/compatibility.yml` workflow runs this matrix as a deliberate manual `workflow_dispatch` checkpoint. It uses a separate GitHub Actions job for each tox environment and does not run the full matrix on every push or pull request.
+The `.github/workflows/compatibility.yml` workflow runs this matrix automatically for relevant package, test, integration-project, dependency, tox, and verification-script pushes to `main` and `audit/comprehensive-package-review`, and when a pull request is opened, reopened, or marked ready for review. It also supports deliberate manual `workflow_dispatch` runs and reusable `workflow_call` from the tag-based publish workflow. It uses a separate GitHub Actions job for each tox environment. Documentation-only and website-only edits do not trigger this Python compatibility matrix.
 
 The tox configuration also defines one lint environment that runs:
 
@@ -203,7 +203,7 @@ The latest focused Python workflow completed successfully at source revision `ef
 - 258 Django integration tests passed.
 - 96% package code coverage was reported.
 
-The full compatibility matrix then completed successfully at source/test revision `035a4054f3e0d7e3e47adfeef1889e89e0660443`:
+The full compatibility matrix completed successfully in GitHub Actions run [#23](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43759908870), executed at workflow commit `33b6ed3a14483240c9085ef3c410eef624a44f60`. The package and test source baseline was `035a4054f3e0d7e3e47adfeef1889e89e0660443`; comparison confirms those source and test files were unchanged between the two revisions:
 
 - All 15 configured Python/Django environments passed.
 - Each environment passed 246 unit tests and 258 integration tests.
@@ -212,7 +212,7 @@ The full compatibility matrix then completed successfully at source/test revisio
 
 See [the full compatibility matrix run](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43651972913) for the execution result and [the compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the tested combinations.
 
-The package-artifact workflow also passed at source revision `c238c05249ab52ffb12a0884d8043895190d5f94`: it built the wheel and source distribution, passed strict Twine checks, validated distribution contents, and smoke-tested the installed wheel. All package source files were unchanged after that artifact run.
+The package-artifact workflow also passed in [run #82](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43759941912) at commit `0e812de438ae4a5fc1d8760b42f2c3516bd4ff11`: it built the wheel and source distribution, passed strict Twine checks, validated distribution contents, and smoke-tested the installed wheel. The package source and packaging inputs were unchanged from the verified source baseline.
 
 These results are tied to the cited source revisions. They are not a guarantee for Python/Django combinations absent from the tox matrix or for future dependency resolutions.
 
@@ -375,7 +375,7 @@ When evaluating compatibility, keep these distinctions in mind:
 - **Django requirement:** The package declares Django `>=4.2`.
 - **DRF dependency:** DRF is not a runtime dependency of the package. It is included in the development dependencies.
 - **Package classifiers:** Listed Python and Django versions are metadata, not proof of automated test coverage.
-- **CI configuration:** The focused Python workflow runs the unit and integration suites on a GitHub-hosted runner; the separate compatibility workflow runs the configured tox matrix at manual checkpoints. Consult the [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the recorded source revision and results.
+- **CI configuration:** The focused Python workflow runs the unit and integration suites on a GitHub-hosted runner; the compatibility workflow runs the configured tox matrix on relevant package/test changes and PR review-start checkpoints, with manual reruns also available. Consult the [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the recorded source revision and results.
 - **Dependency resolution:** Minimum-version constraints do not guarantee that every future build uses the same dependency versions.
 
 Meeting the declared minimum requirements is necessary, but it does not prove that every possible combination of newer dependency versions has been tested.
