@@ -29,6 +29,6 @@
     "@fontsource-variable/bricolage-grotesque": "5.3.0",
     "@fontsource-variable/ibm-plex-sans": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   }
 }
