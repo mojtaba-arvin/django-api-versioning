@@ -147,6 +147,29 @@ def _read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def validate_reference_links(skill_file: Path, root: Path = ROOT) -> list[str]:
+    """Check local Markdown links in a skill without fetching external URLs."""
+    errors: list[str] = []
+    root = root.resolve()
+    content = skill_file.read_text(encoding="utf-8")
+    for target in re.findall(r"\]\(([^)]+)\)", content):
+        if target.startswith(("#", "https://", "http://", "mailto:")):
+            continue
+        local_target = target.split("#", 1)[0].split("?", 1)[0]
+        if not local_target:
+            continue
+        resolved = (skill_file.parent / local_target).resolve()
+        if not resolved.is_relative_to(root):
+            errors.append(
+                f"{skill_file.relative_to(root)} link escapes repository: {target}"
+            )
+        elif not resolved.is_file():
+            errors.append(
+                f"{skill_file.relative_to(root)} has a missing reference: {target}"
+            )
+    return errors
+
+
 def validate_tree(root: Path = ROOT) -> list[str]:
     """Validate canonical skills, client adapters, evaluation cases, and budgets."""
     errors: list[str] = []
@@ -191,6 +214,7 @@ def validate_tree(root: Path = ROOT) -> list[str]:
             errors.append(
                 f"{skill_file.relative_to(root)} has an empty or overlong description"
             )
+        errors.extend(validate_reference_links(skill_file, root))
         if metadata.get("name") in (
             item.get("name") for item in canonical.values()
         ):

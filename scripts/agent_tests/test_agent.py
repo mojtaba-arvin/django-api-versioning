@@ -35,6 +35,26 @@ class AgentToolingTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             agent.context_profile("everything")
 
+    def test_skill_reference_links_must_exist_and_stay_inside_repository(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            skill = root / ".agents/skills/demo/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text(
+                "[present](references/guide.md) [missing](references/missing.md) "
+                "[outside](../../../../outside.md) [external](https://example.com)",
+                encoding="utf-8",
+            )
+            reference = skill.parent / "references/guide.md"
+            reference.parent.mkdir()
+            reference.write_text("guide", encoding="utf-8")
+            errors = agent.validate_reference_links(skill, root)
+            self.assertEqual(len(errors), 2)
+            self.assertTrue(any("missing reference" in error for error in errors))
+            self.assertTrue(any("escapes repository" in error for error in errors))
+
     def test_all_canonical_skills_have_consistent_adapters(self) -> None:
         self.assertEqual(agent.validate_tree(ROOT), [])
 
