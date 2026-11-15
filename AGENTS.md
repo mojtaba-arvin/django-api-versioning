@@ -7,7 +7,7 @@
 - `integration_test_project/`: the existing standalone Django integration project. Preserve it; do not create a second top-level Django project.
 - `docs/articles/`: the canonical source of the 25 Markdown articles already tracked in this repository. Read and publish these files; do not download a second copy from GitHub or maintain a mirrored article corpus.
 - `docs/reference/`: package reference material. Preserve its source ownership.
-- `website/`: the dedicated Astro application root. All Node dependencies, Astro configuration, components, layouts, pages, static assets, and frontend build output belong here.
+- `website/`: the current website application and its build assets. The existing implementation uses Astro, but a redesign may replace or reorganize the frontend architecture when justified. Keep website-specific source, dependencies, assets, and generated output within the website boundary.
 - `docs/website/`: architecture decisions, content provenance, and handoff instructions for the website.
 
 ## Package baseline and evidence
@@ -28,22 +28,24 @@ Do not invent, manually repair, or silently normalize observed output. If a scen
 
 The existing `integration_test_project/` is the home for additional executable integration scenarios and evidence-generation tooling. First inspect and reuse its settings, URL configuration, and tests. A separate evidence harness may be added below it only when isolation is technically necessary and documented. Do not overwrite or duplicate `test_integration.py`.
 
-## Website implementation
+## Website implementation and redesign
 
-- Astro project root: `website/`.
-- Canonical article source: `../docs/articles/` from the website project; do not create a second tracked copy of the articles.
-- Generated behavioural data belongs under `website/src/data/generated/` and must be reproducible by a documented command.
-- Keep generated evidence distinct from authored presentation code.
-- Build a fully static site. The generated `website/dist/` must work on a generic static host and must not require Netlify runtime functions.
+Current website implementation and redesign boundaries:
+- The existing implementation is an Astro application rooted at `website/`. This describes the current state; it does not require the redesign to retain Astro, the current component tree, layouts, pages, scripts, CSS architecture, or visual system.
+- The redesign may replace or reorganize the frontend framework and implementation when there is a sound technical reason. If Astro is retained, preserve the supported and security-reviewed dependency baseline rather than downgrading it without current advisory review.
+- Keep the canonical article source at `docs/articles/`; do not create a second tracked or independently editable article corpus.
+- Generated behavioural evidence must remain reproducible from the package source and separate from authored presentation code. Its storage location may follow the chosen frontend architecture, but its provenance and integrity must be preserved.
+- Build a fully static site. The published output must work on generic static hosts and must not require Netlify runtime functions.
 - Support GitHub Pages project-site base paths as well as a custom domain. Do not hard-code root-relative asset paths that break under a Pages base path.
-- Netlify's future Base directory is `website`; its publish directory is `dist` relative to that base directory. Do not claim production deploy-readiness until the Astro application, lockfile, build, static-output checks, browser-level keyboard/accessibility checks, reduced-motion behavior, CLS review, and external-host smoke test all pass.
-- Keep Node dependencies and all website assets inside `website/`.
+- The current Netlify configuration uses Base directory `website` and Publish directory `dist` relative to that directory. Update hosting configuration if the chosen build architecture changes.
+- Do not claim production deploy-readiness until the selected application build, static-output checks, browser-level keyboard/accessibility checks, reduced-motion behavior, layout-shift/performance review, and external-host smoke test all pass.
+- Keep website-specific source, dependencies, assets, and generated output within the website boundary.
 
 ## Content and technical accuracy
 
-The site is a developer-facing explanation and evidence viewer, not a promotional landing page. Preserve the agreed ten-section homepage plan and the Segment Point visual identity.
+The website serves three complementary purposes: product introduction, technical documentation, and presentation of verifiable implementation evidence. It must communicate technical credibility while allowing a compelling, polished product presentation. Preserve the agreed ten content responsibilities and the technical meaning of Segment Point; the current visual identity, styling, composition, and diagram design may be redesigned freely.
 
-Explain terms before using them in examples. The routing diagram/explorer is an explanatory visualization, not Python execution; label it accordingly and provide a useful static fallback without JavaScript.
+Explain terms before using them in examples. The routing diagram and explorer are explanatory visualizations of recorded registry data, not live Python execution; label them accurately. Their visual design and interaction model may change, but retain an accessible and useful no-JavaScript fallback.
 
 Do not claim that `API_VERSIONING_CHANNELS` or `API_EFFECTIVE_VERSION_RESOLVER` participates in endpoint routing, header/query negotiation, or tenant-specific routing unless new source inspection and executed tests prove that claim.
 

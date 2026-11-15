@@ -1,156 +1,77 @@
 # Django API Versioning - Integration Test Project
 
-This directory contains a realistic Django test project that demonstrates and verifies the `django-api-versioning` package in a real-world scenario.
+This directory contains the repository's existing Django integration project and the executable scenarios used to verify package behavior and generate Segment Lab evidence.
 
-## Overview
+## Purpose and boundaries
 
-The integration test project is a standalone Django application that uses the package to manage API versioning across multiple endpoints with different version-specific implementations.
+The integration project exercises `django-api-versioning` through real Django URL configuration and request handling. It is also reused by the Segment Lab evidence harness.
 
-## Project Structure
+Keep this project as the single integration-test project. Do not create a parallel top-level Django project or duplicate its settings, URL configuration, API views, or package source.
 
-```
+## Current structure
+
+```text
 integration_test_project/
-├── manage.py                 # Django management script
-├── test_integration.py      # Integration test suite
-├── README.md               # This file
-├── project/               # Django project configuration
-│   ├── __init__.py
-│   ├── settings.py       # Django settings with API versioning config
-│   └── urls.py           # URL routing (includes versioned endpoints)
-└── api/                  # API application
-    ├── __init__.py
-    └── views.py          # Versioned endpoint implementations
+├── manage.py
+├── pytest.ini
+├── test_integration.py
+├── test_segment_lab_generator.py
+├── project/
+│   ├── settings.py
+│   └── urls.py
+├── api/
+│   ├── nested_urls.py
+│   └── views.py
+└── segment_lab/
+    ├── README.md
+    ├── generate_routes.py
+    ├── probe.py
+    ├── scenario_catalog.py
+    ├── settings.py
+    ├── urls.py
+    ├── test_generator.py
+    └── scenarios/
 ```
 
-## Endpoints Tested
+The Segment Lab contains 18 executable scenarios. Its detailed operating instructions, provenance rules, and evidence-generation commands are documented in [`segment_lab/README.md`](segment_lab/README.md).
 
-### Health Check (Unversioned)
-- `GET /health/` - Returns status
+## Run the integration tests
 
-### User Endpoints (Versioned)
-- `GET /api/v1/users/` - v1 with basic user info
-- `GET /api/v2/users/` - v2 with email field
-- `GET /api/v3/users/` - v3 with pagination
-- `GET /api/v1/users/<id>/` - v1 user detail
-- `GET /api/v2/users/<id>/` - v2 user detail with email
-
-### Post Endpoints (Versioned)
-- `GET /api/v1/posts/` - v1 with basic post info
-- `GET /api/v2/posts/` - v2 with content field
-- `GET /api/v1/posts/<id>/` - v1 post detail
-- `GET /api/v2/posts/<id>/` - v2 post detail with content
-
-## Running the Tests
-
-### Prerequisites
-- Python 3.10+
-- Django 4.2+
-- django-api-versioning package installed
-
-### Execution
+From the repository root, install the CI/test dependencies if they are not already available, then run:
 
 ```bash
-# From the integration_test_project directory
-source ../../.venv/bin/activate
-PYTHONPATH=/home/repl/django-api-versioning:$PYTHONPATH python test_integration.py
+python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
 ```
 
-### Expected Output
+This runs the integration project and its Segment Lab generator tests using the repository's pytest configuration. Do not rely on historical test counts or copied terminal output as current evidence; use the actual test run.
 
-```
-Ran 11 tests in X.XXXs
+## What the integration coverage verifies
 
-OK
-```
+The integration tests exercise package behavior through Django, including:
 
-## Test Coverage
+- Unversioned and versioned endpoint registration.
+- Version-specific route resolution and forward segment registration.
+- URL reversal and named path parameters.
+- Route registry behavior and collision/ordering cases.
+- DRF integration boundaries, including router/ViewSet behavior where covered by the executable scenarios.
 
-The integration test suite verifies:
+The exact supported behavior is defined by the package source, tests, and [canonical versioning contract](../docs/reference/versioning-contract.md). This README is an operational overview, not an independent specification.
 
-1. **Unversioned Endpoints** - Health check works independently
-2. **Versioned Endpoints** - Multiple versions serve correct responses
-3. **Version Inheritance** - Newer versions inherit from older ones when not explicitly defined
-4. **URL Reversal** - `api_reverse()` generates correct URLs for all versions
-5. **URL Parameters** - Path parameters are correctly substituted in reversed URLs
-6. **Registry** - Expected routes are registered in the version registry
-7. **Special Characters** - URL parameters with special characters pass through correctly
-8. **Forward Inheritance** - Requesting a version higher than defined serves the highest available version
+## Evidence generation
 
-## API Versioning Configuration
+Use the existing Segment Lab generator; do not hand-edit generated route evidence or command output.
 
-The project demonstrates the recommended configuration:
+From the repository root:
 
-```python
-# settings.py
-API_BASE_PATH = "api/v{version}/"      # URL pattern with "v" prefix
-API_MIN_VERSION = 1                      # Earliest supported version
-API_MAX_VERSION = 3                      # Latest supported version
-# Version extraction configuration.
-# Endpoint registration is handled separately through @endpoint
-# and the package URL configuration.
-API_VERSIONING_CHANNELS = ["path"]
-API_DEPRECATED_VERSIONS = {
-    2: {
-        "deprecated_date": "2026-01-01",
-        "sunset_date": "2026-06-01",
-    }
-}
+```bash
+python integration_test_project/segment_lab/generate_routes.py
+python integration_test_project/segment_lab/generate_routes.py --check
 ```
 
-## Key Implementation Details
+The generator's README explains its clean-checkout requirements, source commit pinning, package/version metadata, hashes, and scenario provenance. The historical Netlify Agent output was produced against package 0.3.5 and must not be reused as evidence for the current package.
 
-### URL Configuration
-The package automatically registers versioned routes when views are decorated with `@endpoint()`. The `urls.py` only needs to:
-1. Import the views to trigger decorator execution
-2. Include the package's `urlpatterns` once
+## Related documentation
 
-### View Definition
-Views use the `@endpoint()` decorator to declare which version they serve:
-
-```python
-@endpoint("users/", version=1, view_name="user-list-v1")
-def user_list(request):
-    return JsonResponse({"version": 1, ...})
-
-@endpoint("users/", version=2, view_name="user-list-v2")
-def user_list_v2(request):
-    return JsonResponse({"version": 2, ...})
-```
-
-### Forward Inheritance
-When a client requests `/api/v3/users/` but only v1 and v2 are defined, v2 is served. This "forward inheritance" automatically handles version transitions.
-
-## Test Results Summary
-
-| Category | Status | Details |
-|----------|--------|---------|
-| Unversioned endpoints | ✅ Pass | Health check works |
-| Versioned endpoints v1 | ✅ Pass | Correct response for v1 |
-| Versioned endpoints v2 | ✅ Pass | Correct response for v2 |
-| Versioned endpoints v3 | ✅ Pass | Forward inherited from v2 |
-| URL reversal | ✅ Pass | Correct URLs generated |
-| Parameters | ✅ Pass | Path parameters substituted |
-| Registry | ✅ Pass | All routes registered |
-| Special chars | ✅ Pass | Characters pass through correctly |
-| Forward inheritance | ✅ Pass | Higher versions inherited |
-
-## Compatibility Notes
-
-- Tested with Python 3.12.16
-- Tested with Django 6.1.3
-- Requires django-api-versioning 0.3.5
-
-## Extending the Tests
-
-To add new test cases:
-
-1. Add new view functions with `@endpoint()` decorator in `api/views.py`
-2. Add corresponding test methods in `BasicIntegrationTestCase` class
-3. Update settings if additional versions or configurations are needed
-4. Run the test suite to verify
-
-## Related Documentation
-
-- [django-api-versioning GitHub](https://github.com/mojtaba-arvin/django-api-versioning)
-- [Django URL dispatcher](https://docs.djangoproject.com/en/stable/topics/http/urls/)
-- [Django testing documentation](https://docs.djangoproject.com/en/stable/topics/testing/)
+- [Segment Lab operating guide](segment_lab/README.md)
+- [Canonical package behavior contract](../docs/reference/versioning-contract.md)
+- [Repository README](../README.md)

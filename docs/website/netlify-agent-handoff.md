@@ -1,15 +1,17 @@
 # Static website hosting handoff
 
-## Final-agent scope
+## Redesign scope
 
-Continue on `audit/comprehensive-package-review`. This is a final review of an existing implementation, not a greenfield build.
+Continue on `audit/comprehensive-package-review`. This task is a redesign of the existing documentation website, not a request to preserve its current visual design or frontend implementation.
 
-- Do not recreate the Astro app, the Django mini-project, the article corpus, route evidence, or the original Netlify Agent's generated files.
-- The recovered scenario code is already integrated into `integration_test_project/segment_lab/`; use its generator and tests. Do not create a parallel `tools/` Django project.
-- `docs/articles/` is the only editable article source. The website synchronizes all 25 articles automatically.
+- Redesign the website freely: the current visual identity, page composition, component tree, layouts, navigation presentation, CSS, and frontend architecture are reference material, not mandatory design constraints.
+- Preserve the agreed ten homepage content responsibilities, the canonical article corpus, verified package behavior, real Segment Lab evidence and provenance, required user-facing capabilities, accessibility expectations, and static-hosting behavior.
+- The existing Astro application is the current implementation, not a required target architecture. It may be retained, reorganized, or replaced when justified. If retained, use a supported, security-reviewed dependency baseline.
+- Preserve the existing Django integration project and Segment Lab. The recovered scenario code is already integrated into `integration_test_project/segment_lab/`; use its generator and tests. Do not create a parallel `tools/` Django project.
+- `docs/articles/` is the only editable article source. The website must publish all 25 articles without maintaining a second independently editable corpus.
 - The committed Segment Lab snapshot is generated from the repository checkout, not the historical Netlify package 0.3.5 run. Never reuse that historical output.
-- Review the existing site against the ten-section homepage contract, then focus on browser-level keyboard/mobile/accessibility checks, reduced motion, layout shift, and static-host behavior. Make only evidence-backed corrections and add focused tests.
-- Do not run the full Python compatibility matrix for CSS/content-only changes. Run it only for package/runtime changes or the final release checkpoint.
+- Validate the redesigned site at browser level, including keyboard/mobile/accessibility checks, reduced motion, layout stability, and static-host behavior. Make evidence-backed technical claims and add focused tests for changed behavior.
+- Do not run the full Python compatibility matrix for frontend-only changes. Run it only for package/runtime changes or the final release checkpoint.
 - A version tag cannot publish to PyPI until the reusable 15-environment compatibility matrix and lint job pass; the publish workflow then builds and smoke-tests the exact tagged wheel.
 - Do not publish to PyPI or deploy to production without explicit approval.
 
@@ -83,15 +85,16 @@ npm run test:dist
 
 The source-evidence workflow additionally runs the Python Segment Lab against the triggering source commit, verifies generator determinism, and then runs the website checks and both static builds.
 
-## Non-negotiable implementation constraints
+## Non-negotiable product and technical constraints
 
-1. The Python package source is the behavioral source of truth.
-2. Keep `docs/articles/` as the only editable article corpus.
+1. The Python package source and its tests are the behavioral source of truth.
+2. Keep `docs/articles/` as the only editable article corpus and publish all 25 articles in full.
 3. Reuse the existing `integration_test_project/`; do not create a parallel Django project.
 4. Do not reuse the Agent's old package 0.3.5 evidence.
-5. Do not hand-edit generated route evidence or command output.
-6. Keep static output independent of Netlify runtime functions.
-7. Preserve the ten-section homepage contract.
-8. Label Segment Diagram/Explorer as explanatory visualization, not actual Python execution, and preserve no-JavaScript fallback.
+5. Do not hand-edit generated route evidence or command output; preserve source commit, package version, hashes, and scenario provenance.
+6. Keep the published site static and independent of Netlify runtime functions.
+7. Preserve the ten homepage content responsibilities and their agreed order; visual layout and presentation are free to change.
+8. Label Segment Diagram/Explorer as explanatory visualizations of recorded data, not actual Python execution. Preserve a useful no-JavaScript fallback.
 9. Keep DRF request-version identification separate from package endpoint registration.
-10. Do not claim accessibility, performance, or deployment acceptance until those checks have actually run.
+10. Preserve required site capabilities and target WCAG 2.2 AA. Do not claim accessibility, performance, or deployment acceptance until those checks have actually run.
+11. The redesign may change frontend technology and implementation architecture; update build, test, and hosting instructions to match the resulting implementation.

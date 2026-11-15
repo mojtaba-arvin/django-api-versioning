@@ -15,7 +15,7 @@ The generated route snapshot is the source of truth for package behavior and evi
 | Django integration scenarios | `integration_test_project/` | Reuse the existing project; extend it for executable evidence |
 | Long-form articles | `docs/articles/` | The 25 Markdown files are the only editable article corpus |
 | Reference contract | `docs/reference/versioning-contract.md` | Canonical package-specific behavior reference |
-| Website application | `website/` | Astro app, Node dependencies, pages, components, assets, scripts, and tests |
+| Website application | `website/` | Current frontend implementation and its source assets; the redesign may replace or reorganize its framework and internal structure |
 | Website architecture and handoff | `docs/website/` | Maintainer-authored project contract |
 | Generated website data | `website/src/data/generated/` | Derived from a pinned source commit; never hand-edited |
 
@@ -25,9 +25,11 @@ The website is a static presentation layer. Python/Django tooling runs during de
 
 There is no runtime dependency on Netlify, serverless functions, a database, or a Python process. Netlify and GitHub Pages are deployment targets, not architectural dependencies.
 
-The Astro project root is `website/`. The final output is `website/dist/`. The configured `PUBLIC_BASE_PATH` is applied to Astro output and to internal Markdown links. The static preview server also understands the configured base path and rejects paths that escape the output directory.
+The current implementation uses Astro with project root `website/` and output `website/dist/`. Its configured `PUBLIC_BASE_PATH` is applied to generated output and internal Markdown links; the current static preview server also understands the base path and rejects paths that escape the output directory. These are implementation details, not requirements to retain Astro or the current preview-server implementation. A replacement must provide equivalent static-host and base-path behavior.
 
-## Implemented application structure
+## Current implementation structure (reference only)
+
+The following tree documents the current Astro implementation only. It is not a target architecture or a requirement to preserve these components, pages, scripts, or styling. The redesign may replace or reorganize them while retaining the product, content, evidence, accessibility, and deployment contracts.
 
 ```text
 website/
@@ -67,7 +69,7 @@ Astro uses the explicit Unified Markdown processor because the site requires cus
 
 ## Articles
 
-The 25 Markdown articles live in `docs/articles/`. They remain the only tracked source. The build stages them into Astro's content collection and generates a search index; those staged files are derived output and must not be edited independently.
+The 25 Markdown articles live in `docs/articles/`. They remain the only editable source. The current Astro build stages them into a content collection and generates a search index; those staged files are derived output and must not be edited independently. A redesigned implementation may use a different content pipeline, but must not create a second independently editable article corpus.
 
 The article synchronizer uses stable file identity rather than assuming frontmatter slugs are unique. Metadata, links, technical examples, package claims, and cross-article consistency remain subject to the A–MM article audit.
 
@@ -104,19 +106,19 @@ The homepage has ten sections in this order:
 9. Known limitations.
 10. Quick Start and useful links.
 
-The diagram and Segment Explorer are explanatory visualizations of recorded registry data, not Python execution. They are labelled accordingly and have a static no-JavaScript fallback.
+The Segment Point diagram and Segment Explorer communicate the behavior represented by recorded registry data; they do not execute Python. Preserve that distinction and label it clearly. Their visual design, layout, and interaction model may be redesigned freely, while retaining a useful static no-JavaScript fallback.
 
 ## Interaction and accessibility contract
 
-Implemented interactions include Segment Explorer, code copy, content search, dark/light theme, reading progress, heading anchors, version/provenance information, mobile navigation, and reduced-motion support.
+The current implementation includes Segment Explorer, code copy, content search, dark/light theme, reading progress, heading anchors, version/provenance information, mobile navigation, and reduced-motion support. These are required user-facing capabilities; their implementation and presentation may change during the redesign.
 
 The target remains WCAG 2.2 AA. Keyboard operation, visible focus, semantic structure, reduced-motion preferences, stable layout, and useful no-JavaScript behavior must be verified in a browser before deployment. Build success alone does not establish accessibility or Core Web Vitals compliance.
 
 ## Deployment contract
 
-For Netlify:
-- Base directory: `website`
+The current Astro deployment configuration is:
+- Netlify Base directory: `website`
 - Build command: `npm run build`
 - Publish directory: `dist` (relative to `website`)
 
-For GitHub Pages project sites, build with the appropriate `PUBLIC_BASE_PATH` and publish only `website/dist/`. Both hosting targets must use the same static application; no host-specific runtime code is permitted.
+For GitHub Pages project sites, the current implementation builds with the appropriate `PUBLIC_BASE_PATH` and publishes only `website/dist/`. If the redesign changes the frontend framework or build tooling, update these commands and paths to the new implementation. Both hosting targets must serve the same static application; no host-specific runtime code is permitted.
