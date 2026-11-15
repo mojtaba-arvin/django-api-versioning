@@ -35,6 +35,19 @@ The helper has no third-party dependencies and is excluded from the distributabl
 
 The repository does not force a model selection. Use deterministic project tooling for correctness. MCP, agent frameworks, model APIs, hosted evaluations, and tracing backends are optional integrations—not defaults—and require an actual workflow need plus justified permissions, failure modes, and maintenance cost.
 
+
+## Comparing agent behavior
+
+`python scripts/agent.py evals --json` lists the versioned task scenarios and acceptance checks. Use them as a controlled, model-agnostic benchmark:
+
+1. Compare baseline and candidate setups at the same repository commit, with fresh sessions and identical task prompts. Record agent/client version and model/provider identifiers.
+2. Run every scenario independently. Do not carry hidden context or prior answers between runs.
+3. Score each dimension from 0 (fail) to 2 (fully satisfies): correctness, source evidence, scope discipline, context/tool efficiency, and safety/honest reporting. A human reviews ambiguous results.
+4. Record actual input/output token counts and tool-call counts only when the client exposes them. Also record files read, checks executed, elapsed time if relevant, and the exact scenario revision.
+5. Compare per-scenario scores and total token/tool usage. Do not claim a model is more accurate or cheaper from one task or from character-count estimates. The helper's chars/4 figures are rough instruction-budget estimates, not provider tokenization or end-to-end usage.
+
+The suite is intentionally not an LLM-as-judge pipeline. It can be used across clients and models without provider SDKs, secrets, or non-deterministic network calls in package CI.
+
 ## Format references
 
 - [Agent Skills specification](https://agentskills.io/specification)
