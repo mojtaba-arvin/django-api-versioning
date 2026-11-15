@@ -155,14 +155,14 @@ This skill provides a systematic framework for auditing the django-api-versionin
 **Procedures**:
 
 1. **Code Security Analysis**
-   - Search for `eval()`, `exec()`, `exec()` calls (should be none)
+   - Search for dynamic execution such as `eval()` and `exec()` (should be absent unless explicitly justified).
    - Check string interpolation in URLs
    - Verify regex handling escapes special characters
    - Check for SQL injection potential (N/A for this package)
    - Verify proper input validation
 
 2. **Specific Focus Areas**
-   - `reverse.py:64` - Parameter substitution in regex (verify escaping)
+   - `reverse.py` - Verify parameter substitution, Django converter `to_url()` handling, and final route-pattern regex validation.
    - `decorators.py` - Path and version parameter validation
    - `settings.py` - Configuration value validation
    - Any `eval()` or `exec()` usage (should not exist)
@@ -172,7 +172,14 @@ This skill provides a systematic framework for auditing the django-api-versionin
    - Review dependency security advisories
    - Verify no deprecated dependencies
 
-4. **Document Findings**
+4. **GitHub Actions supply-chain review**
+   - Require full commit-SHA pins for every external action, with the release tag in a comment.
+   - Verify the SHA corresponds to the intended upstream release.
+   - Check workflow-level and job-level permissions for least privilege.
+   - Disable persisted checkout credentials in read-only jobs; retain write credentials only in workflows that must commit generated artifacts.
+   - Verify Dependabot updates are reviewed and not auto-merged.
+
+5. **Document Findings**
    - Record any vulnerabilities found
    - Note security best practices followed
    - List any recommendations
