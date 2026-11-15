@@ -175,8 +175,8 @@ Never edit article content without explicit user instruction.
 2. `git status` and `git log --oneline -20`
 3. Compare `git rev-parse HEAD` to
    `git ls-remote --heads origin refs/heads/audit/comprehensive-package-review`
-4. If local ahead: push first. If diverged: stop, report.
-5. Verify identity (Section 5), commit-msg hook, auth (Section 6).
+4. If local is ahead, inspect every unpushed commit and verify that it belongs to the current task and is authorized before pushing. If diverged, stop and report; never overwrite either side.
+5. Verify identity (Section 5), commit-msg hook, and credential-helper authentication (Section 6).
 6. Run `/session-recovery`. If it detects a multi-task batch,
    ask the user for the original list and remaining items.
 7. Resume from git state, not conversation memory.
