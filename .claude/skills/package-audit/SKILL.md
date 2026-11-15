@@ -178,6 +178,8 @@ This skill provides a systematic framework for auditing the django-api-versionin
    - Check workflow-level and job-level permissions for least privilege.
    - Disable persisted checkout credentials in read-only jobs; retain write credentials only in workflows that must commit generated artifacts.
    - Verify Dependabot updates are reviewed and not auto-merged.
+   - Require build/test and PyPI publication to run in separate jobs; only the minimal publish job may receive `id-token: write`.
+   - Keep the publish job limited to downloading the verified artifact and invoking the pinned PyPI publishing action.
 
 5. **Document Findings**
    - Record any vulnerabilities found
