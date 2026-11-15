@@ -49,8 +49,8 @@ jobs:
       - name: Commit generated evidence against the latest branch head
         run: |
           set -euo pipefail
-          git config user.name "Mojtaba Arvin"
-          git config user.email "m.arvin@live.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # The branch may advance while evidence is being generated. Never
           # force-push or overwrite those commits: fetch, reset the disposable

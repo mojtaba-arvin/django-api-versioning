@@ -98,6 +98,40 @@
         "Pins a model or adds an unnecessary agent framework.",
         "Claims model-quality improvement without running versioned scenarios."
       ]
+    },
+    {
+      "id": "commit-hygiene-under-repeated-fixes",
+      "profile": "agent-maintenance",
+      "task": "A task changes several Python files, discovers lint issues across files, needs updates to three related workflows, and has a long project status note. Prepare and commit the completed work with minimal history churn.",
+      "checks": [
+        "Batch related implementation and workflow changes into a small number of coherent commits.",
+        "Run Black/isort once across the complete changed Python scope instead of committing one formatted file at a time.",
+        "Do not add duplicate roadmap, progress, implementation-status, or CI-strategy trackers when canonical documents and workflows own the facts.",
+        "Do not create no-op commits to trigger CI; use workflow_dispatch or rerun a suitable workflow.",
+        "Use the GitHub Actions bot identity for commits made by automation, and the verified maintainer identity only for manual commits."
+      ],
+      "failure_modes": [
+        "Creates whitespace-only or per-file formatting commits.",
+        "Maintains a status tracker that duplicates canonical workflow and architecture data.",
+        "Creates empty commits or changes workflow triggers solely to start CI.",
+        "Attributes a bot-generated commit to the maintainer's personal Git identity."
+      ]
+    },
+    {
+      "id": "source-evidence-idempotency",
+      "profile": "website",
+      "task": "Regenerate the committed Segment Lab snapshot twice from the same source commit and environment. The second run has identical evidence content but a later wall-clock time.",
+      "checks": [
+        "The generator compares semantic evidence content while excluding only the volatile generated_at field.",
+        "The second run preserves the previous generated_at value and produces no file diff or automation commit.",
+        "A real source, environment, scenario, or recorded-result change refreshes generated_at and updates the source-pinned snapshot.",
+        "Generated evidence commits use the GitHub Actions bot identity."
+      ],
+      "failure_modes": [
+        "Changes generated_at on every run and creates timestamp-only commits.",
+        "Ignores a real evidence change by preserving an old timestamp unconditionally.",
+        "Attributes an automated evidence commit to the maintainer's personal account."
+      ]
     }
   ]
 }

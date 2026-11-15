@@ -518,6 +518,18 @@ def _strip_volatile(data: dict) -> dict:
     return {k: v for k, v in data.items() if k != "generated_at"}
 
 
+def _preserve_generated_at(data: dict, existing: dict) -> dict:
+    """Keep the last evidence-change time when the recorded content is identical."""
+    previous_timestamp = existing.get("generated_at")
+    if (
+        isinstance(previous_timestamp, str)
+        and previous_timestamp
+        and _strip_volatile(existing) == _strip_volatile(data)
+    ):
+        return {**data, "generated_at": previous_timestamp}
+    return data
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -528,6 +540,10 @@ def main() -> None:
     args = parser.parse_args()
 
     data, main_stdout = build()
+    if ROUTES_JSON.exists():
+        existing = json.loads(ROUTES_JSON.read_text())
+        if isinstance(existing, dict):
+            data = _preserve_generated_at(data, existing)
     text = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.check:
         current = json.loads(ROUTES_JSON.read_text()) if ROUTES_JSON.exists() else {}

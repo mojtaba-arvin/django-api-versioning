@@ -17,6 +17,7 @@ from segment_lab.generate_routes import (
     build,
     provenance,
     source_refs,
+    _preserve_generated_at,
 )
 from segment_lab.probe import callback_info
 
@@ -135,6 +136,41 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
 
     assert scenarios["drf_viewset_class"]["urlconf_import"]["ok"] is False
     assert scenarios["order_reversed"]["matrix_equal_to"]["equal"] is True
+
+
+def test_generated_at_is_preserved_when_evidence_content_is_unchanged() -> None:
+    existing = {
+        "generated_at": "2026-11-14T10:00:00+00:00",
+        "source": {"commit": "a" * 40},
+        "scenarios": {"main": {"request_count": 3}},
+    }
+    regenerated = {
+        "generated_at": "2026-11-14T10:05:00+00:00",
+        "source": {"commit": "a" * 40},
+        "scenarios": {"main": {"request_count": 3}},
+    }
+
+    result = _preserve_generated_at(regenerated, existing)
+
+    assert result["generated_at"] == existing["generated_at"]
+    assert result["source"] == regenerated["source"]
+    assert result["scenarios"] == regenerated["scenarios"]
+
+
+def test_generated_at_changes_when_evidence_content_changes() -> None:
+    existing = {
+        "generated_at": "2026-11-14T10:00:00+00:00",
+        "source": {"commit": "a" * 40},
+    }
+    regenerated = {
+        "generated_at": "2026-11-14T10:05:00+00:00",
+        "source": {"commit": "b" * 40},
+    }
+
+    result = _preserve_generated_at(regenerated, existing)
+
+    assert result is regenerated
+    assert result["generated_at"] == regenerated["generated_at"]
 
 
 def test_callback_info_uses_stable_names_for_callable_instances() -> None:

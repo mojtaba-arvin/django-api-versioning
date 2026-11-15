@@ -9,7 +9,7 @@ Create a reviewable Git checkpoint for a completed logical unit of work.
 
 ## Trigger
 
-Use after a coherent change is complete and its applicable validation has run. Do not commit every individual edit or an incomplete intermediate state. A logical change may span multiple related files.
+Use after a coherent change is complete and its applicable validation has run. Do not commit every individual edit or an incomplete intermediate state. A logical change may span multiple related files. Batch related changes into one reviewable commit; run formatters once across the complete changed Python scope rather than creating per-file Black/isort/spacing commits.
 
 ## Procedure
 
@@ -56,7 +56,18 @@ Use a concise domain-oriented message with one of: `feat:`, `fix:`, `docs:`, `te
 
 Do not reference internal task-spec numbering. Do not add co-author trailers or generated-by signatures.
 
-### 6. Verify identity
+### 6. Automation identity
+
+For commits created by GitHub Actions, use the bot identity:
+
+```bash
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+```
+
+Never attribute automated evidence or dependency-lock commits to the maintainer's personal account. For a manual commit, use the repository's verified maintainer identity.
+
+### 7. Verify identity
 
 ```bash
 git log -1 --format='%an <%ae> | %cn <%ce>'
@@ -64,7 +75,7 @@ git log -1 --format='%an <%ae> | %cn <%ce>'
 
 Expected author and committer: `Mojtaba Arvin <m.arvin@live.com>`.
 
-### 7. Push only when authorized
+### 8. Push only when authorized
 
 Push to the task's authorized branch. Never force-push, rewrite remote history, or push to `main`. Verify the remote branch SHA after pushing.
 
@@ -78,3 +89,4 @@ If push fails, preserve the commit, inspect local and remote refs, do not expose
 - Never use destructive reset/clean operations as a shortcut.
 - Never push without task authorization.
 - Never describe a commit as validated unless its required checks actually passed.
+- Never create one commit per formatted file, a no-op commit to trigger CI, or a duplicate status tracker. Use workflow_dispatch or rerun an existing workflow for deliberate verification.

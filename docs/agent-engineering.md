@@ -48,6 +48,10 @@ The repository does not force a model selection. Use deterministic project tooli
 
 The suite is intentionally not an LLM-as-judge pipeline. It can be used across clients and models without provider SDKs, secrets, or non-deterministic network calls in package CI.
 
+## Historical behavior lessons
+
+The review of the 418 newest commits on this branch is recorded in [docs/agent-history-audit-418.md](agent-history-audit-418.md). Its recurring findings are now guardrails: avoid duplicate status trackers, batch formatting and related workflow edits, preserve generated-evidence timestamps when content is unchanged, and attribute automation commits to the GitHub Actions bot.
+
 ## Format references
 
 - [Agent Skills specification](https://agentskills.io/specification)

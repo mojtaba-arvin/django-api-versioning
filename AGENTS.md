@@ -45,6 +45,13 @@ This is the single engineering contract for every coding agent. Keep it concise.
 4. Read relevant source modules, callers, tests, and references only. Prefer targeted search over dumping large directories or documents.
 5. Prefer existing Python, pytest, tox/tox-uv, pre-commit, package-validation scripts, and GitHub Actions over new tools or services.
 
+## Commit and automation hygiene
+
+- Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.
+- Do not create duplicate roadmap, progress, implementation-status, or CI-strategy trackers when canonical code, workflow files, compatibility reports, or existing architecture/handoff documents already own the facts. Put short-lived progress in the task conversation.
+- Do not create commits solely to trigger CI or refresh volatile metadata. Use an existing run's rerun or an explicit workflow dispatch. When workflow behavior really changes, update related workflows in one logical commit.
+- GitHub Actions commits must use the `github-actions[bot]` identity, never the maintainer's personal identity. Manual commits use the repository's verified maintainer identity.
+
 ## Agent configuration ownership
 
 - This file owns shared repository policy. `CLAUDE.md` and `.github/copilot-instructions.md` are thin client adapters, not copies of this contract.

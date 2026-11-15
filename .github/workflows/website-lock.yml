@@ -31,8 +31,8 @@ jobs:
       - name: Commit lockfile against the latest branch head
         run: |
           set -euo pipefail
-          git config user.name "Mojtaba Arvin"
-          git config user.email "m.arvin@live.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           # The branch may advance while npm resolves the lockfile. Regenerate
           # from the latest package.json rather than force-pushing stale state.
