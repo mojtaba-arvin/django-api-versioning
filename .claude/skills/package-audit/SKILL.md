@@ -64,7 +64,7 @@ This skill provides a systematic framework for auditing the django-api-versionin
    - Django 6.0: Python 3.12, 3.13, 3.14
    - Django 6.1: Python 3.12, 3.13, 3.14, 3.15
 
-   This is 15 test environments plus one lint environment. It is the configured matrix, not evidence of successful execution. Verify actual results from the current run's logs and exit code.
+   This is 15 test environments plus one lint environment. It is the configured matrix, not evidence of successful execution. The compatibility workflow runs automatically for relevant package/test changes and PR review-start events, with manual reruns and a reusable release call. Its matrix is checked against `tox.ini` by `scripts/check_tox_workflow_matrix.py`. Verify actual results from the current run's logs and exit code.
 
    DRF is not a separate tox matrix dimension. `tox.ini` installs `djangorestframework` without an exact pin; record the resolved version from the actual environment when available. Do not claim a DRF compatibility matrix unless one is separately configured and executed.
 
@@ -188,9 +188,9 @@ This skill provides a systematic framework for auditing the django-api-versionin
 
 1. **Coverage Analysis**
    - Run `pytest --cov=django_api_versioning --cov-report=term-missing`
-   - Target: 85%+ coverage for production code
-   - Review uncovered lines
-   - Assess if uncovered lines are defensive/legacy code
+   - Read the coverage configuration from `pyproject.toml`; do not invent a percentage threshold when none is configured.
+   - Record the actual result from the identified test run.
+   - Review uncovered lines and assess their risk, including defensive and legacy paths.
 
 2. **Test Organization**
    - Verify tests are organized logically
