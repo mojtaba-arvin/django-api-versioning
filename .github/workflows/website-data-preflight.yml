@@ -9,6 +9,7 @@ on:
     branches: [main, audit/comprehensive-package-review]
     paths:
       - "website/**"
+      - "docs/articles/**"
       - "!website/package.json"
       - "!website/package-lock.json"
       - ".github/workflows/website-data-preflight.yml"
