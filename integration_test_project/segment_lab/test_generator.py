@@ -14,10 +14,10 @@ except ModuleNotFoundError:  # Python 3.10
 from segment_lab.generate_routes import (
     PACKAGE_DIR,
     SCENARIOS,
+    _preserve_generated_at,
     build,
     provenance,
     source_refs,
-    _preserve_generated_at,
 )
 from segment_lab.probe import callback_info
 
