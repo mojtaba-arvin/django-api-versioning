@@ -95,7 +95,7 @@ This repository is public and its workflows use standard GitHub-hosted runners s
 This does not mean every Actions feature or resource is unlimited:
 - Larger runners may be billable, including for public repositories.
 - Artifact storage and cache storage have separate limits and retention/eviction policies.
-- The account still has workflow/job concurrency and queue limits; this matrix has 16 jobs and may queue alongside other workflows.
+- The account still has workflow/job concurrency and queue limits; this workflow has 17 jobs (one matrix validator plus 16 tox environments) and may queue alongside other workflows.
 - Third-party services, package registries, network egress, and self-hosted infrastructure may have their own costs.
 
 Keep standard runners unless a documented technical need justifies a larger runner. Upload only artifacts needed for diagnosis or release, set finite retention, avoid caching generated build output unnecessarily, and monitor cache/artifact usage. Do not treat public-repository runner minutes as a reason to avoid the full compatibility matrix.
