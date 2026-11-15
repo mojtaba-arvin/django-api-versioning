@@ -14,15 +14,20 @@ import agent  # noqa: E402
 
 class AgentToolingTests(unittest.TestCase):
     def test_frontmatter_requires_delimited_metadata(self) -> None:
+        expected = {"name": "demo", "description": "Do a thing"}
+        source = "---\nname: demo\ndescription: Do a thing\n---\nbody"
+        self.assertEqual(agent.parse_frontmatter(source), expected)
         self.assertEqual(
-            agent.parse_frontmatter("---\nname: demo\ndescription: Do a thing\n---\nbody"),
-            {"name": "demo", "description": "Do a thing"},
+            agent.parse_frontmatter("name: demo\ndescription: Do a thing"),
+            {},
         )
-        self.assertEqual(agent.parse_frontmatter("name: demo\ndescription: Do a thing"), {})
 
     def test_task_profiles_are_small_and_specific(self) -> None:
         profile = agent.context_profile("testing")
-        self.assertEqual(profile["skill"], ".agents/skills/manual-testing/SKILL.md")
+        self.assertEqual(
+            profile["skill"],
+            ".agents/skills/manual-testing/SKILL.md",
+        )
         self.assertIn("tox.ini", profile["read"])
         self.assertNotIn("package source", profile["read"])
 
@@ -37,7 +42,10 @@ class AgentToolingTests(unittest.TestCase):
         report = agent.doctor_report(ROOT)
         self.assertEqual(report["package_version"], "0.3.7")
         self.assertTrue(report["configuration"]["integration_pytest_config"])
-        self.assertNotIn("environment", report)
+        self.assertIn(
+            report["working_tree"],
+            {"clean", "dirty", "unknown"},
+        )
 
 
 if __name__ == "__main__":

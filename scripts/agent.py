@@ -22,56 +22,97 @@ BUDGETS = {
 CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
     "implementation": {
         "skill": ".agents/skills/package-engineering/SKILL.md",
-        "read": ["pyproject.toml", "docs/reference/versioning-contract.md",
-                 "relevant package modules and callers", "matching unit tests",
-                 "integration_test_project/ only when framework wiring changes"],
-        "avoid": ["all articles", "full compatibility report", "unrelated website source"],
+        "read": [
+            "pyproject.toml",
+            "docs/reference/versioning-contract.md",
+            "relevant package modules and callers",
+            "matching unit tests",
+            "integration_test_project/ only when framework wiring changes",
+        ],
+        "avoid": [
+            "all articles",
+            "full compatibility report",
+            "unrelated website source",
+        ],
     },
     "audit": {
         "skill": ".agents/skills/package-audit/SKILL.md",
-        "read": ["pyproject.toml", "tox.ini", "docs/reference/versioning-contract.md",
-                 "package source", "relevant unit/integration tests", "packaging and CI"],
-        "avoid": ["website source unless a website claim is in scope",
-                  "historical test logs as current evidence"],
+        "read": [
+            "pyproject.toml",
+            "tox.ini",
+            "docs/reference/versioning-contract.md",
+            "package source",
+            "relevant unit/integration tests",
+            "packaging and CI",
+        ],
+        "avoid": [
+            "website source unless a website claim is in scope",
+            "historical test logs as current evidence",
+        ],
     },
     "testing": {
         "skill": ".agents/skills/manual-testing/SKILL.md",
-        "read": ["tox.ini", "pyproject.toml", "pytest.ini",
-                 "integration_test_project/pytest.ini",
-                 "scripts/check_tox_workflow_matrix.py"],
-        "avoid": ["package source unless diagnosing a failing test",
-                  "all test files when a focused test is sufficient"],
+        "read": [
+            "tox.ini",
+            "pyproject.toml",
+            "pytest.ini",
+            "integration_test_project/pytest.ini",
+            "scripts/check_tox_workflow_matrix.py",
+        ],
+        "avoid": [
+            "package source unless diagnosing a failing test",
+            "all test files when a focused test is sufficient",
+        ],
     },
     "release": {
         "skill": ".agents/skills/release/SKILL.md",
-        "read": ["pyproject.toml", "CHANGELOG.md", "COMPATIBILITY_REPORT.md",
-                 ".github/workflows/compatibility.yml",
-                 ".github/workflows/package-artifacts.yml",
-                 ".github/workflows/publish.yml"],
-        "avoid": ["all articles before the release workflow's technical-impact gate",
-                  "publishing without explicit version-specific authorization"],
+        "read": [
+            "pyproject.toml",
+            "CHANGELOG.md",
+            "COMPATIBILITY_REPORT.md",
+            ".github/workflows/compatibility.yml",
+            ".github/workflows/package-artifacts.yml",
+            ".github/workflows/publish.yml",
+        ],
+        "avoid": [
+            "all articles before the release workflow's technical-impact gate",
+            "publishing without explicit version-specific authorization",
+        ],
     },
     "website": {
         "skill": ".agents/skills/website-engineering/SKILL.md",
-        "read": ["docs/website/architecture.md", "affected website source and tests",
-                 "relevant website workflows",
-                 "docs/website/netlify-agent-handoff.md only for deployment/handoff"],
-        "avoid": ["package internals unless verifying a specific evidence claim",
-                  "all articles when only one page changes"],
+        "read": [
+            "docs/website/architecture.md",
+            "affected website source and tests",
+            "relevant website workflows",
+            "docs/website/netlify-agent-handoff.md only for deployment/handoff",
+        ],
+        "avoid": [
+            "package internals unless verifying a specific evidence claim",
+            "all articles when only one page changes",
+        ],
     },
     "agent-maintenance": {
         "skill": ".agents/skills/agent-maintenance/SKILL.md",
-        "read": ["AGENTS.md", "CLAUDE.md", ".github/copilot-instructions.md",
-                 "scripts/agent.py", ".agents/skills/ metadata",
-                 "only the skill/adapter being changed",
-                 ".github/workflows/agent-tooling.yml"],
-        "avoid": ["all skill bodies", "package implementation and tests unless affected"],
+        "read": [
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".github/copilot-instructions.md",
+            "scripts/agent.py",
+            ".agents/skills/ metadata",
+            "only the skill/adapter being changed",
+            ".github/workflows/agent-tooling.yml",
+        ],
+        "avoid": [
+            "all skill bodies",
+            "package implementation and tests unless affected",
+        ],
     },
 }
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
-    """Parse the deliberately small scalar metadata subset used by Agent Skills."""
+    """Parse the small scalar metadata subset used by this repository's skills."""
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         return {}
@@ -79,14 +120,16 @@ def parse_frontmatter(text: str) -> dict[str, str]:
         end = lines.index("---", 1)
     except ValueError:
         return {}
+
     values: dict[str, str] = {}
     for line in lines[1:end]:
         match = re.fullmatch(r"(name|description):\s*(.*?)\s*", line)
-        if match:
-            value = match.group(2).strip()
-            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-                value = value[1:-1]
-            values[match.group(1)] = value
+        if not match:
+            continue
+        value = match.group(2).strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        values[match.group(1)] = value
     return values
 
 
@@ -105,8 +148,10 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def validate_tree(root: Path = ROOT) -> list[str]:
-    """Validate canonical skills, adapters, evaluation cases, and prompt budgets."""
+    """Validate canonical skills, client adapters, evaluation cases, and budgets."""
     errors: list[str] = []
+    root = root.resolve()
+
     for relative, maximum in BUDGETS.items():
         path = root / relative
         if not path.is_file():
@@ -114,7 +159,9 @@ def validate_tree(root: Path = ROOT) -> list[str]:
             continue
         actual = len(path.read_text(encoding="utf-8"))
         if actual > maximum:
-            errors.append(f"{relative}: {actual} characters exceeds budget {maximum}")
+            errors.append(
+                f"{relative}: {actual} characters exceeds budget {maximum}"
+            )
 
     skills_root = root / ".agents" / "skills"
     if not skills_root.is_dir():
@@ -127,16 +174,26 @@ def validate_tree(root: Path = ROOT) -> list[str]:
         if not skill_file.is_file():
             errors.append(f"{skill_file.relative_to(root)} is missing")
             continue
+
         metadata = parse_frontmatter(skill_file.read_text(encoding="utf-8"))
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", slug):
             errors.append(f"Invalid skill directory name: {slug}")
         if set(metadata) != {"name", "description"}:
-            errors.append(f"{skill_file.relative_to(root)} needs name and description frontmatter")
+            errors.append(
+                f"{skill_file.relative_to(root)} needs name and description frontmatter"
+            )
         if metadata.get("name") != slug:
-            errors.append(f"{skill_file.relative_to(root)} name must match directory {slug}")
-        if not metadata.get("description") or len(metadata.get("description", "")) > 1024:
-            errors.append(f"{skill_file.relative_to(root)} has an empty or overlong description")
-        if metadata.get("name") in (item.get("name") for item in canonical.values()):
+            errors.append(
+                f"{skill_file.relative_to(root)} name must match directory {slug}"
+            )
+        description = metadata.get("description", "")
+        if not description or len(description) > 1024:
+            errors.append(
+                f"{skill_file.relative_to(root)} has an empty or overlong description"
+            )
+        if metadata.get("name") in (
+            item.get("name") for item in canonical.values()
+        ):
             errors.append(f"Duplicate canonical skill name: {metadata.get('name')}")
         canonical[slug] = metadata
 
@@ -149,20 +206,34 @@ def validate_tree(root: Path = ROOT) -> list[str]:
             if not adapter.is_file():
                 errors.append(f"Missing Claude adapter: {adapter.relative_to(root)}")
                 continue
+
             adapter_text = adapter.read_text(encoding="utf-8")
             if parse_frontmatter(adapter_text) != metadata:
-                errors.append(f"Claude adapter metadata differs from canonical skill: {slug}")
+                errors.append(
+                    f"Claude adapter metadata differs from canonical skill: {slug}"
+                )
             target = f"../../../.agents/skills/{slug}/SKILL.md"
             if target not in adapter_text:
-                errors.append(f"Claude adapter does not delegate to canonical skill: {slug}")
+                errors.append(
+                    f"Claude adapter does not delegate to canonical skill: {slug}"
+                )
             resolved = (adapter.parent / target).resolve()
-            if not resolved.is_file() or not resolved.resolve().is_relative_to(root.resolve()):
-                errors.append(f"Claude adapter target is missing or escapes repository: {slug}")
+            if not resolved.is_file() or not resolved.is_relative_to(root):
+                errors.append(
+                    f"Claude adapter target is missing or escapes repository: {slug}"
+                )
             if len(adapter_text) > 900:
-                errors.append(f"Claude adapter is too large; keep it as a pointer: {slug}")
-        for directory in sorted(path for path in claude_root.iterdir() if path.is_dir()):
+                errors.append(
+                    f"Claude adapter is too large; keep it as a pointer: {slug}"
+                )
+
+        for directory in sorted(
+            path for path in claude_root.iterdir() if path.is_dir()
+        ):
             if directory.name not in canonical:
-                errors.append(f"Claude adapter has no canonical skill: {directory.name}")
+                errors.append(
+                    f"Claude adapter has no canonical skill: {directory.name}"
+                )
 
     copilot_skill = root / ".github" / "skills" / "package-review" / "SKILL.md"
     if not copilot_skill.is_file():
@@ -170,13 +241,19 @@ def validate_tree(root: Path = ROOT) -> list[str]:
     else:
         text = copilot_skill.read_text(encoding="utf-8")
         metadata = parse_frontmatter(text)
-        if metadata.get("name") != "package-review" or not metadata.get("description"):
+        if metadata.get("name") != "package-review" or not metadata.get(
+            "description"
+        ):
             errors.append("Copilot review skill needs name/description frontmatter")
+
         target = "../../../.agents/skills/package-audit/SKILL.md"
+        resolved = (copilot_skill.parent / target).resolve()
         if target not in text:
-            errors.append("Copilot review skill must delegate to canonical package-audit")
-        elif not (copilot_skill.parent / target).resolve().is_file():
-            errors.append("Copilot review target is missing")
+            errors.append(
+                "Copilot review skill must delegate to canonical package-audit"
+            )
+        elif not resolved.is_file() or not resolved.is_relative_to(root):
+            errors.append("Copilot review target is missing or escapes repository")
 
     settings = root / ".claude" / "settings.json"
     if settings.is_file():
@@ -194,23 +271,38 @@ def validate_tree(root: Path = ROOT) -> list[str]:
         try:
             suite = _read_json(eval_path)
             scenarios = suite.get("scenarios")
-            if suite.get("schema_version") != 1 or not isinstance(scenarios, list) or not scenarios:
-                errors.append("Agent evaluation suite has an invalid schema or no scenarios")
+            if suite.get("schema_version") != 1 or not isinstance(
+                scenarios, list
+            ) or not scenarios:
+                errors.append(
+                    "Agent evaluation suite has an invalid schema or no scenarios"
+                )
             else:
                 seen: set[str] = set()
                 for scenario in scenarios:
                     if not isinstance(scenario, dict):
                         errors.append("Each evaluation scenario must be an object")
                         continue
+
                     scenario_id = scenario.get("id")
-                    if not isinstance(scenario_id, str) or not scenario_id or scenario_id in seen:
-                        errors.append(f"Invalid or duplicate evaluation scenario id: {scenario_id}")
+                    if (
+                        not isinstance(scenario_id, str)
+                        or not scenario_id
+                        or scenario_id in seen
+                    ):
+                        errors.append(
+                            f"Invalid or duplicate evaluation scenario id: {scenario_id}"
+                        )
                     seen.add(scenario_id)
                     if scenario.get("profile") not in CONTEXT_PROFILES:
-                        errors.append(f"Unknown profile in evaluation scenario: {scenario_id}")
+                        errors.append(
+                            f"Unknown profile in evaluation scenario: {scenario_id}"
+                        )
                     for field in ("task", "checks", "failure_modes"):
                         if not scenario.get(field):
-                            errors.append(f"Evaluation scenario {scenario_id} is missing {field}")
+                            errors.append(
+                                f"Evaluation scenario {scenario_id} is missing {field}"
+                            )
         except (json.JSONDecodeError, ValueError) as exc:
             errors.append(f"Invalid evaluation suite: {exc}")
 
@@ -221,10 +313,15 @@ def _run_version(command: str) -> dict[str, str]:
     executable = shutil.which(command)
     if not executable:
         return {"status": "not-installed"}
+
     try:
         result = subprocess.run(
-            [executable, "--version"], cwd=ROOT, capture_output=True,
-            text=True, timeout=5, check=False,
+            [executable, "--version"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
         output = (result.stdout or result.stderr).strip().splitlines()
         return {
@@ -251,8 +348,11 @@ def doctor_report(root: Path = ROOT) -> dict[str, Any]:
     def git_value(*args: str) -> str | None:
         try:
             result = subprocess.run(
-                ["git", "-C", str(root), *args], capture_output=True,
-                text=True, timeout=5, check=False,
+                ["git", "-C", str(root), *args],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
             )
             return result.stdout.strip() if result.returncode == 0 else None
         except (OSError, subprocess.TimeoutExpired):
@@ -263,11 +363,19 @@ def doctor_report(root: Path = ROOT) -> dict[str, Any]:
     sha = git_value("rev-parse", "HEAD")
     tox_file = root / "tox.ini"
     tox_text = tox_file.read_text(encoding="utf-8") if tox_file.is_file() else ""
+
+    if status == "" and branch:
+        working_tree = "clean"
+    elif status:
+        working_tree = "dirty"
+    else:
+        working_tree = "unknown"
+
     return {
         "repository_root": str(root),
         "branch": branch or "not-a-git-checkout",
         "commit": sha or "unknown",
-        "working_tree": "clean" if status == "" and branch else ("dirty" if status else "unknown"),
+        "working_tree": working_tree,
         "package_version": version,
         "python": sys.version.split()[0],
         "tools": {
@@ -275,8 +383,12 @@ def doctor_report(root: Path = ROOT) -> dict[str, Any]:
             for name in ("git", "uv", "tox", "pytest", "claude")
         },
         "configuration": {
-            "tox_requires_tox_uv": bool(re.search(r"(?m)^\s*requires\s*=.*tox-uv", tox_text)),
-            "integration_pytest_config": (root / "integration_test_project" / "pytest.ini").is_file(),
+            "tox_requires_tox_uv": bool(
+                re.search(r"(?m)^\s*requires\s*=.*tox-uv", tox_text)
+            ),
+            "integration_pytest_config": (
+                root / "integration_test_project" / "pytest.ini"
+            ).is_file(),
         },
     }
 
@@ -286,21 +398,31 @@ def _print_json(value: Any) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Dependency-free repository helpers for coding agents.")
+    parser = argparse.ArgumentParser(
+        description="Dependency-free repository helpers for coding agents."
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("doctor", help="read-only repository and tool diagnostics")
 
-    context_parser = subparsers.add_parser("context", help="task-specific reading set")
+    context_parser = subparsers.add_parser(
+        "context", help="task-specific reading set"
+    )
     context_parser.add_argument("profile", choices=sorted(CONTEXT_PROFILES))
     context_parser.add_argument("--json", action="store_true")
 
-    validate_parser = subparsers.add_parser("validate", help="validate skills, adapters, and budgets")
+    validate_parser = subparsers.add_parser(
+        "validate", help="validate skills, adapters, and budgets"
+    )
     validate_parser.add_argument("--json", action="store_true")
 
-    eval_parser = subparsers.add_parser("evals", help="list model/agent evaluation scenarios")
+    eval_parser = subparsers.add_parser(
+        "evals", help="list model/agent evaluation scenarios"
+    )
     eval_parser.add_argument("--json", action="store_true")
 
-    subparsers.add_parser("verify", help="validate agent configuration and run its unit tests")
+    subparsers.add_parser(
+        "verify", help="validate agent configuration and run its unit tests"
+    )
     args = parser.parse_args(argv)
 
     if args.command == "doctor":
@@ -312,7 +434,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             _print_json({"profile": args.profile, **profile})
         else:
-            print(f"Profile: {args.profile}\nSkill: {profile['skill']}\nRead:")
+            print(
+                f"Profile: {args.profile}\nSkill: {profile['skill']}\nRead:"
+            )
             for item in profile["read"]:
                 print(f"  - {item}")
             print("Avoid unless required:")
@@ -346,7 +470,11 @@ def main(argv: list[str] | None = None) -> int:
             for name, maximum in BUDGETS.items()
             if (ROOT / name).is_file()
         }
-        result = {"valid": not errors, "errors": errors, "always_loaded_budgets": budgets}
+        result = {
+            "valid": not errors,
+            "errors": errors,
+            "always_loaded_budgets": budgets,
+        }
         if args.json:
             _print_json(result)
         elif errors:
@@ -354,10 +482,21 @@ def main(argv: list[str] | None = None) -> int:
             for error in errors:
                 print(f"- {error}")
         else:
-            print(f"Agent configuration valid; {len(list((ROOT / '.agents/skills').glob('*/SKILL.md')))} canonical skills.")
-            print("Always-loaded instruction budgets (token estimate is characters / 4):")
+            skill_count = len(
+                list((ROOT / ".agents/skills").glob("*/SKILL.md"))
+            )
+            print(
+                f"Agent configuration valid; {skill_count} canonical skills."
+            )
+            print(
+                "Always-loaded instruction budgets "
+                "(token estimate is characters / 4):"
+            )
             for name, item in budgets.items():
-                print(f"  {name}: {item['characters']} chars; about {item['approx_tokens_chars_div_4']} tokens")
+                print(
+                    f"  {name}: {item['characters']} chars; "
+                    f"about {item['approx_tokens_chars_div_4']} tokens"
+                )
         return 1 if errors else 0
 
     if errors:
@@ -365,11 +504,20 @@ def main(argv: list[str] | None = None) -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    result = subprocess.run(
-        [sys.executable, "-m", "unittest", "discover", "-s", "scripts/agent_tests", "-v"],
-        cwd=ROOT, check=False,
-    )
-    return result.returncode
+
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "scripts/agent_tests",
+            "-v",
+        ],
+        cwd=ROOT,
+        check=False,
+    ).returncode
 
 
 if __name__ == "__main__":
