@@ -31,6 +31,15 @@ The separate lint environment passed all three checks:
 
 [Python package artifacts run #85](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761401257) completed successfully. It built the wheel and source distribution, passed strict Twine metadata validation, checked distribution contents, installed the wheel in isolation, and verified that all 15 packaged files matched the source tree.
 
+## Additional CI checkpoints
+
+- [Python tests run #144](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761401268) passed the focused unit and integration workflow.
+- [Website build and static verification #69](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761608641) passed for the updated 25-article corpus.
+
+## Release execution boundary
+
+The tag-triggered `.github/workflows/publish.yml` workflow was not executed because no release tag was created. Its build/publish separation and YAML syntax were reviewed, and the compatibility workflow passed, but the cross-job artifact transfer and actual PyPI publication remain unverified. GitHub Environment protection rules and PyPI Trusted Publishing configuration must be checked before a real release. No PyPI release or production website deployment was performed in this review.
+
 ## Declared requirements vs. verified combinations
 
 The package metadata declares:
