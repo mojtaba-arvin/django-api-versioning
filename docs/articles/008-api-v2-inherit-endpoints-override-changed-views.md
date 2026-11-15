@@ -346,6 +346,4 @@ The important distinction is that route reuse does not prove API contract compat
 
 ## Next steps
 
-If your API has several versions and a growing set of unchanged endpoints, compare the registration model with your current routing structure. The package's [decorator implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/decorators.py) contains the exact signature and version-range registration logic.
-
-To evaluate the package against your own versioning requirements, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
+If your API has several versions and a growing set of unchanged endpoints, compare the registration model with your current routing structure. Start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
