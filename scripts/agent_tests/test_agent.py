@@ -72,7 +72,14 @@ class AgentToolingTests(unittest.TestCase):
 
     def test_doctor_reports_configuration_without_environment_values(self) -> None:
         report = agent.doctor_report(ROOT)
-        self.assertEqual(report["package_version"], "0.3.7")
+        metadata = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        version_line = next(
+            line for line in metadata.splitlines() if line.startswith("version = ")
+        )
+        expected_version = (
+            version_line.partition("=")[2].strip().strip(chr(34)).strip(chr(39))
+        )
+        self.assertEqual(report["package_version"], expected_version)
         self.assertTrue(report["configuration"]["integration_pytest_config"])
         self.assertIn(
             report["working_tree"],
