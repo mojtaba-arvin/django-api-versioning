@@ -1,4 +1,4 @@
-# Repository instructions for documentation-site work
+# Repository-wide engineering instructions
 
 ## Repository map and ownership
 
@@ -63,9 +63,9 @@ Do not infer behaviour from article wording alone. Verify package claims against
 
 - `.github/workflows/tests.yml` runs the Python unit and integration suites on relevant pushes to `main` and `audit/comprehensive-package-review`, PR review-start checkpoints, and manual dispatch when package, test, integration-project, Python dependency, or test-workflow files change. Documentation-only and website-only changes do not run Python CI.
 - `.github/workflows/package-artifacts.yml` builds and validates wheel/sdist on relevant pushes to `main` and `audit/comprehensive-package-review`, PR review-start checkpoints, and manual dispatch when package source or packaging inputs change. It runs independently from the Python tests.
-- `.github/workflows/compatibility.yml` runs the full 15-environment Python/Django tox matrix plus lint as a manual `workflow_dispatch` checkpoint and reusable `workflow_call`. Keep it out of routine push/PR triggers; the tag-based PyPI workflow calls it before building or publishing a release.
+- `.github/workflows/compatibility.yml` runs the full 15-environment Python/Django tox matrix plus lint on relevant package, test, integration-project, dependency, tox, and verification-script pushes to `main` and `audit/comprehensive-package-review`, and on PR review-start events. It also supports manual `workflow_dispatch` and reusable `workflow_call`; the tag-based PyPI workflow calls it before building or publishing a release.
 - Both workflows use native GitHub-hosted Python with `setup-python` pip caching; CI must not build the development Docker image.
-- Pull-request checks run when a PR is opened/reopened or marked ready for review, not on every synchronization commit. Use the Actions `workflow_dispatch` entry to run explicit validation checkpoints after a batch of commits. Pushes to `main` remain automatic.
+- Pull-request checks run when a PR is opened/reopened or marked ready for review, not on every synchronization commit. Package/test changes pushed to the active review branch run the compatibility matrix automatically. Use `workflow_dispatch` for an explicit rerun or a checkpoint when automatic triggers do not apply. Pushes to `main` remain automatic.
 - `requirements-ci.txt` contains only dependencies needed by pytest and the integration project. Do not add formatter/type-checker/pre-commit dependencies to it unless CI actually runs those tools.
 - `requirements-build.txt` contains only wheel/sdist build and metadata-validation tools.
 - The root `Dockerfile` and `entrypoint.sh` remain the full local development workflow; BuildKit pip caching is enabled and pre-commit hook environments are installed lazily only when requested.
@@ -86,3 +86,18 @@ Before calling website work complete:
 7. verify that `website/`, `docs/`, and `integration_test_project/` are absent from both wheel and sdist unless a deliberate, documented packaging change says otherwise.
 
 Do not mark a gate as passed unless it was actually run. Do not deploy from an incomplete or failing build.
+
+
+## GitHub Actions cost and capacity
+
+This repository is public and its workflows use standard GitHub-hosted runners such as `ubuntu-latest`. GitHub documents standard hosted-runner use as free and unlimited for public repositories. Do not reduce test coverage or suppress relevant CI runs merely to conserve included Actions minutes.
+
+This does not mean every Actions feature or resource is unlimited:
+- Larger runners may be billable, including for public repositories.
+- Artifact storage and cache storage have separate limits and retention/eviction policies.
+- The account still has workflow/job concurrency and queue limits; this matrix has 16 jobs and may queue alongside other workflows.
+- Third-party services, package registries, network egress, and self-hosted infrastructure may have their own costs.
+
+Keep standard runners unless a documented technical need justifies a larger runner. Upload only artifacts needed for diagnosis or release, set finite retention, avoid caching generated build output unnecessarily, and monitor cache/artifact usage. Do not treat public-repository runner minutes as a reason to avoid the full compatibility matrix.
+
+The tox matrix is authoritative for configured Python/Django environments. The explicit matrix in `.github/workflows/compatibility.yml` must remain in sync with `tox.ini`; review both whenever either changes. A configured environment is not a passing environment: report only results from actual workflow logs and exit conclusions.
