@@ -171,34 +171,9 @@ def validate_reference_links(skill_file: Path, root: Path = ROOT) -> list[str]:
     return errors
 
 
-def validate_reference_links(skill_file: Path, root: Path = ROOT) -> list[str]:
-    """Check local Markdown links in a skill without fetching external URLs."""
+def _validate_instruction_budgets(root: Path) -> list[str]:
+    """Enforce character budgets for always-loaded client instructions."""
     errors: list[str] = []
-    root = root.resolve()
-    content = skill_file.read_text(encoding="utf-8")
-    for target in re.findall(r"\]\(([^)]+)\)", content):
-        if target.startswith(("#", "https://", "http://", "mailto:")):
-            continue
-        local_target = target.split("#", 1)[0].split("?", 1)[0]
-        if not local_target:
-            continue
-        resolved = (skill_file.parent / local_target).resolve()
-        if not resolved.is_relative_to(root):
-            errors.append(
-                f"{skill_file.relative_to(root)} link escapes repository: {target}"
-            )
-        elif not resolved.is_file():
-            errors.append(
-                f"{skill_file.relative_to(root)} has a missing reference: {target}"
-            )
-    return errors
-
-
-def validate_tree(root: Path = ROOT) -> list[str]:
-    """Validate canonical skills, client adapters, evaluation cases, and budgets."""
-    errors: list[str] = []
-    root = root.resolve()
-
     for relative, maximum in BUDGETS.items():
         path = root / relative
         if not path.is_file():
@@ -207,10 +182,17 @@ def validate_tree(root: Path = ROOT) -> list[str]:
         actual = len(path.read_text(encoding="utf-8"))
         if actual > maximum:
             errors.append(f"{relative}: {actual} characters exceeds budget {maximum}")
+    return errors
 
+
+def _validate_canonical_skills(
+    root: Path,
+) -> tuple[dict[str, dict[str, str]], list[str]]:
+    """Validate canonical skill names, frontmatter, and on-demand references."""
+    errors: list[str] = []
     skills_root = root / ".agents" / "skills"
     if not skills_root.is_dir():
-        return errors + ["Missing canonical .agents/skills directory"]
+        return {}, ["Missing canonical .agents/skills directory"]
 
     canonical: dict[str, dict[str, str]] = {}
     for directory in sorted(path for path in skills_root.iterdir() if path.is_dir()):
@@ -241,116 +223,155 @@ def validate_tree(root: Path = ROOT) -> list[str]:
             errors.append(f"Duplicate canonical skill name: {metadata.get('name')}")
         canonical[slug] = metadata
 
+    return canonical, errors
+
+
+def _validate_claude_adapters(
+    root: Path, canonical: dict[str, dict[str, str]]
+) -> list[str]:
+    """Keep Claude's discoverable skill stubs in sync with canonical skills."""
+    errors: list[str] = []
     claude_root = root / ".claude" / "skills"
     if not claude_root.is_dir():
-        errors.append("Missing Claude skill adapter directory")
-    else:
-        for slug, metadata in canonical.items():
-            adapter = claude_root / slug / "SKILL.md"
-            if not adapter.is_file():
-                errors.append(f"Missing Claude adapter: {adapter.relative_to(root)}")
-                continue
+        return ["Missing Claude skill adapter directory"]
 
-            adapter_text = adapter.read_text(encoding="utf-8")
-            if parse_frontmatter(adapter_text) != metadata:
-                errors.append(
-                    f"Claude adapter metadata differs from canonical skill: {slug}"
-                )
-            target = f"../../../.agents/skills/{slug}/SKILL.md"
-            if target not in adapter_text:
-                errors.append(
-                    f"Claude adapter does not delegate to canonical skill: {slug}"
-                )
-            resolved = (adapter.parent / target).resolve()
-            if not resolved.is_file() or not resolved.is_relative_to(root):
-                errors.append(
-                    f"Claude adapter target is missing or escapes repository: {slug}"
-                )
-            if len(adapter_text) > 900:
-                errors.append(
-                    f"Claude adapter is too large; keep it as a pointer: {slug}"
-                )
+    for slug, metadata in canonical.items():
+        adapter = claude_root / slug / "SKILL.md"
+        if not adapter.is_file():
+            errors.append(f"Missing Claude adapter: {adapter.relative_to(root)}")
+            continue
 
-        for directory in sorted(
-            path for path in claude_root.iterdir() if path.is_dir()
-        ):
-            if directory.name not in canonical:
-                errors.append(
-                    f"Claude adapter has no canonical skill: {directory.name}"
-                )
-
-    copilot_skill = root / ".github" / "skills" / "package-review" / "SKILL.md"
-    if not copilot_skill.is_file():
-        errors.append("Missing Copilot package-review skill")
-    else:
-        text = copilot_skill.read_text(encoding="utf-8")
-        metadata = parse_frontmatter(text)
-        if metadata.get("name") != "package-review" or not metadata.get("description"):
-            errors.append("Copilot review skill needs name/description frontmatter")
-
-        target = "../../../.agents/skills/package-audit/SKILL.md"
-        resolved = (copilot_skill.parent / target).resolve()
-        if target not in text:
+        adapter_text = adapter.read_text(encoding="utf-8")
+        if parse_frontmatter(adapter_text) != metadata:
             errors.append(
-                "Copilot review skill must delegate to canonical package-audit"
+                f"Claude adapter metadata differs from canonical skill: {slug}"
             )
-        elif not resolved.is_file() or not resolved.is_relative_to(root):
-            errors.append("Copilot review target is missing or escapes repository")
+        target = f"../../../.agents/skills/{slug}/SKILL.md"
+        resolved = (adapter.parent / target).resolve()
+        if target not in adapter_text:
+            errors.append(
+                f"Claude adapter does not delegate to canonical skill: {slug}"
+            )
+        if not resolved.is_file() or not resolved.is_relative_to(root):
+            errors.append(
+                f"Claude adapter target is missing or escapes repository: {slug}"
+            )
+        if len(adapter_text) > 900:
+            errors.append(
+                f"Claude adapter is too large; keep it as a pointer: {slug}"
+            )
 
+    for directory in sorted(path for path in claude_root.iterdir() if path.is_dir()):
+        if directory.name not in canonical:
+            errors.append(
+                f"Claude adapter has no canonical skill: {directory.name}"
+            )
+    return errors
+
+
+def _validate_copilot_adapter(root: Path) -> list[str]:
+    """Check the GitHub Copilot code-review adapter."""
+    skill = root / ".github" / "skills" / "package-review" / "SKILL.md"
+    if not skill.is_file():
+        return ["Missing Copilot package-review skill"]
+
+    content = skill.read_text(encoding="utf-8")
+    metadata = parse_frontmatter(content)
+    if metadata.get("name") != "package-review" or not metadata.get("description"):
+        return ["Copilot review skill needs name/description frontmatter"]
+
+    target = "../../../.agents/skills/package-audit/SKILL.md"
+    resolved = (skill.parent / target).resolve()
+    if target not in content:
+        return ["Copilot review skill must delegate to canonical package-audit"]
+    if not resolved.is_file() or not resolved.is_relative_to(root):
+        return ["Copilot review target is missing or escapes repository"]
+    return []
+
+
+def _validate_model_settings(root: Path) -> list[str]:
+    """Reject shared project settings that override collaborators' model choice."""
     settings = root / ".claude" / "settings.json"
-    if settings.is_file():
-        try:
-            configured = _read_json(settings)
-            if "model" in configured:
-                errors.append("Do not pin a model in shared .claude/settings.json")
-        except (json.JSONDecodeError, ValueError):
-            errors.append(".claude/settings.json is invalid JSON")
+    if not settings.is_file():
+        return []
+    try:
+        configured = _read_json(settings)
+    except (json.JSONDecodeError, ValueError):
+        return [".claude/settings.json is invalid JSON"]
+    if "model" in configured:
+        return ["Do not pin a model in shared .claude/settings.json"]
+    return []
 
-    eval_path = root / ".agents" / "evals" / "scenarios.json"
-    if not eval_path.is_file():
-        errors.append("Missing .agents/evals/scenarios.json")
+
+def _validate_scenario(
+    scenario: Any, seen: set[str]
+) -> list[str]:
+    """Validate one evaluation scenario and update the unique-id set."""
+    if not isinstance(scenario, dict):
+        return ["Each evaluation scenario must be an object"]
+
+    errors: list[str] = []
+    scenario_id = scenario.get("id")
+    label = scenario_id if isinstance(scenario_id, str) else "<missing id>"
+    if not isinstance(scenario_id, str) or not scenario_id or scenario_id in seen:
+        errors.append(f"Invalid or duplicate evaluation scenario id: {label}")
     else:
-        try:
-            suite = _read_json(eval_path)
-            scenarios = suite.get("scenarios")
-            if (
-                suite.get("schema_version") != 1
-                or not isinstance(scenarios, list)
-                or not scenarios
-            ):
-                errors.append(
-                    "Agent evaluation suite has an invalid schema or no scenarios"
-                )
-            else:
-                seen: set[str] = set()
-                for scenario in scenarios:
-                    if not isinstance(scenario, dict):
-                        errors.append("Each evaluation scenario must be an object")
-                        continue
+        seen.add(scenario_id)
 
-                    scenario_id = scenario.get("id")
-                    if (
-                        not isinstance(scenario_id, str)
-                        or not scenario_id
-                        or scenario_id in seen
-                    ):
-                        errors.append(
-                            f"Invalid or duplicate evaluation scenario id: "
-                            f"{scenario_id}"
-                        )
-                    seen.add(scenario_id)
-                    if scenario.get("profile") not in CONTEXT_PROFILES:
-                        errors.append(
-                            f"Unknown profile in evaluation scenario: {scenario_id}"
-                        )
-                    for field in ("task", "checks", "failure_modes"):
-                        if not scenario.get(field):
-                            errors.append(
-                                f"Evaluation scenario {scenario_id} is missing {field}"
-                            )
-        except (json.JSONDecodeError, ValueError) as exc:
-            errors.append(f"Invalid evaluation suite: {exc}")
+    if scenario.get("profile") not in CONTEXT_PROFILES:
+        errors.append(f"Unknown profile in evaluation scenario: {label}")
 
+    task = scenario.get("task")
+    if not isinstance(task, str) or not task.strip():
+        errors.append(f"Evaluation scenario {label} needs a non-empty task")
+
+    for field in ("checks", "failure_modes"):
+        values = scenario.get(field)
+        valid_values = (
+            isinstance(values, list)
+            and bool(values)
+            and all(isinstance(value, str) and value.strip() for value in values)
+        )
+        if not valid_values:
+            errors.append(
+                f"Evaluation scenario {label} needs non-empty string values for {field}"
+            )
+    return errors
+
+
+def _validate_evaluation_suite(root: Path) -> list[str]:
+    """Validate the versioned, model-agnostic Agent evaluation scenarios."""
+    path = root / ".agents" / "evals" / "scenarios.json"
+    if not path.is_file():
+        return ["Missing .agents/evals/scenarios.json"]
+    try:
+        suite = _read_json(path)
+    except (json.JSONDecodeError, ValueError) as exc:
+        return [f"Invalid evaluation suite: {exc}"]
+
+    scenarios = suite.get("scenarios")
+    if suite.get("schema_version") != 1 or not isinstance(scenarios, list):
+        return ["Agent evaluation suite has an invalid schema or no scenarios"]
+    if not scenarios:
+        return ["Agent evaluation suite has an invalid schema or no scenarios"]
+
+    errors: list[str] = []
+    seen: set[str] = set()
+    for scenario in scenarios:
+        errors.extend(_validate_scenario(scenario, seen))
+    return errors
+
+
+def validate_tree(root: Path = ROOT) -> list[str]:
+    """Validate instructions, skills, client adapters, and evaluation cases."""
+    root = root.resolve()
+    errors = _validate_instruction_budgets(root)
+    canonical, skill_errors = _validate_canonical_skills(root)
+    errors.extend(skill_errors)
+    errors.extend(_validate_claude_adapters(root, canonical))
+    errors.extend(_validate_copilot_adapter(root))
+    errors.extend(_validate_model_settings(root))
+    errors.extend(_validate_evaluation_suite(root))
     return errors
 
 
