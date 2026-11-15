@@ -199,20 +199,20 @@ This produces 15 test environments plus one lint environment.
 
 The latest focused Python workflow completed successfully at source revision `ef664d343b53e16bd121b0d564379bdbe0e89b72`:
 
-- 246 unit tests passed.
+- 247 unit tests passed.
 - 258 Django integration tests passed.
 - 96% package code coverage was reported.
 
-The full compatibility matrix completed successfully in GitHub Actions run [#23](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43759908870), executed at workflow commit `33b6ed3a14483240c9085ef3c410eef624a44f60`. The package and test source baseline was `035a4054f3e0d7e3e47adfeef1889e89e0660443`; comparison confirms those source and test files were unchanged between the two revisions:
+The full compatibility matrix completed successfully in GitHub Actions run [#24](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43760780144), executed at commit `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`. The package implementation is unchanged from source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443`; the test revision also adds coverage for custom path-converter formatting:
 
 - All 15 configured Python/Django environments passed.
-- Each environment passed 246 unit tests and 258 integration tests.
+- Each environment passed 247 unit tests and 258 integration tests.
 - Each environment reported 96% package coverage.
 - The separate lint environment passed flake8, Black, and isort.
 
 See [the full compatibility matrix run](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43651972913) for the execution result and [the compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the tested combinations.
 
-The package-artifact workflow also passed in [run #82](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43759941912) at commit `0e812de438ae4a5fc1d8760b42f2c3516bd4ff11`: it built the wheel and source distribution, passed strict Twine checks, validated distribution contents, and smoke-tested the installed wheel. The package source and packaging inputs were unchanged from the verified source baseline.
+The package-artifact workflow also passed in [run #83](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43760780109) at commit `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`: it built the wheel and source distribution, passed strict Twine checks, validated distribution contents, and smoke-tested the installed wheel. The package source and packaging inputs were unchanged from the verified source baseline.
 
 These results are tied to the cited source revisions. They are not a guarantee for Python/Django combinations absent from the tox matrix or for future dependency resolutions.
 
