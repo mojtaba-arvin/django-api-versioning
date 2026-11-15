@@ -78,9 +78,7 @@ def main() -> int:
             )
         return 1
 
-    print(
-        f"Verified {len(tox_environments)} tox environments against compatibility.yml."
-    )
+    print(f"Verified {len(tox_environments)} tox environments.)
     return 0
 
 
