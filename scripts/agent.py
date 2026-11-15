@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-# Temporary formatter diagnostics trigger.
 
 import argparse
 import json
@@ -259,15 +258,11 @@ def _validate_claude_adapters(
                 f"Claude adapter target is missing or escapes repository: {slug}"
             )
         if len(adapter_text) > 900:
-            errors.append(
-                f"Claude adapter is too large; keep it as a pointer: {slug}"
-            )
+            errors.append(f"Claude adapter is too large; keep it as a pointer: {slug}")
 
     for directory in sorted(path for path in claude_root.iterdir() if path.is_dir()):
         if directory.name not in canonical:
-            errors.append(
-                f"Claude adapter has no canonical skill: {directory.name}"
-            )
+            errors.append(f"Claude adapter has no canonical skill: {directory.name}")
     return errors
 
 
@@ -305,9 +300,7 @@ def _validate_model_settings(root: Path) -> list[str]:
     return []
 
 
-def _validate_scenario(
-    scenario: Any, seen: set[str]
-) -> list[str]:
+def _validate_scenario(scenario: Any, seen: set[str]) -> list[str]:
     """Validate one evaluation scenario and update the unique-id set."""
     if not isinstance(scenario, dict):
         return ["Each evaluation scenario must be an object"]
