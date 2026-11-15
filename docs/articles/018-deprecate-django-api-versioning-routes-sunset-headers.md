@@ -778,8 +778,8 @@ For a version-wide retirement with resource-specific migration links, combining 
 
 The same HTTP headers can be used with other Django routing and DRF versioning approaches, but the package-specific part of this implementation is the explicit registration of old and new routes and the use of `api_reverse()` to resolve a successor route from the package registry.
 
+For exact route registration and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+
 ## Next steps
 
-For the package's route registration behavior and URL construction, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md), the [LifecycleMiddleware implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/lifecycle.py), and the [source repository](https://github.com/mojtaba-arvin/django-api-versioning).
-
-Deprecation headers announce a lifecycle decision; they do not enforce it. A reliable retirement process combines explicit route registration, migration links, client-usage monitoring, and a deliberate removal step.
+To evaluate the package's version-wide lifecycle behavior and its documented limitations, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
