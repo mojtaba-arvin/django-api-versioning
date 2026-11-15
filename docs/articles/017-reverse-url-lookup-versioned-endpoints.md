@@ -632,7 +632,7 @@ The current implementation reads the registered route's `_route` representation 
 
 It does not delegate to Django's reverse resolver.
 
-As a result, it does not provide the full behavior of Django's URL reversing engine, including converter-specific `to_url()` handling and converter validation.
+As a result, it does not provide the full behavior of Django's URL reversing engine, such as arbitrary URL patterns, namespaces, positional arguments, or all reverse options. For supported `path()` routes, it does call each registered path converter's `to_url()` method, converts the result to a string, and checks the completed route against the compiled route-pattern regular expression.
 
 For example, a route containing:
 
@@ -650,9 +650,7 @@ api_reverse(
 )
 ```
 
-But callers should not assume that every custom Django path converter receives the same validation and formatting behavior it would receive through Django's `reverse()` function.
-
-If an application relies on custom converters or complex route patterns, verify that the route parameters are represented correctly before using the generated URL.
+Custom converters participate through their `to_url()` method, and the generated path must match the converter's route pattern. If an application relies on custom converters or complex route patterns, add tests for the converter's formatting and accepted values before using the generated URL.
 
 ### It is not a ViewSet router replacement
 
