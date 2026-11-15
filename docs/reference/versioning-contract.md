@@ -488,7 +488,7 @@ The helper substitutes the parameter values into the registered route and return
 
 The helper requires all named parameters used by the route.
 
-It does not accept positional `args`. Parameter values are converted using `str()`; Django path converter `to_url()` methods are not called, and converter-level validation is not performed.
+It does not accept positional `args`. For each named path parameter, `api_reverse()` calls the registered Django path converter's `to_url()` method when available, converts the result to a string, and checks the completed route against the compiled route-pattern regular expression. This preserves converter-specific formatting and rejects values whose generated path does not match the route pattern. The helper still does not implement Django's full URL resolver or arbitrary reverse options.
 
 ### Supported route patterns and limitations
 
