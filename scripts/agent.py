@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Dependency-free diagnostics, context selection, and validation for coding agents."""
 
+# Keep this helper as the trigger for the temporary formatter-diff workflow.
+
 from __future__ import annotations
 
 import argparse
