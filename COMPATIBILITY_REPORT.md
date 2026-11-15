@@ -4,10 +4,10 @@
 **Branch:** `audit/comprehensive-package-review`  
 **Verified source/test revision:** `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`  
 **Package source baseline:** `035a4054f3e0d7e3e47adfeef1889e89e0660443`  
-**Latest matrix workflow commit:** `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`  
-**Full compatibility run:** [GitHub Actions #24](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43760780144) — **15/15 test environments and lint passed**
+**Latest matrix workflow commit:** `bd47c3177ed4c770a5f9c77896426e2ddf0d0441`  
+**Full compatibility run:** [GitHub Actions #32](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761441836) — **15/15 test environments and lint passed**
 
-The matrix workflow executed at commit `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`. The package implementation is unchanged from source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443`; the test revision adds a regression test proving that `api_reverse()` uses a custom path converter's `to_url()` method. The matrix validator also confirmed that all 16 tox environments (15 test environments plus lint) match the explicit GitHub Actions matrix.
+The matrix workflow executed at commit `bd47c3177ed4c770a5f9c77896426e2ddf0d0441` and all 17 jobs passed (one matrix validator plus 16 tox environments). The package implementation is unchanged from source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443`; test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21` adds a regression test proving that `api_reverse()` uses a custom path converter's `to_url()` method. The matrix validator confirmed that all 16 tox environments (15 test environments plus lint) match the explicit GitHub Actions matrix.
 
 ## Test matrix
 
@@ -29,7 +29,7 @@ The separate lint environment passed all three checks:
 
 ## Package artifact verification
 
-[Python package artifacts run #83](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43760780109) completed successfully. It built the wheel and source distribution, passed strict Twine metadata validation, checked distribution contents, installed the wheel in isolation, and verified that all 15 packaged files matched the source tree.
+[Python package artifacts run #85](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761401257) completed successfully. It built the wheel and source distribution, passed strict Twine metadata validation, checked distribution contents, installed the wheel in isolation, and verified that all 15 packaged files matched the source tree.
 
 ## Declared requirements vs. verified combinations
 
