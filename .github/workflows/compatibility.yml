@@ -15,7 +15,7 @@ on:
       - "tox.ini"
       - "requirements*.txt"
       - "pytest.ini"
-      - "scripts/**"
+      - "scripts/check_tox_workflow_matrix.py"
       - ".github/workflows/compatibility.yml"
       - ".github/workflows/publish.yml"
   pull_request:
@@ -30,7 +30,7 @@ on:
       - "tox.ini"
       - "requirements*.txt"
       - "pytest.ini"
-      - "scripts/**"
+      - "scripts/check_tox_workflow_matrix.py"
       - ".github/workflows/compatibility.yml"
       - ".github/workflows/publish.yml"
   workflow_dispatch:

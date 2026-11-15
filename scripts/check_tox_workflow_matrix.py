@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -14,17 +15,14 @@ WORKFLOW = ROOT / ".github" / "workflows" / "compatibility.yml"
 
 
 def main() -> int:
+    tox_executable = shutil.which("tox")
+    command = (
+        [tox_executable, "config", "-k", "type", "--format", "json"]
+        if tox_executable
+        else [sys.executable, "-m", "tox", "config", "-k", "type", "--format", "json"]
+    )
     result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "tox",
-            "config",
-            "-k",
-            "type",
-            "--format",
-            "json",
-        ],
+        command,
         cwd=ROOT,
         check=False,
         capture_output=True,
