@@ -6,6 +6,7 @@ Tests the package with a real Django application.
 
 import os
 import sys
+from unittest import skipIf
 
 import django
 from django.conf import settings
@@ -2823,6 +2824,52 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         self.assertEqual(response["Deprecation"], "true")
         data = response.json()
         self.assertEqual(data["version"], 2)
+
+
+@skipIf(APIClient is None, "DRF not installed")
+class ConfiguredViewSetCallableIntegrationTestCase(TestCase):
+    """Exercise configured ViewSet.as_view() callables registered by @endpoint."""
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_configured_viewset_list_uses_the_versioned_callable(self):
+        v1 = self.client.get("/api/v1/configured-products/")
+        self.assertEqual(v1.status_code, 200)
+        self.assertEqual(v1.json(), {"version": 1, "detail": False})
+
+        v2 = self.client.get("/api/v2/configured-products/")
+        self.assertEqual(v2.status_code, 200)
+        self.assertEqual(v2.json(), {"version": 2, "detail": False})
+
+        # The version-2 segment is carried forward through API_MAX_VERSION.
+        v3 = self.client.get("/api/v3/configured-products/")
+        self.assertEqual(v3.status_code, 200)
+        self.assertEqual(v3.json(), {"version": 2, "detail": False})
+
+    def test_configured_viewset_detail_receives_detail_metadata_and_pk(self):
+        v1 = self.client.get("/api/v1/configured-products/42/")
+        self.assertEqual(v1.status_code, 200)
+        self.assertEqual(v1.json(), {"version": 1, "id": 42, "detail": True})
+
+        v2 = self.client.get("/api/v2/configured-products/84/")
+        self.assertEqual(v2.status_code, 200)
+        self.assertEqual(v2.json(), {"version": 2, "id": 84, "detail": True})
+
+    def test_configured_viewset_reverse_action_matches_registered_names(self):
+        v1 = self.client.get("/api/v1/configured-products/popular/")
+        self.assertEqual(v1.status_code, 200)
+        self.assertEqual(v1.json()["version"], 1)
+        self.assertTrue(
+            v1.json()["action_url"].endswith("/api/v1/configured-products/popular/")
+        )
+
+        v2 = self.client.get("/api/v2/configured-products/popular/")
+        self.assertEqual(v2.status_code, 200)
+        self.assertEqual(v2.json()["version"], 2)
+        self.assertTrue(
+            v2.json()["action_url"].endswith("/api/v2/configured-products/popular/")
+        )
 
 
 class DRFURLPathVersioningIntegrationTestCase(TestCase):

@@ -1,0 +1,120 @@
+name: Generate source-pinned website evidence
+
+on:
+  push:
+    branches: [audit/comprehensive-package-review]
+    paths:
+      - ".github/workflows/generate-evidence.yml"
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "pytest.ini"
+      - "integration_test_project/**"
+      - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
+      - "pyproject.toml"
+      - "requirements.txt"
+      - "requirements-ci.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: source-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.15"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
+        with:
+          node-version: "22.23.4"
+      - name: Install integration dependencies
+        run: python -m pip install -r requirements-ci.txt
+      - name: Validate article synchronizer
+        run: node --check website/scripts/sync-articles.mjs
+      - name: Generate evidence from the exact triggering checkout
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          python integration_test_project/segment_lab/generate_routes.py
+      - name: Verify repeated evidence generation is idempotent
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          cp website/src/data/generated/routes.json /tmp/routes-first.json
+          cp website/src/data/generated/check_versions_output.txt /tmp/check-versions-first.txt
+          python integration_test_project/segment_lab/generate_routes.py
+          cmp /tmp/routes-first.json website/src/data/generated/routes.json
+          cmp /tmp/check-versions-first.txt website/src/data/generated/check_versions_output.txt
+      - name: Commit generated evidence against the latest branch head
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The branch may advance while evidence is being generated. Never
+          # force-push or overwrite those commits: fetch, reset the disposable
+          # runner checkout, and regenerate evidence against the latest head.
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            remote_sha="$(git rev-parse FETCH_HEAD)"
+            current_sha="$(git rev-parse HEAD)"
+            export SOURCE_COMMIT="$current_sha"
+
+            if [ "$remote_sha" != "$current_sha" ]; then
+              git reset --hard "$remote_sha"
+              export SOURCE_COMMIT="$(git rev-parse HEAD)"
+              python integration_test_project/segment_lab/generate_routes.py
+            fi
+
+            git diff --check
+            git add website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
+
+            if git diff --cached --quiet; then
+              echo "Generated evidence is already current at $SOURCE_COMMIT."
+              exit 0
+            fi
+
+            git commit -m "data: generate source-pinned Segment Lab evidence"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+
+            echo "Branch advanced during push attempt $attempt; retrying from its latest head."
+            git reset --hard "$remote_sha"
+          done
+
+          echo "Could not publish generated evidence after three concurrent-update retries." >&2
+          exit 1
+      - name: Synchronize canonical articles from the generated source commit
+        run: node website/scripts/sync-articles.mjs
+      - name: Install locked website dependencies
+        working-directory: website
+        run: npm ci
+      - name: Run website unit tests
+        working-directory: website
+        run: npm test
+      - name: Run Astro type and content checks
+        working-directory: website
+        run: npm run check
+      - name: Build and inspect root-hosted artifact
+        working-directory: website
+        run: |
+          npm run build
+          npm run test:dist
+      - name: Build and inspect GitHub Pages project-site artifact
+        working-directory: website
+        env:
+          PUBLIC_BASE_PATH: /django-api-versioning
+        run: |
+          npm run build
+          npm run test:dist

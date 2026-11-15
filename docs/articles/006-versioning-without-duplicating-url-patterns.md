@@ -1,7 +1,7 @@
 ---
 slug: "006-django-api-versioning-without-duplicating-url-patterns"
 title: "Django API versioning without duplicating URL configuration"
-description: "Compare DRF header and URL-path versioning with declarative endpoint registration: how each approach identifies API versions, organizes views, and manages versioned routes."
+description: "Compare DRF header and URL-path versioning with declarative registration, focusing on version detection, view organization, and route maintenance."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -14,6 +14,8 @@ keywords:
 ---
 
 # Django API versioning without duplicating URL configuration
+
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
 
 When an API supports multiple versions, you need a way to identify the requested version and select the corresponding behavior.
 
@@ -208,12 +210,12 @@ class UserListV2(ListAPIView):
     serializer_class = UserSerializerV2
 ```
 
-Import the module containing the declarations before importing the generated URL patterns:
+Import the module containing the declarations during URLconf initialization so the decorators register routes before Django first resolves requests:
 
 ```python
 # urls.py
 from django.urls import include, path
-from . import views  # noqa: F401 — import first so decorators register
+from . import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -221,6 +223,8 @@ urlpatterns = [
     path("", include(api_urlpatterns)),
 ]
 ```
+
+The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view module does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
 With `API_MAX_VERSION = 2` and the package's default `API_BASE_PATH = "api/v{version}/"`, this produces:
 
@@ -242,7 +246,7 @@ class PostList(ListAPIView):
 
 The package registers this implementation for v1 and v2. You do not need to add another declaration just to expose the unchanged endpoint under the newer versioned URL.
 
-The runtime URL patterns are still generated for each supported version. What changes is where the registration logic lives: each implementation is declared at its starting version, and the registry generates the corresponding routes.
+The runtime URL patterns are still generated for each supported version. What changes is where the registration logic lives: each implementation is declared at its starting version, and the registry generates the corresponding routes. The package uses URL matching to select the registered callable; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure its URL keyword argument or namespace is present.
 
 ### Understanding segment registration
 
@@ -343,16 +347,12 @@ can be registered as a specific route, but this is not a substitute for normal r
 
 The integration test project's URLconf demonstrates manually mounting router URLs under versioned prefixes. It should be understood as a separate routing configuration, not automatic integration between the router and `@endpoint`.
 
-### Author disclosure
-
-I am the maintainer of `django-api-versioning`. The package's registration behavior and limitations are documented in its canonical versioning contract.
+For the exact endpoint registration and URL construction rules, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Next steps
 
 For APIs where the version should be identified from the request, DRF's built-in `AcceptHeaderVersioning` and `URLPathVersioning` are useful starting points.
 
-If you prefer separate endpoint implementations with generated versioned routes, explore [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
-
-The package's [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) documents the exact registration semantics, version boundaries, import order, and ViewSet limitations.
+If you prefer separate endpoint implementations with generated versioned routes, evaluate [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
 
 The key question is not how many versions your API has, but whether shared views or version-specific endpoint registrations are easier to maintain as its contract evolves.

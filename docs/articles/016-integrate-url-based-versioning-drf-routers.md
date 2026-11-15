@@ -15,6 +15,8 @@ keywords:
 
 # Using DRF Routers with django-api-versioning
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 Django REST Framework's `ModelViewSet` and routers are a natural fit for resource-oriented APIs. But not every endpoint in a project maps cleanly to a resource. Search operations, authentication flows, webhooks, and other custom endpoints may be better implemented with `APIView` or `GenericAPIView`.
 
 When a project uses both patterns, URL-based API versioning needs to accommodate both.
@@ -28,7 +30,7 @@ The practical approach is to use:
 
 Both registration mechanisms can coexist in one Django URLconf and use the same versioned URL structure.
 
-The package is maintained by the author. Its responsibility is endpoint registration and URL routing; it does not replace DRF routers or perform DRF request-version negotiation.
+The package's responsibility is endpoint registration and URL routing; it does not replace DRF routers, configure a DRF versioning class, or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present.
 
 ## Combining routers and @endpoint in one project
 
@@ -106,7 +108,10 @@ The search endpoint does not need the CRUD actions provided by `ModelViewSet`. I
 
 ```python
 from django_api_versioning import endpoint
+from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from .models import Product
 
 
 @endpoint("search/", version=1)
@@ -154,7 +159,7 @@ Create one `SimpleRouter` per version for the ViewSets, then include the package
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter
 
-from . import views  # noqa: F401 — execute endpoint declarations first
+from . import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -184,9 +189,9 @@ urlpatterns = [
 ]
 ```
 
-The `from . import views` import must execute before `api_urlpatterns` is imported. The `@endpoint` decorators register routes when their modules are imported; the package does not automatically discover view modules.
+The `from . import views` import executes the `@endpoint` decorators; the package does not automatically discover view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit during URLconf initialization and ensure registration is complete before request resolution.
 
-If the decorated views are in separate modules, import each of those modules before reading the generated URL patterns.
+If the decorated views are in separate modules, import each of those modules during URLconf initialization.
 
 ### Resulting URL structure
 
@@ -215,7 +220,7 @@ Both registration mechanisms produce URLs under the same `/api/v{version}/` stru
 
 **Scope: routing only.** The package does not register ViewSet actions, configure DRF's `request.version`, or determine whether a response change is backward-compatible.
 
-For the exact package behavior—including version ranges, collision precedence, and URLconf import order—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the exact package behavior—including version ranges, collision precedence, and URLconf import behavior—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Why @endpoint does not replace ViewSet routers
 
@@ -382,7 +387,7 @@ This is a DRF-only configuration technique. It does not use or extend `django-ap
 | Non-resource APIView endpoints | Manual `path()` entries | Manual `path()` entries | `@endpoint` |
 | Router registration | Explicit per version | Generated from configuration | Explicit for ViewSets |
 | Package dependency | No | No | Yes, for APIView registration |
-| Import-order requirement | No package-specific requirement | No package-specific requirement | Required for `@endpoint` declarations |
+| Import-order requirement | No package-specific requirement | No package-specific requirement | Explicit module imports during URLconf initialization; exported urlpatterns is a shared list, not a frozen copy |
 
 The mixed approach is useful when a project has both resource-oriented and non-resource endpoints. It avoids forcing every endpoint into a ViewSet while retaining DRF's router-generated CRUD routes.
 

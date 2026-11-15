@@ -15,6 +15,8 @@ keywords:
 
 # Segment-based API version routing in Django
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 Segment-based API versioning puts the version directly in the URL path:
 
 ```text
@@ -169,14 +171,14 @@ The version range is expanded when the endpoint declaration is registered. It is
 
 ### Mount the generated URL patterns
 
-Import the modules containing the endpoint declarations before importing the package's URL patterns:
+Import modules containing endpoint declarations during URLconf initialization so their decorators register routes before Django first resolves requests:
 
 ```python
 # urls.py
 
 from django.urls import include, path
 
-from . import views  # noqa: F401 — import first so decorators register
+from . import views  # noqa: F401 — import during URLconf initialization
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 urlpatterns = [
@@ -184,9 +186,9 @@ urlpatterns = [
 ]
 ```
 
-The import order matters. The `@endpoint` decorators register routes when their Python modules are imported. The package does not automatically discover application view modules.
+The `@endpoint` decorators register routes when their Python modules are imported. The package does not automatically discover application view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view modules does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
-If endpoint declarations are split across multiple modules, import all of them before importing `api_urlpatterns`.
+If endpoint declarations are split across multiple modules, import all of them during URLconf initialization so every declaration is registered before requests are resolved.
 
 For example:
 
@@ -199,7 +201,7 @@ api/
     urls.py
 ```
 
-The URLconf must import both view modules before reading the package's URL patterns:
+Import both view modules during URLconf initialization. The package's exported `urlpatterns` is the registry's shared list, not a copy, so importing it before those modules does not freeze an empty snapshot:
 
 ```python
 # api/urls.py
@@ -292,7 +294,7 @@ A version outside the configured range is different from an endpoint that has no
 
 There is also an important contract risk: increasing `API_MAX_VERSION` can carry an older implementation into a newer version. That implementation may not satisfy the newer API contract. The package does not determine semantic compatibility. Review and test each supported version's response contract, serializers, permissions, filtering, and pagination.
 
-For the exact decorator signature, URL construction, precedence rules, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the exact decorator signature, URL construction, precedence rules, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ### Adding v3
 
@@ -517,11 +519,11 @@ The practical boundary is:
 
 The package does not automatically integrate with or inherit DRF router registrations.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 
 ## Trade-offs and scope
 
-**Scope: routing only.** `django-api-versioning` generates versioned URL patterns and selects the registered view for each route. It does not perform DRF request-version negotiation, automatically integrate ViewSets with routers, or guarantee semantic compatibility between API versions.
+**Scope: routing only.** `django-api-versioning` generates versioned URL patterns and selects the registered view for each route. It does not perform DRF request-version negotiation, configure a DRF versioning class, or automatically populate DRF's `request.version`. If view code needs that attribute, configure DRF version identification separately and ensure its required URL keyword argument or namespace is present. The package also does not automatically integrate ViewSets with routers or guarantee semantic compatibility between API versions.
 
 | Approach | Registration model | View structure | Main maintenance cost |
 | --- | --- | --- | --- |
@@ -540,8 +542,6 @@ Segment-based routing is not the only way to expose the selected version to a vi
 The trade-off is not only import order or view type. Carry-forward can expose an older implementation under a newer version if the team forgets to review the endpoint's contract. Version-specific behavior must still be tested deliberately.
 
 **When the benefit is smaller:** for a single version or a small set of endpoints with no repeated registrations, the package's version-range behavior may provide little maintenance benefit over explicit URL patterns.
-
-Disclosure: I maintain django-api-versioning, the package discussed in this article.
 
 ## Next steps
 

@@ -1,0 +1,84 @@
+name: Python package artifacts
+
+on:
+  # PR checks run when review starts, not on every commit in a long review branch.
+  # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
+  workflow_dispatch:
+  push:
+    branches: [main, audit/comprehensive-package-review]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "MANIFEST.in"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE*"
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
+      - "requirements-build.txt"
+      - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
+      - ".github/workflows/package-artifacts.yml"
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "MANIFEST.in"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "LICENSE*"
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - "pytest.ini"
+      - "requirements-build.txt"
+      - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
+      - ".github/workflows/package-artifacts.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-artifacts-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.15"
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+
+      - name: Install build tools
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Build source and wheel distributions
+        run: python -m build --outdir dist
+
+      - name: Validate distribution metadata
+        run: python -m twine check --strict dist/*
+
+      - name: Install the built wheel and verify its routing behavior
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-deps dist/*.whl
+          cd /tmp
+          python "$GITHUB_WORKSPACE/scripts/smoke_installed_wheel.py"
+
+      - name: Verify package contents
+        run: python scripts/verify_distribution_contents.py dist

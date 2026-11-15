@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
 
@@ -104,7 +105,38 @@ def test_invalid_sunset_date_is_ignored(monkeypatch, caplog):
     response = middleware(_request("2"))
 
     assert response["Deprecation"] == "true"
+    assert "Sunset" not in response
     assert "Invalid sunset date" in caplog.text
+
+
+def test_non_string_sunset_is_ignored(monkeypatch, caplog):
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {"status": "deprecated", "sunset": 123},
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("2"))
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "true"
+    assert "Sunset" not in response
+    assert "Invalid sunset date" in caplog.text
+
+
+def test_timezone_aware_sunset_is_converted_to_utc(monkeypatch):
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {
+            "status": "deprecated",
+            "sunset": "2030-01-01T12:00:00+03:00",
+        },
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("2"))
+
+    assert response["Sunset"] == "Tue, 01 Jan 2030 09:00:00 GMT"
 
 
 # Tests for _extract_version() and _extract_version_from_path()
@@ -120,6 +152,15 @@ class TestVersionExtraction:
         # Even though path says v2, request.version should win
         version = _extract_version(request)
         assert version == 3
+
+    def test_extract_version_accepts_integer_request_version(self):
+        """Integer request.version values are accepted without coercion."""
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/unrelated/")
+        request.version = 3
+
+        assert _extract_version(request) == 3
 
     def test_extract_version_prefers_resolver_match_kwargs(self):
         """Version extraction prefers resolver_match.kwargs["version"] over path."""
@@ -222,6 +263,30 @@ class TestVersionExtraction:
         version = _extract_version(request)
         # Should fall back to path and get 2
         assert version == 2
+
+    @pytest.mark.parametrize("invalid_version", [True, 2.5, "2.5", " 2 "])
+    def test_non_integer_request_versions_are_not_truncated(self, invalid_version):
+        """Booleans, floats and malformed strings must not alias an integer version."""
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/unrelated/")
+        request.version = invalid_version
+        request.resolver_match = None
+
+        assert _extract_version(request) is None
+
+    def test_non_integer_resolver_version_is_not_truncated(self):
+        """Resolver kwargs use the same strict version parsing as request.version."""
+        from unittest.mock import Mock
+
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/unrelated/")
+        request.version = None
+        request.resolver_match = Mock()
+        request.resolver_match.kwargs = {"version": 2.5}
+
+        assert _extract_version(request) is None
 
     def test_extract_version_empty_lifecycle_config(self):
         """Version extraction works even with empty lifecycle config."""

@@ -61,7 +61,8 @@ class LifecycleMiddleware:
             return self.get_response(request)
 
         sunset = meta.get("sunset")
-        if sunset and _is_past(sunset):
+        sunset_date = _parse_sunset(sunset) if sunset else None
+        if sunset_date and _is_past(sunset_date):
             return HttpResponseGone(
                 f"API version {version} has been retired as of {sunset}."
             )
@@ -69,30 +70,37 @@ class LifecycleMiddleware:
         response = self.get_response(request)
         if meta.get("status") == "deprecated":
             response["Deprecation"] = "true"
-            if sunset:
-                response["Sunset"] = _to_http_date(sunset)
+            if sunset_date:
+                response["Sunset"] = _to_http_date(sunset_date)
         return response
+
+
+def _coerce_version(value: Any) -> int | None:
+    """Accept integer versions without truncating booleans or other numeric types."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdecimal():
+        return int(value)
+    return None
 
 
 def _extract_version(request: HttpRequest) -> int | None:
     # Path-based: request.version is set by DRF or by URLPathVersioning.
-    if hasattr(request, "version") and request.version is not None:
-        try:
-            return int(request.version)
-        except (TypeError, ValueError):
-            pass
-    # Fallback: parse from resolver_match kwargs.
-    match = getattr(request, "resolver_match", None)
-    if match and "version" in match.kwargs:
-        try:
-            return int(match.kwargs["version"])
-        except (TypeError, ValueError):
-            pass
-    # Fallback: extract from static URL path using API_BASE_PATH pattern.
-    version = _extract_version_from_path(request)
+    version = _coerce_version(getattr(request, "version", None))
     if version is not None:
         return version
-    return None
+
+    # Fallback: parse from resolver_match kwargs.
+    match = getattr(request, "resolver_match", None)
+    if match:
+        version = _coerce_version(match.kwargs.get("version"))
+        if version is not None:
+            return version
+
+    # Fallback: extract from static URL path using API_BASE_PATH pattern.
+    return _extract_version_from_path(request)
 
 
 def _extract_version_from_path(request: HttpRequest) -> int | None:
@@ -137,18 +145,26 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
     return None
 
 
-def _is_past(date_str: str) -> bool:
+def _parse_sunset(value: Any) -> datetime | None:
+    """Parse a configured sunset value and normalize it to UTC."""
+    if not isinstance(value, str):
+        logger.warning("Invalid sunset date %r; ignoring.", value)
+        return None
+
     try:
-        date = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
-        logger.warning("Invalid sunset date %r; ignoring.", date_str)
-        return False
+        logger.warning("Invalid sunset date %r; ignoring.", value)
+        return None
+
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _is_past(date: datetime) -> bool:
     return date < datetime.now(timezone.utc)
 
 
-def _to_http_date(date_str: str) -> str:
-    try:
-        date = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
-    except ValueError:
-        return date_str
+def _to_http_date(date: datetime) -> str:
     return date.strftime("%a, %d %b %Y %H:%M:%S GMT")

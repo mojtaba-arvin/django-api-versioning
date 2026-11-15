@@ -428,10 +428,11 @@ class TestDRFViewSetRegistration:
         with pytest.raises(TypeError) as exc_info:
             registry.register("api/v1/users", UserViewSet)
 
-        error_msg = str(exc_info.value)
-        # Error should mention ViewSet and suggest as_view() with actions
-        assert "ViewSet" in error_msg or "actions" in error_msg
-        assert "as_view" in error_msg
+        assert str(exc_info.value) == (
+            "ViewSet 'UserViewSet' cannot be registered directly. "
+            "Pass a configured callable like: "
+            "UserViewSet.as_view({'get': 'list', 'post': 'create'})"
+        )
 
     def test_viewset_with_actions_succeeds(self, clear_registry):
         """ViewSet with action configuration via as_view() succeeds."""

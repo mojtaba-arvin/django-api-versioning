@@ -1,10 +1,10 @@
 import pytest
 from django.http import JsonResponse
-from django.urls import NoReverseMatch
+from django.urls import NoReverseMatch, register_converter
 
 from django_api_versioning import api_reverse
 from django_api_versioning.decorators import endpoint
-from django_api_versioning.exceptions import AmbiguousVersionError
+from django_api_versioning.exceptions import AmbiguousVersionError, VersionTypeError
 from django_api_versioning.settings import api_settings as settings
 
 
@@ -32,6 +32,15 @@ class TestApiReverse:
         assert api_reverse("users", version=3) == "/api/v3/users"
         assert api_reverse("users", version=4) == "/api/v4/users"
         assert api_reverse("users", version=5) == "/api/v5/users"
+
+    @pytest.mark.parametrize("invalid_version", [True, 1.0, "1"])
+    def test_non_integer_version_is_rejected(self, invalid_version):
+        @endpoint("typed-version/", versions=[1], view_name="typed-version")
+        def typed_version(request):
+            return JsonResponse({})
+
+        with pytest.raises(VersionTypeError, match="Version must be an integer"):
+            api_reverse("typed-version", version=invalid_version)
 
     def test_missing_version_raises_no_reverse_match(self, versions_1_to_5):
         _register_users()
@@ -73,6 +82,59 @@ class TestApiReverse:
 
         with pytest.raises(NoReverseMatch, match="Missing required parameter"):
             api_reverse("user-detail", version=1)
+
+    def test_unexpected_kwarg_raises_no_reverse_match(self):
+        @endpoint("users/<int:pk>/", version=1, view_name="user-detail-extra")
+        def user_detail(request, pk):
+            return JsonResponse({"pk": pk})
+
+        with pytest.raises(NoReverseMatch, match="Unexpected parameter"):
+            api_reverse("user-detail-extra", version=1, pk=42, username="alice")
+
+    def test_invalid_int_parameter_raises_no_reverse_match(self):
+        @endpoint("users/<int:pk>/", version=1, view_name="user-detail-invalid-int")
+        def user_detail(request, pk):
+            return JsonResponse({"pk": pk})
+
+        with pytest.raises(NoReverseMatch):
+            api_reverse("user-detail-invalid-int", version=1, pk="not-an-int")
+
+    def test_string_parameter_rejects_path_separator(self):
+        @endpoint("users/<str:username>/", version=1, view_name="user-detail-slash")
+        def user_detail(request, username):
+            return JsonResponse({"username": username})
+
+        with pytest.raises(NoReverseMatch):
+            api_reverse("user-detail-slash", version=1, username="alice/admin")
+
+    def test_path_converter_accepts_path_separator(self):
+        @endpoint("files/<path:resource>/", version=1, view_name="file-detail")
+        def file_detail(request, resource):
+            return JsonResponse({"resource": resource})
+
+        assert api_reverse("file-detail", version=1, resource="reports/annual.pdf") == (
+            "/api/v1/files/reports/annual.pdf/"
+        )
+
+    def test_custom_path_converter_to_url_is_used(self):
+        class LowercaseConverter:
+            regex = "[a-z]+"
+
+            def to_python(self, value):
+                return value
+
+            def to_url(self, value):
+                return str(value).lower()
+
+        register_converter(LowercaseConverter, "lowercase")
+
+        @endpoint("items/<lowercase:code>/", version=1, view_name="item-detail")
+        def item_detail(request, code):
+            return JsonResponse({"code": code})
+
+        assert api_reverse("item-detail", version=1, code="ABC") == (
+            "/api/v1/items/abc/"
+        )
 
     def test_kwarg_with_backslash_not_treated_as_regex_escape(self):
         """Ensure parameters with backslashes don't trigger regex escape sequences."""

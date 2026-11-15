@@ -1,0 +1,194 @@
+---
+import Base from "../../layouts/Base.astro";
+import CodeBlock from "../../components/CodeBlock.astro";
+import SourceLink from "../../components/SourceLink.astro";
+import {
+  data,
+  env,
+  source,
+  scenarioNames,
+  generatedDate,
+  repoUrl,
+  commitUrl,
+} from "../../lib/data";
+
+const basePath = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
+const scenarios = scenarioNames.map((name) => data.scenarios[name]);
+const checkOutput = data.scenarios.main.check_versions[0].stdout;
+const sourceRefs = Object.entries(data.source_refs.lines);
+---
+<Base
+  title="Evidence and provenance"
+  description="Source commit, dependency environment, scenario results, source references and SHA-256 hashes behind the recorded route visualizations."
+  current="evidence"
+>
+  <div class="wrap page-shell">
+    <header class="page-head">
+      <p class="eyebrow">Reproducibility and provenance</p>
+      <h1>Evidence and provenance</h1>
+      <p class="lede">
+        Every route diagram and command transcript on this site is backed by a
+        committed JSON snapshot generated from the checked-out package and the
+        existing Django integration project. The browser only reads this data; it
+        does not execute Python.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-accent" href={withBase("/data/routes.json")}>Download routes.json</a>
+        <a class="btn" href={withBase("/data/check_versions_output.txt")}>Raw check_versions output</a>
+        <a class="btn" href={commitUrl}>Open source commit</a>
+      </div>
+    </header>
+
+    <section class="section" id="provenance">
+      <div class="section-head">
+        <span class="section-number">01</span>
+        <div>
+          <p class="eyebrow">Pinned source snapshot</p>
+          <h2>What exactly was inspected?</h2>
+          <p>
+            The source commit and file hashes identify the package implementation and
+            the integration inputs used to produce the evidence.
+          </p>
+        </div>
+      </div>
+      <dl class="evidence-meta">
+        <div><dt>Package</dt><dd>{source.package} {source.version}</dd></div>
+        <div><dt>Source commit</dt><dd><a href={commitUrl}><code>{source.commit}</code></a></dd></div>
+        <div><dt>Source mode</dt><dd>{source.source_mode}</dd></div>
+        <div><dt>Generated</dt><dd><time datetime={data.generated_at}>{generatedDate}</time></dd></div>
+        <div><dt>Python</dt><dd>{env.python}</dd></div>
+        <div><dt>Django</dt><dd>{env.django}</dd></div>
+        <div><dt>Django REST Framework</dt><dd>{env.djangorestframework}</dd></div>
+        <div><dt>Scenarios</dt><dd>{scenarioNames.length}</dd></div>
+        <div><dt>Package source files hashed</dt><dd>{source.files.length}</dd></div>
+        <div><dt>Evidence input files hashed</dt><dd>{source.evidence_files.length}</dd></div>
+        <div><dt>Archive SHA-256</dt><dd>{source.archive_sha256 ?? "Not applicable — repository checkout mode"}</dd></div>
+        <div><dt>Generated artifact schema</dt><dd>{data.schema_version}</dd></div>
+      </dl>
+      <p class="muted" style="margin-top:1rem">
+        The generator used a repository checkout, not a downloaded source archive.
+        Package source hashes and evidence-input hashes are therefore the primary
+        integrity records for this snapshot.
+      </p>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-number">02</span>
+        <div>
+          <p class="eyebrow">Scenario coverage</p>
+          <h2>Recorded integration scenarios</h2>
+          <p>
+            Each scenario is run in the existing integration project with a fresh
+            Django process. The page links to the interactive view of its recorded
+            route matrix.
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Recorded scenarios">
+        <table>
+          <thead><tr><th>Scenario</th><th>Registered routes</th><th>Requests</th><th>Result</th></tr></thead>
+          <tbody>
+            {scenarios.map((item, index) => (
+              <tr>
+                <td>
+                  <a href={withBase("/explorer/?scenario=" + scenarioNames[index])}>{item.title}</a>
+                  <div class="muted">{scenarioNames[index]}</div>
+                </td>
+                <td>{Object.keys(item.matrix).length}</td>
+                <td>{item.requests.length}</td>
+                <td>{item.urlconf_import.error ? "Expected URLConf error recorded" : "Probe completed"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-number">03</span>
+        <div>
+          <p class="eyebrow">Package file hashes</p>
+          <h2>SHA-256 of the inspected package files</h2>
+          <p>These hashes are generated from the exact checkout identified above.</p>
+        </div>
+      </div>
+      <details class="hash-details">
+        <summary>Show {source.files.length} package file hashes</summary>
+        <ul class="source-list">
+          {source.files.map((file) => (
+            <li><code>{file.file}</code><code>{file.sha256}</code></li>
+          ))}
+        </ul>
+      </details>
+      <details class="hash-details">
+        <summary>Show {source.evidence_files.length} integration and packaging input hashes</summary>
+        <ul class="source-list">
+          {source.evidence_files.map((file) => (
+            <li><code>{file.file}</code><code>{file.sha256}</code></li>
+          ))}
+        </ul>
+      </details>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-number">04</span>
+        <div>
+          <p class="eyebrow">Source references</p>
+          <h2>Implementation locations used by the explanations</h2>
+          <p>Each link opens the exact source commit and line recorded by the generator.</p>
+        </div>
+      </div>
+      <ul class="source-list">
+        {sourceRefs.map(([name, reference]) => (
+          <li>
+            <span>{name.replaceAll("_", " ")}</span>
+            <SourceLink file={reference.file} line={reference.line} />
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-number">05</span>
+        <div>
+          <p class="eyebrow">Captured command output</p>
+          <h2>Actual <code>check_versions</code> output</h2>
+          <p>The text is copied from the successful management command captured by the main scenario.</p>
+        </div>
+      </div>
+      <CodeBlock label="python manage.py check_versions" language="text" code={checkOutput} />
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-number">06</span>
+        <div>
+          <p class="eyebrow">Reproduce the evidence</p>
+          <h2>Run the generator against a clean checkout</h2>
+          <p>
+            The generator validates the supplied commit against the checked-out Git
+            HEAD and refuses dirty package or integration source. Run it from the
+            repository root after installing the integration dependencies.
+          </p>
+        </div>
+      </div>
+      <CodeBlock
+        label="Terminal · repository root"
+        language="bash"
+        code={'python -m pip install -r requirements-ci.txt\npython integration_test_project/segment_lab/generate_routes.py\npython integration_test_project/segment_lab/generate_routes.py --check'}
+      />
+      <p class="muted">
+        The evidence workflow and generator are part of the
+        <a href={repoUrl}>repository</a>. This snapshot is not a claim that the website
+        itself executes Django at runtime.
+      </p>
+    </section>
+  </div>
+</Base>

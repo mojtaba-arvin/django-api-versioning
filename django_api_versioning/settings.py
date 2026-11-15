@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from string import Formatter
 from typing import Any, Callable
 
 from django.conf import settings
@@ -84,10 +85,29 @@ class APISettings:
         if not isinstance(self.API_BASE_PATH, str):
             raise VersioningError("API_BASE_PATH must be a string.")
 
-        if "{version}" not in self.API_BASE_PATH:
+        try:
+            format_fields = [
+                (field_name, format_spec, conversion)
+                for _, field_name, format_spec, conversion in Formatter().parse(
+                    self.API_BASE_PATH
+                )
+                if field_name is not None
+            ]
+        except ValueError as exc:
             raise VersioningError(
-                "API_BASE_PATH must contain '{version}' like 'api/v{version}/' "
-                "to support API versioning."
+                "API_BASE_PATH must be a valid format string containing exactly "
+                "one plain '{version}' field."
+            ) from exc
+
+        if format_fields != [("version", "", None)]:
+            raise VersioningError(
+                "API_BASE_PATH must contain exactly one plain '{version}' field "
+                "and no other format fields."
+            )
+
+        if self.API_BASE_PATH.startswith("/"):
+            raise VersioningError(
+                "API_BASE_PATH must be relative and must not start with '/'."
             )
 
         if not self.API_BASE_PATH.endswith("/"):
@@ -114,8 +134,8 @@ class APISettings:
 
     def _validate_root_urlconf(self) -> None:
         """Ensure Django's root URL configuration is a non-empty string."""
-        if not self.ROOT_URLCONF:
-            raise ImproperlyConfigured("ROOT_URLCONF is required.")
+        if not isinstance(self.ROOT_URLCONF, str) or not self.ROOT_URLCONF.strip():
+            raise ImproperlyConfigured("ROOT_URLCONF must be a non-empty string.")
 
     def _validate_lifecycle(self) -> None:
         if not isinstance(self.API_VERSION_LIFECYCLE, dict):
@@ -135,7 +155,7 @@ class APISettings:
         if not isinstance(self.API_VERSIONING_CHANNELS, list):
             raise VersioningError("API_VERSIONING_CHANNELS must be a list.")
         for channel in self.API_VERSIONING_CHANNELS:
-            if channel not in allowed:
+            if not isinstance(channel, str) or channel not in allowed:
                 raise VersioningError(
                     f"Unknown versioning channel {channel!r}. "
                     f"Allowed: {sorted(allowed)}."

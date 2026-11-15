@@ -1,7 +1,7 @@
 ---
 slug: "014-drf-alternatives-different-views-api-versions"
 title: "Different Views per API Version in Django REST Framework"
-description: "Register version-specific DRF views declaratively with django-api-versioning, understand route carry-forward, and compare the approach with ViewSet routers and mixins."
+description: "Register version-specific DRF views with django-api-versioning, compare route carry-forward with ViewSet routers, and reuse shared behavior through mixins."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -15,11 +15,13 @@ keywords:
 
 # Different Views per API Version in Django REST Framework
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 When an API evolves, some endpoints need different implementations in different versions. The change may involve more than a serializer: a newer version might introduce additional actions, different query behavior, or a different response structure.
 
 For projects using `APIView` or DRF generic views, [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/) provides declarative registration of version-specific implementations. Each view declares the version from which it should serve, and the package generates the corresponding URL patterns.
 
-The package is maintained by the author of this article. Its purpose is to manage endpoint-to-version registration, not to replace DRF's request handling, serializers, or ViewSet routers.
+The package manages endpoint-to-version registration, not DRF's request handling, serializers, or ViewSet routers. Its generated routes do not configure a DRF versioning class or automatically populate DRF's `request.version`; configure DRF version identification separately if application code needs that attribute.
 
 ## Register different views for different API versions
 
@@ -30,6 +32,7 @@ The examples assume:
 - `User` is the project's configured user model.
 - `UserSerializerV1` and `UserSerializerV2` are existing serializers.
 - `User` has a reverse one-to-one `Profile` relation accessible as `user.profile`.
+- `User` has a many-to-many or reverse relation named `followers`, used by the mixin example.
 - Every user returned by the profile endpoint has an associated profile. Otherwise, access to `user.profile.bio` must handle the missing related object.
 
 Configure the supported version range:
@@ -107,7 +110,7 @@ The v2 classes inherit the generic-view behavior but replace the serializer. The
 
 ### Mount the generated URL patterns
 
-Import the modules containing endpoint declarations before importing the package's generated URL patterns:
+Import modules containing endpoint declarations during URLconf initialization so their decorators register routes before Django first resolves requests:
 
 ```python
 # project/urls.py
@@ -124,7 +127,7 @@ urlpatterns = [
 ]
 ```
 
-The `account_views` import executes the decorators and populates the registry. The package does not automatically discover and import application view modules.
+The `account_views` import executes the decorators and populates the registry. The package does not automatically discover and import application view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
 With the default `API_BASE_PATH = "api/v{version}/"`, the declarations produce these routes:
 
@@ -158,7 +161,7 @@ This is registration-time behavior. The package does not search older view class
 
 **Scope: routing only.** The package does not decide whether a response change is backward compatible, merge serializers, or share business logic between versions.
 
-For the exact behavior of version validation, route construction, collision precedence, and import order, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the exact behavior of version validation, route construction, collision precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## When the project uses ModelViewSet
 
@@ -252,6 +255,7 @@ For example:
 ```python
 # accounts/mixins.py
 
+from django.db.models import Count
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -266,7 +270,11 @@ class UserV2ExtendedMixin:
 
     @action(detail=False, methods=["get"])
     def trending(self, request):
-        users = self.get_queryset().order_by("-followers")[:10]
+        users = (
+            self.get_queryset()
+            .annotate(follower_count=Count("followers"))
+            .order_by("-follower_count")[:10]
+        )
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data)
 ```
@@ -320,7 +328,7 @@ The approaches solve related but different problems:
 | Carry-forward of unchanged routes | Supported through `version=N` | Must be represented in router configuration | Must be represented in router configuration |
 | `ModelViewSet` and `@action` | Not supported by direct class decoration | Supported | Supported |
 | URLconf structure | One include for generated package routes | Router URLs mounted under each version | Router URLs mounted under each version |
-| Import requirement | Import decorated view modules before package URL patterns | Import ViewSets before router registration | Import ViewSets and mixins before router registration |
+| Import requirement | Import decorated modules during URLconf initialization; exported urlpatterns is a shared list | Import ViewSets before router registration | Import ViewSets and mixins before router registration |
 
 The package is most useful when the main maintenance problem is registering endpoint implementations across versions, particularly when many endpoints remain unchanged and only selected implementations need replacement.
 
@@ -345,7 +353,7 @@ The package does not:
 
 For projects that only need a small number of version-specific ViewSets, per-version routers may be sufficient. For projects that use generic views and need a declarative mapping between endpoint implementations and versions, the package offers a different registration model.
 
-The choice should follow the project's endpoint structure and the maintenance burden of its versioned routing—not an arbitrary threshold based on the number of versions.
+The choice should follow the project's endpoint structure and the maintenance burden of its versioned routing—not an arbitrary threshold based on the number of versions. The package's exported URL pattern list is shared with the registry; importing it before decorated view modules does not freeze an empty snapshot, but all declarations must be registered before request resolution.
 
 ## Conclusion
 

@@ -650,6 +650,10 @@ The v1 router uses `basename="v1-product"`, so the corresponding name is `v1-pro
 
 In the configured-callable pattern, there is no router and no `@action` metadata. You must make the `basename`, `view_name`, and `reverse_action()` argument consistent yourself.
 
+There is one additional versioning constraint. `reverse_action()` delegates to Django URL reversing; it does not receive the package's selected API version. A registration with `version=2` is carried forward through `API_MAX_VERSION`, so the same `view_name` can exist on several versioned paths. In that situation, reversing that name may select a different matching version path from the request that invoked the action.
+
+When an action must reverse to one specific version, register it with an explicit version set such as `versions=[2]` and give each version a distinct `view_name`. The integration project uses this pattern for its configured-callable `popular` routes and verifies the generated action URLs.
+
 Consider this registration:
 
 ```python
@@ -959,6 +963,17 @@ The `resolve()` assertions are particularly relevant to the package-based patter
 
 These are still route and dispatch smoke tests. They do not verify serializer contracts, ordering semantics, permissions, pagination, or filtering behavior. Those require separate assertions against the API's intended response behavior.
 
+### Configured-callable integration coverage
+
+The repository's integration project also exercises the package-specific configured-callable pattern without requiring a database-backed model. It registers plain DRF ViewSet methods through `@endpoint(...)(ViewSet.as_view(...))` and checks:
+
+- v1 and v2 route dispatch, including v2's forward inheritance into v3;
+- the `detail` initialization value for collection and detail callables;
+- URL parameter delivery to a configured `retrieve` action;
+- `reverse_action()` when its generated name matches the `view_name` registered by `@endpoint`.
+
+The corresponding fixtures are in `integration_test_project/api/views.py`, and the request-level assertions are in `ConfiguredViewSetCallableIntegrationTestCase` in `integration_test_project/test_integration.py`. This coverage verifies the package/DRF routing boundary; it does not claim that direct `as_view()` reproduces router-managed `@action` configuration.
+
 A method's existence on a Python class does not automatically create a URL.
 
 In the router pattern, the router generates routes for the standard ViewSet actions and the `@action` methods it discovers.
@@ -1028,11 +1043,5 @@ The decision should be based on the frequency and scope of endpoint changes and 
 For a project that wants the package's version registry while retaining ViewSet-based handlers, configured `as_view({...})` callables provide that integration without requiring a conversion to generic views.
 
 ## Next steps
-
-For the decorator's implementation, see the [current decorators source](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py).
-
-For the integration project's URL configuration and import order, see the [current integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py).
-
-For the underlying ViewSet behavior, consult the official DRF documentation on [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/).
 
 To register configured ViewSet callables with version-aware routing, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning) and apply its documented URL construction and registration rules to your URLconf.

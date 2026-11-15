@@ -15,6 +15,8 @@ keywords:
 
 # DRF Version Negotiation vs Endpoint Registration
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 Django REST Framework (DRF) provides built-in versioning schemes for determining which API version a request targets. However, identifying the requested version and maintaining the mapping between endpoint implementations and API versions are two different responsibilities.
 
 For the second problem, [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/) provides declarative endpoint registration. Instead of manually maintaining the relationship between every versioned URL and its view, developers declare the version from which an endpoint implementation should be registered.
@@ -74,7 +76,7 @@ The URL is constructed from the configured version prefix and the decorator's `p
 
 ### Mounting the generated URL patterns
 
-The package registers routes when Python modules containing `@endpoint` declarations are imported. Import those modules before importing the generated URL patterns.
+The package registers routes when Python modules containing `@endpoint` declarations are imported. Import those modules during URLconf initialization so their decorators register routes before Django first resolves requests.
 
 ```python
 # project/urls.py
@@ -91,9 +93,9 @@ urlpatterns = [
 ]
 ```
 
-The `account_views` import is intentional: it executes the decorators and populates the registry before `api_urlpatterns` is imported.
+The `account_views` import is intentional: it executes the decorators and populates the registry. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
-The package's routing behavior, version validation, registration precedence, and import requirements are defined in its [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+The package's routing behavior, version validation, registration precedence, and import behavior are defined in its [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ### How registration inheritance works
 
@@ -379,7 +381,7 @@ This structure can make version-specific implementations easier to locate, but i
 
 With `django-api-versioning`, the version-specific modules can contain the endpoint declarations, while the URLconf imports those modules before including the generated patterns.
 
-The package therefore complements the organization of version-specific code: the directory structure organizes implementations, and endpoint declarations define their route registration.
+The package therefore complements the organization of version-specific code: the directory structure organizes implementations, and endpoint declarations define their route registration. It does not automatically populate DRF's `request.version`; if view logic needs that attribute, configure a DRF versioning scheme separately and ensure its URL keyword argument or namespace is available.
 
 ## Trade-offs and scope
 

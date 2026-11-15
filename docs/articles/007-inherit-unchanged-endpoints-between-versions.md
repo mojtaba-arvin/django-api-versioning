@@ -15,6 +15,8 @@ keywords:
 
 # How to inherit unchanged endpoints between API versions in Django
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 When an API evolves from v1 to v2, not every endpoint necessarily needs a new implementation. Some endpoints change their response contract, while others can continue using their existing behavior.
 
 The challenge is deciding how to represent that relationship in the URL configuration.
@@ -34,7 +36,7 @@ Consider an API with two user endpoints:
 
 The posts endpoint does not change between versions.
 
-The package lets you register the two user implementations at their respective starting versions and register the unchanged posts endpoint only once.
+The package lets you register the two user implementations at their respective starting versions and register the unchanged posts endpoint only once. It selects the view by matching its generated URL patterns; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If view logic needs that attribute, configure DRF version identification separately and verify that the chosen scheme's URL keyword argument or namespace is present.
 
 ### Define the serializers
 
@@ -129,13 +131,13 @@ The package does not create subclasses or copy view methods. It generates versio
 
 ### Mount the generated URL patterns
 
-The application modules containing `@endpoint` declarations must be imported before the package's URL patterns are imported.
+Import application modules containing `@endpoint` declarations during URLconf initialization so their decorators register routes before Django first resolves requests.
 
 ```python
 # project/urls.py
 from django.urls import include, path
 
-from api import views  # noqa: F401 — import first so decorators register
+from api import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -144,9 +146,9 @@ urlpatterns = [
 ]
 ```
 
-The import of `api.views` executes the decorators and registers the endpoints. The package does not automatically discover application view modules.
+The import of `api.views` executes the decorators and registers the endpoints. The package does not automatically discover application view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
-If endpoint declarations are spread across multiple modules, import each module containing those declarations before importing `api_urlpatterns`.
+If endpoint declarations are spread across multiple modules, import each module during URLconf initialization so every declaration is registered before requests are resolved.
 
 With `API_MAX_VERSION = 2` and the default `API_BASE_PATH = "api/v{version}/"`, the registrations generate these URL patterns:
 
@@ -219,7 +221,7 @@ An endpoint first registered at v3 is therefore not available in v1 or v2. This 
 
 This is routing inheritance, not Python inheritance. The registry stores endpoint registrations and their source and route versions; it does not create Python subclasses or determine whether an API change is backward compatible.
 
-For the exact registration contract, including version-range behavior and collision resolution, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the exact registration contract, including version-range behavior and collision resolution, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Python inheritance and DRF's built-in versioning
 
@@ -469,7 +471,7 @@ can be registered with `@endpoint` for a specific route. It is not a replacement
 
 DRF's `@action` decorator is intended for ViewSets and relies on router-based action mapping. It does not provide the same mechanism for `GenericAPIView` subclasses. For additional generic-view endpoints, define separate view classes and register each at its starting version.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
 
 This follows the package's canonical ViewSet and Router boundary described earlier.
 
@@ -499,7 +501,5 @@ Review the generated version matrix and test each supported version's behavior, 
 **When the benefit is smaller:** if nearly every endpoint changes at every version boundary, the number of package declarations approaches the number of explicit per-version route declarations. The package's value is then less about reducing declarations and more about expressing the starting version of each implementation consistently.
 
 ## Next steps
-
-Disclosure: I maintain `django-api-versioning`, the package discussed in this article.
 
 Explore the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning) to evaluate the registration model and integrate it into your versioned Django API.

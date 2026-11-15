@@ -15,6 +15,8 @@ keywords:
 
 # Caching Versioned DRF APIs: Headers, Paths, and Routes
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 API versioning affects more than how a view selects a serializer. It also affects how HTTP caches distinguish responses belonging to different API versions.
 
 Consider two clients requesting the same resource:
@@ -36,7 +38,6 @@ This article examines the relationship between cache identity and three implemen
 
 These approaches address different concerns. DRF's versioning schemes determine the request version, while the package manages endpoint registration.
 
-*Disclosure: I maintain django-api-versioning.*
 
 ## 1. Endpoint registration and URL-based cache identity
 
@@ -95,13 +96,13 @@ This does not mean that the package implements HTTP caching. It generates routes
 
 ### Importing the generated URL patterns
 
-The modules containing decorated views must be imported before the package's URL patterns:
+Import modules containing decorated views during URLconf initialization so their decorators register routes before Django first resolves requests:
 
 ```python
 # urls.py
 from django.urls import include, path
 
-from . import views  # noqa: F401 — execute endpoint declarations first
+from . import views  # noqa: F401 — import during URLconf initialization
 
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
@@ -110,11 +111,11 @@ urlpatterns = [
 ]
 ```
 
-The import executes the decorators and registers the views. The package does not automatically discover application view modules.
+The import executes the decorators and registers the views. The package does not automatically discover application view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view modules does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
-If endpoint declarations are distributed across multiple modules, import each relevant module before importing `api_urlpatterns`.
+If endpoint declarations are distributed across multiple modules, import each relevant module during URLconf initialization.
 
-For the exact registration, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the exact registration, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ### Registration precedence
 
@@ -495,7 +496,7 @@ The package does not automatically integrate with or mount DRF routers.
 
 **`django-api-versioning`** is useful when endpoint implementations are version-specific and many endpoints remain unchanged across releases. It generates versioned URL patterns from declarations and carries forward unchanged registrations through the configured maximum version.
 
-The package also introduces an import-order requirement: modules containing decorated views must be imported before its generated `urlpatterns` are loaded. It manages routing, not HTTP caching, DRF version negotiation, semantic compatibility, or automatic schema versioning.
+The package requires explicit module imports during URLconf initialization because it does not automatically discover decorated view modules. Its exported `urlpatterns` is the registry's shared list, not a frozen copy. It manages routing, not HTTP caching, DRF version negotiation, semantic compatibility, or automatic schema versioning.
 
 When the benefit is smaller: for a single-version API, a project that relies heavily on `ModelViewSet` and `@action`, or an application whose existing views depend on DRF's `request.version`, a DRF-native scheme may require less architectural change.
 

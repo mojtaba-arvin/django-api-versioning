@@ -1,8 +1,8 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Applies to:** django-api-versioning 0.3.6
-> **Verified against:** the `audit/comprehensive-package-review` source revision `927d169` on 2026-11-14.
+> **Applies to:** django-api-versioning 0.3.7
+> **Verified against:** package source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443` and test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21`. GitHub Actions run [#33](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761660736) passed all 15 configured Python/Django environments, lint, tox/workflow matrix consistency, and workflow YAML parsing (17/17 jobs successful). The test revision includes a regression test for custom path-converter `to_url()` behavior.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
@@ -49,7 +49,7 @@ Import the generated URL patterns from:
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 ```
 
-The decorator signature in 0.3.5 is:
+The decorator signature in 0.3.7 is:
 
 ```python
 endpoint(
@@ -108,7 +108,7 @@ With the package URL patterns included at the project root, a request for user I
 
 ### API_BASE_PATH
 
-`API_BASE_PATH` must contain the literal `{version}` placeholder.
+`API_BASE_PATH` must contain exactly one plain `{version}` field. Other format fields, conversions, and format specifications are rejected during settings validation.
 
 The default is:
 
@@ -488,7 +488,7 @@ The helper substitutes the parameter values into the registered route and return
 
 The helper requires all named parameters used by the route.
 
-It does not accept positional `args`. Parameter values are converted using `str()`; Django path converter `to_url()` methods are not called, and converter-level validation is not performed.
+It does not accept positional `args`. For each named path parameter, `api_reverse()` calls the registered Django path converter's `to_url()` method when available, converts the result to a string, and checks the completed route against the compiled route-pattern regular expression. This preserves converter-specific formatting and rejects values whose generated path does not match the route pattern. The helper still does not implement Django's full URL resolver or arbitrary reverse options.
 
 ### Supported route patterns and limitations
 
@@ -547,13 +547,13 @@ Your application remains responsible for API contract design, serializer selecti
 
 The contract above is based on the following implementation and project files:
 
-- [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py)
-- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/registry.py)
-- [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/reverse.py)
-- [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/urls.py)
-- [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/settings.py)
-- [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py)
-- [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/README.md)
+- [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/decorators.py)
+- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/registry.py)
+- [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/reverse.py)
+- [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/urls.py)
+- [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/django_api_versioning/settings.py)
+- [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py)
+- [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/README.md)
 - [DRF ViewSets documentation](https://www.django-rest-framework.org/api-guide/viewsets/)
 - [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/)
 - [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/)

@@ -1,27 +1,77 @@
-name: Run tests
+name: Python tests
 
 on:
+  # PR checks run when review starts, not on every commit in a long review branch.
+  # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
+  workflow_dispatch:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
+    branches: [main, audit/comprehensive-package-review]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
+      - "requirements.txt"
+      - "requirements-ci.txt"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - ".github/workflows/tests.yml"
+      - "!**/*.md"
   pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - 'docs/**'
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "scripts/verify_distribution_contents.py"
+      - "scripts/smoke_installed_wheel.py"
+      - "requirements.txt"
+      - "requirements-ci.txt"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - ".github/workflows/tests.yml"
+      - "!**/*.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
-      - name: Build Docker image
-        run: docker build -t django-api-versioning-test .
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.15"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
 
-      - name: Run tests in Docker
-        run: docker run --rm django-api-versioning-test
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-ci.txt
+
+      - name: Verify and export source commit
+        run: |
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Run package unit tests
+        run: python -m pytest --capture=no tests
+
+      - name: Run Django integration tests
+        run: python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project

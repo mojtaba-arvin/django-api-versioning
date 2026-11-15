@@ -1,0 +1,137 @@
+name: Compatibility matrix
+
+on:
+  # Standard GitHub-hosted runners are free for public repositories.
+  # Run the complete compatibility matrix for package/test changes and on PR review.
+  push:
+    branches:
+      - main
+      - audit/comprehensive-package-review
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "tox.ini"
+      - "requirements*.txt"
+      - "pytest.ini"
+      - "scripts/check_tox_workflow_matrix.py"
+      - ".github/workflows/compatibility.yml"
+      - ".github/workflows/publish.yml"
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches:
+      - main
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "tox.ini"
+      - "requirements*.txt"
+      - "pytest.ini"
+      - "scripts/check_tox_workflow_matrix.py"
+      - ".github/workflows/compatibility.yml"
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compatibility-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-matrix:
+    name: Verify tox and workflow environments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Validate workflow and Dependabot YAML syntax
+        run: |
+          ruby -e 'require "yaml"; Dir.glob(".github/**/*.yml").sort.each { |file| YAML.safe_load_file(file, aliases: true); puts "valid YAML: #{file}" }'
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.15"
+
+      - name: Install tox configuration tools
+        run: python -m pip install tox tox-uv
+
+      - name: Verify workflow matrix matches tox.ini
+        run: python scripts/check_tox_workflow_matrix.py
+
+  tox:
+    needs: validate-matrix
+    name: ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: py310-django42
+            python: "3.10"
+          - env: py311-django42
+            python: "3.11"
+          - env: py312-django42
+            python: "3.12"
+          - env: py310-django52
+            python: "3.10"
+          - env: py311-django52
+            python: "3.11"
+          - env: py312-django52
+            python: "3.12"
+          - env: py313-django52
+            python: "3.13"
+          - env: py314-django52
+            python: "3.14"
+          - env: py312-django60
+            python: "3.12"
+          - env: py313-django60
+            python: "3.13"
+          - env: py314-django60
+            python: "3.14"
+          - env: py312-django61
+            python: "3.12"
+          - env: py313-django61
+            python: "3.13"
+          - env: py314-django61
+            python: "3.14"
+          - env: py315-django61
+            python: "3.15"
+          - env: lint
+            python: "3.15"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Cache uv environments
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ matrix.env }}-${{ hashFiles('tox.ini', 'pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ matrix.env }}-
+
+      - name: Install tox and tox-uv
+        run: python -m pip install tox tox-uv
+
+      - name: Run compatibility environment
+        run: tox run -e ${{ matrix.env }}

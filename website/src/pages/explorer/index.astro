@@ -1,0 +1,52 @@
+---
+import Base from "../../layouts/Base.astro";
+import SegmentExplorer from "../../components/SegmentExplorer.astro";
+import SourceLink from "../../components/SourceLink.astro";
+import { data, source } from "../../lib/data";
+const basePath = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const evidenceHref = basePath + "evidence/";
+---
+<Base
+  title="Segment Explorer"
+  description="Explore the source-generated route matrix and forward-inherited segments across the 18 recorded Django integration scenarios."
+  current="explorer"
+>
+  <div class="wrap page-shell">
+    <header class="page-head">
+      <p class="eyebrow">Interactive source evidence</p>
+      <h1>Segment Explorer</h1>
+      <p class="lede">
+        Select a recorded scenario and route to see which declaration supplies each
+        API version. The data is generated from the package and Django integration
+        project pinned to source commit <code>{source.commit.slice(0, 12)}</code>.
+      </p>
+      <p class="note">
+        <strong>Explanatory visualization, not Python execution.</strong>
+        The selectors render a visualization of the committed registry matrix; they
+        do not execute Python or make requests to a Django server.
+      </p>
+    </header>
+
+    <SegmentExplorer initialScenario="main" initialPostfix="users/" />
+
+    <section class="section">
+      <div class="section-head">
+        <span class="section-number">01</span>
+        <div>
+          <p class="eyebrow">How to read it</p>
+          <h2>Declaration point versus inherited version</h2>
+          <p>
+            A dark outline marks the version where the view is declared. The colored
+            cells to its right show the versions that inherit that declaration. A
+            later declaration starts another segment for the same route.
+          </p>
+        </div>
+      </div>
+      <p class="muted">
+        The underlying registry and expansion logic are in
+        <SourceLink file={data.source_refs.lines.segment_loop.file} line={data.source_refs.lines.segment_loop.line} label="the package's segment expansion code" />.
+        Raw evidence is available from the <a href={evidenceHref}>evidence report</a>.
+      </p>
+    </section>
+  </div>
+</Base>

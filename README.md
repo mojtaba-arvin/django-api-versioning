@@ -167,7 +167,7 @@ API_MIN_VERSION = 1
 API_MAX_VERSION = 3
 ```
 
-`API_BASE_PATH` must contain the `{version}` placeholder.
+`API_BASE_PATH` must contain exactly one plain `{version}` format field. Additional format fields, conversions, and format specifications are rejected.
 
 The default values for `API_MIN_VERSION` and `API_MAX_VERSION` are both `1`. Set `API_MAX_VERSION` to the highest route version your project intends to register.
 
@@ -736,7 +736,7 @@ This allows the middleware to identify versions from the package's static versio
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `API_BASE_PATH` | `"api/v{version}/"` | Base path template for versioned routes. Must contain `{version}`. |
+| `API_BASE_PATH` | `"api/v{version}/"` | Base path template for versioned routes. Must contain exactly one plain `{version}` format field and no other format fields. |
 | `API_MIN_VERSION` | `1` | Lowest valid route version. |
 | `API_MAX_VERSION` | `1` | Highest valid route version. |
 | `API_VERSION_LIFECYCLE` | `{}` | Per-version lifecycle metadata. |
@@ -937,9 +937,9 @@ python manage.py migrate_endpoints --dry-run
 python manage.py migrate_endpoints
 ```
 
-The command scans Python files for `@endpoint` declarations containing legacy `forward` or `backward` arguments and suggests or applies textual replacements.
+The command parses Python source into an AST and uses tokenizer-aware checks to identify supported `@endpoint` declarations containing legacy `forward` or `backward` arguments. It rewrites only literal integer `version` values and literal boolean flags. Dynamic expressions, comments inside a decorator, unsupported forms, and files with syntax errors are left unchanged for manual migration.
 
-**Review the output before accepting it.** The command uses source-text matching and rewriting; it is not an AST-based semantic migration tool. It cannot guarantee that every rewritten declaration preserves the application's intended routing behavior.
+**Review every proposed change before applying it.** This syntax-aware rewrite is not a proof of semantic equivalence: confirm the intended version coverage, inspect the generated route matrix with `check_versions`, and test request behavior for every affected API version.
 
 After migration:
 
@@ -1026,18 +1026,25 @@ docker run --rm dapi:py315
 
 ### Releasing
 
-1. Update the `version` in `pyproject.toml` and document the release in `CHANGELOG.md`.
-2. Commit and push the release commit to `main`.
-3. Create and push a matching version tag:
+Releases are maintainer operations. Prepare the version bump and changelog
+on a dedicated release branch, run the complete compatibility and artifact
+checks, and submit the changes through a reviewed pull request to the
+project's protected default branch. Do not push directly to `main`.
 
-   ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
+After the reviewed release commit is present on the default branch, create
+and push the matching version tag:
 
-Pushing a `v*` tag triggers GitHub Actions to build the package, validate
-the distribution with `twine check --strict`, and publish it to PyPI
-using PyPI Trusted Publishing (GitHub Actions OIDC).
+```bash
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+Pushing a `v*` tag triggers GitHub Actions to run the compatibility matrix,
+build and validate the exact distribution with `twine check --strict`,
+smoke-test the wheel, and publish it to PyPI using Trusted Publishing
+(GitHub Actions OIDC). A successful tag push alone does not prove that
+publication completed; verify the workflow and the version-specific PyPI
+release page before announcing the release.
 
 ### Reporting issues
 

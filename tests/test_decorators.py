@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django_api_versioning.decorators import endpoint, ver_range
 from django_api_versioning.exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
 )
@@ -88,6 +89,14 @@ class TestExplicitVersions:
 
 
 class TestValidation:
+    def test_non_string_postfix_raises(self):
+        with pytest.raises(TypeError, match="postfix must be a string"):
+            endpoint(123, version=1)
+
+    def test_leading_slash_postfix_is_rejected(self):
+        with pytest.raises(VersioningError, match="must not start with"):
+            endpoint("/users/", version=1)
+
     def test_both_version_and_versions_raises(self):
         with pytest.raises(VersionRangeError):
             endpoint("x", version=3, versions=[3])
@@ -175,6 +184,27 @@ class TestIssue0SimultaneousVersionAndVersions:
 
         # Registry must not have any new routes
         assert len(registry.urlpatterns) == initial_count
+
+
+class TestExplicitVersionsBelowMin:
+    def test_explicit_versions_below_min_are_skipped(self, monkeypatch, caplog):
+        from django_api_versioning.decorators import settings as api_settings
+
+        monkeypatch.setattr(api_settings, "API_MIN_VERSION", 2)
+        monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+        with caplog.at_level("WARNING"):
+
+            @endpoint("users", versions=[1, 2, 3])
+            def users(request):
+                return JsonResponse({})
+
+        route_versions = {
+            pattern._django_api_versioning_route_version
+            for pattern in registry.urlpatterns
+        }
+        assert route_versions == {2, 3}
+        assert "Skipping this version" in caplog.text
 
 
 class TestUnversioned:

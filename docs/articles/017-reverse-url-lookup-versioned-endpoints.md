@@ -15,11 +15,13 @@ keywords:
 
 # Reverse URL Lookup for Versioned Django API Endpoints
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 Reverse URL lookup becomes less straightforward when an API exposes multiple versions of the same endpoint.
 
 A route such as `/api/v1/products/` and its newer counterpart `/api/v2/products/` may share the same logical endpoint name, but they do not necessarily represent the same API contract. When generating links, redirects, or `Location` headers, the application needs to select the intended version explicitly.
 
-For projects using `@endpoint` from [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/), `api_reverse()` provides a version-aware way to resolve registered endpoints without relying on URL resolver ordering.
+For projects using `@endpoint` from [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/), `api_reverse()` provides a version-aware way to resolve registered endpoints without relying on URL resolver ordering. Package route versions are integers. The package does not configure a DRF versioning class or automatically populate DRF's `request.version`; if application code needs that attribute, configure DRF version identification separately and map its string value to the package's integer route version deliberately.
 
 This article explains how to use it, where Django's and Django REST Framework's reverse functions fit, and which limitations matter when integrating URL reversal with serializers and HTTP responses.
 
@@ -30,12 +32,11 @@ Consider an API that exposes two implementations of a product endpoint:
 ```python
 # products/views.py
 
-from rest_framework.generics import (
-    ListCreateAPIView,
-    RetrieveUpdateDestroyAPIView,
-)
-
 from django_api_versioning import endpoint
+from rest_framework.generics import ListCreateAPIView
+
+from products.models import Product
+from products.serializers import ProductSerializerV1, ProductSerializerV2
 
 
 @endpoint("products/", version=1, view_name="product-list")
@@ -152,6 +153,10 @@ This makes ambiguity visible rather than silently choosing a route that may not 
 A URL name can be reused across versions of the same logical endpoint:
 
 ```python
+from django_api_versioning import endpoint
+from rest_framework.generics import ListAPIView
+
+
 @endpoint("products/", version=1, view_name="product-list")
 class ProductListV1(ListAPIView):
     ...
@@ -167,6 +172,10 @@ However, avoid using the same `view_name` for different endpoint paths within th
 For example, these registrations are problematic:
 
 ```python
+from django_api_versioning import endpoint
+from rest_framework.generics import ListAPIView
+
+
 @endpoint("products/", version=2, view_name="catalog")
 class ProductListV2(ListAPIView):
     ...
@@ -207,9 +216,9 @@ urlpatterns = [
 ]
 ```
 
-The exact module imports depend on the application's structure. The important requirement is that decorated views must be loaded before code relies on their registered routes.
+The exact module imports depend on the application's structure. Decorated views must be loaded before code relies on their registered routes, including calls to `api_reverse()`. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view modules does not permanently capture an empty snapshot. Keep imports explicit during URLconf initialization.
 
-For more information about the package's registration behavior and public API, see the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
+For more information about the package's registration behavior and public API, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md) and the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
 
 ## Use `api_reverse()` in HTTP responses
 
@@ -220,9 +229,11 @@ For example, a product creation endpoint can return a URL pointing to the newly 
 First, register the detail endpoints with a stable name:
 
 ```python
+from django_api_versioning import endpoint
 from rest_framework.generics import RetrieveAPIView
 
-from django_api_versioning import endpoint
+from products.models import Product
+from products.serializers import ProductSerializerV1, ProductSerializerV2
 
 
 @endpoint("products/<int:pk>/", version=1, view_name="product-detail")
@@ -240,10 +251,11 @@ class ProductDetailV2(RetrieveAPIView):
 Then use the requested API version when building the response:
 
 ```python
-from django_api_versioning import api_reverse
+from django_api_versioning import api_reverse, endpoint
 from rest_framework.generics import ListCreateAPIView
-from rest_framework.response import Response
-from rest_framework import status
+
+from products.models import Product
+from products.serializers import ProductSerializerV2
 
 
 @endpoint("products/", version=2, view_name="product-list")
@@ -317,6 +329,8 @@ These fields use DRF's URL reversal behavior. For example:
 ```python
 from rest_framework import serializers
 
+from products.models import Product
+
 
 class ProductSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
@@ -352,6 +366,8 @@ For example, a custom serializer method can use `api_reverse()` and then build a
 ```python
 from django_api_versioning import api_reverse
 from rest_framework import serializers
+
+from products.models import Product
 
 
 class ProductSerializerV2(serializers.ModelSerializer):
@@ -409,11 +425,11 @@ When multiple patterns share a name, the result depends on Django's URL resolver
 That means application code cannot express this requirement directly through Django's standard reverse function:
 
 ```python
-# Django reverse has no package-version argument.
-reverse("product-detail", version=2, kwargs={"pk": 42})
+# Valid Django reverse call; it does not select a package route version.
+reverse("product-detail", kwargs={"pk": 42})
 ```
 
-Passing a `version` keyword argument does not turn it into a version-aware lookup. It is treated as a route parameter, and it will only work if the selected URL pattern actually defines such a parameter.
+`django.urls.reverse()` has no top-level `version` parameter. A version value can only be supplied inside `kwargs` when the URL pattern itself declares a dynamic parameter such as `<str:version>`. The package-generated routes contain literal version segments, not a dynamic `version` keyword argument, so this does not provide explicit selection among its registered versions.
 
 For applications that need deterministic selection among `@endpoint` registrations, `api_reverse()` is the more explicit interface.
 
@@ -473,6 +489,10 @@ The following distinctions are particularly relevant.
 A typical route might look like this:
 
 ```python
+from django.urls import path
+from products.views import ProductListView
+
+
 urlpatterns = [
     path(
         "api/<str:version>/products/",
@@ -504,6 +524,12 @@ For this routing model, use `api_reverse()` when the target package route must b
 A conventional configuration might look like this:
 
 ```python
+from django.urls import include, path
+
+# These lists contain the application's version-specific URL patterns.
+# v1_urlpatterns = [...]
+# v2_urlpatterns = [...]
+
 urlpatterns = [
     path(
         "v1/",
@@ -545,6 +571,8 @@ This scheme can influence DRF's request-aware URL generation, but it does not in
 If an application uses `@endpoint` to expose multiple concrete paths, it still needs an explicit route-selection strategy when generating links to those paths.
 
 `api_reverse()` provides that explicit selection through its `version` argument.
+
+The package's literal version path segments do not automatically satisfy `URLPathVersioning`'s dynamic `version` keyword argument. The package also does not configure a DRF versioning class or automatically populate DRF's `request.version`; configure DRF version identification separately if view code needs that attribute.
 
 For the complete list of DRF versioning schemes and their behavior, see the official [Django REST Framework versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/).
 
@@ -604,7 +632,7 @@ The current implementation reads the registered route's `_route` representation 
 
 It does not delegate to Django's reverse resolver.
 
-As a result, it does not provide the full behavior of Django's URL reversing engine, including converter-specific `to_url()` handling and converter validation.
+As a result, it does not provide the full behavior of Django's URL reversing engine, such as arbitrary URL patterns, namespaces, positional arguments, or all reverse options. For supported `path()` routes, it does call each registered path converter's `to_url()` method, converts the result to a string, and checks the completed route against the compiled route-pattern regular expression.
 
 For example, a route containing:
 
@@ -622,9 +650,7 @@ api_reverse(
 )
 ```
 
-But callers should not assume that every custom Django path converter receives the same validation and formatting behavior it would receive through Django's `reverse()` function.
-
-If an application relies on custom converters or complex route patterns, verify that the route parameters are represented correctly before using the generated URL.
+Custom converters participate through their `to_url()` method, and the generated path must match the converter's route pattern. If an application relies on custom converters or complex route patterns, add tests for the converter's formatting and accepted values before using the generated URL.
 
 ### It is not a ViewSet router replacement
 

@@ -40,9 +40,41 @@ class TestBasePathValidation:
         with pytest.raises(VersioningError):
             APISettings(API_BASE_PATH=123)
 
+    def test_leading_slash_is_rejected(self):
+        with pytest.raises(VersioningError, match="must not start with"):
+            APISettings(API_BASE_PATH="/api/v{version}/")
+
     def test_adds_trailing_slash(self):
         s = APISettings(API_BASE_PATH="api/v{version}")
         assert s.API_BASE_PATH == "api/v{version}/"
+
+    @pytest.mark.parametrize(
+        "base_path",
+        [
+            "api/v{version}/v{version}/",
+            "api/v{version}/{other}/",
+            "api/v{version:02d}/",
+            "api/v{version!s}/",
+            "api/v{version/",
+        ],
+    )
+    def test_rejects_unsupported_format_fields(self, base_path):
+        with pytest.raises(VersioningError):
+            APISettings(API_BASE_PATH=base_path)
+
+
+class TestRootURLConfValidation:
+    def test_non_string_root_urlconf_raises(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        with pytest.raises(ImproperlyConfigured):
+            APISettings(ROOT_URLCONF=123)
+
+    def test_whitespace_root_urlconf_raises(self):
+        from django.core.exceptions import ImproperlyConfigured
+
+        with pytest.raises(ImproperlyConfigured):
+            APISettings(ROOT_URLCONF="   ")
 
 
 class TestVersionSettings:
@@ -81,6 +113,10 @@ class TestChannelsValidation:
     def test_non_list_raises(self):
         with pytest.raises(VersioningError):
             APISettings(API_VERSIONING_CHANNELS="path")
+
+    def test_unhashable_channel_raises_versioning_error(self):
+        with pytest.raises(VersioningError, match="Unknown versioning channel"):
+            APISettings(API_VERSIONING_CHANNELS=[["path"]])
 
 
 class TestResolverValidation:

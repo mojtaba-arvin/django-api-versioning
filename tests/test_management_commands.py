@@ -1,12 +1,19 @@
 """Tests for management commands."""
 
+import ast
 from io import StringIO
 
 import pytest
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.http import JsonResponse
 
 from django_api_versioning.decorators import endpoint
+from django_api_versioning.management.commands.migrate_endpoints import (
+    _has_comments,
+    _rewrite_args,
+    _suggest,
+)
 from django_api_versioning.registry import registry
 from django_api_versioning.settings import api_settings as settings
 
@@ -336,23 +343,271 @@ class TestLogicalEndpointMatrix:
         assert "is not defined" not in output
 
 
+class TestMigrateEndpointsRewriting:
+    """Test the legacy argument conversion rules."""
+
+    @pytest.mark.parametrize(
+        ("args", "expected"),
+        [
+            (
+                '"users", version=3, backward=True, forward=True',
+                '"users", version=1',
+            ),
+            (
+                '"users", version=3, backward=True, forward=False',
+                '"users", versions=list(range(1, 4))',
+            ),
+            (
+                '"users", version=3, backward=False, forward=False',
+                '"users", versions=[3]',
+            ),
+            (
+                '"users", version=3, backward=False, forward=True',
+                '"users", version=3',
+            ),
+            (
+                '"users", version=3, backward=False, forward=None',
+                '"users", versions=[3]',
+            ),
+        ],
+    )
+    def test_rewrites_legacy_flag_combinations(self, args, expected):
+        assert _rewrite_args(args) == expected
+
+    def test_without_version_is_left_unchanged(self):
+        args = '"users", backward=True, forward=False'
+        assert _rewrite_args(args) == args
+
+    def test_positional_version_is_left_unchanged(self):
+        args = '"users", 2, backward=True, forward=False'
+        assert _rewrite_args(args) == args
+
+    def test_existing_explicit_versions_are_left_unchanged(self):
+        args = '"users", version=2, versions=[1], backward=True, forward=False'
+        assert _rewrite_args(args) == args
+
+    def test_forward_defaults_to_true_when_omitted(self):
+        args = '"users", version=2, backward=True'
+        assert _rewrite_args(args) == '"users", version=1'
+
+    def test_duplicate_legacy_flags_are_not_rewritten(self):
+        args = '"users", version=2, backward=True, backward=False'
+        assert _rewrite_args(args) == args
+
+    def test_invalid_syntax_is_not_rewritten(self):
+        args = '"users", version=2, backward=True, forward='
+        assert _rewrite_args(args) == args
+        assert _suggest("@endpoint(\\n") == []
+
+    def test_tokenizer_errors_are_treated_as_unsafe_comments(self):
+        assert _has_comments("endpoint(\\n")
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            '"users", version=3, forward=FORWARD_FLAG',
+            '"users", version=3, backward=BACKWARD_FLAG',
+        ],
+    )
+    def test_dynamic_flag_expressions_are_not_rewritten(self, args):
+        assert _rewrite_args(args) == args
+
+    def test_preserves_escaped_quotes_and_commas_in_string_literals(self):
+        args = r'"users, \"admin\"", version=3, backward=True, forward=False'
+        assert _rewrite_args(args) == (
+            r'"users, \"admin\"", versions=list(range(1, 4))'
+        )
+
+    def test_suggest_ignores_modern_and_noop_declarations(self):
+        source = (
+            '@endpoint("users", version=2)\n'
+            "def users(request):\n"
+            "    return None\n"
+            '@endpoint("posts", forward=True)\n'
+            "def posts(request):\n"
+            "    return None\n"
+        )
+        assert _suggest(source) == []
+
+    def test_suggest_preserves_unrelated_arguments_and_string_contents(self):
+        decorator = (
+            '@endpoint("users,admin", version=2, backward=True, '
+            'forward=False, app_name="public")'
+        )
+        source = decorator + "\ndef view(request):\n    return None\n"
+        assert _suggest(source) == [
+            (
+                decorator,
+                '@endpoint("users,admin", app_name="public", '
+                "versions=list(range(1, 3)))",
+            )
+        ]
+
+    def test_suggest_handles_nested_unrelated_expressions(self):
+        decorator = (
+            '@endpoint("users", version=2, backward=True, forward=False, '
+            'app_name=build_name("public", suffix="v1"))'
+        )
+        source = decorator + "\ndef view(request):\n    return None\n"
+        assert _suggest(source) == [
+            (
+                decorator,
+                '@endpoint("users", app_name=build_name("public", suffix="v1"), '
+                "versions=list(range(1, 3)))",
+            )
+        ]
+
+    def test_suggest_ignores_comments_and_string_literals(self):
+        source = (
+            '# @endpoint("users", version=2, backward=True, forward=False)\n'
+            'example = \'@endpoint("users", version=2, backward=True, '
+            "forward=False)'\n"
+        )
+        assert _suggest(source) == []
+
+    def test_suggest_leaves_decorators_with_comments_unchanged(self):
+        source = (
+            '@endpoint("users", version=2, backward=True, # keep this note\n'
+            "          forward=False)\n"
+            "def view(request):\n"
+            "    return None\n"
+        )
+        assert _suggest(source) == []
+
+
 class TestMigrateEndpointsCommand:
-    """Test the migrate_endpoints management command."""
+    """Test safe preview defaults and explicit writes against isolated files."""
 
-    def test_migrate_endpoints_runs(self):
-        """Test that migrate_endpoints command executes without error."""
+    def test_migrate_endpoints_runs(self, tmp_path):
         out = StringIO()
-        # Should not raise an exception
-        call_command("migrate_endpoints", stdout=out)
-        output = out.getvalue()
-        # Should return a string output
-        assert isinstance(output, str)
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+        assert out.getvalue() == ""
 
-    def test_migrate_endpoints_shows_migration_guide(self):
-        """Test that migrate_endpoints provides guidance when needed."""
+    def test_non_directory_path_raises_command_error(self, tmp_path):
+        missing = tmp_path / "does-not-exist"
+        with pytest.raises(CommandError, match="Migration path is not a directory"):
+            call_command("migrate_endpoints", path=str(missing))
+
+    def test_dry_run_reports_changes_without_modifying_files(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+        migrations = tmp_path / "migrations"
+        migrations.mkdir()
+        migration_file = migrations / "0001_initial.py"
+        migration_file.write_text(source)
+
         out = StringIO()
-        call_command("migrate_endpoints", stdout=out)
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            dry_run=True,
+            stdout=out,
+        )
+
         output = out.getvalue()
-        # The command either shows migration suggestions or nothing
-        # (when no old-style endpoints with forward/backward are found)
-        assert isinstance(output, str)
+        assert str(view_file) in output
+        assert "versions=list(range(1, 3))" in output
+        assert view_file.read_text() == source
+        assert migration_file.read_text() == source
+
+    def test_default_mode_previews_changes_without_modifying_files(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+        migrations = tmp_path / "migrations"
+        migrations.mkdir()
+        migration_file = migrations / "0001_initial.py"
+        migration_file.write_text(source)
+        unrelated_file = tmp_path / "plain.py"
+        unrelated_file.write_text("def plain():\n    return None\n")
+        modern_file = tmp_path / "modern.py"
+        modern_source = (
+            '@endpoint("modern", version=2)\n'
+            "def modern(request):\n"
+            "    return None\n"
+        )
+        modern_file.write_text(modern_source)
+        hidden_file = tmp_path / ".hidden.py"
+        hidden_file.write_text(source)
+        symlink_target = tmp_path.parent / f"{tmp_path.name}-outside.py"
+        symlink_target.write_text(source)
+        symlink_file = tmp_path / "linked.py"
+        symlink_file.symlink_to(symlink_target)
+        virtualenv = tmp_path / ".venv" / "site-packages" / "example"
+        virtualenv.mkdir(parents=True)
+        virtualenv_file = virtualenv / "views.py"
+        virtualenv_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        assert "versions=list(range(1, 3))" in out.getvalue()
+        assert view_file.read_text() == source
+        assert migration_file.read_text() == source
+        assert unrelated_file.read_text() == "def plain():\n    return None\n"
+        assert modern_file.read_text() == modern_source
+        assert hidden_file.read_text() == source
+        assert symlink_target.read_text() == source
+        assert virtualenv_file.read_text() == source
+        assert str(view_file) in out.getvalue()
+        symlink_target.unlink()
+
+    def test_default_write_result_executes_without_ver_range_import(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            write=True,
+            stdout=StringIO(),
+        )
+
+        captured = {}
+
+        def endpoint(postfix, **kwargs):
+            captured.update(kwargs)
+            return lambda view: view
+
+        exec(view_file.read_text(), {"endpoint": endpoint})
+        assert captured["versions"] == [1, 2]
+
+    def test_default_write_updates_multiple_decorators_by_source_position(
+        self, tmp_path
+    ):
+        source = (
+            '@endpoint("first", version=2, backward=True, forward=False)\n'
+            "def first(request):\n"
+            "    return None\n"
+            '@endpoint("second", version=3, backward=False, forward=False)\n'
+            "def second(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            write=True,
+            stdout=StringIO(),
+        )
+
+        updated = view_file.read_text()
+        assert "versions=list(range(1, 3))" in updated
+        assert "versions=[3]" in updated
+        ast.parse(updated)

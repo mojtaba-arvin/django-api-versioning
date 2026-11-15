@@ -1,7 +1,7 @@
 ---
 slug: "019-preserve-backward-compatibility-changing-django-api-endpoints"
 title: "Preserving Backward Compatibility in Django API Endpoints"
-description: "Use django-api-versioning to route versioned contracts while handling additive fields, request aliases, and legacy response behavior safely in Django REST Framework."
+description: "Use django-api-versioning to route versioned contracts while handling additive fields, request aliases, and legacy response behavior in Django REST Framework."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -14,6 +14,8 @@ keywords:
 ---
 
 # Preserving Backward Compatibility in Django API Endpoints
+
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
 
 An API endpoint is a contract with its clients. Changing a response field, request format, status code, or URL can break integrations that depend on the existing behavior.
 
@@ -28,7 +30,7 @@ The package handles routing, not compatibility policy. You still decide which ch
 
 The examples use a `User` model with `first_name`, `last_name`, `email`, `is_active`, `phone`, and `bio` fields. They demonstrate how to keep older representations available while introducing new behavior without manually maintaining every versioned URL.
 
-For the package's canonical routing rules, including version identifiers, registration precedence, URL names, imports, and ViewSet boundaries, see the [versioning contract reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the package's canonical routing rules, including version identifiers, registration precedence, URL names, imports, and ViewSet boundaries, see the [versioning contract reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## Start with versioned endpoint contracts
 
@@ -169,13 +171,13 @@ The package derives the versioned URL prefix from `API_BASE_PATH` and appends th
 | `/api/v1/users/1/` | `UserDetailV1` | Original flat v1 representation |
 | `/api/v2/users/1/` | `UserDetailV2` | Flat representation plus `phone` and `bio` |
 
-The URLconf must import the modules containing the decorated views before including the package's generated URL patterns:
+Import modules containing decorated views during URLconf initialization so their decorators register routes before Django first resolves requests:
 
 ```python
 # urls.py
 from django.urls import include, path
 
-from . import views  # noqa: F401 — import first so decorators register
+from . import views  # noqa: F401 — import during URLconf initialization
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 
@@ -183,6 +185,8 @@ urlpatterns = [
     path("", include(api_urlpatterns)),
 ]
 ```
+
+The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit during URLconf initialization and ensure registration is complete before request resolution.
 
 The two view classes represent separate API contracts. A v1 client continues receiving the original representation, while a v2 client receives the additional fields.
 
@@ -268,7 +272,7 @@ Now:
 - A request to `/api/v2/users/` resolves to `UserListV2`.
 - A request to `/api/v3/users/` resolves to `UserListV3`.
 
-Scope: routing only. The package selects the registered view for a versioned route. It does not decide whether adding a field is backward-compatible, transform response data, or negotiate a serializer automatically.
+Scope: routing only. The package selects the registered view for a versioned route. It does not configure a DRF versioning class or automatically populate DRF's `request.version`. It also does not decide whether adding a field is backward-compatible, transform response data, or negotiate a serializer automatically.
 
 The same registration pattern applies to detail endpoints:
 
@@ -736,8 +740,8 @@ For a version configured as `deprecated` with a sunset date, the middleware adds
 
 There are important distinctions:
 
-- `status: "retired"` by itself does not trigger `410 Gone`; the middleware uses the sunset date to determine when to return 410.
-- A future sunset date with `status: "retired"` does not produce the deprecation headers; those are associated with the `deprecated` status.
+- A `retired` status by itself does not trigger `410 Gone`; the middleware uses the sunset date to determine when to return 410.
+- A future sunset date with `retired` status does not produce the deprecation headers; those are associated with the `deprecated` status.
 - The current middleware emits `Deprecation: true`. That is a legacy draft form, not the date-valued Structured Field specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html).
 - The middleware does not automatically generate a `Link` header with `rel="deprecation"`.
 

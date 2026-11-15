@@ -1,7 +1,7 @@
 ---
 slug: "024-django-api-versioning-supported-django-python-versions"
 title: "Python and Django Compatibility"
-description: "Understand django-api-versioning runtime requirements, package classifiers, the GitHub Actions Docker test job, and the separately configured tox compatibility matrix."
+description: "Review django-api-versioning Python and Django requirements, package classifiers, GitHub Actions tests, and the separately configured tox compatibility matrix."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -138,34 +138,34 @@ The actual Django version installed during a test run depends on the dependency 
 
 ## What Do GitHub Actions and tox Actually Test?
 
-The repository has two separate testing mechanisms:
+The repository has separate workflows for the focused Python test suites and the broader Python/Django compatibility matrix. They serve different purposes and should not be treated as the same test configuration.
 
-1. The GitHub Actions Docker workflow.
-2. The local tox test matrix.
+### GitHub Actions Python test workflow
 
-They serve different purposes and must not be treated as the same test configuration.
+The `.github/workflows/tests.yml` workflow runs on a GitHub-hosted Ubuntu runner. It does not build the project's development Docker image.
 
-### GitHub Actions Docker workflow
+For its focused test job, the workflow:
 
-The `.github/workflows/tests.yml` workflow:
+1. Checks out the exact commit associated with the event.
+2. Sets up Python 3.15.
+3. Installs the test dependencies from `requirements-ci.txt`.
+4. Runs the package unit-test directory.
+5. Runs the standalone Django integration-test project.
 
-1. Runs on pushes and pull requests targeting `main`.
-2. Builds the project's Docker image.
-3. Runs the container's default entrypoint.
+The commands executed by the workflow are:
 
-The Dockerfile uses Python `3.15` by default through its `PYTHON_VERSION` build argument.
-
-The image installs the development requirements and runs the default `pytest` command through `entrypoint.sh`.
-
-The project's pytest configuration sets:
-
-```ini
-testpaths = ["tests"]
+```bash
+python -m pytest --capture=no tests
+python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
 ```
 
-Consequently, the default Docker workflow runs the unit test directory. It does not execute the integration test directory or the complete tox matrix.
+The integration suite uses its own pytest configuration. The root `pytest.ini` points to `tests`, so running the root pytest command alone is not equivalent to running both suites.
 
-### Configured tox matrix
+The workflow is configured for manual `workflow_dispatch`, relevant pushes to `main`, and pull-request review checkpoints when a PR is opened, reopened, or marked ready for review. Its path filters limit automatic runs to package source, tests, the integration project, Python test requirements, pytest configuration, and the workflow itself. It does not run on every synchronization commit to an already-open pull request; deliberate follow-up checks can be started with the manual workflow trigger.
+
+The repository's root `Dockerfile` and `entrypoint.sh` remain part of the local development workflow. The default entrypoint runs the unit and integration suites and validates built package artifacts, but the current GitHub Actions Python test workflow does not invoke that Docker entrypoint.
+
+### Configured tox compatibility matrix
 
 The repository separately defines the following environments in `tox.ini`:
 
@@ -178,12 +178,14 @@ The repository separately defines the following environments in `tox.ini`:
 
 This results in 15 configured test environments.
 
-Each tox test environment runs the unit and integration test directories separately:
+Each tox test environment runs both the package unit tests and the Django integration tests:
 
 ```bash
 python -m pytest tests --maxfail=1 --disable-warnings -q
 python -m pytest integration_test_project --maxfail=1 --disable-warnings -q
 ```
+
+The `.github/workflows/compatibility.yml` workflow runs this matrix automatically for relevant package, test, integration-project, dependency, tox, and verification-script pushes to `main` and `audit/comprehensive-package-review`, and when a pull request is opened, reopened, or marked ready for review. It also supports deliberate manual `workflow_dispatch` runs and reusable `workflow_call` from the tag-based publish workflow. It uses a separate GitHub Actions job for each tox environment. Documentation-only and website-only edits do not trigger this Python compatibility matrix.
 
 The tox configuration also defines one lint environment that runs:
 
@@ -195,15 +197,24 @@ This produces 15 test environments plus one lint environment.
 
 ### Recorded test results
 
-The project's 2026-11-14 compatibility report records a full tox run with:
+The latest focused Python workflow completed successfully at source revision `ef664d343b53e16bd121b0d564379bdbe0e89b72`:
 
-- All 15 test environments passing.
-- The lint environment passing.
-- 175 unit tests and 245 integration tests passing per test environment.
-- 88% code coverage.
-- A tox exit code of 0.
+- 247 unit tests passed.
+- 258 Django integration tests passed.
+- 96% package code coverage was reported.
 
-These are project-recorded execution results. Raw per-environment logs and resolved dependency records are not retained in the repository for independent reproduction.
+The full compatibility matrix completed successfully in GitHub Actions run [#33](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761660736), executed at workflow commit `1d3538135a9f1b2a11c0d4f830cf9a4a1eed3a7f`. All 17 jobs passed, including tox-matrix drift validation and YAML parsing of every workflow and Dependabot file. The package implementation is unchanged from source baseline `035a4054f3e0d7e3e47adfeef1889e89e0660443`; test revision `e9e1c545aa6bfe3f3ee67a174c11a8d580d7eb21` adds coverage for custom path-converter formatting:
+
+- All 15 configured Python/Django environments passed.
+- Each environment passed 247 unit tests and 258 integration tests.
+- Each environment reported 96% package coverage.
+- The separate lint environment passed flake8, Black, and isort.
+
+See [the full compatibility matrix run](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43651972913) for the execution result and [the compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the tested combinations.
+
+The package-artifact workflow also passed in [run #85](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43761401257) at commit `8b5514c4d3bff287953f70ac18d4844edf16a7bc`: it built the wheel and source distribution, passed strict Twine checks, validated distribution contents, and smoke-tested the installed wheel. The package source and packaging inputs were unchanged from the verified source baseline.
+
+These results are tied to the cited source revisions. They are not a guarantee for Python/Django combinations absent from the tox matrix or for future dependency resolutions.
 
 ### Dependency resolution
 
@@ -211,15 +222,16 @@ The tox configuration installs Django using environment-specific version constra
 
 DRF is installed as a development dependency. The tox configuration does not pin DRF to an exact version, so its resolved version may change between executions.
 
-The recorded 2026-11-14 run reports DRF `3.18.3`. This historical result should not be interpreted as an exact version guarantee for future test runs.
+The compatibility report records DRF `3.18.3` as the resolved version for the 2026-11-14 checkpoint. This historical result should not be interpreted as an exact version guarantee for future test runs. The repository does not retain a complete per-environment resolved-dependency record for every matrix job.
 
 For an accurate compatibility assessment, distinguish:
 
 - Runtime dependency requirements.
 - Package classifiers.
-- GitHub Actions workflow behavior.
+- Focused GitHub Actions test execution.
 - Configured tox environments.
 - Recorded test execution results.
+- Package artifact validation.
 
 ## Checking Your Installed Versions
 
@@ -363,7 +375,7 @@ When evaluating compatibility, keep these distinctions in mind:
 - **Django requirement:** The package declares Django `>=4.2`.
 - **DRF dependency:** DRF is not a runtime dependency of the package. It is included in the development dependencies.
 - **Package classifiers:** Listed Python and Django versions are metadata, not proof of automated test coverage.
-- **CI configuration:** The test workflow describes the environments used by automated tests. Consult the [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the currently documented test matrix.
+- **CI configuration:** The focused Python workflow runs the unit and integration suites on a GitHub-hosted runner; the compatibility workflow runs the configured tox matrix on relevant package/test changes and PR review-start checkpoints, with manual reruns also available. Consult the [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md) for the recorded source revision and results.
 - **Dependency resolution:** Minimum-version constraints do not guarantee that every future build uses the same dependency versions.
 
 Meeting the declared minimum requirements is necessary, but it does not prove that every possible combination of newer dependency versions has been tested.

@@ -12,10 +12,15 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt requirements-dev.txt ./
-RUN python -m pip install --no-cache-dir -r requirements-dev.txt
+# BuildKit keeps downloaded wheels between local image builds. CI installs only
+# the minimal test dependencies directly and does not build this dev image.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install -r requirements-dev.txt
 
 COPY .pre-commit-config.yaml ./
-RUN git init . && pre-commit install-hooks
+# Initialise a repository for optional pre-commit runs. Hook environments are
+# installed lazily only when RUN_PRE_COMMIT=true; normal builds do not need them.
+RUN git init .
 
 COPY . .
 

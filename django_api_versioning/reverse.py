@@ -3,10 +3,10 @@ from typing import Any
 
 from django.urls import NoReverseMatch
 
-from .exceptions import AmbiguousVersionError
+from .exceptions import AmbiguousVersionError, VersionTypeError
 from .registry import registry
 
-# Matches ``<int:pk>``, ``<slug:name>``, and ``<pk>`` (no converter).
+# Matches Django path parameters, with or without an explicit converter.
 _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
 
 
@@ -22,6 +22,11 @@ def api_reverse(
     - ``version=None``: if exactly one version is registered for ``view_name``,
       return it; otherwise raise ``AmbiguousVersionError``.
     """
+    if version is not None and (
+        isinstance(version, bool) or not isinstance(version, int)
+    ):
+        raise VersionTypeError("Version must be an integer.")
+
     matches = []
     for pattern in registry.urlpatterns:
         if pattern.name != view_name:
@@ -52,6 +57,12 @@ def api_reverse(
         )
 
     route = route_pattern._route
+    parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
+    unexpected_parameters = sorted(set(kwargs) - parameter_names)
+    if unexpected_parameters:
+        raise NoReverseMatch(
+            f"Unexpected parameter(s) {unexpected_parameters!r} for {view_name!r}."
+        )
 
     def _substitute(match: re.Match) -> str:
         name = match.group(1)
@@ -59,7 +70,25 @@ def api_reverse(
             raise NoReverseMatch(
                 f"Missing required parameter {name!r} for {view_name!r}."
             )
-        return str(kwargs[name])
+
+        converter = route_pattern.converters.get(name)
+        try:
+            value = converter.to_url(kwargs[name]) if converter else kwargs[name]
+        except (TypeError, ValueError) as exc:
+            raise NoReverseMatch(
+                f"Invalid value for parameter {name!r} in {view_name!r}: {exc}"
+            ) from exc
+        return str(value)
 
     route = _CONVERTER_RE.sub(_substitute, route)
+
+    # A converter's to_url() method does not necessarily validate its output.
+    # Match the completed route against Django's compiled RoutePattern so
+    # api_reverse() cannot return a URL that the same route would not resolve.
+    if not route_pattern.regex.fullmatch(route):
+        raise NoReverseMatch(
+            f"Invalid parameter value for {view_name!r}; "
+            f"the generated path does not match {route_pattern!r}."
+        )
+
     return "/" + route.lstrip("/")

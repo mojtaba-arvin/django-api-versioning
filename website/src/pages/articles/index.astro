@@ -1,0 +1,44 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+
+const articles = (await getCollection("articles")).sort((a, b) =>
+  a.id.localeCompare(b.id, "en", { numeric: true }),
+);
+const basePath = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
+---
+<Base
+  title="Technical articles"
+  description="The canonical technical article series for django-api-versioning, synced directly from docs/articles."
+  current="articles"
+>
+  <div class="wrap page-shell">
+    <header class="page-head">
+      <p class="eyebrow">Canonical article series</p>
+      <h1>Technical articles</h1>
+      <p class="lede">
+        {articles.length} articles, synced from the repository's
+        <code>docs/articles/</code> directory. The Markdown source is not duplicated
+        or independently edited in the website.
+      </p>
+      <p class="muted">Use <kbd>/</kbd> or <kbd>Ctrl</kbd> + <kbd>K</kbd> to search articles, scenarios and page sections.</p>
+    </header>
+    <div class="article-grid">
+      {articles.map((article) => (
+        <a class="article-card" href={withBase(`/articles/${article.id}/`)}>
+          <span class="article-meta">{article.data.keywords?.[0] ?? "Technical article"} · {article.id}</span>
+          <h2>{article.data.title}</h2>
+          <p>{article.data.description}</p>
+          {(article.data.keywords ?? []).length > 0 && (
+            <div class="tag-row">
+              {(article.data.keywords ?? []).slice(0, 4).map((keyword) => <span class="tag">{keyword}</span>)}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>

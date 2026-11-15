@@ -15,11 +15,33 @@ keywords:
 
 # Deprecating Django API Versions with django-api-versioning
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 When an API has multiple versions, retiring an old version requires more than removing its URL patterns. Clients need time to migrate, a clear deadline, and a reliable way to discover the replacement.
 
 The [`django-api-versioning` package](https://pypi.org/project/django-api-versioning/) provides version-level lifecycle handling through `LifecycleMiddleware` and the `API_VERSION_LIFECYCLE` setting. It can add deprecation and sunset response headers and return `410 Gone` after a configured sunset date.
 
 However, its built-in lifecycle behavior is intentionally limited. It emits `Deprecation: true` rather than the date-valued Structured Field required by RFC 9745. It does not provide a separate deprecation-date setting, automatically generate migration links, or resolve resource-specific successor URLs.
+
+The built-in setting uses `API_VERSION_LIFECYCLE`; for example, a version can be marked deprecated with a `sunset` date string:
+
+```python
+# settings.py
+
+API_VERSION_LIFECYCLE = {
+    1: {
+        "status": "deprecated",
+        "sunset": "2027-06-30",
+    },
+}
+
+MIDDLEWARE = [
+    # ...
+    "django_api_versioning.lifecycle.LifecycleMiddleware",
+]
+```
+
+The later `API_DEPRECATION` setting in this article is different: it is application-defined for the custom middleware, and its `sunset_date` value is a timezone-aware `datetime`. It is not a setting consumed by the package's built-in `LifecycleMiddleware`.
 
 This article builds on that existing functionality and demonstrates application-level deprecation policies for cases that require date-valued deprecation metadata, migration links, resource-specific successor links, and additional retirement controls.
 
@@ -116,7 +138,7 @@ The resulting routes are:
 
 The `view_name` values are explicit because the package does not infer Django URL names from Python class names.
 
-Make sure the modules containing these declarations are imported before loading the package's URL patterns:
+Import the modules containing these declarations during URLconf initialization so the decorators register routes before Django first resolves requests:
 
 ```python
 # project/urls.py
@@ -132,7 +154,7 @@ urlpatterns = [
 ]
 ```
 
-The package also provides version-level lifecycle handling through `LifecycleMiddleware`. It reads `API_VERSION_LIFECYCLE`, adds `Deprecation` and `Sunset` headers when applicable, and returns `410 Gone` after a configured sunset date.
+The package also provides version-level lifecycle handling through `LifecycleMiddleware`. It reads `API_VERSION_LIFECYCLE`, adds `Deprecation` and `Sunset` headers when applicable, and returns `410 Gone` after a configured sunset date. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view modules does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
 The following sections extend this built-in behavior with application-level policies for requirements such as RFC 9745 date-valued deprecation metadata, migration links, and resource-specific successor URLs.
 
@@ -379,18 +401,23 @@ class DeprecatedVersionMixin:
 
     migration_url: str | None = None
 
+    # Set these to False when middleware owns the shared lifecycle metadata.
+    emit_lifecycle_headers = True
+    emit_migration_link = True
+
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
 
-        if self.deprecation_date is not None:
-            response["Deprecation"] = (
-                f"@{int(self.deprecation_date.timestamp())}"
-            )
+        if self.emit_lifecycle_headers:
+            if self.deprecation_date is not None:
+                response["Deprecation"] = (
+                    f"@{int(self.deprecation_date.timestamp())}"
+                )
 
-        if self.sunset_date is not None:
-            response["Sunset"] = http_date(
-                self.sunset_date.timestamp()
-            )
+            if self.sunset_date is not None:
+                response["Sunset"] = http_date(
+                    self.sunset_date.timestamp()
+                )
 
         links = []
 
@@ -417,7 +444,7 @@ class DeprecatedVersionMixin:
                 # the deprecated endpoint's normal response.
                 pass
 
-        if self.migration_url:
+        if self.emit_migration_link and self.migration_url:
             links.append(
                 f'<{self.migration_url}>; rel="deprecation"'
             )
@@ -482,6 +509,10 @@ class ProductListV1(
     DeprecatedVersionMixin,
     ListCreateAPIView,
 ):
+    # The middleware below owns Deprecation, Sunset, and migration Link.
+    emit_lifecycle_headers = False
+    emit_migration_link = False
+
     queryset = Product.objects.all()
     serializer_class = ProductSerializerV1
 
@@ -503,6 +534,10 @@ class ProductDetailV1(
     DeprecatedVersionMixin,
     RetrieveUpdateDestroyAPIView,
 ):
+    # The middleware below owns Deprecation, Sunset, and migration Link.
+    emit_lifecycle_headers = False
+    emit_migration_link = False
+
     queryset = Product.objects.all()
     serializer_class = ProductSerializerV1
 
@@ -570,10 +605,12 @@ The example catches failures to generate a successor link so that a missing v2 r
 
 ## 6. Combine middleware and the mixin
 
-The two patterns can coexist:
+The two patterns can coexist, but each response header must have one owner:
 
-- Middleware applies version-wide deprecation headers and enforces removal.
-- The mixin adds a resource-specific `successor-version` link.
+- The custom middleware applies version-wide `Deprecation` and `Sunset` headers, adds the migration-documentation link, and enforces removal.
+- The mixin adds only the resource-specific `successor-version` link.
+
+The mixin defaults to emitting its own lifecycle headers and migration link when used alone. In the combined example, set `emit_lifecycle_headers = False` and `emit_migration_link = False` on the v1 views, as shown above. Without these flags, the middleware would append a duplicate `deprecation` Link and rewrite headers already emitted by the mixin.
 
 Django's middleware calls `get_response(request)`, which runs the view. The mixin's `dispatch()` therefore executes before control returns to the middleware.
 
@@ -737,12 +774,12 @@ Use a mixin when deprecation is specific to selected endpoints or when clients n
 
 For a version-wide retirement with resource-specific migration links, combining the two is reasonable.
 
-**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. Its built-in lifecycle support does not provide RFC 9745 date-valued deprecation metadata, migration links, resource-specific successor URLs, or client-usage monitoring. Those additional responsibilities remain with the application.
+**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. Its route registration does not configure a DRF versioning class or automatically populate DRF's `request.version`; it selects the registered callable through generated URL patterns. Its built-in lifecycle support does not provide RFC 9745 date-valued deprecation metadata, migration links, resource-specific successor URLs, or client-usage monitoring. Those additional responsibilities remain with the application.
 
 The same HTTP headers can be used with other Django routing and DRF versioning approaches, but the package-specific part of this implementation is the explicit registration of old and new routes and the use of `api_reverse()` to resolve a successor route from the package registry.
 
+For exact route registration and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+
 ## Next steps
 
-For the package's route registration behavior, URL construction, and reverse lookup implementation, see the [django-api-versioning source repository](https://github.com/mojtaba-arvin/django-api-versioning).
-
-Deprecation headers announce a lifecycle decision; they do not enforce it. A reliable retirement process combines explicit route registration, migration links, client-usage monitoring, and a deliberate removal step.
+To evaluate the package's version-wide lifecycle behavior and its documented limitations, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).

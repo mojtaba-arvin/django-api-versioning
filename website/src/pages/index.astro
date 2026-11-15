@@ -1,0 +1,442 @@
+---
+import Base from "../layouts/Base.astro";
+import CodeBlock from "../components/CodeBlock.astro";
+import SegmentDiagram from "../components/SegmentDiagram.astro";
+import SourceLink from "../components/SourceLink.astro";
+import {
+  data,
+  scenario,
+  scenarioNames,
+  bodyRecord,
+  source,
+  repoUrl,
+  pypiUrl,
+} from "../lib/data";
+
+const main = scenario("main");
+const drfDefault = scenario("drf_default");
+const drfUrlPath = scenario("drf_urlpath");
+const drfUrlPathDefault = scenario("drf_urlpath_default");
+const drfUrlPathAllowed = scenario("drf_urlpath_allowed");
+const drfRouter = scenario("drf_router");
+const drfViewSetClass = scenario("drf_viewset_class");
+
+const basePath = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const withBase = (path: string) => `${basePath}${path.replace(/^\/+/, "")}`;
+const sourceUrl = (file: string) => `${repoUrl}/blob/${source.commit}/${file}`;
+const mainViewsSource = main.views_source;
+if (!mainViewsSource) throw new Error("The main evidence scenario has no recorded view source.");
+const checkRun = main.check_versions[0];
+const registerCalls = main.urlconf_import.package_calls[
+  "django_api_versioning.registry.UrlRegistry.register"
+] ?? 0;
+const requestPackageCalls = main.requests.reduce(
+  (total, request) => total + Object.values(request.package_calls ?? {}).reduce((sum, count) => sum + count, 0),
+  0,
+);
+const drfDefaultVersion = String(bodyRecord(drfDefault.requests[0])["request.version"] ?? "null");
+const drfUrlPathVersion = String(bodyRecord(drfUrlPath.requests[0])["request.version"] ?? "null");
+const drfDefaultFallback = String(bodyRecord(drfUrlPathDefault.requests[0])["request.version"] ?? "not recorded");
+const drfAllowedError = String(bodyRecord(drfUrlPathAllowed.requests[0]).detail ?? "No error recorded");
+const routerRequest = drfRouter.requests.find((request) => request.path === "/api/v2/users/");
+const viewSetError = drfViewSetClass.urlconf_import.error?.message ?? "No error recorded";
+const routerHandler = String(bodyRecord(routerRequest).handler ?? "No matching router result");
+
+const capabilities = [
+  { scenario: "main", title: "Forward inheritance", description: "A declaration continues into later versions until a newer declaration starts another segment." },
+  { scenario: "explicit_versions", title: "Explicit version sets", description: "versions=[...] and ver_range() register only the selected versions." },
+  { scenario: "min_version", title: "Minimum-version boundaries", description: "Raising API_MIN_VERSION removes routes below the configured minimum." },
+  { scenario: "max_bump", title: "Maximum-version expansion", description: "Raising API_MAX_VERSION extends existing forward segments without editing the views." },
+  { scenario: "same_version", title: "Registration precedence", description: "A later declaration for the same route and version replaces the earlier registration." },
+  { scenario: "route_identity", title: "Literal route identity", description: "Trailing slashes and converter parameter names are part of the route identity." },
+  { scenario: "lifecycle", title: "Lifecycle middleware", description: "Recorded responses show deprecation headers and sunset enforcement separately from route registration." },
+];
+---
+<Base
+  title={source.package}
+  description="A source-pinned, executable explanation of Django API version-aware endpoint registration, forward inheritance, and the package's exact DRF boundaries."
+  current="home"
+>
+  <section class="hero" id="what-it-is">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Django · URL registration · source-verified</p>
+        <h1>Versioned routes.<br /><span class="hero-accent">One declaration per change.</span></h1>
+        <p class="lede">
+          {source.package} generates versioned Django URL patterns from
+          <code>@endpoint</code> declarations. A view registered at one version can
+          serve later versions until another declaration starts a new segment.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-accent" href={withBase("/explorer/")}>Explore the route segments</a>
+          <a class="btn" href={withBase("/articles/")}>Read the technical articles</a>
+        </div>
+        <p class="hero-footnote">
+          Source snapshot <code>{source.version}</code> · commit
+          <a href={`${repoUrl}/commit/${source.commit}`}><code>{source.commit.slice(0, 12)}</code></a>
+          · {scenarioNames.length} recorded scenarios
+        </p>
+      </div>
+      <div class="hero-visual" aria-label="A declaration point starts a route segment that continues across versions">
+        <div class="hero-visual-head">
+          <span>ONE ROUTE · THREE VERSIONS</span>
+          <span class="tag tag-accent">Segment Point</span>
+        </div>
+        <div class="hero-version-axis">
+          <span>v1</span><span>v2</span><span>v3</span><span>v4</span>
+        </div>
+        <div class="hero-segment-row">
+          <span class="hero-point" aria-hidden="true"></span>
+          <span class="hero-segment hero-segment-a"></span>
+          <span class="hero-point hero-point-new" aria-hidden="true"></span>
+          <span class="hero-segment hero-segment-b"></span>
+        </div>
+        <div class="hero-visual-labels">
+          <span>declared at v1</span>
+          <span>new declaration at v3</span>
+        </div>
+        <p class="hero-visual-caption">v1 implementation serves v1–v2; v3 starts a new segment.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="section" id="problem">
+      <div class="section-head">
+        <span class="section-number">02</span>
+        <div>
+          <p class="eyebrow">The problem</p>
+          <h2>Route configuration grows faster than the API.</h2>
+          <p>
+            Without a registry, every new API version can require another URL pattern
+            for endpoints whose implementation did not change. The package lets you
+            declare only the versions where the view implementation changes.
+          </p>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Manual version mapping</h3>
+          <p class="muted">The same view is repeated across version-specific paths.</p>
+          <CodeBlock
+            label="project/urls.py · illustrative manual mapping"
+            language="python"
+            code={'urlpatterns = [\n    path("api/v1/users/", views.user_list_v1),\n    path("api/v2/users/", views.user_list_v1),\n    path("api/v3/users/", views.user_list_v3),\n]'}
+          />
+        </div>
+        <div class="card">
+          <h3>Declare implementation changes</h3>
+          <p class="muted">Register v1 and v3; v2 inherits the v1 implementation.</p>
+          <CodeBlock
+            label="views.py · executable Segment Lab scenario"
+            language="python"
+            code={'@endpoint("users/", version=1)\ndef list_users_v1(request):\n    ...\n\n@endpoint("users/", version=3)\ndef list_users_v3(request):\n    ...'}
+          />
+        </div>
+      </div>
+      <p class="note">
+        <strong>Scope:</strong> this package generates URL patterns. It does not
+        prove that the response schema or business behavior remains backward-compatible.
+        Keep request-level and contract tests for those guarantees.
+      </p>
+    </section>
+
+    <section class="section" id="endpoint-example">
+      <div class="section-head">
+        <span class="section-number">03</span>
+        <div>
+          <p class="eyebrow">An executable example</p>
+          <h2>The <code>@endpoint</code> declaration</h2>
+          <p>
+            This is the recorded source file used by the <code>main</code> Segment Lab
+            scenario. The probe imports it, builds Django's URL configuration, and
+            sends requests against the resulting patterns.
+          </p>
+        </div>
+      </div>
+      <CodeBlock
+        label={mainViewsSource.file}
+        language="python"
+        code={mainViewsSource.code}
+      />
+      <p class="muted">
+        <a href={sourceUrl(mainViewsSource.file)} target="_blank" rel="noreferrer">Open the exact source file at the recorded commit</a>.
+        The functions above are executable scenario source, not a browser-side simulation.
+      </p>
+    </section>
+
+    <section class="section" id="check-versions">
+      <div class="section-head">
+        <span class="section-number">04</span>
+        <div>
+          <p class="eyebrow">Recorded command output</p>
+          <h2>What does <code>check_versions</code> report?</h2>
+          <p>
+            The output below is the captured stdout from the successful management
+            command run in the <code>main</code> Django scenario. It is not manually
+            reconstructed for this page.
+          </p>
+        </div>
+      </div>
+      <CodeBlock
+        label={checkRun.command}
+        language="text"
+        code={checkRun.stdout}
+      />
+      <p class="muted">
+        Exit code: <code>{checkRun.exit_code}</code> · stderr lines:
+        <code>{checkRun.stderr_line_count}</code> ·
+        <a href={withBase("/data/check_versions_output.txt")}>open the raw captured output</a>.
+      </p>
+    </section>
+
+    <section class="section" id="segment-point">
+      <div class="section-head">
+        <span class="section-number">05</span>
+        <div>
+          <p class="eyebrow">Segment Point</p>
+          <h2>A declaration starts a segment; it does not declare every version.</h2>
+          <p>
+            A declaration at v1 starts a forward segment. It serves subsequent
+            configured versions until a newer declaration for the same route starts
+            another segment. The segment never extends beyond
+            <code>API_MAX_VERSION</code>.
+          </p>
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <SegmentDiagram scenario={main} postfix="users/" title="users/ · two declaration points" />
+          <p class="muted">
+            v1 is the declaration point for <code>list_users_v1</code>; v2 inherits
+            that implementation. The v3 declaration starts the next segment.
+          </p>
+        </div>
+        <div>
+          <SegmentDiagram scenario={main} postfix="users/<int:pk>/" title="users/<int:pk>/ · one declaration point" />
+          <p class="muted">
+            <code>user_detail</code> is declared at v1 and remains the implementation
+            for v1, v2 and v3 because no later declaration replaces it.
+          </p>
+        </div>
+      </div>
+      <p class="note">
+        This is a visualization of the generated registry matrix, not Python execution.
+        The interactive <a href={withBase("/explorer/")}>Segment Explorer</a> lets you
+        switch between all recorded scenarios and routes.
+      </p>
+      <SourceLink file={data.source_refs.lines.segment_loop.file} line={data.source_refs.lines.segment_loop.line} label="Source: forward segment expansion" />
+    </section>
+
+    <section class="section" id="lifecycle">
+      <div class="section-head">
+        <span class="section-number">06</span>
+        <div>
+          <p class="eyebrow">Import time vs request time</p>
+          <h2>Registration happens before Django resolves a request.</h2>
+          <p>
+            Importing the endpoint module executes the decorators and populates the
+            registry. Once Django has the generated patterns, request matching is
+            handled by Django's URL resolver and the registered view callable.
+          </p>
+        </div>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><strong>{main.urlconf_import.registry_size_after}</strong><span>registry entries after URLConf import</span></div>
+        <div class="metric"><strong>{registerCalls}</strong><span>UrlRegistry.register calls during import</span></div>
+        <div class="metric"><strong>{requestPackageCalls}</strong><span>package calls observed across {main.requests.length} requests</span></div>
+      </div>
+      <div class="two-col" style="margin-top:1.25rem">
+        <div class="card">
+          <h3>1. URLConf import</h3>
+          <p>
+            The probe records <code>{registerCalls}</code> registration calls and
+            {main.urlconf_import.registry_size_after} registry entries after importing
+            the scenario URLConf.
+          </p>
+          <SourceLink file={data.source_refs.lines.registry_urlpatterns.file} line={data.source_refs.lines.registry_urlpatterns.line} label="Source: generated urlpatterns" />
+        </div>
+        <div class="card">
+          <h3>2. Request resolution</h3>
+          <p>
+            The probe sends {main.requests.length} requests. It observes no calls into
+            the package during those requests; Django matches the prebuilt patterns.
+          </p>
+          <SourceLink file={data.source_refs.lines.route_string.file} line={data.source_refs.lines.route_string.line} label="Source: route string construction" />
+        </div>
+      </div>
+      <p class="note">
+        Import order matters. A module containing <code>@endpoint</code> declarations
+        must be imported before <code>django_api_versioning.urls.urlpatterns</code> is
+        imported. The <code>no_import</code> scenario records zero registered routes
+        when the views module is never imported.
+      </p>
+    </section>
+
+    <section class="section" id="capabilities">
+      <div class="section-head">
+        <span class="section-number">07</span>
+        <div>
+          <p class="eyebrow">Verified capabilities</p>
+          <h2>What the current source and probes demonstrate</h2>
+          <p>
+            These are not feature claims inferred from the README. Each item links to
+            a scenario generated from the current checkout.
+          </p>
+        </div>
+      </div>
+      <div class="card-grid">
+        {capabilities.map((item) => {
+          const recorded = data.scenarios[item.scenario];
+          return (
+            <a class="card card-link" href={withBase("/explorer/?scenario=" + item.scenario)}>
+              <span class="tag">{item.scenario}</span>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+              <span class="muted">{recorded.title} →</span>
+            </a>
+          );
+        })}
+      </div>
+      <p class="muted">
+        {scenarioNames.length} scenarios are recorded in the evidence snapshot,
+        including DRF integration boundaries, import order, route identity, invalid
+        declarations and lifecycle behavior.
+        <a href={withBase("/evidence/")}>Inspect the full scenario index and hashes</a>.
+      </p>
+    </section>
+
+    <section class="section" id="drf-boundaries">
+      <div class="section-head">
+        <span class="section-number">08</span>
+        <div>
+          <p class="eyebrow">Django REST Framework boundaries</p>
+          <h2>Versioned URL paths do not automatically populate <code>request.version</code>.</h2>
+          <p>
+            The package registers URL patterns. DRF's versioning classes are a separate
+            mechanism and expect their own configured inputs, such as a URL keyword
+            argument or a default version.
+          </p>
+        </div>
+      </div>
+      <div class="table-scroll" tabindex="0" role="region" aria-label="Recorded DRF behavior">
+        <table>
+          <thead><tr><th>Recorded configuration</th><th>Observed result</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>DRF view, no versioning class</td>
+              <td><code>request.version = {String(drfDefaultVersion)}</code> on a matched versioned path.</td>
+            </tr>
+            <tr>
+              <td><code>URLPathVersioning</code>, no version URL kwarg</td>
+              <td><code>request.version = {String(drfUrlPathVersion)}</code>; the package's literal <code>v2</code> path segment is not a Django <code>version</code> kwarg.</td>
+            </tr>
+            <tr>
+              <td><code>URLPathVersioning</code> plus <code>DEFAULT_VERSION="1"</code></td>
+              <td><code>request.version = "{drfDefaultFallback}"</code>, even on a recorded <code>/api/v3/...</code> request.</td>
+            </tr>
+            <tr>
+              <td><code>URLPathVersioning</code> plus <code>ALLOWED_VERSIONS</code></td>
+              <td>{drfAllowedError}</td>
+            </tr>
+            <tr>
+              <td>DRF Router collision</td>
+              <td>{routerHandler}; the resolver record has no package registry index.</td>
+            </tr>
+            <tr>
+              <td><code>@endpoint</code> directly on a ViewSet class</td>
+              <td><code>TypeError</code>: {viewSetError}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        For a ViewSet, pass a configured callable such as
+        <code>ReceiptViewSet.as_view(&#123;"get": "list"&#125;)</code>. Use DRF routers separately
+        for standard list/detail/action routing.
+      </p>
+      <SourceLink file={data.source_refs.lines.as_view_call.file} line={data.source_refs.lines.as_view_call.line} label="Source: configured as_view call" />
+    </section>
+
+    <section class="section" id="limitations">
+      <div class="section-head">
+        <span class="section-number">09</span>
+        <div>
+          <p class="eyebrow">Known limitations</p>
+          <h2>What this package does not promise</h2>
+          <p>
+            Keeping these boundaries explicit prevents the route registry from being
+            mistaken for a complete API version-negotiation or contract-management layer.
+          </p>
+        </div>
+      </div>
+      <ul class="status-list">
+        <li>It generates versioned URL patterns; it does not validate response schemas, serializers or business-level backward compatibility.</li>
+        <li>It does not automatically set DRF <code>request.version</code> or configure a DRF versioning scheme.</li>
+        <li>It does not negotiate versions from headers or query parameters.</li>
+        <li><code>API_VERSIONING_CHANNELS</code> and <code>API_EFFECTIVE_VERSION_RESOLVER</code> are settings, but they do not participate in route selection. The channels helper is standalone and is not imported by the routing package.</li>
+        <li>Endpoint modules must be imported before the package URL patterns are loaded; there is no automatic view-module discovery.</li>
+        <li>A DRF ViewSet class cannot be decorated directly; provide a configured callable or use a DRF router.</li>
+        <li>Route identity is based on the literal registered route string, including trailing slashes and converter parameter names.</li>
+      </ul>
+      <p class="muted">
+        These boundaries are verified against the current source snapshot and recorded
+        scenarios. See the <a href={withBase("/evidence/")}>evidence report</a> for
+        source references and exact probe output.
+      </p>
+    </section>
+
+    <section class="section" id="quick-start">
+      <div class="section-head">
+        <span class="section-number">10</span>
+        <div>
+          <p class="eyebrow">Quick Start</p>
+          <h2>Install, declare, import, include.</h2>
+          <p>
+            Configure the route range before importing endpoint modules. Then import
+            the modules containing decorators before importing the package's generated
+            <code>urlpatterns</code>.
+          </p>
+        </div>
+      </div>
+      <div class="two-col">
+        <div>
+          <h3>Install</h3>
+          <CodeBlock label="Terminal" language="bash" code="pip install django-api-versioning" />
+          <h3>Configure</h3>
+          <CodeBlock
+            label="settings.py"
+            language="python"
+            code={'INSTALLED_APPS = [\n    # ...\n    "django_api_versioning",\n]\n\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\nAPI_BASE_PATH = "api/v{version}/"'}
+          />
+        </div>
+        <div>
+          <h3>Import views before generated URLs</h3>
+          <CodeBlock
+            label="project/urls.py"
+            language="python"
+            code={'from django.urls import include, path\n\nfrom your_app import views  # noqa: F401\nfrom django_api_versioning.urls import urlpatterns as api_urlpatterns\n\nurlpatterns = [\n    path("", include(api_urlpatterns)),\n]'}
+          />
+          <p class="muted">
+            Replace <code>your_app</code> with your Django application package. The
+            imported module executes its endpoint decorators before the registry's
+            URL patterns are imported.
+          </p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a class="btn btn-accent" href={withBase("/articles/")}>Browse all technical articles</a>
+        <a class="btn" href={withBase("/evidence/")}>Inspect source and probe evidence</a>
+        <a class="btn" href={repoUrl}>View repository</a>
+      </div>
+      <p class="muted">
+        This site describes the repository source snapshot shown in the header. Check
+        the <a href={`${repoUrl}/releases`}>repository releases</a> and
+        <a href={pypiUrl}>PyPI project page</a>
+        for published package versions.
+      </p>
+    </section>
+  </div>
+</Base>

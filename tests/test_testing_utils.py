@@ -1,10 +1,15 @@
 import json
 
 import pytest
+from django.views import View
 
 from django_api_versioning.exceptions import VersionMatrixError
 from django_api_versioning.registry import registry
-from django_api_versioning.testing import _diff, assert_version_matrix
+from django_api_versioning.testing import (
+    _diff,
+    assert_version_matrix,
+    build_version_matrix,
+)
 
 
 def test_matrix_snapshot_created(tmp_path):
@@ -76,3 +81,23 @@ class TestDiffFormatting:
 
         assert "api/v1/users/" in diff
         assert "<missing>" in diff
+
+
+def test_build_version_matrix_supports_callable_instances():
+    class CallableView:
+        def __call__(self, request):
+            return None
+
+    registry.register("api/v1/callable/", CallableView(), route_version=1)
+
+    assert build_version_matrix() == {"api/v1/callable/": {"1": "CallableView"}}
+
+
+def test_build_version_matrix_uses_class_name_for_class_based_views():
+    class SampleView(View):
+        def get(self, request):
+            return None
+
+    registry.register("api/v1/items/", SampleView, route_version=1)
+
+    assert build_version_matrix() == {"api/v1/items/": {"1": "SampleView"}}

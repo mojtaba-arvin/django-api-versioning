@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=70.0.0"]
+requires = ["setuptools>=77.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-api-versioning"
-version = "0.3.7"
+version = "0.3.8"
 description = "API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint registration, automatic URL routing, version-specific views, and forward inheritance for backward-compatible API evolution."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Mojtaba Arvin", email = "ArvinDevDay@gmail.com" },
 ]
@@ -65,6 +66,7 @@ dev = [
     "twine>=7.0.0",
     "build>=1.6.1",
     "djangorestframework>=3.18",
+    "tomli>=2.0.1; python_version < '3.11'",
 ]
 
 [project.urls]
@@ -74,7 +76,15 @@ Documentation = "https://github.com/mojtaba-arvin/django-api-versioning#readme"
 Changelog = "https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
-exclude = ["tests", "tests.*", "integration_test_project", "integration_test_project.*"]
+# Only the importable distribution package belongs in the wheel.
+# Tests, integration projects, and the documentation website are repository assets.
+include = ["django_api_versioning*"]
+exclude = [
+    "tests",
+    "tests.*",
+    "integration_test_project",
+    "integration_test_project.*",
+]
 
 [tool.setuptools.package-data]
 django_api_versioning = ["py.typed"]

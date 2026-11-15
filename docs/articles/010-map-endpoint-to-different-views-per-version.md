@@ -4,7 +4,7 @@ title: "Map a logical endpoint to different Django views per API version"
 description: "Compare version-aware DRF views with separate per-version views using Django URLconf or django-api-versioning."
 author:
   name: "Mojtaba Arvin"
-  url: "https://www.linkedin.com/in/mojtabaaarvin/"
+  url: "https://www.linkedin.com/in/mojtabaarvin/"
 keywords:
   - "API versioning"
   - "endpoint routing"
@@ -14,6 +14,8 @@ keywords:
 ---
 
 # Map a logical endpoint to different Django views per API version
+
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
 
 A `users` endpoint may need one implementation for v1 and another for v2. There are two fundamentally different routing designs:
 
@@ -99,14 +101,14 @@ class UserDetailViewV2(RetrieveAPIView):
 
 The first argument to `endpoint()` is the URL postfix. The package combines it with `API_BASE_PATH`, whose default is `"api/v{version}/"`, to generate the versioned URL.
 
-Import the module containing the declarations before importing the package's URL patterns:
+Import the module containing declarations during URLconf initialization so its decorators register routes before Django first resolves requests:
 
 ```python
 # urls.py
 
 from django.urls import include, path
 
-from . import views  # noqa: F401 — import first so decorators register
+from . import views  # noqa: F401 — import during URLconf initialization
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 urlpatterns = [
@@ -114,7 +116,7 @@ urlpatterns = [
 ]
 ```
 
-The import order matters. The `@endpoint` decorator registers routes when the module containing the declaration is imported. The package does not automatically discover application view modules. If endpoint declarations are spread across multiple modules, import each of those modules before importing `api_urlpatterns`.
+The `@endpoint` decorator registers routes when the module containing the declaration is imported. The package does not automatically discover application view modules. Its exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view modules does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution. If endpoint declarations are spread across multiple modules, import each of those modules during URLconf initialization.
 
 With `API_MAX_VERSION = 2` and the default `API_BASE_PATH = "api/v{version}/"`, the declarations produce these routes:
 
@@ -165,7 +167,7 @@ If a v2 declaration is added later, it replaces the v1 registration for that rou
 
 A version outside the configured range is different from a version that has no separate endpoint declaration. With `API_MAX_VERSION = 2`, the package does not generate a v3 route. A request to `/api/v3/users/` therefore does not match a generated URL pattern and normally results in Django returning 404. Within the configured range, an endpoint can be carried forward from a lower source version.
 
-For the exact decorator signature, version-range behavior, import requirements, and routing rules, see the [current versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the exact decorator signature, version-range behavior, import behavior, and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ### Adding v3
 
@@ -403,7 +405,7 @@ A configured callable such as `UserViewSetV1.as_view({"get": "list"})` can be re
 
 This follows the package's canonical ViewSet/Router position: use routers for resource-shaped ViewSets and `@endpoint` for supported generic views and explicitly configured callables. The [DRF router documentation](https://www.django-rest-framework.org/api-guide/routers/) explains the router registration model.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 
 ## Trade-offs and scope
 
@@ -420,11 +422,9 @@ The approaches above solve two different routing problems:
 
 **Different URL, separate views:** Useful when version-specific URLs are part of the API contract and each version has meaningfully different behavior. Separate views make those differences explicit. Manual URLconf registration requires an explicit mapping for each route and version. The package adds registration-time carry-forward and higher-version replacement, reducing that repeated URL configuration.
 
-**Scope: routing only.** `django-api-versioning` generates versioned URL patterns and resolves them to registered views. It does not perform DRF request-version negotiation, select serializers based on headers, or guarantee semantic compatibility between API versions.
+**Scope: routing only.** `django-api-versioning` generates versioned URL patterns and resolves them to registered views. It does not perform DRF request-version negotiation, configure a DRF versioning class, or automatically populate DRF's `request.version`. If view code needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present. The package also does not select serializers based on headers or guarantee semantic compatibility between API versions.
 
 When the benefit is smaller: if two versions differ only in a serializer field, a single version-aware view using DRF's built-in versioning may be shorter than separate view classes. For endpoints with substantial version-specific behavior, separate views provide a clearer boundary, while the package handles the versioned route registrations.
-
-Disclosure: I maintain django-api-versioning, the package discussed in this article.
 
 ## Next steps
 

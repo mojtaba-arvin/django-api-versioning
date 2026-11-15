@@ -17,6 +17,8 @@ keywords:
 
 # Production Evaluation of django-api-versioning
 
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
+
 A production API versioning strategy needs more than a version number in a URL. The application must resolve each version to the intended view, preserve older response contracts, expose a predictable routing structure, and manage the eventual retirement of older versions.
 
 This article evaluates those requirements through **django-api-versioning**. Rather than treating versioned routing as a collection of manually maintained URL patterns, it examines how the package's declarative registration model works, what it automates, and which production responsibilities remain with the application. For release-specific requirements and compatibility information, consult the project's package metadata and compatibility report.
@@ -30,9 +32,9 @@ The package provides:
 - Routing inspection and snapshot-based regression protection.
 - Configurable lifecycle middleware for deprecation headers and sunset enforcement.
 
-**Scope: routing and its supporting lifecycle behavior.** The package does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
+**Scope: routing and its supporting lifecycle behavior.** The package does not configure a DRF versioning class or automatically populate DRF's `request.version`. It also does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
 
-The author maintains `django-api-versioning`. Package-specific behavior described in this article is documented in the project's canonical routing contract and source code.
+Package-specific behavior described in this article is documented in the project's canonical routing contract and source code.
 
 Install the package from [PyPI](https://pypi.org/project/django-api-versioning/).
 
@@ -77,7 +79,7 @@ The path is derived from three elements:
 
 The Python class name does not determine the URL path or URL name. Use `view_name` when the route needs an explicit Django URL pattern name.
 
-The package's registration rules, import paths, version identifiers, route construction, and ViewSet boundary are documented in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). That document is the reference for package-specific routing semantics used throughout this article.
+The package's registration rules, import paths, version identifiers, route construction, and ViewSet boundary are documented in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md). That document is the reference for package-specific routing semantics used throughout this article.
 
 ## 2. Route inheritance and version-specific implementations
 
@@ -122,7 +124,7 @@ This is route-registration inheritance, not Python class inheritance. The regist
 
 For a request to version N, the effective implementation is the registered implementation with the highest source version that is less than or equal to N.
 
-In other words, resolution starts at the requested version and moves toward lower source versions until it reaches the applicable registration. It does not search toward newer versions.
+This is a way to calculate the effective mapping in the registry, not a request-time backward search. The package expands the declarations into concrete URL patterns when endpoint modules are imported; requests then match those generated patterns directly.
 
 For example, consider these declarations:
 
@@ -313,7 +315,24 @@ It displays the registered routing matrix, including the route and the view call
 
 For example, an endpoint explicitly registered for v1 and v3 may produce a warning for v2. That warning is evidence to review, not necessarily a defect: the omission may be intentional.
 
-Run the command after the modules containing `@endpoint` declarations have been imported. The registry is populated when those modules are imported.
+The command reads the live registry; it does not import `ROOT_URLCONF` or discover decorated view modules itself. If your project imports endpoint modules in an app's `AppConfig.ready()`, the command sees those declarations after Django startup. Otherwise it can print `No endpoints registered.` even though the URLconf imports views during normal request handling.
+
+One project-level option is to import the declaration module from the relevant app config:
+
+```python
+# api/apps.py
+
+from django.apps import AppConfig
+
+
+class ApiConfig(AppConfig):
+    name = "api"
+
+    def ready(self):
+        from . import views  # noqa: F401
+```
+
+Use this only when importing those views during app startup is safe for your project; do not perform database queries in `ready()`. Ensure `INSTALLED_APPS` references the config class.
 
 ### Protect the routing configuration with a snapshot
 
@@ -335,10 +354,14 @@ Review the generated file and commit it to version control.
 Then use the assertion in the test suite:
 
 ```python
+from importlib import import_module
+
+from django.conf import settings
 from django_api_versioning.testing import assert_version_matrix
 
 
 def test_version_matrix():
+    import_module(settings.ROOT_URLCONF)
     assert_version_matrix(snapshot=".version_matrix.json")
 ```
 
@@ -441,7 +464,7 @@ urlpatterns = [
 ]
 ```
 
-The `account_views` import is intentional: importing the module executes its endpoint declarations and populates the registry.
+The `account_views` import is intentional: importing the module executes its endpoint declarations and populates the registry. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
 For an existing application, a migration should compare the previous URL configuration with the generated routing matrix:
 

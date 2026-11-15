@@ -3,6 +3,7 @@ from typing import Callable, TypeVar
 
 from .exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
 )
@@ -55,8 +56,13 @@ def endpoint(
         VersionRangeError: If both ``version`` and ``versions`` are given, or
             settings are invalid, or ``ver_range`` receives an invalid range.
         VersionTypeError: If a version is not an integer.
+        VersioningError: If the route postfix is absolute.
         InvalidVersionError: If a version exceeds ``API_MAX_VERSION``.
     """
+    if not isinstance(postfix, str):
+        raise TypeError("postfix must be a string.")
+    if postfix.startswith("/"):
+        raise VersioningError("postfix must be relative and must not start with '/'.")
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
 

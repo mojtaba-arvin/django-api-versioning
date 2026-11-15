@@ -6,13 +6,15 @@ author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
 keywords:
-  - Django REST Framework
-  - API Versioning
-  - Django URL Routing
-  - Endpoint Registration
+  - "Django REST Framework"
+  - "API Versioning"
+  - "Django URL Routing"
+  - "Endpoint Registration"
 ---
 
 # How to support v1 and v2 endpoints in a Django REST API
+
+> **Package disclosure:** The author is the creator, owner, and maintainer of `django-api-versioning`.
 
 When an API evolves, existing clients may need to continue using `/api/v1/` while newer clients use `/api/v2/`. The challenge is deciding which implementation serves each version and maintaining the corresponding URL routes.
 
@@ -91,7 +93,7 @@ The `versions` argument explicitly lists the versions for which a declaration is
 
 ### Including generated URL patterns
 
-Import the modules containing endpoint declarations before importing the package's generated URL patterns. Importing those modules executes the decorators and registers the endpoints.
+Import modules containing endpoint declarations during URLconf initialization so their decorators register the routes before Django first resolves requests.
 
 ```python
 from django.urls import include, path
@@ -106,6 +108,8 @@ urlpatterns = [
     path("", include(api_urlpatterns)),
 ]
 ```
+
+The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view module does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
 The declarations above produce the following routes:
 
@@ -122,9 +126,9 @@ The declarations above produce the following routes:
 - A v2 list request is handled by `BookListV2View`.
 - Both v1 and v2 detail requests are handled by `BookDetailView`.
 
-The package generates standard Django URL patterns from the endpoint declarations. It does not change the view's business logic or automatically determine whether two API contracts are compatible.
+The package generates standard Django URL patterns from the endpoint declarations. It does not change the view's business logic, configure a DRF versioning scheme, or automatically populate DRF's `request.version`. If view code needs that attribute, configure DRF version identification separately and verify that its URL keyword argument or namespace is present. The package does not automatically derive `request.version` from its literal version path segments. It also does not determine whether two API contracts are compatible.
 
-For the complete behavior of `version`, `versions`, URL construction, registration precedence, and import order, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+For the complete behavior of `version`, `versions`, URL construction, registration precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
 
 ## 2. The explicit URL routing alternative
 
@@ -209,6 +213,11 @@ DRF ViewSets require an action mapping when converted into a view callable. A Vi
 For example, this is not a valid direct registration:
 
 ```python
+from rest_framework.viewsets import ModelViewSet
+
+from django_api_versioning import endpoint
+
+
 @endpoint("books/", versions=[1, 2])
 class BookViewSet(ModelViewSet):
     ...
