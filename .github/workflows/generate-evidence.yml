@@ -46,6 +46,15 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
         run: |
           python integration_test_project/segment_lab/generate_routes.py
+      - name: Verify repeated evidence generation is idempotent
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          cp website/src/data/generated/routes.json /tmp/routes-first.json
+          cp website/src/data/generated/check_versions_output.txt /tmp/check-versions-first.txt
+          python integration_test_project/segment_lab/generate_routes.py
+          cmp /tmp/routes-first.json website/src/data/generated/routes.json
+          cmp /tmp/check-versions-first.txt website/src/data/generated/check_versions_output.txt
       - name: Commit generated evidence against the latest branch head
         run: |
           set -euo pipefail

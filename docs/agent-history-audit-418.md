@@ -133,7 +133,7 @@ Every commit in the interval is attributed to the same GitHub account. Since aut
 2. **Correct automation provenance:** evidence-generation and website-lock workflows now commit as \`github-actions[bot]\`, not the maintainer.
 3. **Commit hygiene in shared instructions:** related changes are batched; formatters run once over the complete changed scope; no-op CI-trigger commits and duplicate status trackers are prohibited.
 4. **Skill-level guardrails:** Safe Checkpoint, Package Engineering, and Agent Maintenance now encode these lessons.
-5. **Regression coverage:** tests verify timestamp preservation for identical evidence and timestamp refresh when the source/evidence payload changes.
+5. **Regression coverage:** tests verify timestamp preservation for identical evidence and timestamp refresh when the source/evidence payload changes; the evidence workflow also runs the generator twice and byte-compares both outputs to prove command-level idempotency.
 6. **Agent evaluations:** new scenarios test logical commit batching, bot attribution, avoiding redundant tracker documents, and evidence regeneration idempotency.
 
 ## Remaining limitations
