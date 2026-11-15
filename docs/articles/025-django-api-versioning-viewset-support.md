@@ -1044,10 +1044,4 @@ For a project that wants the package's version registry while retaining ViewSet-
 
 ## Next steps
 
-For the decorator's implementation, see the [current decorators source](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py).
-
-For the integration project's URL configuration and import order, see the [current integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py).
-
-For the underlying ViewSet behavior, consult the official DRF documentation on [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/).
-
 To register configured ViewSet callables with version-aware routing, start with the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning) and apply its documented URL construction and registration rules to your URLconf.
