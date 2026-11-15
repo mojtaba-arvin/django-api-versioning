@@ -94,6 +94,7 @@ echo "All six Python versions required by the current tox matrix are available."
 uv venv /tmp/tox --python 3.15
 uv pip install --python /tmp/tox/bin/python tox tox-uv
 /tmp/tox/bin/tox --version || { echo "TOX FAIL"; exit 1; }
+/tmp/tox/bin/python scripts/check_tox_workflow_matrix.py
 
 # 4. tox.ini has tox-uv, DRF, and both test paths?
 grep -q 'tox-uv' tox.ini || { echo "TOX.INI MISSING tox-uv"; exit 1; }
@@ -147,7 +148,7 @@ If a condition fails, inspect the affected environment sections before classifyi
 
 ### Update COMPATIBILITY_REPORT.md only on real results
 
-After all three acceptance conditions hold, regenerate the report
+After all acceptance checks hold, regenerate the report
 from `/tmp/tox-full.log` per the structure documented in the
 "Update COMPATIBILITY_REPORT.md" section below.
 
