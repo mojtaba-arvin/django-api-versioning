@@ -109,3 +109,11 @@ The tox matrix is authoritative for configured Python/Django environments. The e
 External GitHub Actions must be pinned to full commit SHAs, with the corresponding release tag in a trailing comment. Do not use mutable major-version tags or branches in workflow `uses:` references. The current pins are managed by Dependabot.
 
 Dependabot is configured to open weekly grouped update pull requests for GitHub Actions, Python dependencies, and the website's npm dependencies. Review the upstream release notes and diff, confirm action permissions and runtime changes, and run the workflows relevant to each update. Do not enable automatic merging for dependency or action updates; the checks and review remain required.
+
+## AI agent interoperability
+
+- Treat `AGENTS.md` as the canonical repository-wide engineering contract. Tool-specific instruction files must point here rather than maintain competing copies of project policy.
+- Use the portable Agent Skills format for task-specific workflows. Codex and compatible IDE agents discover repository skills under `.agents/skills/`; GitHub Copilot code review skills belong under `.github/skills/`. Claude Code's existing workflows remain under `.claude/skills/`.
+- Read `docs/agent-engineering.md` before changing agent configuration, adding a skill, introducing MCP, or proposing autonomous workflows.
+- Do not add LLM/agent frameworks, MCP servers, telemetry SDKs, or evaluation services to the distributable package unless a separately approved product requirement needs them. Repository engineering tools must remain development-only.
+- Agent-generated findings are hypotheses until verified against source, tests, documentation, and actual command output. Never invent test results, compatibility claims, benchmark results, or security assurances.
