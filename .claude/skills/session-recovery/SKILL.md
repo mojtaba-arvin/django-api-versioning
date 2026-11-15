@@ -1,118 +1,82 @@
 # Skill: Session Recovery - django-api-versioning
 
-Re-establish state after a sandbox disconnect. Honest about what
-git can and cannot tell us.
+Re-establish repository and task state after a sandbox disconnect. Git records repository state, not the ownership or intent of every edit; recover conservatively.
 
-## Procedure
-
-### 1. Sync with remote
+## 1. Inspect repository state
 
 ```bash
 pwd
 git fetch origin
-git status
+git status --short
 git log --oneline -20
 git rev-parse HEAD
 git ls-remote --heads origin refs/heads/audit/comprehensive-package-review
 ```
 
-- Local HEAD == remote SHA: no unpushed work. Proceed.
-- Local ahead: unpushed commits. Run `.claude/push.sh` NOW.
-- Diverged: STOP. Report before doing anything.
+Classify local and remote state:
 
-### 2. Re-create commit-msg hook if missing
+- Same SHA: branch is synchronized.
+- Local ahead: inspect each unpushed commit and confirm it belongs to the current authorized task before pushing.
+- Remote ahead: fetch and inspect the new commits before continuing.
+- Diverged: stop; do not reset, rebase, force-push, or overwrite either side.
 
-```bash
-if [ ! -x .git/hooks/commit-msg ]; then
-  cat > .git/hooks/commit-msg <<'HOOK'
-#!/bin/sh
-TMP=$(mktemp)
-grep -v -E '^(Co-[Aa]uthored-[Bb]y:.*(Claude|Anthropic)|🤖 Generated with|Generated with .?Claude)' "$1" > "$TMP"
-mv "$TMP" "$1"
-HOOK
-  chmod +x .git/hooks/commit-msg
-fi
-```
+## 2. Protect dirty working trees
 
-### 3. Verify identity
+A dirty working tree does **not** authorize a commit or push.
+
+For every modified, deleted, or untracked path:
+1. Inspect the diff or file contents.
+2. Compare it with the current task scope and known prior checkpoints.
+3. Identify whether it is clearly part of the interrupted task.
+4. Preserve unrelated, unknown, and user-owned changes untouched.
+5. Ask the user before committing changes whose ownership or intent is uncertain.
+
+Do not use `git clean`, `git reset --hard`, or `git checkout .` to make the tree clean.
+
+## 3. Verify repository identity and hooks
 
 ```bash
 git config --local user.name
 git config --local user.email
 ```
 
-Must be `Mojtaba Arvin` / `m.arvin@live.com`. Set if missing.
+Expected identity: `Mojtaba Arvin` / `m.arvin@live.com`.
 
-### 4. Verify auth
+Inspect the commit-msg hook if commit policy requires it. Recreate a missing hook only using the repository's documented safe procedure; do not overwrite an existing hook without inspection.
 
-```bash
-curl -s -o /dev/null -w "%{http_code}" \
-  -H "Authorization: Bearer $DAV_GITHUB_TOKEN" \
-  https://api.github.com/user
-```
+## 4. Verify authentication safely
 
-- 200: proceed.
-- 401/403: STOP, tell user to regenerate the PAT.
-- 000: network, report and stop.
+Use the configured Git credential helper and the repository push helper. Never print, echo, trace, or place `DAV_GITHUB_TOKEN` in command-line arguments, URLs, logs, or diagnostics. If authentication fails, report only the status category and ask the user to repair credentials.
 
-### 5. Detect in-progress task — with honest limitations
+## 5. Recover task progress
 
-**If `git status` is dirty:** an edit happened without commit+push.
-Commit and push via `/safe-checkpoint` FIRST, THEN resume.
+Read the current task specification and compare it with:
+- the latest commits and their diffs;
+- the current working-tree state;
+- relevant test and workflow results;
+- explicit progress artifacts that actually exist in the repository.
 
-**If `git status` is clean:** read `git log --oneline -10` and
-match the pattern:
+Do not assume a batch is complete merely because the latest commit looks self-contained. Do not assume the remaining task list from Git history alone.
 
-| Last commit(s) | Likely state | Resume |
-|---|---|---|
-| `test: matrix PY=X DJ=Y ...` | A matrix-related task may be partial or done | Inspect current `tox.ini`, commits, and available logs. If a full compatibility run is still requested, use `/manual-testing` Full; do not invoke the removed `/compat-matrix` skill or assume a `row_done` mechanism. |
-| `chore(release): prepare vX.Y.Z` + tag exists | Release mid-flight, tag not pushed | `.claude/push.sh --tag` then `/release` step 11+ |
-| `chore(release): prepare vX.Y.Z` + no tag | Release mid-flight, tag not created | `/release` step 8 (create tag) |
-| Single `fix: …` or `feat: …` | One fix done, maybe more planned | **Ask user** if more remained |
-| Sequence of `fix:` / `test:` commits | Likely a batch | **Ask user** for the original task list and remaining items |
-| `docs: …` | One doc change done | **Ask user** — unless the current user message contains a full task spec; in that case, proceed from the spec |
-| `chore: bump version to X.Y.Z` OR `docs: bump package version to X.Y.Z in articles` in the last 5 commits | Release preparation likely done, tag/push/verify may be pending | Check: `git ls-remote --tags origin "vX.Y.Z"` and `curl -s https://pypi.org/pypi/django-api-versioning/json \| grep '"version"'`. If tag missing OR PyPI version != X.Y.Z → invoke `/release` from the appropriate step. Do NOT start new work. |
-| Only `chore: initialize persistent...` | Initial setup | Ask user for next phase |
-| Nothing beyond `main` merge | Idle | Ask user what to work on |
-| Untracked files only | Scratch | Inspect filenames. Add to a task or delete. Never delete blind. |
+If the current user message contains a complete task specification, use it as the authoritative task list and resume from verified repository state. Otherwise, if the remaining scope cannot be determined, ask the user.
 
-### Critical limitation — state it explicitly
+## 6. Report before resuming
 
-**Without an external tracker, this skill cannot know how many
-items were in the user's batch.** It sees what was done, not what
-was planned.
+State:
+- local and remote branch SHAs and whether they match;
+- unpushed commits, if any;
+- modified/untracked paths and whether their ownership is known;
+- the last verified task checkpoint;
+- tests/workflows actually completed;
+- the next safe action.
 
-When the pattern suggests a batch (two or more `fix:`/`test:`
-commits in a row) AND the current user message does NOT contain a
-full task spec, STOP and ask the user:
-
-> "I see these commits in the current session:
-> <list with hashes and subjects>
-> I cannot determine how many items were in the original task
-> list or which items remain. Please state the original list and
-> what is still pending."
-
-Do NOT assume the batch is complete just because the last commit
-looks self-contained. Do NOT guess remaining items. Do NOT invent
-a task list. The user must confirm.
-
-**Exception:** if the user's current message contains a complete
-task specification (a full list of phases, issues, or acceptance
-criteria), treat that as the authoritative task list. Do not ask
-for confirmation. Proceed from the spec.
-
-### 6. Report and resume
-
-State in one block: local SHA, remote SHA (match/diverge),
-detected pattern, files currently modified (if any), the user's
-confirmed next action. Then execute.
+Then continue only within the current authorization.
 
 ## Never
-- Never assume prior work completed without git evidence.
-- Never read `DEVELOPMENT_LOG.md`, `HANDOFF.md`, `*_PROGRESS.md`
-  (they do not exist — CLAUDE.md Section 8).
-- Never `git reset --hard`, `git clean`, `git checkout .`.
-- Never start new work while unpushed commits exist.
-- Never pretend to know the remaining task list from git alone.
-- Never ask the user for a task list if their current message
-  already contains one.
+
+- Never push merely because local commits are ahead; verify task ownership and authorization.
+- Never commit merely because the working tree is dirty.
+- Never discard or overwrite unknown changes.
+- Never expose credentials.
+- Never claim a task step or test completed without evidence.
+- Never ask for a task list when the current user message already supplies it.
