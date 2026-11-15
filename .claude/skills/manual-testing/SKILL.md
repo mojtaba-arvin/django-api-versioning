@@ -185,7 +185,9 @@ Do not claim a test passed unless the exit code is 0.
 
 | Trigger | Mode |
 |---------|------|
-| Any file edited | Quick |
+| Python source or test changed | Quick for the relevant test scope |
+| Markdown-only change | Markdown/front matter/link checks and technical-claim review; no pytest unless executable examples or behavior are affected |
+| Workflow/configuration change | Validate YAML and run the affected workflow or equivalent local checks |
 | Phase 1 baseline | Single (V=3.15) |
 | Phase 10 QA | Full (tox) |
 | Before `/release` | Full (tox) |
