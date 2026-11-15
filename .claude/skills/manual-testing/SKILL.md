@@ -120,9 +120,8 @@ limitation" — it is a setup failure that this pre-flight prevents.
 ### Run
 
 ```bash
-rm -rf .tox
 set -o pipefail
-PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox 2>&1 | tee /tmp/tox-full.log
+PATH="$HOME/.local/bin:$PATH" /tmp/tox/bin/tox run-parallel -p auto 2>&1 | tee /tmp/tox-full.log
 TOX_EXIT=${PIPESTATUS[0]}
 echo "TOX_EXIT=$TOX_EXIT"
 ```
