@@ -280,6 +280,8 @@ git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 
 If the ancestry check fails, stop. Do not create or push a tag. The user must complete the reviewed merge first; do not push directly to `main`.
 
+Before pushing the tag, verify that `.github/workflows/publish.yml` keeps package build and validation separate from publication, and grants `id-token: write` only to the publish job. The publish job must not check out the repository or execute build scripts; it should only download the verified distribution artifact and invoke the pinned PyPI publishing action.
+
 ### 9. Push tag
 
 ```bash
