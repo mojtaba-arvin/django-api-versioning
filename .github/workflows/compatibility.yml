@@ -42,7 +42,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-matrix:
+    name: Verify tox and workflow environments
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.15"
+
+      - name: Install tox configuration tools
+        run: python -m pip install tox tox-uv
+
+      - name: Verify workflow matrix matches tox.ini
+        run: python scripts/check_tox_workflow_matrix.py
+
   tox:
+    needs: validate-matrix
     name: ${{ matrix.env }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
