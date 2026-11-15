@@ -38,7 +38,10 @@ def main() -> int:
         configuration = json.loads(result.stdout)
         tox_environments = set(configuration["env"])
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
-        print(f"Could not read tox environments from tox config: {exc}", file=sys.stderr)
+        print(
+            f"Could not read tox environments from tox config: {exc}",
+            file=sys.stderr,
+        )
         return 2
 
     workflow_text = WORKFLOW.read_text(encoding="utf-8")
@@ -50,17 +53,29 @@ def main() -> int:
     workflow_environments = set(matrix_entries)
 
     if len(matrix_entries) != len(workflow_environments):
-        print("Duplicate environment names found in compatibility.yml.", file=sys.stderr)
+        print(
+            "Duplicate environment names found in compatibility.yml.",
+            file=sys.stderr,
+        )
         return 1
 
     missing_from_workflow = sorted(tox_environments - workflow_environments)
     missing_from_tox = sorted(workflow_environments - tox_environments)
     if missing_from_workflow or missing_from_tox:
-        print("tox.ini and compatibility.yml define different environments.", file=sys.stderr)
+        print(
+            "tox.ini and compatibility.yml define different environments.",
+            file=sys.stderr,
+        )
         if missing_from_workflow:
-            print(f"Missing from workflow matrix: {', '.join(missing_from_workflow)}", file=sys.stderr)
+            print(
+                f"Missing from workflow matrix: {', '.join(missing_from_workflow)}",
+                file=sys.stderr,
+            )
         if missing_from_tox:
-            print(f"Not configured in tox.ini: {', '.join(missing_from_tox)}", file=sys.stderr)
+            print(
+                f"Not configured in tox.ini: {', '.join(missing_from_tox)}",
+                file=sys.stderr,
+            )
         return 1
 
     print(f"Verified {len(tox_environments)} tox environments against compatibility.yml.")
