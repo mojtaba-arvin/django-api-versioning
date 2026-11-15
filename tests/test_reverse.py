@@ -1,6 +1,6 @@
 import pytest
 from django.http import JsonResponse
-from django.urls import NoReverseMatch
+from django.urls import NoReverseMatch, register_converter
 
 from django_api_versioning import api_reverse
 from django_api_versioning.decorators import endpoint
@@ -114,6 +114,26 @@ class TestApiReverse:
 
         assert api_reverse("file-detail", version=1, resource="reports/annual.pdf") == (
             "/api/v1/files/reports/annual.pdf/"
+        )
+
+    def test_custom_path_converter_to_url_is_used(self):
+        class LowercaseConverter:
+            regex = "[a-z]+"
+
+            def to_python(self, value):
+                return value
+
+            def to_url(self, value):
+                return str(value).lower()
+
+        register_converter(LowercaseConverter, "lowercase")
+
+        @endpoint("items/<lowercase:code>/", version=1, view_name="item-detail")
+        def item_detail(request, code):
+            return JsonResponse({"code": code})
+
+        assert api_reverse("item-detail", version=1, code="ABC") == (
+            "/api/v1/items/abc/"
         )
 
     def test_kwarg_with_backslash_not_treated_as_regex_escape(self):
