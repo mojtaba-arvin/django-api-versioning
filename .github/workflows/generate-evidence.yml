@@ -14,7 +14,6 @@ on:
       - "pyproject.toml"
       - "requirements.txt"
       - "requirements-ci.txt"
-      - "docs/articles/**"
   workflow_dispatch:
 
 permissions:
