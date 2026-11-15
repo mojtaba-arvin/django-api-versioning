@@ -265,11 +265,20 @@ Expected artifacts:
 If build fails, fix the cause in a new commit, push, then retry.
 Do not tag until build succeeds.
 
-### 8. Create tag
+### 8. Verify the release commit is merged, then create the tag
+
+The release branch must not publish code that has not been merged through the reviewed default-branch pull request. Fetch the default branch and verify that the exact release commit is an ancestor of its remote head:
 
 ```bash
+git fetch origin main
+git merge-base --is-ancestor HEAD origin/main || {
+  echo "Release commit is not present on origin/main; stop before tagging."
+  exit 1
+}
 git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 ```
+
+If the ancestry check fails, stop. Do not create or push a tag. The user must complete the reviewed merge first; do not push directly to `main`.
 
 ### 9. Push tag
 
