@@ -101,3 +101,10 @@ This does not mean every Actions feature or resource is unlimited:
 Keep standard runners unless a documented technical need justifies a larger runner. Upload only artifacts needed for diagnosis or release, set finite retention, avoid caching generated build output unnecessarily, and monitor cache/artifact usage. Do not treat public-repository runner minutes as a reason to avoid the full compatibility matrix.
 
 The tox matrix is authoritative for configured Python/Django environments. The explicit matrix in `.github/workflows/compatibility.yml` must remain in sync with `tox.ini`; review both whenever either changes. A configured environment is not a passing environment: report only results from actual workflow logs and exit conclusions.
+
+
+## Dependency and GitHub Actions updates
+
+External GitHub Actions must be pinned to full commit SHAs, with the corresponding release tag in a trailing comment. Do not use mutable major-version tags or branches in workflow `uses:` references. The current pins are managed by Dependabot.
+
+Dependabot is configured to open weekly grouped update pull requests for GitHub Actions, Python dependencies, and the website's npm dependencies. Review the upstream release notes and diff, confirm action permissions and runtime changes, and run the workflows relevant to each update. Do not enable automatic merging for dependency or action updates; the checks and review remain required.
