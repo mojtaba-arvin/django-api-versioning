@@ -44,7 +44,8 @@ class AgentToolingTests(unittest.TestCase):
             skill.parent.mkdir(parents=True)
             skill.write_text(
                 "[present](references/guide.md) [missing](references/missing.md) "
-                "[outside](../../../../outside.md) [external](https://example.com)",
+                "[outside](../../../../outside.md) [external](https://example.com) "
+                "[protocol-relative](//example.com)",
                 encoding="utf-8",
             )
             reference = skill.parent / "references/guide.md"
@@ -54,6 +55,17 @@ class AgentToolingTests(unittest.TestCase):
             self.assertEqual(len(errors), 2)
             self.assertTrue(any("missing reference" in error for error in errors))
             self.assertTrue(any("escapes repository" in error for error in errors))
+
+    def test_evaluation_scenario_rejects_unhashable_profile(self) -> None:
+        scenario = {
+            "id": "invalid-profile",
+            "profile": [],
+            "task": "Exercise malformed profile metadata.",
+            "checks": ["The invalid profile is rejected."],
+            "failure_modes": ["The validator raises a TypeError."],
+        }
+        errors = agent._validate_scenario(scenario, set())
+        self.assertTrue(any("Unknown profile" in error for error in errors))
 
     def test_all_canonical_skills_have_consistent_adapters(self) -> None:
         self.assertEqual(agent.validate_tree(ROOT), [])

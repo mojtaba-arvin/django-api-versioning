@@ -48,10 +48,13 @@ python scripts/check_tox_workflow_matrix.py
 3. Run every environment declared by the current tox configuration:
 
 ```bash
+set +e
 tox run-parallel -p auto > /tmp/tox-full.log 2>&1
 TOX_EXIT=$?
+set -e
 cat /tmp/tox-full.log
 echo "TOX_EXIT=$TOX_EXIT"
+exit "$TOX_EXIT"
 ```
 
 `tox-uv` provisions uv-managed interpreters when required. Do not manually install a hard-coded Python version list or copy a historical environment count.

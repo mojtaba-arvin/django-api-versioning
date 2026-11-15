@@ -42,37 +42,11 @@ For a comprehensive audit, read all twelve references. For a focused review, loa
 
 ## Audit Execution Workflow
 
-1. **Initial Setup**
-   - Clone repository
-   - Set up development environment
-   - Install all dependencies
-
-2. **Documentation Review** (1-2 hours)
-   - Read README, CHANGELOG, and documentation
-   - Identify claims and features
-   - Note any inconsistencies
-
-3. **Code Review** (2-4 hours)
-   - Read all core modules
-   - Understand architecture
-   - Identify issues or concerns
-   - Review security-sensitive code
-
-4. **Test Execution** (1-2 hours)
-   - Run unit tests
-   - Run integration tests
-   - Measure coverage
-   - Test compatibility matrix
-
-5. **Verification** (1 hour)
-   - Verify all findings against source
-   - Cross-reference documentation and code
-   - Identify verified facts vs suspected issues
-
-6. **Report Generation** (1 hour)
-   - Document all findings
-   - Create recommendations
-   - Prepare release readiness assessment
+1. Define the audit scope and load only the applicable dimension references; use all twelve only for a comprehensive audit.
+2. Record the immutable source commit and package version, then inspect implementation, callers, public APIs, and matching tests.
+3. Verify documented claims against source and executable behavior. Run focused tests first; use the manual-testing skill when full compatibility evidence is required.
+4. Classify each observation as verified, suspected, implemented, partial, a known limitation, or a proposed improvement.
+5. Report actionable findings with exact locations, impact, evidence, and the smallest safe recommendation. Record executed commands, exit codes, and unverified areas.
 
 ## Output Format
 

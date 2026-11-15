@@ -154,7 +154,7 @@ def validate_reference_links(skill_file: Path, root: Path = ROOT) -> list[str]:
     root = root.resolve()
     content = skill_file.read_text(encoding="utf-8")
     for target in re.findall(r"\]\(([^)]+)\)", content):
-        if target.startswith(("#", "https://", "http://", "mailto:")):
+        if target.startswith(("#", "https://", "http://", "mailto:", "//")):
             continue
         local_target = target.split("#", 1)[0].split("?", 1)[0]
         if not local_target:
@@ -318,7 +318,8 @@ def _validate_scenario(
     else:
         seen.add(scenario_id)
 
-    if scenario.get("profile") not in CONTEXT_PROFILES:
+    profile = scenario.get("profile")
+    if not isinstance(profile, str) or profile not in CONTEXT_PROFILES:
         errors.append(f"Unknown profile in evaluation scenario: {label}")
 
     task = scenario.get("task")
