@@ -1,8 +1,36 @@
 name: Compatibility matrix
 
 on:
-  # Expensive cross-version validation is an explicit release/review checkpoint.
-  # Keep it manual to avoid running the matrix on every synchronization commit.
+  # Standard GitHub-hosted runners are free for public repositories.
+  # Run the complete compatibility matrix for package/test changes and on PR review.
+  push:
+    branches:
+      - main
+      - audit/comprehensive-package-review
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "tox.ini"
+      - "requirements*.txt"
+      - "pytest.ini"
+      - "scripts/**"
+      - ".github/workflows/compatibility.yml"
+      - ".github/workflows/publish.yml"
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "tox.ini"
+      - "requirements*.txt"
+      - "pytest.ini"
+      - "scripts/**"
+      - ".github/workflows/compatibility.yml"
+      - ".github/workflows/publish.yml"
   workflow_dispatch:
   workflow_call:
 
@@ -10,7 +38,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: compatibility-${{ github.ref }}-${{ github.sha }}
+  group: compatibility-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
