@@ -1,104 +1,75 @@
 # Skill: Safe Checkpoint - django-api-versioning
 
-Commit and push one file change. Use immediately after ANY edit
-to the working tree — do not wait for "enough" changes.
+Create a reviewable Git checkpoint for a completed logical unit of work.
 
 ## Trigger
 
-Any change in `git status`. Even one line.
+Use after a coherent change is complete and its applicable validation has run. Do not commit every individual edit or an incomplete intermediate state. A logical change may span multiple related files.
 
 ## Procedure
 
-### 1. Review the change
+### 1. Establish ownership and scope
 
 ```bash
-git status
+git status --short
 git diff --stat
 git diff
 git ls-files --others --exclude-standard
 ```
 
-Stop and inspect if the change includes:
-- `*.env`, `*token*`, `*secret*`, `*.pem`, `*.key`
-- Files outside the current task scope
+Identify which changes were made for the current task. A dirty tree is not proof that every change belongs to this task. Preserve unknown, pre-existing, or user-owned changes and ask before including them.
 
-### 2. Quick test — only if the change is code or a test
+Stop and inspect any credential, secret, private key, environment file, generated artifact, or out-of-scope path.
 
-Run only the touched test file:
+### 2. Validate the changed scope
 
-```bash
-pytest <touched_test_file> -v
-```
-
-If no venv is active, use the closest recent one:
-
-```bash
-/tmp/env-3.12/bin/python -m pytest <file> -v
-```
-
-Skip if the change is documentation, config, or a pure `.md` edit.
-Full matrix is NOT run here — that is `/manual-testing` Full.
+- Python source/tests: run the relevant test suite according to `/manual-testing`.
+- Markdown-only edits: run Markdown/front matter/link checks and review technical claims affected by the change; pytest is not required unless executable examples or runtime behavior changed.
+- Workflow/configuration edits: validate syntax and inspect the affected workflow behavior.
+- Do not claim validation that was not executed.
 
 ### 3. Stage explicit paths
 
 ```bash
-git add path/to/file1 path/to/file2
+git add path/to/related-file1 path/to/related-file2
 ```
 
-Never `git add .` or `git add -A`.
+Never use `git add .` or `git add -A`.
 
-### 4. Verify staging area
+### 4. Review the staged diff
 
 ```bash
 git diff --cached --stat
 git diff --cached
 ```
 
-Only intended files, no secrets.
+Confirm that only intended, reviewed, safe files are staged. Check for secrets and generated files that should not be committed.
 
 ### 5. Commit
 
-Before writing the message, verify:
-- Subject describes WHAT changed, not WHERE it came from.
-- No spec numbers, no "as specified", no "requirement N".
-- A future reader with no access to the original task can
-  understand the change from the message alone.
+Use a concise domain-oriented message with one of: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
 
-Then:
+Do not reference internal task-spec numbering. Do not add co-author trailers or generated-by signatures.
 
-```bash
-git commit -m "<type>: <short description>"
-```
-
-Types: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
-No co-author trailer. No "Generated with Claude Code".
-
-### 6. Verify author
+### 6. Verify identity
 
 ```bash
 git log -1 --format='%an <%ae> | %cn <%ce>'
 ```
 
-Both must be `Mojtaba Arvin <m.arvin@live.com>`.
-If wrong and not yet pushed: `git commit --amend --reset-author`.
+Expected author and committer: `Mojtaba Arvin <m.arvin@live.com>`.
 
-### 7. Push
+### 7. Push only when authorized
 
-```bash
-.claude/push.sh
-```
+Push to the task's authorized branch. Never force-push, rewrite remote history, or push to `main`. Verify the remote branch SHA after pushing.
 
-Exit 0 = verified. Non-zero = STOP, diagnose, do not edit another file.
+If push fails, preserve the commit, inspect local and remote refs, do not expose credentials, and stop further edits until the failure is understood.
 
 ## Never
-- Never `git add .` or `git add -A`.
-- Never add a co-author trailer.
-- Never commit `*.env`, tokens, keys.
-- Never use `git reset --hard` or `git clean`.
-- Never run `/manual-testing` Full here — Quick only.
-- Never batch multiple file changes into one commit unless coherent
-  (see CLAUDE.md Section 4).
-- Never reference internal task-spec numbering in the commit
-  message ("Issue N", "Phase N", "Bug N", "ERR N"). Describe
-  the behavior in domain terms. See CLAUDE.md Section 4
-  "Commit message content rules".
+
+- Never commit unknown or user-owned changes without permission.
+- Never stage the entire working tree.
+- Never commit secrets, tokens, keys, or private environment files.
+- Never use destructive reset/clean operations as a shortcut.
+- Never push without task authorization.
+- Never describe a commit as validated unless its required checks actually passed.
