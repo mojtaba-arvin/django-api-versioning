@@ -159,8 +159,7 @@ Report the failure instead.
 - Never run Full if the pre-flight check fails.
 - Never report `NOT-RUN` as "infrastructure limitation". It is a
   setup failure that the pre-flight check was designed to catch.
-- Never claim `succeeded` without `grep -c 'commands succeeded'`
-  printing 13.
+- Never claim `succeeded` unless the current matrix reports 16 successful environments (15 test environments plus lint), with zero skipped environments and all required test commands successful.
 - Never write `CERTIFIED` or `PRODUCTION READY` if any env is not
   `ok`.
 
