@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Dependency-free diagnostics, context selection, and validation for coding agents."""
 
-# Keep this helper as the trigger for the temporary formatter-diff workflow.
 
 from __future__ import annotations
 
@@ -207,9 +206,7 @@ def validate_tree(root: Path = ROOT) -> list[str]:
             continue
         actual = len(path.read_text(encoding="utf-8"))
         if actual > maximum:
-            errors.append(
-                f"{relative}: {actual} characters exceeds budget {maximum}"
-            )
+            errors.append(f"{relative}: {actual} characters exceeds budget {maximum}")
 
     skills_root = root / ".agents" / "skills"
     if not skills_root.is_dir():
@@ -240,10 +237,7 @@ def validate_tree(root: Path = ROOT) -> list[str]:
                 f"{skill_file.relative_to(root)} has an empty or overlong description"
             )
         errors.extend(validate_reference_links(skill_file, root))
-        errors.extend(validate_reference_links(skill_file, root))
-        if metadata.get("name") in (
-            item.get("name") for item in canonical.values()
-        ):
+        if metadata.get("name") in (item.get("name") for item in canonical.values()):
             errors.append(f"Duplicate canonical skill name: {metadata.get('name')}")
         canonical[slug] = metadata
 
@@ -291,9 +285,7 @@ def validate_tree(root: Path = ROOT) -> list[str]:
     else:
         text = copilot_skill.read_text(encoding="utf-8")
         metadata = parse_frontmatter(text)
-        if metadata.get("name") != "package-review" or not metadata.get(
-            "description"
-        ):
+        if metadata.get("name") != "package-review" or not metadata.get("description"):
             errors.append("Copilot review skill needs name/description frontmatter")
 
         target = "../../../.agents/skills/package-audit/SKILL.md"
@@ -321,9 +313,11 @@ def validate_tree(root: Path = ROOT) -> list[str]:
         try:
             suite = _read_json(eval_path)
             scenarios = suite.get("scenarios")
-            if suite.get("schema_version") != 1 or not isinstance(
-                scenarios, list
-            ) or not scenarios:
+            if (
+                suite.get("schema_version") != 1
+                or not isinstance(scenarios, list)
+                or not scenarios
+            ):
                 errors.append(
                     "Agent evaluation suite has an invalid schema or no scenarios"
                 )
@@ -455,9 +449,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("doctor", help="read-only repository and tool diagnostics")
 
-    context_parser = subparsers.add_parser(
-        "context", help="task-specific reading set"
-    )
+    context_parser = subparsers.add_parser("context", help="task-specific reading set")
     context_parser.add_argument("profile", choices=sorted(CONTEXT_PROFILES))
     context_parser.add_argument("--json", action="store_true")
 
@@ -485,9 +477,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             _print_json({"profile": args.profile, **profile})
         else:
-            print(
-                f"Profile: {args.profile}\nSkill: {profile['skill']}\nRead:"
-            )
+            print(f"Profile: {args.profile}\nSkill: {profile['skill']}\nRead:")
             for item in profile["read"]:
                 print(f"  - {item}")
             print("Avoid unless required:")
@@ -533,12 +523,8 @@ def main(argv: list[str] | None = None) -> int:
             for error in errors:
                 print(f"- {error}")
         else:
-            skill_count = len(
-                list((ROOT / ".agents/skills").glob("*/SKILL.md"))
-            )
-            print(
-                f"Agent configuration valid; {skill_count} canonical skills."
-            )
+            skill_count = len(list((ROOT / ".agents/skills").glob("*/SKILL.md")))
+            print(f"Agent configuration valid; {skill_count} canonical skills.")
             print(
                 "Always-loaded instruction budgets "
                 "(token estimate is characters / 4):"
