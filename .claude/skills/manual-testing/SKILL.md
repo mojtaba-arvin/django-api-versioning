@@ -130,7 +130,7 @@ echo "TOX_EXIT=$TOX_EXIT"
 
 ```bash
 SUCCEEDED=$(grep -c 'commands succeeded' /tmp/tox-full.log)
-NOTRUN=$(grep -c 'interpreter not found' /tmp/tox-full.log || true)
+NOTRUN=$(grep -Eic 'NOT-RUN|interpreter not found' /tmp/tox-full.log || true)
 PASSED_LINES=$(grep -c 'passed' /tmp/tox-full.log)
 echo "succeeded=$SUCCEEDED not-run=$NOTRUN passed-lines=$PASSED_LINES"
 ```
