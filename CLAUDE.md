@@ -6,11 +6,17 @@
 - Working branch: `audit/comprehensive-package-review`
 - Main is off-limits. Never push to main.
 
-## 2. Priority When Rules Conflict
-1. User instruction in the current message.
-2. Section 3 safety rules — cannot be overridden.
-3. Everything else.
-4. Default behavior.
+## 2. Instruction precedence
+
+Apply instructions in this order:
+
+1. Platform and tool safety/security requirements. These cannot be overridden.
+2. Explicit user instructions for the current task, including scope, constraints, and granted permissions, provided they do not conflict with level 1.
+3. Repository-wide policy in `AGENTS.md`.
+4. The applicable task skill under `.claude/skills/`.
+5. Defaults and suggestions.
+
+When two instructions at the same level conflict, prefer the more specific and more recent instruction. Do not silently guess when the conflict changes scope, data safety, external side effects, or release behavior; stop and ask. A task-specific instruction may refine a repository default, but must not silently weaken a safety boundary.
 
 ## 3. Non-Negotiable Safety
 - Never print, echo, log, or expose `DAV_GITHUB_TOKEN`.
@@ -18,73 +24,34 @@
 - Never commit without reviewing the full diff. Stage explicit paths.
 - Never run `git clean`, `git reset --hard`, `git checkout .`
   without per-occurrence approval.
-- Do not manually dispatch or create GitHub Actions test workflows. Existing push/PR workflows may run automatically; their Docker job is not a substitute for the tox matrix. No new CI workflow files.
+- Existing GitHub Actions workflows may be dispatched when the task requires validation and the workflow's inputs/target ref have been inspected. A dispatch is not a test result: wait for the run and inspect its conclusion and jobs. Creating or materially changing workflows requires an explicit task scope; never add a workflow merely to avoid running an existing test command. Do not use Docker CI jobs as a substitute for the tox compatibility matrix.
 - No tag push or PyPI release without explicit authorization.
 - Never add `Co-authored-by`, `Co-Authored-By`, or "Generated with
   Claude Code". Author is always `Mojtaba Arvin <m.arvin@live.com>`.
 
-## 4. Commit and Push — zero tolerance
+## 4. Git checkpoints and remote writes
 
-Every file change is its own commit, pushed immediately.
-No batching. No "wait until complete". No judgment.
+Use logical, reviewable commits. A single coherent change may span multiple related files; unrelated changes must not be bundled merely to reduce commit count. Do not create one commit per file when the files implement one atomic change.
 
-Triggers — commit and push after EACH of:
-- Creating, editing, deleting, or renaming any file
-- Running a formatter that changed files
-- Adding one test case
-- Completing one matrix row
+Before committing:
+1. Inspect `git status`, the complete unstaged and staged diffs, and untracked files.
+2. Confirm every included path belongs to the current task and is safe to publish.
+3. Run the applicable validation for the changed scope.
+4. Stage explicit paths only; never use `git add .` or `git add -A`.
+5. Review the staged diff, commit, and verify author identity.
 
-If `git status` shows any change, you are out of compliance.
-Commit and push NOW before the next action.
+A clean working tree is the desired checkpoint state after a completed logical unit, not an invariant that must hold between every edit and its commit. Do not interrupt a coherent multi-file change merely to commit an incomplete intermediate state.
 
-Sequence:
+Push only when the current user instruction or an applicable previously granted task authorization permits it. This task explicitly authorizes commits and pushes to `audit/comprehensive-package-review`. Never force-push, rewrite remote history, or push to `main`. After each push, verify that the remote branch points to the expected commit. If push fails, preserve local commits, diagnose without exposing credentials, and stop further edits until the remote state is understood.
 
-    edit → git add <path> → git commit → .claude/push.sh
-
-If `.claude/push.sh` exits non-zero, STOP. Do not edit another file.
-Diagnose auth first (Section 6), fix, retry.
-
-**Exception:** a single logical change spanning N files (e.g.,
-renaming a symbol used in 3 files) is ONE commit. Split only when
-the intermediate state compiles and tests pass.
-
-**Zero rule:** at any moment — unpushed commits = 0,
-uncommitted files = 0.
-
-Commit messages: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
-One-line subject.
-
-Verification (mandatory after every push): `.claude/push.sh` exit 0
-means local SHA == remote SHA. Exit non-zero means STOP.
+Commit messages use `feat:`, `fix:`, `docs:`, `test:`, or `chore:` and describe the domain change, not internal task numbering. Do not add co-author trailers or generated-by signatures.
 
 ### Commit message content rules
 
-Describe the change in domain terms. Never reference internal
-task-spec numbering.
-
-Forbidden in any commit message, including body:
-- "Issue N", "Issues N-M", "Bug N", "ERR N", "Phase N",
-  "Scenario N" as the primary descriptor
-- "as specified in the task", "per the spec", "requirement N"
-- Any wording whose meaning depends on a document outside the repo
-
-If the change fixes a behavior, name the behavior:
+Describe the change in domain terms. Never reference internal task-spec numbering. A future reader should understand the commit without access to a task prompt.
 
   ✅ test: reject boolean and string version values
   ❌ test: add comprehensive validation tests for Issues 3-6
-
-  ✅ test: verify override_settings does not mutate loaded config
-  ❌ test: add regression tests for Issue 7
-
-  ✅ feat: group check_versions output by logical endpoint
-  ❌ feat: implement Phase 3 logical endpoint matrix
-
-  ✅ feat: reject unconfigured ViewSet with actionable error
-  ❌ feat: add ViewSet detection for Phase 6
-
-This applies to subject and body. If a behavior is genuinely
-hard to summarize in one line, use a descriptive subject and
-expand in the body — still without spec numbers.
 
 ## 5. Author Identity
 Set at session start if missing:
@@ -107,14 +74,7 @@ Both must be `Mojtaba Arvin <m.arvin@live.com>`.
 
 Token diagnostic (run first if push fails):
 
-    curl -s -o /dev/null -w "%{http_code}" \
-      -H "Authorization: Bearer $DAV_GITHUB_TOKEN" \
-      https://api.github.com/user
-
-- 200 = valid, retry once
-- 401 = invalid/expired, STOP ask user
-- 403 = missing scopes, STOP ask user
-- 000 = network, preserve commits, stop
+Do not place the token in a command-line argument, shell trace, URL, log, or diagnostic output. Prefer the configured Git credential helper and `.claude/push.sh`. If authentication fails, report only the HTTP/status category and ask the user to repair the credential configuration; never print the token or a command that expands it into process arguments.
 
 ## 7. Testing
 
