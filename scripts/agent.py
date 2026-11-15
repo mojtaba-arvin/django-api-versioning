@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+# Temporary formatter diagnostics trigger.
+
 import argparse
 import json
 import math
