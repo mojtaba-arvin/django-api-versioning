@@ -19,7 +19,7 @@ on:
       - ".github/workflows/tests.yml"
       - "!**/*.md"
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, synchronize, ready_for_review]
     branches: [main]
     paths:
       - "django_api_versioning/**"
