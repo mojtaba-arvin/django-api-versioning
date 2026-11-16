@@ -36,7 +36,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
 
     is_python = any(
         path.startswith(PYTHON_PATHS)
-        or path in {
+        or path
+        in {
             "pytest.ini",
             ".github/workflows/tests.yml",
             "scripts/verify_distribution_contents.py",
