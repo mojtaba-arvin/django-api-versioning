@@ -2650,7 +2650,14 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_d_deprecated_without_sunset(self):
         """Scenario D: Deprecated without Sunset date."""
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                }
+            }
+        )
 
         response = self.client.get("/api/v2/users/")
 
@@ -2704,7 +2711,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         # Request with integer parameter should still detect v2 from URL path
         response = self.client.get("/api/v2/users/42/")
@@ -2716,7 +2731,18 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_h_unknown_versions(self):
         """Scenario H: Unknown and invalid versions don't cause errors."""
-        self._set_lifecycle({1: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}, 2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}})
+        self._set_lifecycle(
+            {
+                1: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                },
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                },
+            }
+        )
 
         # v99 is not configured
         response = self.client.get("/api/v99/users/")
@@ -2729,7 +2755,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         # A path that contains "api/v2" but not at the start shouldn't match
         # (This verifies the anchored regex works correctly)
@@ -2745,7 +2779,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         response = self.client.get("/api/v2/users/?page=1&limit=10")
 
@@ -2764,7 +2806,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         # Use APIClient for DRF views
         client = APIClient()
@@ -2844,7 +2894,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         # Test a namespaced endpoint with app_name="admin"
         response = self.client.get("/api/v2/admin/reports/summary/")
