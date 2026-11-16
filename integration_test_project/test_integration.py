@@ -2833,7 +2833,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({1: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                1: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         # Make a request that returns a 400 error (missing required field)
         response = self.client.post(
