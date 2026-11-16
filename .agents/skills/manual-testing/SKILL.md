@@ -6,7 +6,7 @@ description: Run focused unit and integration tests or the full tox compatibilit
 
 # Manual testing
 
-Use the current configuration, not remembered environment counts. `tox.ini` is the source of truth for environments; `scripts/check_tox_workflow_matrix.py` verifies the GitHub Actions matrix.
+Use the current configuration, not remembered environment counts. `tox.ini` is the source of truth for environments; `scripts/check_tox_workflow_matrix.py` verifies the GitHub Actions matrix. For releases, prefer the compatibility workflow result for the exact release-PR head SHA; do not rerun the same full matrix manually when that exact SHA has already passed CI. The tag-triggered publish workflow runs the matrix again as the final publication gate.
 
 ## Quick: focused tests after a change
 
@@ -30,7 +30,7 @@ Select an interpreter configured in the current `tox.ini`. Create an isolated en
 
 ## Full: configured tox matrix
 
-Use before release and when compatibility coverage is part of the task.
+Use for deliberate full local verification, when CI is unavailable, or when reproducing a compatibility failure. The release procedure uses the exact-commit PR CI result as its pre-merge matrix gate.
 
 1. Ensure uv is available. If tox is not installed, provision it with the required plugin:
 

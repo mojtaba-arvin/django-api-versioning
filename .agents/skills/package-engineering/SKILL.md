@@ -10,6 +10,7 @@ Use for package behavior, public APIs, Django/DRF integration, dependencies, tes
 
 ## Workflow
 
+0. Start on a short-lived task branch based on the latest `origin/main`; never implement or commit directly on `main`. Follow [CONTRIBUTING.md](../../../CONTRIBUTING.md) for branch, commit, and pull-request conventions.
 1. Run `python scripts/agent.py context implementation`. Read `pyproject.toml` and `docs/reference/versioning-contract.md`; inspect only relevant modules, callers, and tests.
 2. Establish current behavior before editing. Trace public entry points and framework lifecycle; distinguish import-time registration from request-time behavior.
 3. Choose the smallest correct design. Preserve Django-native behavior, optional DRF integration, supported Python versions, and a lightweight runtime. Avoid unrelated refactors and new runtime dependencies. Before changing a public CLI flag, default, or write behavior, record the existing contract and add tests for default and explicit modes; make destructive writes opt-in unless the established contract explicitly requires otherwise.

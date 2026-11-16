@@ -962,7 +962,7 @@ For the current compatibility and CI verification status, see the [GitHub Action
 
 ## Contributing
 
-Contributions, bug reports, and documentation improvements are welcome.
+Contributions, bug reports, and documentation improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, commit, pull-request, and release workflow.
 
 ### Setup
 
@@ -1027,9 +1027,10 @@ docker run --rm dapi:py315
 ### Releasing
 
 Releases are maintainer operations. Prepare the version bump and changelog
-on a dedicated release branch, run the complete compatibility and artifact
-checks, and submit the changes through a reviewed pull request to the
-project's protected default branch. Do not push directly to `main`.
+on a temporary release branch created from the latest `main`, then submit
+them through a reviewed pull request. The pull request must pass the
+compatibility and artifact checks for its latest commit. Do not push directly
+to `main` or tag an unmerged release branch.
 
 After the reviewed release commit is present on the default branch, create
 and push the matching version tag:

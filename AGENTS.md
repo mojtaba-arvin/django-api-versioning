@@ -45,6 +45,12 @@ This is the single engineering contract for every coding agent. Keep it concise.
 4. Read relevant source modules, callers, tests, and references only. Prefer targeted search over dumping large directories or documents.
 5. Prefer existing Python, pytest, tox/tox-uv, pre-commit, package-validation scripts, and GitHub Actions over new tools or services.
 
+## Git lifecycle
+
+- `main` is the only long-lived branch; work on short-lived branches from `origin/main`.
+- Merge through PRs; never push to `main`, force-push, or tag unmerged commits. Delete closed-PR branches; automation writes only to topic branches.
+- See `CONTRIBUTING.md`; do not duplicate the human workflow here.
+
 ## Commit and automation hygiene
 
 - Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.

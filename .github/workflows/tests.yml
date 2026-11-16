@@ -1,11 +1,11 @@
 name: Python tests
 
 on:
-  # PR checks run when review starts, not on every commit in a long review branch.
-  # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
+  # Validate main after pushes and proposed changes through pull requests targeting main.
+  # Use workflow_dispatch for deliberate manual checkpoints.
   workflow_dispatch:
   push:
-    branches: [main, audit/comprehensive-package-review]
+    branches: [main]
     paths:
       - "django_api_versioning/**"
       - "tests/**"

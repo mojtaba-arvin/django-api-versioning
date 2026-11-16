@@ -2,7 +2,7 @@ name: Agent tooling
 
 on:
   push:
-    branches: [main, audit/comprehensive-package-review]
+    branches: [main]
     paths:
       - "AGENTS.md"
       - "CLAUDE.md"

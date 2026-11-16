@@ -1,6 +1,6 @@
 ---
 name: release
-description: Execute the repository release workflow for an explicitly authorized version. Never publish or tag unless the user authorizes that release.
+description: Prepare and publish an explicitly authorized package version through a reviewed main-branch pull request.
 ---
 
 # release

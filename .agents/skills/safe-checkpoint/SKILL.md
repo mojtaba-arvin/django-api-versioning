@@ -11,6 +11,10 @@ Create a reviewable Git checkpoint for a completed logical unit of work.
 
 Use after a coherent change is complete and its applicable validation has run. Do not commit every individual edit or an incomplete intermediate state. A logical change may span multiple related files. Batch related changes into one reviewable commit; run formatters once across the complete changed Python scope rather than creating per-file Black/isort/spacing commits.
 
+## Branch prerequisite
+
+Work on a short-lived task branch created from the latest `origin/main`. Do not checkpoint changes on `main`. If currently on `main`, verify the tree is clean before creating a task branch; never stash, reset, or discard ambiguous user work merely to switch branches. Follow [CONTRIBUTING.md](../../../CONTRIBUTING.md).
+
 ## Procedure
 
 ### 1. Establish ownership and scope
@@ -77,7 +81,7 @@ Expected author and committer: `Mojtaba Arvin <m.arvin@live.com>`.
 
 ### 8. Push only when authorized
 
-Push to the task's authorized branch. Never force-push, rewrite remote history, or push to `main`. Verify the remote branch SHA after pushing.
+Push only the current short-lived task branch. `.claude/push.sh` pushes the current branch and refuses `main`. Never force-push or rewrite remote history. Open/update a pull request targeting `main`; verify the remote branch SHA after pushing.
 
 If push fails, preserve the commit, inspect local and remote refs, do not expose credentials, and stop further edits until the failure is understood.
 
