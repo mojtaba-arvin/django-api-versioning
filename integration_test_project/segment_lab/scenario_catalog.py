@@ -12,9 +12,13 @@ Select a scenario manually with:  LAB_SCENARIO=<name> python manage.py ...
 import os
 
 LIFECYCLE = {
-    1: {"status": "retired"},
-    2: {"status": "deprecated", "sunset": "2099-06-01"},
-    3: {"status": "active", "sunset": "2020-01-01"},
+    1: {"status": "retired", "sunset": "2020-01-01"},
+    2: {
+        "status": "deprecated",
+        "deprecated_at": "2025-01-01T00:00:00+00:00",
+        "sunset": "2099-06-01",
+    },
+    3: {"status": "active"},
 }
 
 DRF_BASE = {

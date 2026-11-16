@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from string import Formatter
 from typing import Any, Callable
 
@@ -149,6 +150,40 @@ class APISettings:
                 raise VersioningError(
                     f"Lifecycle metadata for version {version} must be a dict."
                 )
+
+            status = meta.get("status")
+            if status not in {"active", "deprecated", "retired"}:
+                raise VersioningError(
+                    f"Lifecycle status for version {version} must be one of "
+                    "'active', 'deprecated', or 'retired'."
+                )
+
+            if status == "deprecated" and "deprecated_at" not in meta:
+                raise VersioningError(
+                    f"Deprecated API version {version} requires a "
+                    "'deprecated_at' ISO 8601 date or datetime."
+                )
+            if status == "retired" and "sunset" not in meta:
+                raise VersioningError(
+                    f"Retired API version {version} requires a 'sunset' date."
+                )
+
+            for field_name in ("deprecated_at", "sunset"):
+                if field_name not in meta:
+                    continue
+                value = meta[field_name]
+                if not isinstance(value, str):
+                    raise VersioningError(
+                        f"Lifecycle {field_name} for version {version} "
+                        "must be an ISO 8601 string."
+                    )
+                try:
+                    datetime.fromisoformat(value)
+                except ValueError as exc:
+                    raise VersioningError(
+                        f"Lifecycle {field_name} for version {version} "
+                        "must be a valid ISO 8601 date or datetime."
+                    ) from exc
 
     def _validate_channels(self) -> None:
         allowed = {"path", "header", "query"}

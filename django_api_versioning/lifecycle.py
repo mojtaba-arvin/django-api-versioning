@@ -42,7 +42,11 @@ class LifecycleMiddleware:
 
         API_VERSION_LIFECYCLE = {
             1: {"status": "retired", "sunset": "2024-01-01"},
-            2: {"status": "deprecated", "sunset": "2026-06-01"},
+            2: {
+                "status": "deprecated",
+                "deprecated_at": "2026-01-01T00:00:00+00:00",
+                "sunset": "2026-06-01",
+            },
             3: {"status": "active"},
         }
     """
@@ -60,6 +64,12 @@ class LifecycleMiddleware:
         if not meta:
             return self.get_response(request)
 
+        deprecated_at = meta.get("deprecated_at")
+        deprecation_date = (
+            _parse_lifecycle_date(deprecated_at, "deprecation")
+            if deprecated_at
+            else None
+        )
         sunset = meta.get("sunset")
         sunset_date = _parse_sunset(sunset) if sunset else None
         if sunset_date and _is_past(sunset_date):
@@ -69,7 +79,14 @@ class LifecycleMiddleware:
 
         response = self.get_response(request)
         if meta.get("status") == "deprecated":
-            response["Deprecation"] = "true"
+            if deprecation_date is not None:
+                response["Deprecation"] = _to_structured_field_date(deprecation_date)
+            else:
+                logger.warning(
+                    "Deprecated API version %s has no valid deprecated_at date; "
+                    "omitting the Deprecation header.",
+                    version,
+                )
             if sunset_date:
                 response["Sunset"] = _to_http_date(sunset_date)
         return response
@@ -147,14 +164,19 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
 
 def _parse_sunset(value: Any) -> datetime | None:
     """Parse a configured sunset value and normalize it to UTC."""
+    return _parse_lifecycle_date(value, "sunset")
+
+
+def _parse_lifecycle_date(value: Any, field_name: str) -> datetime | None:
+    """Parse an ISO 8601 lifecycle date and normalize it to UTC."""
     if not isinstance(value, str):
-        logger.warning("Invalid sunset date %r; ignoring.", value)
+        logger.warning("Invalid %s date %r; ignoring.", field_name, value)
         return None
 
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError:
-        logger.warning("Invalid sunset date %r; ignoring.", value)
+        logger.warning("Invalid %s date %r; ignoring.", field_name, value)
         return None
 
     if parsed.tzinfo is None:
@@ -168,3 +190,8 @@ def _is_past(date: datetime) -> bool:
 
 def _to_http_date(date: datetime) -> str:
     return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
+
+
+def _to_structured_field_date(date: datetime) -> str:
+    """Serialize an RFC 9745 Date as an RFC 9651 Structured Field Date."""
+    return f"@{int(date.timestamp())}"

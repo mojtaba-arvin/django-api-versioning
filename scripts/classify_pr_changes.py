@@ -22,6 +22,12 @@ PYTHON_DEPENDENCIES = {
     "requirements-dev.txt",
     "requirements-build.txt",
 }
+COMPATIBILITY_PATHS = {
+    "tox.ini",
+    ".github/workflows/compatibility.yml",
+    ".github/workflows/publish.yml",
+    "scripts/check_tox_workflow_matrix.py",
+}
 
 
 def classify_paths(paths: list[str]) -> dict[str, bool]:
@@ -30,7 +36,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
 
     is_python = any(
         path.startswith(PYTHON_PATHS)
-        or path in {
+        or path
+        in {
             "pytest.ini",
             ".github/workflows/tests.yml",
             "scripts/verify_distribution_contents.py",
@@ -41,14 +48,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         for path in normalized
     )
     is_compatibility = is_python or any(
-        path
-        in {
-            "tox.ini",
-            ".github/workflows/compatibility.yml",
-            ".github/workflows/publish.yml",
-            "scripts/check_tox_workflow_matrix.py",
-        }
-        for path in normalized
+        path in COMPATIBILITY_PATHS for path in normalized
     )
     is_package = any(
         path.startswith(("django_api_versioning/", "tests/", "LICENSE"))

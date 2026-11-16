@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/django-api-versioning.svg)](https://badge.fury.io/py/django-api-versioning)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![Build Status](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions)
-[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%2B%20%7C%206.x-blue)](https://www.djangoproject.com/)
+[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%20%7C%206.0%20%7C%206.1-blue)](https://www.djangoproject.com/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -145,6 +145,8 @@ Requirements:
 
 - Python >= 3.10
 - Django >= 4.2
+
+The automated compatibility matrix currently verifies Django 4.2, 5.2, 6.0, and 6.1 across the Python combinations listed in [`COMPATIBILITY_REPORT.md`](COMPATIBILITY_REPORT.md). Django 5.0 and 5.1 are not part of the verified matrix.
 
 Django REST Framework is optional. The package can be used with Django-native function-based and class-based views without installing DRF.
 
@@ -695,7 +697,11 @@ Configure lifecycle metadata in Django settings:
 
 API_VERSION_LIFECYCLE = {
     1: {"status": "retired", "sunset": "2025-01-01"},
-    2: {"status": "deprecated", "sunset": "2027-06-01"},
+    2: {
+        "status": "deprecated",
+        "deprecated_at": "2026-01-01T00:00:00+00:00",
+        "sunset": "2027-06-01",
+    },
     3: {"status": "active"},
 }
 
@@ -708,7 +714,7 @@ MIDDLEWARE = [
 For a version configured as deprecated with a future sunset date, the middleware adds:
 
 ```http
-Deprecation: true
+Deprecation: @1767225600
 Sunset: Tue, 01 Jun 2027 00:00:00 GMT
 ```
 
@@ -728,7 +734,7 @@ The middleware attempts to identify the request version in this order:
 
 This allows the middleware to identify versions from the package's static versioned URL paths even when `request.version` is not set.
 
-**Standards note:** The current implementation emits the legacy boolean value `Deprecation: true`. It does not implement the date-valued structured field defined by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745). The `Sunset` header follows the HTTP-date format specified by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594).
+**Standards note:** Configure `deprecated_at` as an ISO 8601 date or datetime for deprecated versions. The middleware emits the date-valued Structured Field required by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745), using `@` followed by the Unix timestamp. A deprecated lifecycle entry without a valid `deprecated_at` is rejected during settings validation. If the value is changed after initialization, the middleware logs a warning and omits `Deprecation` rather than emitting a non-standard value. `Sunset` follows the HTTP-date format specified by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594).
 
 ## Configuration reference
 

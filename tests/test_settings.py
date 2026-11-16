@@ -104,6 +104,32 @@ class TestLifecycleValidation:
         with pytest.raises(VersioningError):
             APISettings(API_VERSION_LIFECYCLE={1: "active"})
 
+    def test_deprecated_status_requires_deprecated_at(self):
+        with pytest.raises(VersioningError, match="requires a 'deprecated_at'"):
+            APISettings(API_VERSION_LIFECYCLE={1: {"status": "deprecated"}})
+
+    def test_retired_status_requires_sunset(self):
+        with pytest.raises(VersioningError, match="requires a 'sunset'"):
+            APISettings(API_VERSION_LIFECYCLE={1: {"status": "retired"}})
+
+    def test_unknown_lifecycle_status_raises(self):
+        with pytest.raises(VersioningError, match="Lifecycle status"):
+            APISettings(API_VERSION_LIFECYCLE={1: {"status": "disabled"}})
+
+    @pytest.mark.parametrize(
+        "field_name,value",
+        [
+            ("deprecated_at", "not-a-date"),
+            ("sunset", "not-a-date"),
+            ("deprecated_at", 123),
+            ("sunset", 123),
+        ],
+    )
+    def test_invalid_lifecycle_dates_raise(self, field_name, value):
+        metadata = {"status": "active", field_name: value}
+        with pytest.raises(VersioningError, match=field_name):
+            APISettings(API_VERSION_LIFECYCLE={1: metadata})
+
 
 class TestChannelsValidation:
     def test_unknown_channel_raises(self):
