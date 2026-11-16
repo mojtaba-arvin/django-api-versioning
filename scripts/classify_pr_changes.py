@@ -26,9 +26,7 @@ PYTHON_DEPENDENCIES = {
 
 def classify_paths(paths: list[str]) -> dict[str, bool]:
     """Return the workflows required for repository-relative changed paths."""
-    normalized = [
-        path.strip().removeprefix("./") for path in paths if path.strip()
-    ]
+    normalized = [path.strip().removeprefix("./") for path in paths if path.strip()]
 
     is_python = any(
         path.startswith(PYTHON_PATHS)
