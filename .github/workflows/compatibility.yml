@@ -28,6 +28,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  platform-smoke:
+    name: ${{ matrix.os }} / Python 3.12 / Django 5.2
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install tox and tox-uv
+        run: python -m pip install tox tox-uv
+
+      - name: Run unit and integration tests
+        run: tox run -e py312-django52
+
   validate-matrix:
     name: Verify tox and workflow environments
     runs-on: ubuntu-latest
