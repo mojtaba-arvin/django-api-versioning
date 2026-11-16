@@ -41,7 +41,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         for path in normalized
     )
     is_compatibility = is_python or any(
-        path in {
+        path
+        in {
             "tox.ini",
             ".github/workflows/compatibility.yml",
             ".github/workflows/publish.yml",
