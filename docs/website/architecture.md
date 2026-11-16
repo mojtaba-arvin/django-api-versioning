@@ -1,126 +1,22 @@
-# Documentation website architecture
+# Documentation website contract
 
-## Status
+This file defines the complete set of hard requirements for the website. Historical handoffs, audits, status reports, previous designs, and implementation descriptions do not create additional requirements.
 
-The static Astro application is implemented and has passed CI checks and production builds for root hosting and a GitHub Pages project-site base path. It is not yet deployed. Browser-level accessibility/performance review and external hosting smoke tests remain open.
+## Hard invariants
 
-Package source and tests are the behavioral source of truth. The generated route snapshot is a source-pinned evidence artifact for website presentation and provenance; it must never override code or test results and must never be hand-edited. `../../COMPATIBILITY_REPORT.md` records the package test matrix; browser-level accessibility, performance, and external-host acceptance gates are tracked in `netlify-agent-handoff.md`.
+- **Static delivery:** the build produces static files for generic static hosting. The deployed site has no runtime dependency on Netlify, serverless functions, a database, or Python.
+- **Base paths:** internal links, assets, and generated routes work both at the root and under a configured project-site base path.
+- **Recorded evidence:** diagrams and explorers visualize recorded repository data; they do not execute Python in the browser or invent results. Generated evidence remains traceable to its recorded source and must not be hand-edited.
+- **Article source:** `docs/articles/` is the sole editable article corpus. Any staged copies, collections, or indexes are derived build output, not independent sources.
+- **Accessibility:** target WCAG 2.2 AA. Use semantic markup, keyboard-operable controls, visible focus, and reduced-motion support. Core content must remain useful when JavaScript is unavailable.
+- **Technical accuracy:** package behavior and capability claims must be checked against current package source and executable tests, not inferred from website copy or historical records.
 
-## Source-of-truth map
+## Design and implementation freedom
 
-| Concern | Canonical location | Rule |
-| --- | --- | --- |
-| Python implementation | `django_api_versioning/` | The only runtime package distributed on PyPI |
-| Package unit tests | `tests/` | Keep package regression tests here |
-| Django integration scenarios | `integration_test_project/` | Reuse the existing project; extend it for executable evidence |
-| Long-form articles | `docs/articles/` | The 25 Markdown files are the only editable article corpus |
-| Reference contract | `docs/reference/versioning-contract.md` | Canonical package-specific behavior reference |
-| Website application | `website/` | Current Astro 7.4.12 application and its source assets. For the current 400-credit Netlify redesign, retain Astro and the committed dependency lockfile; freely redesign and reorganize its components, layouts, scripts, and styles without a framework migration or dependency upgrades |
-| Website architecture and handoff | `docs/website/` | Maintainer-authored project contract |
-| Generated website data | `website/src/data/generated/` | Derived from a pinned source commit; never hand-edited |
+Everything not listed under **Hard invariants** is intentionally open. This includes the framework, build tooling, visual direction, design system, page and route structure, homepage section count and order, information architecture, component tree, navigation, interactions, and content presentation.
 
-## Runtime and build boundaries
+Do not preserve or recreate the current website merely because it exists. Do not treat old briefs, screenshots, handoffs, audits, implementation trees, credit budgets, or previous section lists as design requirements.
 
-The website is a static presentation layer. Python/Django tooling runs during development or CI to inspect the package and produce evidence. Astro consumes the committed evidence and canonical Markdown content at build time.
+## Verification
 
-There is no runtime dependency on Netlify, serverless functions, a database, or a Python process. Netlify and GitHub Pages are deployment targets, not architectural dependencies.
-
-The current implementation uses Astro 7.4.12 with project root `website/` and output `website/dist/`. For the current credit-constrained Netlify redesign, retain this framework version and the committed dependency lockfile. The design may substantially change the visual system, page composition, components, layouts, interactions, and CSS, but must not spend the available budget on a framework migration or broad dependency upgrades. Its configured `PUBLIC_BASE_PATH` is applied to generated output and internal Markdown links; the static preview server also understands the base path and rejects paths that escape the output directory.
-
-## Current implementation structure (reference only)
-
-The following tree documents the current Astro implementation only. It is not a target architecture or a requirement to preserve these components, pages, scripts, or styling. The redesign may replace or reorganize them while retaining the product, content, evidence, accessibility, and deployment contracts.
-
-```text
-website/
-├── package.json
-├── package-lock.json
-├── astro.config.mjs
-├── public/
-│   ├── .nojekyll
-│   └── favicon.svg
-├── scripts/
-│   ├── sync-articles.mjs
-│   ├── sync-evidence.mjs
-│   ├── check-dist.mjs
-│   └── serve-dist.mjs
-├── src/
-│   ├── components/
-│   │   ├── CodeBlock.astro
-│   │   ├── Logo.astro
-│   │   ├── SegmentDiagram.astro
-│   │   ├── SegmentExplorer.astro
-│   │   └── SourceLink.astro
-│   ├── content.config.ts
-│   ├── data/generated/
-│   ├── layouts/Base.astro
-│   ├── lib/
-│   ├── pages/
-│   │   ├── index.astro
-│   │   ├── articles/
-│   │   ├── evidence/
-│   │   └── explorer/
-│   ├── scripts/site.ts
-│   └── styles/global.css
-└── tests/
-```
-
-Astro uses the explicit Unified Markdown processor because the site requires custom remark/rehype plugins for canonical article links and heading anchors. The static build uses the locked dependency tree; the build workflow audits dependencies and runs both root and project-base builds.
-
-## Articles
-
-The 25 Markdown articles live in `docs/articles/`. They remain the only editable source. The current Astro build stages them into a content collection and generates a search index; those staged files are derived output and must not be edited independently. A redesigned implementation may use a different content pipeline, but must not create a second independently editable article corpus.
-
-The article synchronizer uses stable file identity rather than assuming frontmatter slugs are unique. Metadata, links, technical examples, package claims, and cross-article consistency remain subject to the A–MM article audit.
-
-Do not fetch the moving `main` branch at build time. The site build uses the articles in the same checked-out repository revision as the website code.
-
-## Evidence lifecycle
-
-Evidence is generated by executable scenarios in the existing `integration_test_project/segment_lab/`. The generator reads the package version from `pyproject.toml`, uses one immutable Git commit, and records hashes for package source and evidence inputs.
-
-The committed snapshot includes 18 scenarios and the observed `check_versions` output. Its source commit, package version, source-file hashes, and evidence-input hashes are recorded in `website/src/data/generated/routes.json` under `source`. The `generated_at` value represents the last time the evidence payload changed, not the most recent generator invocation: identical regeneration preserves the existing timestamp so it cannot create timestamp-only commits. A changed source, environment, scenario, or recorded result refreshes it.
-
-The source-evidence workflow runs on package source, integration project, package metadata, and Python requirement changes. It regenerates evidence, runs generator check mode, commits changed output, and executes website tests, Astro checks, and both static builds in the same workflow. This is intentional: a GitHub Actions commit created with `GITHUB_TOKEN` does not trigger a second workflow run.
-
-The old Netlify Agent log is a design/reference input only. It was tied to package 0.3.5 and must not be used as current behavior evidence. Its missing `routes.json` and `tools/README.md` must not be reconstructed by guessing.
-
-## PyPI packaging
-
-The website, article corpus, and integration project are repository assets, not part of the runtime package. The package-discovery allowlist in `pyproject.toml` limits discovered Python packages to `django_api_versioning*`. `MANIFEST.in` explicitly prunes website, docs, and integration-project trees from the sdist.
-
-Every release check must inspect the actual wheel and sdist file lists. Packaging configuration is not a substitute for artifact verification.
-
-## Homepage content contract
-
-The homepage has ten sections in this order:
-
-1. What it is, with installation.
-2. The API-versioning problem.
-3. A real `@endpoint` example.
-4. Actual `check_versions` output.
-5. Segment Point and forward-inheritance diagram.
-6. Registration time versus request time.
-7. Verified capabilities.
-8. DRF boundaries.
-9. Known limitations.
-10. Quick Start and useful links.
-
-The Segment Point diagram and Segment Explorer communicate the behavior represented by recorded registry data; they do not execute Python. Preserve that distinction and label it clearly. Their visual design, layout, and interaction model may be redesigned freely, while retaining a useful static no-JavaScript fallback.
-
-## Interaction and accessibility contract
-
-The current implementation includes Segment Explorer, code copy, content search, dark/light theme, reading progress, heading anchors, version/provenance information, mobile navigation, and reduced-motion support. These are required user-facing capabilities; their implementation and presentation may change during the redesign.
-
-The target remains WCAG 2.2 AA. Keyboard operation, visible focus, semantic structure, reduced-motion preferences, stable layout, and useful no-JavaScript behavior must be verified in a browser before deployment. Build success alone does not establish accessibility or Core Web Vitals compliance.
-
-## Deployment contract
-
-The current Astro deployment configuration is:
-- Netlify Base directory: `website`
-- Build command: `npm run build`
-- Publish directory: `dist` (relative to `website`)
-- Functions directory: unset/blank; the website does not use Netlify Functions.
-- Netlify root-hosted builds must not set `PUBLIC_BASE_PATH`; it is reserved for GitHub Pages project-site builds.
-
-For GitHub Pages project sites, the current implementation builds with the appropriate `PUBLIC_BASE_PATH` and publishes only `website/dist/`. The current 400-credit redesign must retain Astro 7.4.12 and the committed dependency lockfile. A future, separately approved framework or build-tool migration must update these commands and paths before implementation. Both hosting targets must serve the same static application; no host-specific runtime code is permitted.
+Verify static output at the root and at a non-root project base path. Test changed user-facing flows in a real browser, including keyboard use and accessibility. A successful build alone does not establish browser-level accessibility or deployment behavior.
