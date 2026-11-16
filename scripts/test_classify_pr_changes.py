@@ -90,6 +90,10 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
                 self.assertTrue(result[expected])
                 self.assertTrue(result["agent"])
 
+    def test_classifier_self_test_runs_agent_validation(self):
+        result = classify_paths(["scripts/test_classify_pr_changes.py"])
+        self.assertTrue(result["agent"])
+
     def test_github_settings_script_runs_agent_validation(self):
         result = classify_paths(["scripts/configure_github_repository.sh"])
         self.assertTrue(result["agent"])

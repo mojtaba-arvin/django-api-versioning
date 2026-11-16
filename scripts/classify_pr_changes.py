@@ -51,7 +51,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         for path in normalized
     )
     is_package = any(
-        path.startswith(("django_api_versioning/", "tests/"))
+        path.startswith(("django_api_versioning/", "tests/", "LICENSE"))
         or path
         in {
             "pyproject.toml",
@@ -62,7 +62,6 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "LICENSE.txt",
             "requirements.txt",
             "requirements-dev.txt",
-            "scripts/test_classify_pr_changes.py",
             "requirements-build.txt",
             "pytest.ini",
             ".github/workflows/package-artifacts.yml",
@@ -89,6 +88,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "scripts/configure_github_repository.sh",
             "docs/agent-engineering.md",
             "requirements-dev.txt",
+            "scripts/test_classify_pr_changes.py",
         }
         or path.startswith(AGENT_PATHS)
         or path.startswith(".github/")
