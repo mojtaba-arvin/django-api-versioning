@@ -15,7 +15,8 @@ on:
       - ".github/workflows/agent-tooling.yml"
       - "docs/agent-engineering.md"
       - "scripts/agent.py"
-      - "scripts/agent_tests/**"  workflow_dispatch:
+      - "scripts/agent_tests/**"
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -16,7 +16,8 @@ on:
       - "pytest.ini"
       - "scripts/check_tox_workflow_matrix.py"
       - ".github/workflows/compatibility.yml"
-      - ".github/workflows/publish.yml"  workflow_dispatch:
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
   workflow_call:
 
 permissions:
