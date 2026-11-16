@@ -89,6 +89,8 @@ The historical 418-commit audit recorded:
 
 The subsequent corrections were appropriate: remove duplicate trackers, batch related edits and formatting, preserve evidence timestamps when payloads are unchanged, use bot identity for automated commits, and test evidence-generation idempotency.
 
+A post-merge review of the PR path classifier found that it did not fully mirror the workflows' own push path filters. For example, `requirements-dev.txt` triggered package-artifact verification on `main` but was classified as not requiring that check on a PR. The same drift affected several workflow-definition and package-support paths. The classifier now maps those inputs to their matching checks, and regression tests cover the workflow files and support inputs.
+
 ### Post-release dependency automation failure
 
 The 2026-11-16 Dependabot security-update run for `filelock` failed before creating an update because `requirements-dev.txt` contained adjacent `djangorestframework` and `tomli` requirements on one line. This was a malformed requirements entry, not a `filelock` vulnerability or a package-runtime failure. The requirements were separated, and the Agent tooling workflow now parses/resolves the maintainer requirements file on relevant pull requests and pushes. The path classifier has a regression test ensuring changes to this file invoke that validation.
