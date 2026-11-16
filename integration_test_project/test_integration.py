@@ -2572,6 +2572,8 @@ class ForwardVersioningComprehensiveTestCase(TestCase):
 class LifecycleMiddlewareIntegrationTestCase(TestCase):
     """Test LifecycleMiddleware with real Django HTTP requests and static URL paths."""
 
+    DEPRECATED_AT = "2025-01-01T00:00:00+00:00"
+
     def setUp(self):
         """Set up test client and lifecycle configuration."""
         self.client = Client()
@@ -2594,12 +2596,12 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         response = self.client.get("/api/v2/users/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         self.assertIn("Sunset", response)
         # Verify response is unchanged
         data = response.json()
@@ -2640,12 +2642,12 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_d_deprecated_without_sunset(self):
         """Scenario D: Deprecated without Sunset date."""
-        self._set_lifecycle({2: {"status": "deprecated"}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}})
 
         response = self.client.get("/api/v2/users/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         self.assertNotIn("Sunset", response)
 
     def test_scenario_e_retired_with_future_sunset(self):
@@ -2665,7 +2667,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_f_unversioned_routes(self):
         """Scenario F: Unversioned routes don't get lifecycle headers."""
-        self._set_lifecycle({1: {"status": "deprecated"}, 2: {"status": "deprecated"}})
+        self._set_lifecycle({1: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}, 2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}})
 
         response_health = self.client.get("/health/")
         response_status = self.client.get("/status/")
@@ -2683,19 +2685,19 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         # Request with integer parameter should still detect v2 from URL path
         response = self.client.get("/api/v2/users/42/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         data = response.json()
         self.assertEqual(data["id"], 42)
         self.assertEqual(data["version"], 2)
 
     def test_scenario_h_unknown_versions(self):
         """Scenario H: Unknown and invalid versions don't cause errors."""
-        self._set_lifecycle({1: {"status": "deprecated"}, 2: {"status": "deprecated"}})
+        self._set_lifecycle({1: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}, 2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}})
 
         # v99 is not configured
         response = self.client.get("/api/v99/users/")
@@ -2708,7 +2710,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         # A path that contains "api/v2" but not at the start shouldn't match
         # (This verifies the anchored regex works correctly)
@@ -2716,7 +2718,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         # that legitimate v2 URLs work
         response = self.client.get("/api/v2/posts/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
 
     def test_scenario_j_query_string_doesnt_affect_version(self):
         """Scenario J: Query strings don't affect version detection."""
@@ -2724,12 +2726,12 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         response = self.client.get("/api/v2/users/?page=1&limit=10")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         # Query params don't affect the endpoint
         data = response.json()
         self.assertEqual(data["version"], 2)
@@ -2743,7 +2745,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         # Use APIClient for DRF views
         client = APIClient()
@@ -2751,7 +2753,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
         # DRF response headers should be preserved
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         self.assertIn("Sunset", response)
         data = response.json()
         self.assertEqual(data["version"], 2)
@@ -2762,7 +2764,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({1: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({1: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         # Make a request that returns a 400 error (missing required field)
         response = self.client.post(
@@ -2774,7 +2776,7 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         # Should get 400 from the endpoint
         self.assertEqual(response.status_code, 400)
         # But lifecycle headers should still be present
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         self.assertIn("Sunset", response)
 
     def test_version_extraction_multiple_versions_correctly_identified(self):
@@ -2786,9 +2788,9 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         self._set_lifecycle(
             {
                 1: {"status": "retired", "sunset": future},
-                2: {"status": "deprecated", "sunset": future},
+                2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future},
                 3: {"status": "active"},
-                4: {"status": "deprecated", "sunset": future},
+                4: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future},
             }
         )
 
@@ -2806,8 +2808,8 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         # Check correct lifecycle headers
         self.assertNotIn("Deprecation", v3_response)
-        self.assertEqual(v2_response["Deprecation"], "true")
-        self.assertEqual(v4_response["Deprecation"], "true")
+        self.assertEqual(v2_response["Deprecation"], "@1735689600")
+        self.assertEqual(v4_response["Deprecation"], "@1735689600")
 
     def test_version_lifecycle_with_namespaced_endpoints(self):
         """Test lifecycle headers work with namespaced (app_name) endpoints."""
@@ -2815,13 +2817,13 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "sunset": future}})
+        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
 
         # Test a namespaced endpoint with app_name="admin"
         response = self.client.get("/api/v2/admin/reports/summary/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Deprecation"], "true")
+        self.assertEqual(response["Deprecation"], "@1735689600")
         data = response.json()
         self.assertEqual(data["version"], 2)
 
