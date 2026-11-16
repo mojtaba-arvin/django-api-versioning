@@ -58,8 +58,6 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "MANIFEST.in",
             "README.md",
             "CHANGELOG.md",
-            "LICENSE",
-            "LICENSE.txt",
             "requirements.txt",
             "requirements-dev.txt",
             "requirements-build.txt",
