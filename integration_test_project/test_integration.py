@@ -2596,7 +2596,15 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         future = (date.today() + timedelta(days=365)).isoformat()
 
-        self._set_lifecycle({2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future}})
+        self._set_lifecycle(
+            {
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                }
+            }
+        )
 
         response = self.client.get("/api/v2/users/")
 
@@ -2667,7 +2675,18 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
     def test_scenario_f_unversioned_routes(self):
         """Scenario F: Unversioned routes don't get lifecycle headers."""
-        self._set_lifecycle({1: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}, 2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT}})
+        self._set_lifecycle(
+            {
+                1: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                },
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                },
+            }
+        )
 
         response_health = self.client.get("/health/")
         response_status = self.client.get("/status/")
@@ -2788,9 +2807,17 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
         self._set_lifecycle(
             {
                 1: {"status": "retired", "sunset": future},
-                2: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future},
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                },
                 3: {"status": "active"},
-                4: {"status": "deprecated", "deprecated_at": self.DEPRECATED_AT, "sunset": future},
+                4: {
+                    "status": "deprecated",
+                    "deprecated_at": self.DEPRECATED_AT,
+                    "sunset": future,
+                },
             }
         )
 
