@@ -80,9 +80,7 @@ class LifecycleMiddleware:
         response = self.get_response(request)
         if meta.get("status") == "deprecated":
             if deprecation_date is not None:
-                response["Deprecation"] = _to_structured_field_date(
-                    deprecation_date
-                )
+                response["Deprecation"] = _to_structured_field_date(deprecation_date)
             else:
                 logger.warning(
                     "Deprecated API version %s has no valid deprecated_at date; "
