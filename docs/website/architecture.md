@@ -15,7 +15,7 @@ Package source and tests are the behavioral source of truth. The generated route
 | Django integration scenarios | `integration_test_project/` | Reuse the existing project; extend it for executable evidence |
 | Long-form articles | `docs/articles/` | The 25 Markdown files are the only editable article corpus |
 | Reference contract | `docs/reference/versioning-contract.md` | Canonical package-specific behavior reference |
-| Website application | `website/` | Current frontend implementation and its source assets; the redesign may replace or reorganize its framework and internal structure |
+| Website application | `website/` | Current Astro 7.4.12 application and its source assets. For the current 400-credit Netlify redesign, retain Astro and the committed dependency lockfile; freely redesign and reorganize its components, layouts, scripts, and styles without a framework migration or dependency upgrades |
 | Website architecture and handoff | `docs/website/` | Maintainer-authored project contract |
 | Generated website data | `website/src/data/generated/` | Derived from a pinned source commit; never hand-edited |
 
@@ -25,7 +25,7 @@ The website is a static presentation layer. Python/Django tooling runs during de
 
 There is no runtime dependency on Netlify, serverless functions, a database, or a Python process. Netlify and GitHub Pages are deployment targets, not architectural dependencies.
 
-The current implementation uses Astro with project root `website/` and output `website/dist/`. Its configured `PUBLIC_BASE_PATH` is applied to generated output and internal Markdown links; the current static preview server also understands the base path and rejects paths that escape the output directory. These are implementation details, not requirements to retain Astro or the current preview-server implementation. A replacement must provide equivalent static-host and base-path behavior.
+The current implementation uses Astro 7.4.12 with project root `website/` and output `website/dist/`. For the current credit-constrained Netlify redesign, retain this framework version and the committed dependency lockfile. The design may substantially change the visual system, page composition, components, layouts, interactions, and CSS, but must not spend the available budget on a framework migration or broad dependency upgrades. Its configured `PUBLIC_BASE_PATH` is applied to generated output and internal Markdown links; the static preview server also understands the base path and rejects paths that escape the output directory.
 
 ## Current implementation structure (reference only)
 
@@ -120,5 +120,7 @@ The current Astro deployment configuration is:
 - Netlify Base directory: `website`
 - Build command: `npm run build`
 - Publish directory: `dist` (relative to `website`)
+- Functions directory: unset/blank; the website does not use Netlify Functions.
+- Netlify root-hosted builds must not set `PUBLIC_BASE_PATH`; it is reserved for GitHub Pages project-site builds.
 
 For GitHub Pages project sites, the current implementation builds with the appropriate `PUBLIC_BASE_PATH` and publishes only `website/dist/`. If the redesign changes the frontend framework or build tooling, update these commands and paths to the new implementation. Both hosting targets must serve the same static application; no host-specific runtime code is permitted.
