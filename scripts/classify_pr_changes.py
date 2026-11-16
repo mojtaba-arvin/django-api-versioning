@@ -30,8 +30,14 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
 
     is_python = any(
         path.startswith(PYTHON_PATHS)
-        or path == "pytest.ini"
+        or path in {
+            "pytest.ini",
+            ".github/workflows/tests.yml",
+            "scripts/verify_distribution_contents.py",
+            "scripts/smoke_installed_wheel.py",
+        }
         or path in PYTHON_DEPENDENCIES
+        or (path.startswith("requirements") and path.endswith(".txt"))
         for path in normalized
     )
     is_compatibility = is_python or any(
@@ -39,28 +45,34 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         in {
             "tox.ini",
             ".github/workflows/compatibility.yml",
+            ".github/workflows/publish.yml",
             "scripts/check_tox_workflow_matrix.py",
         }
         for path in normalized
     )
     is_package = any(
-        path.startswith("django_api_versioning/")
+        path.startswith(("django_api_versioning/", "tests/", "LICENSE"))
         or path
         in {
             "pyproject.toml",
             "MANIFEST.in",
             "README.md",
             "CHANGELOG.md",
-            "LICENSE",
-            "LICENSE.txt",
             "requirements.txt",
+            "requirements-dev.txt",
             "requirements-build.txt",
+            "pytest.ini",
+            ".github/workflows/package-artifacts.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
         }
         for path in normalized
     )
-    is_website = any(path.startswith(WEBSITE_PATHS) for path in normalized)
+    is_website = any(
+        path.startswith(WEBSITE_PATHS)
+        or path == ".github/workflows/website-data-preflight.yml"
+        for path in normalized
+    )
     is_agent = any(
         path
         in {
@@ -74,6 +86,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "scripts/configure_github_repository.sh",
             "docs/agent-engineering.md",
             "requirements-dev.txt",
+            "scripts/test_classify_pr_changes.py",
         }
         or path.startswith(AGENT_PATHS)
         or path.startswith(".github/")

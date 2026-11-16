@@ -43,11 +43,48 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         result = classify_paths([".github/dependabot.yml"])
         self.assertTrue(result["agent"])
 
-    def test_developer_requirements_change_runs_agent_and_dependency_checks(self):
+    def test_requirements_dev_runs_all_applicable_checks(self):
         result = classify_paths(["requirements-dev.txt"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
+        self.assertTrue(result["package"])
+        self.assertTrue(result["agent"])
         self.assertTrue(result["dependency"])
+
+    def test_all_requirements_files_run_python_and_compatibility_checks(self):
+        result = classify_paths(["requirements-extra.txt"])
+        self.assertTrue(result["python"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["dependency"])
+
+    def test_package_support_files_run_python_and_artifact_checks(self):
+        result = classify_paths(
+            [
+                "tests/test_example.py",
+                "pytest.ini",
+                "scripts/verify_distribution_contents.py",
+                "scripts/smoke_installed_wheel.py",
+            ]
+        )
+        self.assertTrue(result["python"])
+        self.assertTrue(result["package"])
+
+    def test_reusable_workflow_files_trigger_their_matching_checks(self):
+        cases = {
+            ".github/workflows/tests.yml": "python",
+            ".github/workflows/compatibility.yml": "compatibility",
+            ".github/workflows/publish.yml": "compatibility",
+            ".github/workflows/package-artifacts.yml": "package",
+            ".github/workflows/website-data-preflight.yml": "website",
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                result = classify_paths([path])
+                self.assertTrue(result[expected])
+                self.assertTrue(result["agent"])
+
+    def test_classifier_self_test_runs_agent_validation(self):
+        result = classify_paths(["scripts/test_classify_pr_changes.py"])
         self.assertTrue(result["agent"])
 
     def test_github_settings_script_runs_agent_validation(self):
