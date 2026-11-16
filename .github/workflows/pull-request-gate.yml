@@ -1,0 +1,156 @@
+name: Pull request gate
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pull-request-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Classify changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      python: ${{ steps.classify.outputs.python }}
+      compatibility: ${{ steps.classify.outputs.compatibility }}
+      package: ${{ steps.classify.outputs.package }}
+      website: ${{ steps.classify.outputs.website }}
+      agent: ${{ steps.classify.outputs.agent }}
+      dependency: ${{ steps.classify.outputs.dependency }}
+    steps:
+      - name: Fetch changed paths from the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_PROMPT_DISABLED: "1"
+        run: |
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files?per_page=100" \
+            --jq '.[].filename' > "$RUNNER_TEMP/changed-files.txt"
+      - name: Check out the pull request head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: Classify checks required by the changed files
+        id: classify
+        run: python scripts/classify_pr_changes.py "$RUNNER_TEMP/changed-files.txt" "$GITHUB_OUTPUT"
+
+  unit-tests:
+    name: Python unit and integration tests
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    uses: ./.github/workflows/tests.yml
+    permissions:
+      contents: read
+
+  compatibility:
+    name: Python/Django compatibility matrix
+    needs: changes
+    if: needs.changes.outputs.compatibility == 'true'
+    uses: ./.github/workflows/compatibility.yml
+    permissions:
+      contents: read
+
+  package-artifacts:
+    name: Build and verify Python distributions
+    needs: changes
+    if: needs.changes.outputs.package == 'true'
+    uses: ./.github/workflows/package-artifacts.yml
+    permissions:
+      contents: read
+
+  website:
+    name: Website build and static verification
+    needs: changes
+    if: needs.changes.outputs.website == 'true'
+    uses: ./.github/workflows/website-data-preflight.yml
+    permissions:
+      contents: read
+
+  agent-tooling:
+    name: Agent and workflow policy validation
+    needs: changes
+    if: needs.changes.outputs.agent == 'true'
+    uses: ./.github/workflows/agent-tooling.yml
+    permissions:
+      contents: read
+
+  dependency-review:
+    name: Dependency review
+    needs: changes
+    if: needs.changes.outputs.dependency == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr-only: true
+
+  gate:
+    name: PR gate
+    if: always()
+    needs:
+      - changes
+      - unit-tests
+      - compatibility
+      - package-artifacts
+      - website
+      - agent-tooling
+      - dependency-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every applicable check to succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          needs = json.loads(os.environ["NEEDS_JSON"])
+          changes = needs["changes"]
+          if changes["result"] != "success":
+              raise SystemExit("Path classification did not succeed.")
+
+          expected = {
+              "unit-tests": "python",
+              "compatibility": "compatibility",
+              "package-artifacts": "package",
+              "website": "website",
+              "agent-tooling": "agent",
+              "dependency-review": "dependency",
+          }
+          failures = []
+          for job, output in expected.items():
+              should_run = changes["outputs"].get(output) == "true"
+              result = needs[job]["result"]
+              if should_run and result != "success":
+                  failures.append(f"{job}: expected success, got {result}")
+              elif not should_run and result not in {"success", "skipped"}:
+                  failures.append(f"{job}: unexpected result {result}")
+
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              raise SystemExit(1)
+
+          print("All checks required by this pull request passed.")
+          PY

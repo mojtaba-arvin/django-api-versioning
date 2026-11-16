@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: source-evidence-${{ github.ref }}
@@ -13,10 +13,16 @@ concurrency:
 jobs:
   generate-and-verify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 25
     steps:
       - name: Refuse direct changes to main
         run: |
+          case "$GITHUB_REF" in
+            refs/heads/*) ;;
+            *) echo "Dispatch this helper on a branch, not a tag or other ref." >&2; exit 1 ;;
+          esac
           if [ "$GITHUB_REF_NAME" = "main" ]; then
             echo "Dispatch this helper on a short-lived topic branch, never main." >&2
             exit 1

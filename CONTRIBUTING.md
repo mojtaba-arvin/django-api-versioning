@@ -62,13 +62,13 @@ Stage explicit paths, inspect the staged diff, and verify the commit identity. N
 
 Push the task branch and open a pull request targeting `main`. Describe the problem, intended result, design/behavior and compatibility impact, exact tests/checks run, and any documentation or changelog implications.
 
-All changes to `main` go through a PR. Do not push directly to `main`, force-push shared history, or merge before the relevant checks for the latest PR head have completed successfully.
+All changes to `main` go through a PR. Do not push directly to `main`, force-push shared history, or merge before the required `PR gate` has completed successfully for the latest PR head SHA. The gate always runs and invokes only path-relevant test, compatibility, packaging, website, agent-tooling, and dependency-review workflows. A skipped individual workflow is not itself a pass—the gate must report success.
 
 This is a single-maintainer repository; requiring an approval from the same maintainer is not useful. Keep the PR gate and relevant CI checks, but don't impose a self-approval requirement.
 
 ## Merge and branch cleanup
 
-Use **squash merge by default**: one PR becomes one coherent commit on `main`, while the PR retains its discussion and detailed commit history. Rebase merge is an acceptable exception when preserving a carefully curated sequence is materially useful. Avoid merge commits that add no useful history.
+Use **squash merge only**: one PR becomes one coherent commit on `main`, while the PR retains its discussion and detailed commit history. Merge commits and rebase merges are disabled in repository settings and rejected by the `main` ruleset. Keep the PR title in Conventional Commit format because it becomes the subject of the squash commit.
 
 Delete a task branch after its PR is merged or closed. Enable GitHub's **Automatically delete head branches** setting. Do not keep long-lived audit, staging, integration, or release branches. A release branch exists only while its release PR is reviewed.
 
@@ -80,7 +80,7 @@ A package release is separate from a website deployment. A Netlify deployment do
 
 A release requires explicit authorization for a specific version. Prepare the version bump, dated `CHANGELOG.md` entry, and approved documentation changes on one short-lived `release/vX.Y.Z` branch. Open a PR to `main`; do not tag or publish from that branch.
 
-After the PR is merged, verify that its exact merge commit is on `origin/main` and contains the requested `pyproject.toml` version. Create an annotated `vX.Y.Z` tag on that exact commit and push only that tag. The tag workflow is the final compatibility, build, distribution-validation, and PyPI publication gate. Verify the version-specific PyPI endpoint before announcing success.
+After the PR is merged, verify that its exact merge commit is on `origin/main` and contains the requested `pyproject.toml` version. Create an annotated `vX.Y.Z` tag on that exact commit and push only that tag. The `Protect release tags` ruleset restricts creation, updates, and deletion of `v*` tags to repository administrators. The tag workflow verifies that the tag is annotated, matches the package version, and points to a commit reachable from `main`; it is the final compatibility, build, distribution-validation, and PyPI publication gate. Verify the version-specific PyPI endpoint before announcing success.
 
 ### Version policy
 
@@ -90,11 +90,11 @@ Changelog entries describe user-visible changes. Do not add transient CI logs, t
 
 ## Repository settings
 
-The `main` branch should have an **active** ruleset that requires a PR, prevents force-push and branch deletion, and requires linear history. Do not require a self-approval from the sole maintainer.
+The `main` branch must have an **active** ruleset that requires a PR, prevents force-push and branch deletion, requires linear history, dismisses stale approvals, and requires review-thread resolution. This is a single-maintainer repository, so do not require approval from the PR author.
 
-Enable automatic deletion of merged head branches. Squash merge should be the normal merge method.
+The only required status context is `PR gate`. It runs on every PR to `main` without workflow-level path filters and reports success only after every applicable reusable check passes. Do not add path-filtered workflows as separate required status checks. Squash is the only permitted merge method. Enable automatic deletion of merged head branches.
 
-Do not make each existing path-filtered workflow an individually required status check. A workflow skipped at the workflow level by path/branch filters can leave a required check pending and block a PR. Before making CI mandatory, introduce one always-running PR gate that reports success only after the relevant path-specific jobs pass.
+Protect `v*` release tags with an active tag ruleset; only repository administrators may create, update, or delete them. Keep Actions default token permissions read-only; grant write permissions only to the specific job that needs them. All third-party Actions must be pinned to full commit SHAs.
 
 ## Scope-specific verification
 
@@ -105,3 +105,15 @@ Follow `AGENTS.md` and the relevant canonical skill in `.agents/skills/`. The pa
 - Packaging: build wheel and sdist and verify their contents.
 - Website: run checks from `website/`; a website-only deployment does not change the Python package release.
 - Generated Segment Lab evidence and website lockfiles must be generated on the active topic branch, never committed directly to `main`.
+
+
+## Security and dependency policy
+
+- Report vulnerabilities privately through GitHub's **Report a vulnerability** flow. Do not publish exploit details in an issue or pull request. See [SECURITY.md](SECURITY.md).
+- Keep Dependabot version updates and security updates enabled for GitHub Actions, Python dependencies, and website npm dependencies. Review grouped updates; do not blindly merge major-version changes.
+- Dependency review blocks new high- and critical-severity advisories. Investigate transitive upgrades and license changes; document temporary exceptions in the PR.
+- CodeQL analyzes the Python package and TypeScript/JavaScript website on pull requests, `main`, and weekly. Fix newly introduced actionable findings before merging.
+- Enable secret scanning and push protection. Never place real credentials in examples, fixtures, commits, or workflow output; use clearly fake values.
+- GitHub Actions receive read-only token permissions by default. Grant narrow write permissions only where required. PyPI publication is the only job allowed `id-token: write`.
+
+Repository settings are managed by the idempotent maintainer script `scripts/configure_github_repository.sh`. Run it with authenticated `gh` and repository-admin permissions after the PR gate is available. It configures GitHub rulesets and security settings; it does not change package code or publish releases.

@@ -21,8 +21,8 @@ Use only when the user explicitly authorizes a concrete package version, such as
 2. Create one short-lived `release/vX.Y.Z` branch from the latest `origin/main`.
 3. Prepare the version bump, dated changelog entry, and approved documentation updates as one coherent change.
 4. Push the release branch with `.claude/push.sh` and open a PR targeting `main`.
-5. Require all workflows relevant to the changed paths to pass for the exact PR head SHA. Skipped, stale, failed, or missing checks are not passes.
-6. After the PR is merged, create an annotated tag on the PR's exact merge commit on `main`, then push only that tag.
+5. Require the always-running `PR gate` to pass for the exact latest PR head SHA. The gate invokes every path-relevant reusable workflow; a skipped child job is acceptable only when the path classifier marks that scope unchanged. Independently inspect CodeQL results for source changes and fix newly introduced actionable findings before merge.
+6. After the PR is merged, create an annotated tag on the PR's exact merge commit on `main`, then push only that tag. The active `Protect release tags` ruleset permits the administrator role to create/update/delete `v*` tags; never bypass or weaken it.
 7. Verify the GitHub release and version-specific PyPI endpoint before reporting publication success.
 
 ## Never

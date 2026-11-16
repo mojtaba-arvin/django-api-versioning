@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/mojtaba-arvin/django-api-versioning/security/advisories/new
+    about: Do not disclose vulnerabilities in public issues or discussions.
+  - name: Read the documentation
+    url: https://github.com/mojtaba-arvin/django-api-versioning#readme
+    about: Review installation, configuration, and versioning behavior before opening an issue.

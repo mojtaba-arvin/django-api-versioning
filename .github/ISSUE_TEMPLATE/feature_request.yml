@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose an improvement to the package or its documentation.
+title: "feature: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Describe the concrete developer problem and current workaround.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the API or behavior you would expect.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and trade-offs
+    validations:
+      required: false
+  - type: checkboxes
+    id: compatibility
+    attributes:
+      label: Compatibility considerations
+      options:
+        - label: This may affect an existing public API or behavior.
+        - label: This may require a migration or deprecation path.
