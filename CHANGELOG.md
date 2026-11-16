@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Emit the RFC 9745 date-valued `Deprecation` Structured Field from `API_VERSION_LIFECYCLE[*].deprecated_at`; omit the header with a warning when no valid deprecation date is configured instead of sending the legacy boolean value.
+
 ## [0.3.8] - 2026-11-16
 
 ### Fixed

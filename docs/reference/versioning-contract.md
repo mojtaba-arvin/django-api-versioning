@@ -524,7 +524,27 @@ In particular, do not assume that DRF's `URLPathVersioning` automatically works 
 
 The package's route registration and DRF's request-version identification are separate mechanisms.
 
-## 12. Scope and known limitations
+## 12. Version lifecycle headers
+
+`LifecycleMiddleware` reads `API_VERSION_LIFECYCLE` at request time and can enforce a configured sunset by returning `410 Gone`.
+
+A deprecated version must include a `deprecated_at` ISO 8601 date or datetime to emit the `Deprecation` response header:
+
+```python
+API_VERSION_LIFECYCLE = {
+    1: {
+        "status": "deprecated",
+        "deprecated_at": "2026-01-01T00:00:00+00:00",
+        "sunset": "2027-06-30",
+    },
+}
+```
+
+The middleware serializes `deprecated_at` as an RFC 9745 Structured Field Date (`@` followed by the Unix timestamp). A missing or invalid value is logged and the `Deprecation` header is omitted; the middleware never emits the legacy non-standard boolean value. `Sunset` is serialized as an HTTP-date under RFC 8594. A sunset date in the past triggers `410 Gone`.
+
+This is a version-wide policy. The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
+
+## 13. Scope and known limitations
 
 `django-api-versioning` focuses on version-aware endpoint registration and routing.
 
@@ -543,7 +563,7 @@ It does not:
 
 Your application remains responsible for API contract design, serializer selection, authentication, permissions, business logic, and request-level compatibility tests.
 
-## 13. Primary source files
+## 14. Primary source files
 
 The contract above is based on the following implementation and project files:
 

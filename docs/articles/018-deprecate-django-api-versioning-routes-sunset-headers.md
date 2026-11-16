@@ -21,7 +21,7 @@ When an API has multiple versions, retiring an old version requires more than re
 
 The [`django-api-versioning` package](https://pypi.org/project/django-api-versioning/) provides version-level lifecycle handling through `LifecycleMiddleware` and the `API_VERSION_LIFECYCLE` setting. It can add deprecation and sunset response headers and return `410 Gone` after a configured sunset date.
 
-However, its built-in lifecycle behavior is intentionally limited. It emits `Deprecation: true` rather than the date-valued Structured Field required by RFC 9745. It does not provide a separate deprecation-date setting, automatically generate migration links, or resolve resource-specific successor URLs.
+The built-in middleware supports the date-valued `Deprecation` Structured Field required by RFC 9745 when `deprecated_at` is configured. It does not automatically generate migration links or resolve resource-specific successor URLs; those remain application-level responsibilities.
 
 The built-in setting uses `API_VERSION_LIFECYCLE`; for example, a version can be marked deprecated with a `sunset` date string:
 
@@ -31,6 +31,7 @@ The built-in setting uses `API_VERSION_LIFECYCLE`; for example, a version can be
 API_VERSION_LIFECYCLE = {
     1: {
         "status": "deprecated",
+        "deprecated_at": "2026-01-01T00:00:00+00:00",
         "sunset": "2027-06-30",
     },
 }
@@ -43,7 +44,7 @@ MIDDLEWARE = [
 
 The later `API_DEPRECATION` setting in this article is different: it is application-defined for the custom middleware, and its `sunset_date` value is a timezone-aware `datetime`. It is not a setting consumed by the package's built-in `LifecycleMiddleware`.
 
-This article builds on that existing functionality and demonstrates application-level deprecation policies for cases that require date-valued deprecation metadata, migration links, resource-specific successor links, and additional retirement controls.
+This article builds on the package's version-wide lifecycle behavior and demonstrates application-level policies for migration links, resource-specific successor links, and additional retirement controls.
 
 This article shows how to deprecate routes registered with `@endpoint`, including:
 
@@ -762,7 +763,7 @@ Also remember that `Deprecation` and `Sunset` are response headers. If browser-b
 | Version-wide deprecation policy | Yes | Yes | Requires applying it to each view |
 | Per-endpoint deprecation | No, version-wide configuration | Requires additional configuration | Yes |
 | `Deprecation` and `Sunset` headers | Yes | Yes | Yes |
-| RFC 9745 date-valued `Deprecation` | No | Yes, with the implementation shown | Yes, with the implementation shown |
+| RFC 9745 date-valued `Deprecation` | Yes, when `deprecated_at` is configured | Yes | Yes |
 | Migration documentation link | No | Yes | Yes |
 | Resource-specific successor link | No | Requires additional routing logic | Yes |
 | `410 Gone` enforcement | Yes, after the configured sunset date | Yes, with the removal flag | Not included |
