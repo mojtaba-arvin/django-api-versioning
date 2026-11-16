@@ -35,7 +35,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         for path in normalized
     )
     is_compatibility = is_python or any(
-        path in {
+        path
+        in {
             "tox.ini",
             ".github/workflows/compatibility.yml",
             "scripts/check_tox_workflow_matrix.py",
@@ -44,7 +45,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
     )
     is_package = any(
         path.startswith("django_api_versioning/")
-        or path in {
+        or path
+        in {
             "pyproject.toml",
             "MANIFEST.in",
             "README.md",
@@ -60,7 +62,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
     )
     is_website = any(path.startswith(WEBSITE_PATHS) for path in normalized)
     is_agent = any(
-        path in {
+        path
+        in {
             "AGENTS.md",
             "CLAUDE.md",
             "CONTRIBUTING.md",
