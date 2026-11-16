@@ -119,3 +119,6 @@ jobs:
 
       - name: Run compatibility environment
         run: tox run -e ${{ matrix.env }}
+      - name: Show formatter diff for the classifier when lint fails
+        if: always() && matrix.env == 'lint'
+        run: .tox/lint/bin/black --diff scripts/classify_pr_changes.py || true
