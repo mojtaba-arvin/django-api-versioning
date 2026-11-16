@@ -17,7 +17,7 @@ This is the single engineering contract for every coding agent. Keep it concise.
 - Verify behavior against current source and executable tests, not article wording, old logs, generated data, or an agent's prior answer.
 - Distinguish route registration/import-time behavior from per-request version selection. Do not claim version channels participate in endpoint dispatch unless source and tests prove it.
 - Package-generated URL routing does not automatically populate DRF `request.version`. DRF ViewSets/routers are separate routing mechanisms; a ViewSet needs an action map through `as_view()`.
-- Website diagrams and explorers present recorded data; they are not live Python execution. Preserve static-host, project-base-path, accessibility, and no-JavaScript contracts.
+- For website tasks, read `docs/website/architecture.md`; it is the sole owner of website-specific invariants.
 - Do not add model SDKs, agent frameworks, MCP servers, telemetry exporters, or LLM evaluation services to package runtime dependencies for repository automation.
 
 ## Trust and safety

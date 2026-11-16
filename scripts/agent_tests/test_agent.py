@@ -31,6 +31,13 @@ class AgentToolingTests(unittest.TestCase):
         self.assertIn("tox.ini", profile["read"])
         self.assertNotIn("package source", profile["read"])
 
+    def test_website_profile_uses_the_canonical_contract(self) -> None:
+        profile = agent.context_profile("website")
+        self.assertIn("docs/website/architecture.md", profile["read"])
+        self.assertFalse(
+            any("netlify-agent-handoff.md" in item for item in profile["read"])
+        )
+
     def test_unknown_profile_is_rejected(self) -> None:
         with self.assertRaises(KeyError):
             agent.context_profile("everything")

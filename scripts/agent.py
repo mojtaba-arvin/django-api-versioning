@@ -85,7 +85,6 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
             "docs/website/architecture.md",
             "affected website source and tests",
             "relevant website workflows",
-            "docs/website/netlify-agent-handoff.md only for deployment/handoff",
         ],
         "avoid": [
             "package internals unless verifying a specific evidence claim",
