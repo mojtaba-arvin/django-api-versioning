@@ -73,6 +73,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "scripts/classify_pr_changes.py",
             "scripts/configure_github_repository.sh",
             "docs/agent-engineering.md",
+            "requirements-dev.txt",
         }
         or path.startswith(AGENT_PATHS)
         or path.startswith(".github/")

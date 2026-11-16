@@ -25,14 +25,14 @@ The remaining gaps are mostly explicit product boundaries and delivery gates, no
 
 | Period | Goal and work | Assessment |
 | --- | --- | --- |
-| 2025-02-21 to 2025-02-22 — v0.1.0–v0.1.4 | Establish the package, decorator-based URL registration, registry, settings, tests, class-based view support, and first PyPI releases. | **Achieved for the original narrow product.** The initial package targeted an older Python/Django range and had a much smaller test surface. |
+| 2025-02-21 to 2025-02-22 — v0.1.0 baseline to v0.1.4 | Establish the package, decorator-based URL registration, registry, settings, tests, class-based view support, and first PyPI releases. | **Achieved for the original narrow product.** The initial package targeted an older Python/Django range and had a much smaller test surface. |
 | 2026-10-28 — v0.2.0 | Add opt-in forward endpoint inheritance, preserve decorated class-based views as classes, add the PEP 561 marker, and modernize the supported runtime baseline. | **Achieved, with a breaking compatibility change.** Python 3.10+ and a newer Django baseline replaced the original legacy support. |
 | 2026-10-31 — v0.3.0 | Replace the earlier forward/backward flag model with segment-based registration: `version=N` for a continuous segment and `versions=[...]` for explicit versions. | **Achieved.** This is the defining API model in the current package. The migration from the old flags is a breaking change and is documented. |
 | 2026-11-08 — initial comprehensive audit | Inspect package architecture, settings, decorators, URL reversal, tests, dependencies, and documentation; establish an integration-test environment. | **Mostly achieved after correcting early audit mistakes.** The first static review misdiagnosed a regex issue in `api_reverse`; the attempted `re.escape()` change was reverted after executable testing showed that `re.sub()` with a callable replacement does not interpret the returned value as a replacement template. |
 | 2026-11-08 to 2026-11-11 — v0.3.1–v0.3.4 | Expand Django integration coverage, correct package classifiers, detect versions from static URL paths in lifecycle middleware, and fix stale settings reads under `override_settings`. | **Achieved in the released implementation.** Later releases expanded the test evidence and clarified the support matrix. |
 | 2026-11-12 to 2026-11-14 — v0.3.5–v0.3.7 | Improve README and canonical contract accuracy, refine DRF boundaries, fix logical endpoint matrix reporting and class-based callback labels, and strengthen `api_reverse` converter behavior. | **Achieved for the documented scope.** The package's public behavior and its limitations became more explicit. |
 | 2026-11-14 to 2026-11-15 — v0.3.8 | Harden lifecycle/configuration validation, make endpoint migration syntax-aware and preview-first, verify installed distributions, build source-pinned evidence, create the documentation site, and isolate PyPI publication. | **Achieved for the v0.3.8 release.** The release matrix and publication workflow completed successfully. |
-| 2026-11-16 — repository governance | Make `main` the only long-lived branch; require PR-based squash integration and an always-running PR Gate; pin Actions; add CodeQL, dependency review, policy tests, and release-tag protection. | **Implemented and configured.** GitHub reports active `Protect main` and `Protect release tags` rulesets. The branch list contains only `main`. The current publish workflow also verifies annotated release tags and their ancestry on `main`; this safeguard was added after v0.3.8 and is not retroactively claimed for that release. |
+| 2026-11-16 — repository governance | Make `main` the only long-lived branch; require PR-based squash integration and an always-running PR Gate; pin Actions; add CodeQL, dependency review, policy tests, and release-tag protection. | **Implemented and configured.** GitHub reports active `Protect main` and `Protect release tags` rulesets. The branch list contains only `main`. The current publish workflow also verifies annotated release tags and their ancestry on `main`; this safeguard was added after v0.3.8 and is not retroactively claimed for that release. The main ruleset requires a pull request and the PR Gate but does not require a separate human approval (the configured approval count is zero). |
 
 ## Product goals: achieved and remaining
 
@@ -49,7 +49,7 @@ The remaining gaps are mostly explicit product boundaries and delivery gates, no
 9. **Package release integrity.** The wheel and sdist are built, checked, inspected for distribution boundaries, and the installed wheel is smoke-tested outside the source checkout.
 10. **v0.3.8 publication.** GitHub Actions published the verified artifacts through Trusted Publishing, and PyPI exposes provenance for both release files.
 11. **Technical documentation and evidence.** The repository has 25 canonical Markdown articles and an 18-scenario Segment Lab whose generated data is pinned to a source commit and hashed.
-12. **Engineering governance.** `main` is the only long-lived branch; the active main ruleset requires PR Gate, pull-request integration, linear history, and squash-only merges. The active release-tag ruleset protects `v*` tags against creation, update, and deletion, with an administrator-role bypass.
+12. **Engineering governance.** `main` is the only long-lived branch; the active main ruleset requires PR Gate, pull-request integration, linear history, and squash-only merges. The active release-tag ruleset restricts creation, update, and deletion of `v*` tags to the administrator role.
 
 ### Partial or not achieved
 
@@ -88,6 +88,10 @@ The historical 418-commit audit recorded:
 - automated evidence/lockfile commits attributed to the maintainer rather than `github-actions[bot]`.
 
 The subsequent corrections were appropriate: remove duplicate trackers, batch related edits and formatting, preserve evidence timestamps when payloads are unchanged, use bot identity for automated commits, and test evidence-generation idempotency.
+
+### Post-release dependency automation failure
+
+The 2026-11-16 Dependabot security-update run for `filelock` failed before creating an update because `requirements-dev.txt` contained adjacent `djangorestframework` and `tomli` requirements on one line. This was a malformed requirements entry, not a `filelock` vulnerability or a package-runtime failure. The requirements were separated, and the Agent tooling workflow now parses/resolves the maintainer requirements file on relevant pull requests and pushes. The path classifier has a regression test ensuring changes to this file invoke that validation.
 
 ### Historical credential-handling incident
 
