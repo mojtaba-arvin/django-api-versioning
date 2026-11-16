@@ -19,7 +19,7 @@ Stop if the working tree is not clean or if local `main` cannot be fast-forwarde
 Read the old version, set the explicitly authorized version, reject an existing tag, and create the release branch from the latest main:
 
 ```bash
-OLD_VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+OLD_VERSION=$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' pyproject.toml | head -n 1)
 NEW_VERSION="X.Y.Z"
 git show-ref --verify --quiet "refs/tags/v$NEW_VERSION" && {
   echo "Local tag already exists"; exit 1;
