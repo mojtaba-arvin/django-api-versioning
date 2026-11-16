@@ -23,7 +23,7 @@ The [`django-api-versioning` package](https://pypi.org/project/django-api-versio
 
 The built-in middleware supports the date-valued `Deprecation` Structured Field required by RFC 9745 when `deprecated_at` is configured. It does not automatically generate migration links or resolve resource-specific successor URLs; those remain application-level responsibilities.
 
-The built-in setting uses `API_VERSION_LIFECYCLE`; for example, a version can be marked deprecated with a `sunset` date string:
+The built-in setting uses `API_VERSION_LIFECYCLE`; a deprecated version needs a `deprecated_at` date or datetime, and can optionally include a `sunset` date:
 
 ```python
 # settings.py

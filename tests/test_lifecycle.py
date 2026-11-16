@@ -114,7 +114,11 @@ def test_invalid_sunset_date_is_ignored(monkeypatch, caplog):
     monkeypatch.setitem(
         settings.API_VERSION_LIFECYCLE,
         2,
-        {"status": "deprecated", "deprecated_at": DEPRECATED_AT, "sunset": "not-a-date"},
+        {
+            "status": "deprecated",
+            "deprecated_at": DEPRECATED_AT,
+            "sunset": "not-a-date",
+        },
     )
     middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
     response = middleware(_request("2"))
@@ -128,7 +132,11 @@ def test_non_string_sunset_is_ignored(monkeypatch, caplog):
     monkeypatch.setitem(
         settings.API_VERSION_LIFECYCLE,
         2,
-        {"status": "deprecated", "deprecated_at": DEPRECATED_AT, "sunset": 123},
+        {
+            "status": "deprecated",
+            "deprecated_at": DEPRECATED_AT,
+            "sunset": 123,
+        },
     )
     middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
     response = middleware(_request("2"))
@@ -371,7 +379,13 @@ class TestOverrideSettingsCompatibility:
         from django.test import override_settings
 
         with override_settings(
-            API_VERSION_LIFECYCLE={2: {"status": "deprecated", "deprecated_at": DEPRECATED_AT, "sunset": FUTURE}}
+            API_VERSION_LIFECYCLE={
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": DEPRECATED_AT,
+                    "sunset": FUTURE,
+                }
+            }
         ):
             middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
             response = middleware(_request("2"))
@@ -484,7 +498,11 @@ class TestOverrideSettingsCompatibility:
         with override_settings(
             API_VERSION_LIFECYCLE={
                 1: {"status": "retired", "sunset": PAST},
-                2: {"status": "deprecated", "deprecated_at": DEPRECATED_AT, "sunset": FUTURE},
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": DEPRECATED_AT,
+                    "sunset": FUTURE,
+                },
                 3: {"status": "active"},
             }
         ):
@@ -527,7 +545,14 @@ class TestOverrideSettingsCompatibility:
         """override_settings with deprecated status but no sunset."""
         from django.test import override_settings
 
-        with override_settings(API_VERSION_LIFECYCLE={2: {"status": "deprecated", "deprecated_at": DEPRECATED_AT}}):
+        with override_settings(
+            API_VERSION_LIFECYCLE={
+                2: {
+                    "status": "deprecated",
+                    "deprecated_at": DEPRECATED_AT,
+                }
+            }
+        ):
             middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
             response = middleware(_request("2"))
 
