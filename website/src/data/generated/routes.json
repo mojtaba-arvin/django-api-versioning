@@ -5,7 +5,7 @@
     "implementation": "CPython",
     "python": "3.15.2"
   },
-  "generated_at": "2026-11-15T22:47:05+00:00",
+  "generated_at": "2026-11-16T10:15:29+00:00",
   "generator": "integration_test_project/segment_lab/generate_routes.py",
   "lab_settings_file": {
     "code": "\"\"\"\nScenario settings layered on the repository's existing integration project.\n\nEvery scenario runs in a fresh interpreter because the package registry and\nAPI settings are process-global and initialized during imports.\n\"\"\"\n\nfrom pathlib import Path\n\nfrom project import settings as project_settings\nfrom segment_lab.scenario_catalog import active_scenario\n\n# Reuse the actual integration project's settings and installed applications.\nfor _name in dir(project_settings):\n    if _name.isupper():\n        globals()[_name] = getattr(project_settings, _name)\n\nBASE_DIR = Path(project_settings.BASE_DIR)\nSECRET_KEY = \"segment-lab-local-test-only\"\nDEBUG = True\nALLOWED_HOSTS = [\"*\", \"testserver\", \"localhost\", \"127.0.0.1\"]\n\nINSTALLED_APPS = list(project_settings.INSTALLED_APPS)\nif \"rest_framework\" not in INSTALLED_APPS:\n    INSTALLED_APPS.append(\"rest_framework\")\n\n# Each scenario controls whether lifecycle middleware is active.\nMIDDLEWARE = []\nROOT_URLCONF = \"segment_lab.urls\"\nDATABASES = {\n    \"default\": {\n        \"ENGINE\": \"django.db.backends.sqlite3\",\n        \"NAME\": \":memory:\",\n    }\n}\n\nAPI_BASE_PATH = \"api/v{version}/\"\nAPI_MIN_VERSION = 1\nAPI_MAX_VERSION = 3\n\nREST_FRAMEWORK = {\n    \"DEFAULT_AUTHENTICATION_CLASSES\": [],\n    \"DEFAULT_PERMISSION_CLASSES\": [],\n    \"UNAUTHENTICATED_USER\": None,\n}\n\nLAB_VIEWS_MODULE = \"segment_lab.scenarios.main\"\nSCENARIO = active_scenario()\nglobals().update(SCENARIO[\"settings\"])\n",
@@ -5549,15 +5549,16 @@
           "API_MIN_VERSION": 1,
           "API_VERSION_LIFECYCLE": {
             "1": {
-              "status": "retired"
+              "status": "retired",
+              "sunset": "2020-01-01"
             },
             "2": {
+              "deprecated_at": "2025-01-01T00:00:00+00:00",
               "status": "deprecated",
               "sunset": "2099-06-01"
             },
             "3": {
-              "status": "active",
-              "sunset": "2020-01-01"
+              "status": "active"
             }
           },
           "LAB_VIEWS_MODULE": "segment_lab.scenarios.lifecycle",
@@ -5635,11 +5636,9 @@
       "registry_size_after_setup": 0,
       "requests": [
         {
-          "body": {
-            "handler": "list_users_v1"
-          },
+          "body": "API version 1 has been retired as of 2020-01-01.",
           "headers": {
-            "Content-Type": "application/json"
+            "Content-Type": "text/html; charset=utf-8"
           },
           "method": "GET",
           "package_calls": {
@@ -5650,7 +5649,10 @@
             "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
-            "django_api_versioning.lifecycle._get_api_setting": 2
+            "django_api_versioning.lifecycle._get_api_setting": 2,
+            "django_api_versioning.lifecycle._is_past": 1,
+            "django_api_versioning.lifecycle._parse_lifecycle_date": 1,
+            "django_api_versioning.lifecycle._parse_sunset": 1
           },
           "path": "/api/v1/users/",
           "resolve": {
@@ -5663,7 +5665,7 @@
             "url_name": "user-list",
             "view_class": null
           },
-          "status": 200
+          "status": 410
         },
         {
           "body": {
@@ -5671,7 +5673,7 @@
           },
           "headers": {
             "Content-Type": "application/json",
-            "Deprecation": "true",
+            "Deprecation": "@1735689600",
             "Sunset": "Mon, 01 Jun 2099 00:00:00 GMT"
           },
           "method": "GET",
@@ -5682,8 +5684,10 @@
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2,
             "django_api_versioning.lifecycle._is_past": 1,
+            "django_api_versioning.lifecycle._parse_lifecycle_date": 2,
             "django_api_versioning.lifecycle._parse_sunset": 1,
-            "django_api_versioning.lifecycle._to_http_date": 1
+            "django_api_versioning.lifecycle._to_http_date": 1,
+            "django_api_versioning.lifecycle._to_structured_field_date": 1
           },
           "path": "/api/v2/users/",
           "resolve": {
@@ -5702,7 +5706,7 @@
           "body": "<html: Django debug 404 page>",
           "headers": {
             "Content-Type": "text/html; charset=utf-8",
-            "Deprecation": "true",
+            "Deprecation": "@1735689600",
             "Sunset": "Mon, 01 Jun 2099 00:00:00 GMT"
           },
           "method": "GET",
@@ -5713,8 +5717,10 @@
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
             "django_api_versioning.lifecycle._get_api_setting": 2,
             "django_api_versioning.lifecycle._is_past": 1,
+            "django_api_versioning.lifecycle._parse_lifecycle_date": 2,
             "django_api_versioning.lifecycle._parse_sunset": 1,
-            "django_api_versioning.lifecycle._to_http_date": 1
+            "django_api_versioning.lifecycle._to_http_date": 1,
+            "django_api_versioning.lifecycle._to_structured_field_date": 1
           },
           "path": "/api/v2/not-registered/",
           "resolve": {
@@ -5724,9 +5730,11 @@
           "status": 404
         },
         {
-          "body": "API version 3 has been retired as of 2020-01-01.",
+          "body": {
+            "handler": "list_users_v3"
+          },
           "headers": {
-            "Content-Type": "text/html; charset=utf-8"
+            "Content-Type": "application/json"
           },
           "method": "GET",
           "package_calls": {
@@ -5734,9 +5742,7 @@
             "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
-            "django_api_versioning.lifecycle._get_api_setting": 2,
-            "django_api_versioning.lifecycle._is_past": 1,
-            "django_api_versioning.lifecycle._parse_sunset": 1
+            "django_api_versioning.lifecycle._get_api_setting": 2
           },
           "path": "/api/v3/users/",
           "resolve": {
@@ -5749,10 +5755,10 @@
             "url_name": "user-list",
             "view_class": null
           },
-          "status": 410
+          "status": 200
         },
         {
-          "body": "API version 3 has been retired as of 2020-01-01.",
+          "body": "<html: Django debug 404 page>",
           "headers": {
             "Content-Type": "text/html; charset=utf-8"
           },
@@ -5762,16 +5768,14 @@
             "django_api_versioning.lifecycle._coerce_version": 1,
             "django_api_versioning.lifecycle._extract_version": 1,
             "django_api_versioning.lifecycle._extract_version_from_path": 1,
-            "django_api_versioning.lifecycle._get_api_setting": 2,
-            "django_api_versioning.lifecycle._is_past": 1,
-            "django_api_versioning.lifecycle._parse_sunset": 1
+            "django_api_versioning.lifecycle._get_api_setting": 2
           },
           "path": "/api/v3/not-registered/",
           "resolve": {
             "error": "Resolver404",
             "patterns_tried": 3
           },
-          "status": 410
+          "status": 404
         }
       ],
       "reverse": [],
@@ -5779,15 +5783,16 @@
       "settings_overrides": {
         "API_VERSION_LIFECYCLE": {
           "1": {
-            "status": "retired"
+            "status": "retired",
+            "sunset": "2020-01-01"
           },
           "2": {
+            "deprecated_at": "2025-01-01T00:00:00+00:00",
             "status": "deprecated",
             "sunset": "2099-06-01"
           },
           "3": {
-            "status": "active",
-            "sunset": "2020-01-01"
+            "status": "active"
           }
         },
         "MIDDLEWARE": [
@@ -7822,7 +7827,7 @@
   "schema_version": 1,
   "source": {
     "archive_sha256": null,
-    "commit": "f36db3048d2eff1b9473896ef82304e86e3baf71",
+    "commit": "fb6d9149aa620726059bf40f7b74630473ef1293",
     "evidence_files": [
       {
         "file": "integration_test_project/api/__init__.py",
@@ -7866,7 +7871,7 @@
       },
       {
         "file": "integration_test_project/segment_lab/scenario_catalog.py",
-        "sha256": "3724693ffe2f74b7e438465b44b3a2bb71815f3c2ad666db218577aca53359ac"
+        "sha256": "5e7cd86ab93cd509f842fa6061e567a1336d03c6b73eb36bc2363de751422140"
       },
       {
         "file": "integration_test_project/segment_lab/scenarios/__init__.py",
@@ -7938,7 +7943,7 @@
       },
       {
         "file": "integration_test_project/test_integration.py",
-        "sha256": "096d97019aaded78a7c02915062c0474c9f4b79244154cdbd99355f9b0df8e8a"
+        "sha256": "ec8a1174a3879baf40b26a7a041cb32f5ebb5a3b8298c05a10168f75335b8910"
       },
       {
         "file": "integration_test_project/test_segment_lab_generator.py",
@@ -7946,7 +7951,7 @@
       },
       {
         "file": "pyproject.toml",
-        "sha256": "541188f1fa78528bc0b8e74a6e62029da2d394eef93a262e81078e3167cdf30d"
+        "sha256": "61dc0968525c4f08b2ced0ddd3e7193f4eb1c08e615079d830d32fc261afe600"
       },
       {
         "file": "pytest.ini",
@@ -8002,7 +8007,7 @@
       },
       {
         "file": "tests/test_lifecycle.py",
-        "sha256": "7da486038c72dbab8554b7bc64f7d70bc11f31a0e715ecc6429cdbf3f11caa4b"
+        "sha256": "f2806f7521597d8a76c2075e02d7442b929a2e57cc87ca6918d129ccb03604b0"
       },
       {
         "file": "tests/test_management_commands.py",
@@ -8022,7 +8027,7 @@
       },
       {
         "file": "tests/test_settings.py",
-        "sha256": "88e76769f38073171cb9c474fcf38d85cb7ce3710f1f8afe6393fafa8fb3fecd"
+        "sha256": "018d2f20ee2b7f8a80b93397c7076de16ab2725f61ec1cb0e241f3b5ae42d670"
       },
       {
         "file": "tests/test_testing_utils.py",
@@ -8052,7 +8057,7 @@
       },
       {
         "file": "django_api_versioning/lifecycle.py",
-        "sha256": "c05c15bb5e9fb7765897e59ddc91878bb7a103e99e96e356479be2043da8ebbd"
+        "sha256": "15363acf4b9c76e6fa282a482e933148c1e34442b82052c69e64cad08ac42b07"
       },
       {
         "file": "django_api_versioning/management/__init__.py",
@@ -8084,7 +8089,7 @@
       },
       {
         "file": "django_api_versioning/settings.py",
-        "sha256": "7a6274d513836432118461d5665ccf7ce5c9d2336104f9f01874af87b93bd9b4"
+        "sha256": "42545d5b5dc8c2c751882b2a1d039b84f0fc2c24bc044acc03337cb95539407d"
       },
       {
         "file": "django_api_versioning/testing.py",
@@ -8096,18 +8101,18 @@
       }
     ],
     "install_method": "repository-checkout",
-    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/f36db3048d2eff1b9473896ef82304e86e3baf71",
+    "install_url": "https://github.com/mojtaba-arvin/django-api-versioning/tree/fb6d9149aa620726059bf40f7b74630473ef1293",
     "package": "django-api-versioning",
     "repository": "https://github.com/mojtaba-arvin/django-api-versioning",
     "source_mode": "repository-checkout",
-    "version": "0.3.8"
+    "version": "1.0.0"
   },
   "source_refs": {
     "lines": {
       "api_settings_singleton": {
         "code": "api_settings = APISettings.from_django_settings()",
         "file": "django_api_versioning/settings.py",
-        "line": 172
+        "line": 207
       },
       "as_view_call": {
         "code": "view = view.as_view()",
@@ -8132,7 +8137,7 @@
       "deprecated_header": {
         "code": "if meta.get(\"status\") == \"deprecated\":",
         "file": "django_api_versioning/lifecycle.py",
-        "line": 71
+        "line": 81
       },
       "explicit_loop": {
         "code": "for ver in versions:",
@@ -8192,38 +8197,38 @@
       "sunset_410": {
         "code": "if sunset_date and _is_past(sunset_date):",
         "file": "django_api_versioning/lifecycle.py",
-        "line": 65
+        "line": 75
       }
     },
     "non_routing_settings_usage": {
       "API_EFFECTIVE_VERSION_RESOLVER": [
         {
           "file": "django_api_versioning/settings.py",
-          "line": 165
+          "line": 200
         }
       ],
       "API_VERSIONING_CHANNELS": [
         {
           "file": "django_api_versioning/settings.py",
-          "line": 157
+          "line": 192
         },
         {
           "file": "django_api_versioning/settings.py",
-          "line": 155
+          "line": 190
         }
       ],
       "channels_module_imported_by": []
     },
     "symbols": {
       "APISettings.from_django_settings": {
-        "end": 81,
+        "end": 82,
         "file": "django_api_versioning/settings.py",
-        "start": 60
+        "start": 61
       },
       "LifecycleMiddleware.__call__": {
-        "end": 75,
+        "end": 92,
         "file": "django_api_versioning/lifecycle.py",
-        "start": 53
+        "start": 57
       },
       "UrlRegistry._create_pattern": {
         "end": 166,
@@ -8256,14 +8261,14 @@
         "start": 20
       },
       "_extract_version_from_path": {
-        "end": 145,
-        "file": "django_api_versioning/lifecycle.py",
-        "start": 106
-      },
-      "_parse_sunset": {
         "end": 162,
         "file": "django_api_versioning/lifecycle.py",
-        "start": 148
+        "start": 123
+      },
+      "_parse_sunset": {
+        "end": 167,
+        "file": "django_api_versioning/lifecycle.py",
+        "start": 165
       },
       "_validate_version": {
         "end": 141,
