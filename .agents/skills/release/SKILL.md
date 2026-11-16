@@ -1,35 +1,36 @@
 ---
 name: release
-description: Execute the repository release workflow for an explicitly authorized version. Never publish or tag unless the user authorizes that release.
+description: Prepare and publish an explicitly authorized package version through a reviewed main-branch pull request.
 ---
 
-# Skill: /release — cut a version
+# Release
 
-Triggered by "release X.Y.Z". Do exactly this. No improvisation.
+Use only when the user explicitly authorizes a concrete package version, such as `release 0.4.0`. This skill does not grant permission to choose a version, merge an unrelated PR, move an existing tag, or publish an unspecified release.
 
 ## Preconditions
-- Working tree clean (`git status`).
-- On `audit/comprehensive-package-review`.
-- User has authorized a PyPI release for THIS version.
-- `docs/articles/` exists; enumerate the current article files at execution time rather than assuming a fixed count.
 
-## Environment
-- Git's configured credential helper is authenticated for the repository;
-  verify with `git ls-remote origin HEAD` and `git push --dry-run` before release.
-- Check whether `gh` is installed with `command -v gh`; do not assume an OS or architecture.
-- Each Bash call runs in a fresh shell. Re-establish required PATH entries in every call.
+- The requested version is explicit and follows the policy in [CONTRIBUTING.md](../../../CONTRIBUTING.md).
+- `main` is the default branch and synchronized with `origin/main`.
+- The working tree is clean before creating a release branch.
+- The target version tag does not already exist locally or remotely.
+- The release is authorized; changes still reach `main` through a pull request.
 
-## Authorized release procedure
+## Workflow
 
-Only after the user explicitly authorizes a specific version, read and follow [the complete release procedure](references/release-procedure.md). It contains the ordered commands, stop conditions, article handling, verification, and reporting steps. Do not load it for general release-readiness questions or when release authorization is absent.
+1. Read [the complete release procedure](references/release-procedure.md).
+2. Create one short-lived `release/vX.Y.Z` branch from the latest `origin/main`.
+3. Prepare the version bump, dated changelog entry, and approved documentation updates as one coherent change.
+4. Push the release branch with `.claude/push.sh` and open a PR targeting `main`.
+5. Require all workflows relevant to the changed paths to pass for the exact PR head SHA. Skipped, stale, failed, or missing checks are not passes.
+6. After the PR is merged, create an annotated tag on the PR's exact merge commit on `main`, then push only that tag.
+7. Verify the GitHub release and version-specific PyPI endpoint before reporting publication success.
 
 ## Never
-- Never tag before branch push verifies.
-- Never claim PyPI published without the curl check.
-- Never fabricate test counts.
-- Never rely on `PATH` exports from a previous Bash call.
-- Never print `DAV_GITHUB_TOKEN`.
-- Never edit article content without explicit user instruction.
-- Never replace bare `$OLD_VERSION` mentions that are not adjacent
-  to `django-api-versioning`.
-- Never skip Step 5a — the technical-impact check is mandatory.
+
+- Never use a permanent audit, development, or release branch; `main` is the only long-lived branch.
+- Never push release-preparation commits directly to `main`.
+- Never tag an unmerged branch or a commit that is not an ancestor of `origin/main`.
+- Never bypass a failed compatibility, build, or publication gate.
+- Never claim PyPI publication without verifying the version-specific PyPI JSON endpoint.
+- Never expose credentials, tokens, private keys, or secret-bearing command output.
+- Never edit article content without explicit user approval; release authorization alone does not authorize prose changes.

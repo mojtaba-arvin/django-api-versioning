@@ -45,6 +45,14 @@ This is the single engineering contract for every coding agent. Keep it concise.
 4. Read relevant source modules, callers, tests, and references only. Prefer targeted search over dumping large directories or documents.
 5. Prefer existing Python, pytest, tox/tox-uv, pre-commit, package-validation scripts, and GitHub Actions over new tools or services.
 
+## Git and branch lifecycle
+
+- `main` is the only long-lived development and release branch. Start each task from the latest `origin/main` and use a short-lived branch: `feat/`, `fix/`, `docs/`, `test/`, `refactor/`, `chore/`, or `release/vX.Y.Z`.
+- Do not create or depend on permanent `develop`, audit, staging, integration, or release branches. Dependabot branches are temporary automation branches.
+- All changes reach `main` through a pull request. Never push directly to `main`, force-push shared history, or tag an unmerged task/release branch.
+- Delete a task branch after its pull request is merged or closed. Keep generated automation commits on the active topic branch; never let an automation workflow write directly to `main`.
+- The complete human workflow is documented in `CONTRIBUTING.md`. Do not duplicate its procedure in agent instructions.
+
 ## Commit and automation hygiene
 
 - Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.

@@ -5,7 +5,7 @@ on:
   # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
   workflow_dispatch:
   push:
-    branches: [main, audit/comprehensive-package-review]
+    branches: [main]
     paths:
       - "django_api_versioning/**"
       - "tests/**"

@@ -1,38 +1,40 @@
 #!/usr/bin/env bash
-# .claude/push.sh — deterministic push for the configured repository branch.
-# Usage: .claude/push.sh          push branch
-#        .claude/push.sh --tag    push branch + latest tag
-# Exit:  0 verified, 2 push failed, 3 SHA mismatch
+# Push the current short-lived task branch to origin and verify its remote SHA.
+# Usage: .claude/push.sh
+# Exit: 0 verified, 2 push failed, 3 SHA mismatch, 4 unsafe branch/checkout
 
 set -euo pipefail
 
-BRANCH="audit/comprehensive-package-review"
 REMOTE="origin"
+BRANCH="$(git branch --show-current)"
 
-echo "==> Pushing $BRANCH"
-if ! git push "$REMOTE" "$BRANCH"; then
-  echo "FAIL: branch push failed" >&2
+if [ -z "$BRANCH" ]; then
+  echo "FAIL: detached HEAD; checkout a task branch first." >&2
+  exit 4
+fi
+
+if [ "$BRANCH" = "main" ]; then
+  echo "FAIL: direct pushes to main are not allowed; open a pull request." >&2
+  exit 4
+fi
+
+if ! git remote get-url "$REMOTE" >/dev/null 2>&1; then
+  echo "FAIL: remote '$REMOTE' is not configured." >&2
+  exit 4
+fi
+
+echo "==> Pushing current task branch: $BRANCH"
+if ! git push --set-upstream "$REMOTE" "HEAD:refs/heads/$BRANCH"; then
+  echo "FAIL: branch push failed; inspect the remote state. Do not force-push." >&2
   exit 2
 fi
 
-if [ "${1:-}" = "--tag" ]; then
-  TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-  if [ -z "$TAG" ]; then
-    echo "WARN: --tag requested but no tag exists" >&2
-  else
-    echo "==> Pushing tag $TAG"
-    if ! git push "$REMOTE" "$TAG"; then
-      echo "FAIL: tag push failed" >&2
-      exit 2
-    fi
-  fi
-fi
+LOCAL_SHA="$(git rev-parse HEAD)"
+REMOTE_SHA="$(git ls-remote --heads "$REMOTE" "refs/heads/$BRANCH" | awk '{print $1}')"
 
-LOCAL=$(git rev-parse HEAD)
-REMOTE_SHA=$(git ls-remote --heads "$REMOTE" "$BRANCH" | awk '{print $1}')
-if [ "$LOCAL" != "$REMOTE_SHA" ]; then
-  echo "PUSH NOT VERIFIED: local=$LOCAL remote=$REMOTE_SHA" >&2
+if [ -z "$REMOTE_SHA" ] || [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+  echo "PUSH NOT VERIFIED: local=$LOCAL_SHA remote=${REMOTE_SHA:-missing}" >&2
   exit 3
 fi
-echo "PUSH VERIFIED: $LOCAL"
-exit 0
+
+echo "PUSH VERIFIED: $BRANCH $LOCAL_SHA"

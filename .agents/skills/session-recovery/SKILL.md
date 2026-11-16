@@ -15,8 +15,11 @@ git fetch origin
 git status --short
 git log --oneline -20
 git rev-parse HEAD
-git ls-remote --heads origin refs/heads/audit/comprehensive-package-review
+git branch -vv
+git ls-remote --heads origin
 ```
+
+Treat `main` as the only long-lived branch. Other branches should be explainable as active short-lived pull-request branches or temporary Dependabot branches. Do not assume a permanent audit branch exists.
 
 Classify local and remote state:
 

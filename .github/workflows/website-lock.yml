@@ -1,11 +1,7 @@
 name: Generate website npm lockfile and verify the site
 
 on:
-  push:
-    branches: [audit/comprehensive-package-review]
-    paths:
-      - ".github/workflows/website-lock.yml"
-      - "website/package.json"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Refuse direct changes to main
+        run: |
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "Dispatch this helper on a short-lived topic branch, never main." >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
         with:

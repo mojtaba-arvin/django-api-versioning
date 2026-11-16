@@ -1,343 +1,174 @@
-## Steps
+# Package release procedure
 
-### 1. Confirm X.Y.Z and save old version
+This procedure applies only after the user explicitly authorizes a concrete version `X.Y.Z`. The only long-lived branch is `main`; a release uses one temporary `release/vX.Y.Z` branch and one reviewed PR.
 
-If ambiguous, stop and ask.
+## 1. Verify the release target and create the branch
+
+Start from a clean checkout. Preserve unrelated work.
 
 ```bash
-OLD_VERSION=$(git show HEAD:pyproject.toml \
-  | grep -E '^version' | head -1 \
-  | sed -E 's/.*"([^"]+)".*/\1/')
+git status --short
+git fetch origin --prune --tags
+git switch main
+git pull --ff-only origin main
+git status --short
+```
+
+Stop if the working tree is not clean or if local `main` cannot be fast-forwarded.
+
+Read the old version, set the explicitly authorized version, reject an existing tag, and create the release branch from the latest main:
+
+```bash
+OLD_VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
 NEW_VERSION="X.Y.Z"
+git show-ref --verify --quiet "refs/tags/v$NEW_VERSION" && {
+  echo "Local tag already exists"; exit 1;
+}
+git ls-remote --exit-code --tags origin "refs/tags/v$NEW_VERSION" >/dev/null 2>&1 && {
+  echo "Remote tag already exists"; exit 1;
+}
 echo "OLD=$OLD_VERSION NEW=$NEW_VERSION"
+git switch -c "release/v$NEW_VERSION" origin/main
 ```
 
-If `$OLD_VERSION` is empty, stop and report — pyproject.toml has
-no `version` line.
+Never overwrite or move an existing release tag.
 
-### 2. Full test suite via tox
+## 2. Determine release impact
 
-Use the canonical `.agents/skills/manual-testing/SKILL.md` and execute its Full mode. That skill owns interpreter/tool provisioning, matrix validation, execution, and log acceptance criteria; do not duplicate or hard-code the current matrix here.
-
-Run the full configured matrix before changing the package version. Record the source commit, package version, actual environment results, and tox exit code. If any configured environment fails, is skipped, or is NOT RUN, STOP. Do not bump the version, tag, or publish. Classify pytest failures separately from interpreter, plugin, or dependency setup failures.
-
-### 3. Bump `pyproject.toml`
-
-Edit the `version = "X.Y.Z"` line.
+Identify the previous release tag and inspect actual changes since it:
 
 ```bash
-git add pyproject.toml
-git commit -m "chore: bump version to $NEW_VERSION"
-.claude/push.sh
-```
-
-If `.claude/push.sh` exits non-zero: STOP. Do not continue.
-
-### 4. Update `CHANGELOG.md`
-
-Add a dated section for `X.Y.Z`. Use only the Keep a Changelog
-categories that actually apply; do not add empty headings merely
-to include every category. Record the unit and integration test
-counts observed in the successful Step 2 log. Never infer or reuse
-historical counts.
-
-```bash
-git add CHANGELOG.md
-git commit -m "docs: update changelog for v$NEW_VERSION"
-.claude/push.sh
-```
-
-If push fails: STOP.
-
-### 5. Articles in `docs/articles/`
-
-#### 5a. Detect technical impact since last tag
-
-```bash
-LAST_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
+LAST_TAG=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)
 if [ -z "$LAST_TAG" ]; then
-  TECH=yes
-  REASON="no previous tag — inspect the full release diff"
+  echo "No previous tag: inspect the complete history and diff manually."
 else
-  echo "Commits since $LAST_TAG:"
   git log --oneline "$LAST_TAG"..HEAD
-  echo "Changed paths since $LAST_TAG:"
   git diff --name-status "$LAST_TAG"..HEAD
 fi
 ```
 
-Do not decide technical impact from commit prefixes alone. Inspect the
-actual diffs for every `feat:` and `fix:` commit and any other
-package-facing changes. Set `TECH=yes` only when package runtime
-behavior, public API, supported configuration, or user-facing
-integration examples changed. Test-only changes, import cleanup,
-formatting, CI changes, and documentation-only corrections do not
-by themselves make `TECH=yes`. Record the relevant commits and
-the evidence for the classification. If there is no previous tag,
-inspect the complete diff and default to asking rather than silently
-assuming that all articles need content changes.
+Do not classify technical impact from commit prefixes alone. Inspect source and tests. Runtime behavior, public API, supported configuration, dependencies, or user-facing integration examples count as technical impact. Test-only, formatting, CI-only, and editorial changes are not automatically technical changes.
 
-#### 5b. If TECH=yes: STOP and ask
+Apply the version policy in [CONTRIBUTING.md](../../../CONTRIBUTING.md). Update the dated `CHANGELOG.md` section using only categories that apply. Changelog entries describe user-visible changes; do not copy test counts, CI logs, task status, or internal implementation notes into the changelog.
 
-Report:
+## 3. Handle article updates carefully
 
-- `TECH=yes` and the reason
-- The list of feat/fix commits:
-  ```bash
-  git log --oneline "$LAST_TAG"..HEAD | grep -E '^(feat|fix)(\(|:)'
-  ```
-- The article file list:
-  ```bash
-  ls docs/articles/*.md
-  ```
-
-Ask exactly this:
-
-> "The release includes technical changes. These are the current article files
-> that reference the package: <list>. I will update package version
-> strings in all articles. If any article needs CONTENT updates
-> (examples, API, behavior), tell me which article and what to
-> change. Otherwise reply 'proceed' and I will only update
-> version strings."
-
-Wait for a single response:
-- `"proceed"` or equivalent → go to 5c
-- A specific list of articles → record them, go to 5c, then
-  handle content edits in 5e
-
-If TECH=no: skip the question, go directly to 5c.
-
-#### 5c. Update package version strings (all articles)
-
-Use Python for safe literal replacement — avoids sed regex
-escaping problems with version dots.
+Enumerate the current article corpus at execution time:
 
 ```bash
-OLD_VERSION="$OLD_VERSION" NEW_VERSION="$NEW_VERSION" python3 <<'PYEOF'
-import os, pathlib
-OLD = os.environ["OLD_VERSION"]; NEW = os.environ["NEW_VERSION"]
-patterns = [
-    (f"django-api-versioning=={OLD}", f"django-api-versioning=={NEW}"),
-    (f"django-api-versioning>={OLD}", f"django-api-versioning>={NEW}"),
-    (f"django-api-versioning~={OLD}", f"django-api-versioning~={NEW}"),
-    (f"django-api-versioning<={OLD}", f"django-api-versioning<={NEW}"),
-    (f'django-api-versioning = "{OLD}"', f'django-api-versioning = "{NEW}"'),
-    (f"django-api-versioning = '{OLD}'", f"django-api-versioning = '{NEW}'"),
-]
-changed = []
-for p in pathlib.Path("docs/articles").rglob("*.md"):
-    c = p.read_text()
-    nc = c
-    for a, b in patterns:
-        nc = nc.replace(a, b)
-    if nc != c:
-        p.write_text(nc); changed.append(str(p))
-print(f"Changed {len(changed)} files:")
-for f in changed: print(f"  {f}")
-PYEOF
+find docs/articles -maxdepth 1 -type f -name '*.md' -print | sort
 ```
 
-Do not touch any other version-like string. Bare mentions of
-`$OLD_VERSION` (not adjacent to the package name) might refer to
-Django versions and must not be replaced.
+If technical behavior changed, identify affected articles and ask the user whether any article CONTENT needs to change. Release authorization does not authorize rewriting article prose or examples.
 
-#### 5d. Report remaining old-version mentions
+Update only exact package-version references, such as `django-api-versioning==OLD`, `>=OLD`, `~=OLD`, or package dependency declarations. Do not replace unrelated Django, Python, DRF, or API version numbers. Report remaining occurrences of `OLD_VERSION` not adjacent to the package name; do not auto-rewrite ambiguous references.
+
+Update `README.md` or `COMPATIBILITY_REPORT.md` only when their actual content is stale and available evidence supports the correction. Configured environments are not evidence that they passed.
+
+## 4. Prepare one coherent release change
+
+Update package version in `pyproject.toml`, the dated changelog entry, and any approved documentation/version pins. Stage explicit paths only.
 
 ```bash
-grep -rn "$OLD_VERSION" docs/articles/ 2>/dev/null \
-  | grep -v "django-api-versioning" \
-  || echo "No other mentions of $OLD_VERSION in articles"
+git diff --check
+git status --short
+git diff
+git add pyproject.toml CHANGELOG.md
+# Add only documentation paths that were actually changed and reviewed.
+git diff --cached --check
+git diff --cached
 ```
 
-If any remaining mention exists, report each line to the user
-verbatim. Do NOT auto-replace them — they are ambiguous.
-
-#### 5e. Commit article changes
-
-If only version strings were updated (no content edits):
+Commit the release preparation as one logical change, not one commit per file:
 
 ```bash
-if [ -n "$(git diff --name-only docs/articles/)" ]; then
-  git add docs/articles/
-  git commit -m "docs: bump package version to $NEW_VERSION in articles"
-  .claude/push.sh
-fi
-```
-
-If content edits were authorized in 5b: after the version-only
-commit, edit the specified articles, then for each one:
-
-```bash
-git add docs/articles/<article>.md
-git commit -m "docs: update <article> for $NEW_VERSION"
+git commit -m "chore(release): prepare v$NEW_VERSION"
 .claude/push.sh
 ```
 
-If `.claude/push.sh` exits non-zero at any point: STOP.
+The push helper pushes the current short-lived branch and refuses `main`. If push verification fails, stop and inspect remote state; do not force-push.
 
-### 6. Update `README.md` if compatibility or counts changed
+## 5. Open the release PR and validate its exact head
 
-```bash
-grep -rn "$OLD_VERSION" README.md 2>/dev/null || echo "No old version in README"
-```
+Open a PR from `release/vX.Y.Z` to `main`. Include the version, changelog summary, technical-impact classification, approved article changes, and verification plan.
 
-If changed:
+Require successful results for every workflow relevant to the PR's changed paths. Because `pyproject.toml` changes, inspect at least:
 
-```bash
-git add README.md
-git commit -m "docs: update README for v$NEW_VERSION"
-.claude/push.sh
-```
+- Python unit and integration tests;
+- the complete compatibility matrix, including every environment configured by current `tox.ini`;
+- wheel/sdist build, metadata validation, installed-wheel smoke test, and distribution-content checks.
 
-If README does not need changes, skip this step.
+If website/article files changed, also inspect Website build and static verification. If agent instructions or skills changed, inspect Agent tooling.
 
-### 7. Build (no commit of artifacts)
+Results must correspond to the latest PR head SHA. Older successful runs are stale. Failed, skipped, pending, or NOT-RUN environments are not passes. Fix failures on the same release branch and wait for new checks. Do not bypass a relevant failing check.
 
-```bash
-uv venv /tmp/build --python 3.15 && \
-  source /tmp/build/bin/activate && \
-  python -m pip install --quiet build && \
-  python -m build --outdir /tmp/dist && \
-  ls -lh /tmp/dist/ && \
-  rm -rf /tmp/build
-```
+Merge the PR through GitHub only after relevant checks pass. Never push the release branch directly to `main`.
 
-Expected artifacts:
-- `django_api_versioning-$NEW_VERSION-py3-none-any.whl`
-- `django_api_versioning-$NEW_VERSION.tar.gz`
+## 6. Tag the exact merged commit
 
-If build fails, fix the cause in a new commit, push, then retry.
-Do not tag until build succeeds.
-
-### 8. Verify the release commit is merged, then create the tag
-
-The release branch must not publish code that has not been merged through the reviewed default-branch pull request. Fetch the default branch and verify that the exact release commit is an ancestor of its remote head:
+After merge, fetch `main` and obtain the PR merge commit SHA:
 
 ```bash
-git fetch origin main
-git merge-base --is-ancestor HEAD origin/main || {
-  echo "Release commit is not present on origin/main; stop before tagging."
+PR_NUMBER="123"
+git fetch origin main --tags
+MERGE_SHA=$(gh pr view "$PR_NUMBER" --json mergeCommit --jq '.mergeCommit.oid')
+test -n "$MERGE_SHA"
+git merge-base --is-ancestor "$MERGE_SHA" origin/main || {
+  echo "Release PR merge commit is not on origin/main; stop."
   exit 1
 }
-git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 ```
 
-If the ancestry check fails, stop. Do not create or push a tag. The user must complete the reviewed merge first; do not push directly to `main`.
-
-Before pushing the tag, verify that `.github/workflows/publish.yml` keeps package build and validation separate from publication, and grants `id-token: write` only to the publish job. The publish job must not check out the repository or execute build scripts; it should only download the verified distribution artifact and invoke the pinned PyPI publishing action.
-
-### 9. Push tag
+Verify that the exact merge commit contains the requested package version:
 
 ```bash
-.claude/push.sh --tag
+git show "$MERGE_SHA:pyproject.toml" | grep -E '^version[[:space:]]*='
 ```
 
-If exit != 0: STOP. Do not create GitHub release.
+If it does not equal `NEW_VERSION`, stop. Verify the tag remains absent, then create an annotated tag on the exact merge commit:
 
-Verify that the annotated tag object was pushed to the remote:
+```bash
+git tag -a "v$NEW_VERSION" "$MERGE_SHA" -m "Release v$NEW_VERSION"
+git push origin "refs/tags/v$NEW_VERSION"
+```
+
+Push only this explicit tag. Do not use `git push --tags`.
+
+Verify the remote annotated tag object:
 
 ```bash
 LOCAL_TAG_SHA=$(git rev-parse "refs/tags/v$NEW_VERSION")
 REMOTE_TAG_SHA=$(git ls-remote origin "refs/tags/v$NEW_VERSION" | awk '{print $1}')
-echo "LOCAL_TAG_SHA=$LOCAL_TAG_SHA REMOTE_TAG_SHA=$REMOTE_TAG_SHA"
-[ -n "$REMOTE_TAG_SHA" ] && [ "$LOCAL_TAG_SHA" = "$REMOTE_TAG_SHA" ] || {
-  echo "Tag push verification failed"; exit 1;
+test -n "$REMOTE_TAG_SHA" && test "$LOCAL_TAG_SHA" = "$REMOTE_TAG_SHA" || {
+  echo "Remote tag verification failed"; exit 1;
 }
 ```
 
-Do not proceed if the remote tag is absent or its SHA differs.
+## 7. Verify publication and create the GitHub release
 
-### 10. Install `gh` if missing (best-effort)
+The `v*` tag triggers `.github/workflows/publish.yml`. That workflow independently reruns the complete compatibility matrix, builds and validates wheel/sdist, smoke-tests the installed wheel, verifies distribution boundaries, and publishes the verified artifact to PyPI using trusted publishing. The publish job alone receives `id-token: write`.
 
-Use the installed binary when available. Otherwise detect the OS and
-architecture; do not assume Linux x86_64:
-
-```bash
-GH_BIN=$(command -v gh || true)
-if [ -z "$GH_BIN" ]; then
-  OS=$(uname -s)
-  ARCH=$(uname -m)
-  case "$OS:$ARCH" in
-    Darwin:x86_64) PLATFORM="macOS_amd64" ;;
-    Darwin:arm64) PLATFORM="macOS_arm64" ;;
-    Linux:x86_64) PLATFORM="linux_amd64" ;;
-    Linux:aarch64|Linux:arm64) PLATFORM="linux_arm64" ;;
-    *) echo "Unsupported gh platform: $OS $ARCH"; exit 1 ;;
-  esac
-  LATEST=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest \
-    | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))')
-  mkdir -p "$HOME/.local/bin"
-  curl -fsSL "https://github.com/cli/cli/releases/download/v${LATEST}/gh_${LATEST}_${PLATFORM}.tar.gz" \
-    -o /tmp/gh.tar.gz
-  tar -xzf /tmp/gh.tar.gz -C /tmp
-  cp "/tmp/gh_${LATEST}_${PLATFORM}/bin/gh" "$HOME/.local/bin/gh"
-  chmod +x "$HOME/.local/bin/gh"
-  rm -f /tmp/gh.tar.gz
-  GH_BIN="$HOME/.local/bin/gh"
-fi
-"$GH_BIN" --version
-```
-
-If installation exits non-zero, do not retry. Skip GitHub release
-creation, report the manual release URL, and continue to Step 12.
-
-### 11. Create GitHub release
+Do not announce success while the workflow is pending or failed. Verify the exact version endpoint:
 
 ```bash
-GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
-GH_TOKEN="$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')" "$GH_BIN" release create "v$NEW_VERSION" \
-  --title "v$NEW_VERSION" \
-  --generate-notes
+curl -fsS "https://pypi.org/p/django-api-versioning/$NEW_VERSION/json" \
+  | python -c 'import json,sys; print(json.load(sys.stdin)["info"]["version"])'
 ```
 
-Verify:
+The returned version must equal `NEW_VERSION`. Checking only the package's latest-version endpoint is insufficient.
+
+After PyPI confirms the version, create and verify the GitHub release if `gh` is authenticated:
 
 ```bash
-GH_BIN=$(command -v gh || echo "$HOME/.local/bin/gh")
-GH_TOKEN="$(printf 'protocol=https\nhost=github.com\n\n' | git credential fill | sed -n 's/^password=//p')" "$GH_BIN" release view "v$NEW_VERSION" \
-  --json tagName,isDraft,url
+gh release create "v$NEW_VERSION" --title "v$NEW_VERSION" --generate-notes
+gh release view "v$NEW_VERSION" --json tagName,isDraft,url
 ```
 
-If creation failed, report:
+If GitHub Release creation is unavailable, report the manual URL:
+`https://github.com/mojtaba-arvin/django-api-versioning/releases/new?tag=vX.Y.Z`
 
-    https://github.com/mojtaba-arvin/django-api-versioning/releases/new?tag=vX.Y.Z
+## 8. Report
 
-and continue to Step 12.
+Report only verified facts: package version and tag; tagged merge commit and annotated tag object SHAs; PR number and merged state; relevant CI results and exact PR head SHA; tag workflow result; GitHub Release URL; version-specific PyPI endpoint result; and article version-pin/content changes plus ambiguous old-version mentions.
 
-### 12. Verify PyPI
-
-Tag push triggers `.github/workflows/publish.yml` (trigger:
-`push: tags: v*`).
-
-```bash
-for i in $(seq 1 6); do
-  sleep 30
-  V=$(curl -fsS "https://pypi.org/pypi/django-api-versioning/$NEW_VERSION/json" \
-    | python3 -c "import sys,json;print(json.load(sys.stdin)['info']['version'])") || V=""
-  echo "attempt $i: PyPI release endpoint shows ${V:-not available}"
-  [ "$V" = "$NEW_VERSION" ] && break
-done
-```
-
-If after 3 minutes PyPI does not show `$NEW_VERSION`, report:
-
-    https://github.com/mojtaba-arvin/django-api-versioning/actions
-
-Do NOT claim publication success unless the version-specific PyPI
-endpoint returns `$NEW_VERSION`. Checking only the package's
-latest-version endpoint is insufficient because a later release
-could already have become the latest.
-
-### 13. Report
-
-State exactly:
-
-- Version: `$NEW_VERSION`
-- Tag: `v$NEW_VERSION`
-- Tag SHA: `git rev-parse "v$NEW_VERSION"`
-- Branch push: from `.claude/push.sh` exit code in Step 3
-- Tag push: from `.claude/push.sh --tag` exit code in Step 9
-- GitHub release URL: from Step 11 output, or the manual URL
-- PyPI version: from Step 12 curl output
-- Articles: version-only updates = N, content updates = M,
-  remaining old-version mentions = K
+Never invent test counts, claim skipped matrix environments passed, or claim PyPI publication before the exact version endpoint confirms it.

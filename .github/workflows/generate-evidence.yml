@@ -1,19 +1,6 @@
 name: Generate source-pinned website evidence
 
 on:
-  push:
-    branches: [audit/comprehensive-package-review]
-    paths:
-      - ".github/workflows/generate-evidence.yml"
-      - "django_api_versioning/**"
-      - "tests/**"
-      - "pytest.ini"
-      - "integration_test_project/**"
-      - "scripts/verify_distribution_contents.py"
-      - "scripts/smoke_installed_wheel.py"
-      - "pyproject.toml"
-      - "requirements.txt"
-      - "requirements-ci.txt"
   workflow_dispatch:
 
 permissions:
@@ -28,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      - name: Refuse direct changes to main
+        run: |
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "Dispatch this helper on a short-lived topic branch, never main." >&2
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
