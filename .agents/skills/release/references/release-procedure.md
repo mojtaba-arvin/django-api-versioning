@@ -8,6 +8,7 @@ Start from a clean checkout. Preserve unrelated work.
 
 ```bash
 git status --short
+test -z "$(git status --porcelain)" || { echo "Working tree must be clean before switching branches." >&2; exit 1; }
 git fetch origin --prune --tags
 git switch main
 git pull --ff-only origin main
@@ -20,6 +21,7 @@ Read the old version, set the explicitly authorized version, reject an existing 
 
 ```bash
 OLD_VERSION=$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' pyproject.toml | head -n 1)
+[ -n "$OLD_VERSION" ] || { echo "Could not read package version from pyproject.toml"; exit 1; }
 NEW_VERSION="X.Y.Z"
 git show-ref --verify --quiet "refs/tags/v$NEW_VERSION" && {
   echo "Local tag already exists"; exit 1;

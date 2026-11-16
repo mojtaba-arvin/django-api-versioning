@@ -10,6 +10,7 @@ Inspect the working tree first. Preserve unrelated or uncommitted work; do not r
 
 ```bash
 git status --short
+test -z "$(git status --porcelain)" || { echo "Working tree must be clean before switching branches." >&2; exit 1; }
 git fetch origin --prune
 git switch main
 git pull --ff-only origin main
