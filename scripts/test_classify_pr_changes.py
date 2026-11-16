@@ -43,6 +43,10 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         result = classify_paths([".github/dependabot.yml"])
         self.assertTrue(result["agent"])
 
+    def test_github_settings_script_runs_agent_validation(self):
+        result = classify_paths(["scripts/configure_github_repository.sh"])
+        self.assertTrue(result["agent"])
+
     def test_unknown_markdown_does_not_trigger_unrelated_workflows(self):
         result = classify_paths(["docs/notes/internal-design.md"])
         self.assertFalse(any(result.values()))
