@@ -80,6 +80,9 @@ jobs:
       - name: Verify workflow matrix matches tox.ini
         run: python scripts/check_tox_workflow_matrix.py
 
+      - name: Verify uv.lock matches pyproject.toml
+        run: uv lock --check
+
   tox:
     needs: validate-matrix
     name: ${{ matrix.env }}

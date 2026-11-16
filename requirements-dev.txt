@@ -2,7 +2,7 @@
 pytest>=9.2.0
 pytest-django>=4.14.0
 pytest-cov>=7.1.0
-pre-commit>=4.6.2
+pre-commit>=4.7.0; python_version >= "3.11"
 black>=26.10.1
 flake8>=7.4.1
 Flake8-pyproject>=1.2.4
