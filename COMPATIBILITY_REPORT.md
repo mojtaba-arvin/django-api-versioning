@@ -6,7 +6,7 @@
 **Release workflow:** [GitHub Actions run #43772378437](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43772378437)  
 **PyPI artifact provenance:** [django-api-versioning 0.3.8](https://pypi.org/project/django-api-versioning/0.3.8/)
 
-This report records the actual verification performed for the 0.3.8 release. The release workflow checked the annotated tag and its ancestry on `main`, ran the complete compatibility matrix, built and verified both distributions, smoke-tested the installed wheel, checked distribution boundaries, and published the verified artifacts through PyPI Trusted Publishing.
+This report records the actual verification performed for the 0.3.8 release. The release workflow ran the complete compatibility matrix, built and verified both distributions, smoke-tested the installed wheel, checked distribution boundaries, and published the verified artifacts through PyPI Trusted Publishing. The annotated-tag and  `main`-ancestry verification now present in the current publish workflow was added after this release run; it is not claimed as a v0.3.8 run result.
 
 ## Release verification result
 
