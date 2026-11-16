@@ -2,7 +2,7 @@
 
 ## Redesign scope
 
-Continue on `audit/comprehensive-package-review`. This task is a redesign of the existing documentation website, not a request to preserve its current visual design or frontend implementation.
+Start from the current `main` branch. The previous `audit/comprehensive-package-review` branch is superseded by `main` and must not be used as the redesign base. This task is a redesign of the existing documentation website, not a request to preserve its current visual design or frontend implementation.
 
 - Redesign the website freely: the current visual identity, page composition, component tree, layouts, navigation presentation, CSS, and frontend architecture are reference material, not mandatory design constraints.
 - Preserve the agreed ten homepage content responsibilities, the canonical article corpus, verified package behavior, real Segment Lab evidence and provenance, required user-facing capabilities, accessibility expectations, and static-hosting behavior.
@@ -51,13 +51,27 @@ The site has not been deployed. Do not describe a Netlify or GitHub Pages deploy
 
 ## Netlify configuration
 
+The Git-connected Netlify site deploys this repository from `main`.
+
 - Base directory: `website`
 - Build command: `npm run build`
-- Publish directory: `dist` (relative to the base directory)
+- Publish directory: `dist` (relative to the base directory; repository path is `website/dist/`)
 - Node requirement: 22.23.4 or newer
 - Install command: `npm ci` (Netlify's dependency install should use the committed lockfile)
+- Functions directory: leave unset/blank; this website has no Netlify Functions.
+- Environment variables: none are required for the root-hosted Netlify build. Do not set `PUBLIC_BASE_PATH` for Netlify; that variable is only used for the GitHub Pages project-site build.
 
 Netlify's `URL` environment variable may be used as the canonical site URL. The site must remain static and must not depend on Netlify runtime functions.
+
+### Connected Netlify Agent workflow
+
+- Use the Git-connected Netlify project and its checked-out repository workspace. Do not clone a second copy when the connected source is already available.
+- Verify that the workspace contains this repository and the intended `main` revision before inspecting or editing files.
+- Use Agent Runner **Build** mode for implementation; **Ask** mode is read-only and cannot deliver code changes.
+- Keep redesign work isolated from `main`. Work on an Agent-managed feature branch and deliver a reviewable Deploy Preview and pull request where the Netlify workflow supports them.
+- Do not merge the redesign, publish a production deployment, or change the production branch as part of the redesign task. Those actions require maintainer review and approval.
+- The Netlify Agent must read this handoff, `AGENTS.md`, `docs/website/architecture.md`, `docs/reference/versioning-contract.md`, `integration_test_project/segment_lab/README.md`, and `website/README.md` from the connected checkout before implementation.
+- The Agent must not claim repository access, tests, browser checks, or deployment results that it has not actually verified.
 
 ## GitHub Pages configuration
 
