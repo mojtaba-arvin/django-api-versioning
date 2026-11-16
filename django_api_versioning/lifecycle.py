@@ -42,7 +42,11 @@ class LifecycleMiddleware:
 
         API_VERSION_LIFECYCLE = {
             1: {"status": "retired", "sunset": "2024-01-01"},
-            2: {"status": "deprecated", "sunset": "2026-06-01"},
+            2: {
+                "status": "deprecated",
+                "deprecated_at": "2026-01-01T00:00:00+00:00",
+                "sunset": "2026-06-01",
+            },
             3: {"status": "active"},
         }
     """
