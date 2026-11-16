@@ -1,0 +1,46 @@
+name: Refresh uv lockfile
+
+on:
+  push:
+    branches:
+      - feat/dev-dependency-security
+    paths:
+      - "pyproject.toml"
+      - ".github/workflows/refresh-uv-lock.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-uv-lock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the security-maintenance branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+
+      - name: Regenerate the lockfile with pinned uv
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/feat/dev-dependency-security"
+          python -m pip install --disable-pip-version-check "uv==0.13.8"
+          uv lock
+
+      - name: Commit the regenerated lockfile
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- uv.lock; then
+            echo "uv.lock is already synchronized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          git commit -m "chore(deps): regenerate uv lockfile"
+          git push origin "HEAD:$GITHUB_REF_NAME"
