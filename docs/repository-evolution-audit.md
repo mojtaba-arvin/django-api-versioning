@@ -95,6 +95,10 @@ A post-merge review of the PR path classifier found that it did not fully mirror
 
 The 2026-11-16 Dependabot security-update run for `filelock` failed before creating an update because `requirements-dev.txt` contained adjacent `djangorestframework` and `tomli` requirements on one line. This was a malformed requirements entry, not a `filelock` vulnerability or a package-runtime failure. The requirements were separated, and the Agent tooling workflow now parses/resolves the maintainer requirements file on relevant pull requests and pushes. The path classifier has a regression test ensuring changes to this file invoke that validation.
 
+That syntax correction did **not** resolve the separate security update. The subsequent Dependabot runs [#43829951877](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43829951877) and [#43830232889](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/43830232889) parsed the requirements successfully but failed with `security_update_not_possible`: for Python 3.10.22, the latest resolvable `filelock` is 4.1.0, while the earliest fixed release is 4.2.1, which requires Python 3.11 or newer. The current `uv.lock` already selects `filelock==4.1.0` for Python below 3.11 and `filelock==4.2.9` for Python 3.11 and newer.
+
+`filelock` is not a package runtime dependency; it is pulled into the development toolchain through `pre-commit` → `virtualenv`. This is therefore an unresolved development-environment security exception for Python 3.10, not a vulnerability in the package's runtime dependency set. Dependabot's aggregate update covers multiple advisories. At least one, [GHSA-crv4-6mhj-j5jh](https://osv.dev/vulnerability/GHSA-crv4-6mhj-j5jh), has local-user, shared-directory, operating-system, and CPython-version preconditions; the full advisory set still needs applicability review. Do not force `filelock==4.2.1` onto Python 3.10 or raise the package's minimum Python version solely to silence this update. Keep the Python 3.10 package test matrix, review the aggregate advisories, and decide separately whether development tooling should require Python 3.11+ or whether a documented exception is appropriate.
+
 ### Historical credential-handling incident
 
 The initial audit workspace recorded that a GitHub credential was exposed in command/error output and requested revocation. The repository history does not establish whether that credential was revoked. The value is not reproduced here. If revocation was not already completed, treat that historical credential as compromised and verify its status in GitHub.
@@ -119,6 +123,7 @@ The core package does not need an immediate feature expansion or a new release m
 - Keep `COMPATIBILITY_REPORT.md` tied to the current package version, exact source commit, and inspected workflow run.
 - Keep the canonical routing contract pinned to the release source it describes.
 - Do not reuse test counts from older releases or infer a pass from a configured tox environment.
+- Track the `filelock` Python 3.10 development-tooling advisory separately from package runtime dependencies; do not suppress it or force an incompatible upgrade without reviewing the affected advisories and platform/interpreter scope.
 
 ### P1 — Complete or explicitly defer website delivery
 
