@@ -732,7 +732,7 @@ The middleware attempts to identify the request version in this order:
 
 This allows the middleware to identify versions from the package's static versioned URL paths even when `request.version` is not set.
 
-**Standards note:** Configure `deprecated_at` as an ISO 8601 date or datetime for deprecated versions. The middleware emits the date-valued Structured Field required by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745), using `@` followed by the Unix timestamp. If `deprecated_at` is missing or invalid, the middleware logs a warning and omits `Deprecation` rather than emitting a non-standard value. `Sunset` follows the HTTP-date format specified by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594).
+**Standards note:** Configure `deprecated_at` as an ISO 8601 date or datetime for deprecated versions. The middleware emits the date-valued Structured Field required by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745), using `@` followed by the Unix timestamp. A deprecated lifecycle entry without a valid `deprecated_at` is rejected during settings validation. If the value is changed after initialization, the middleware logs a warning and omits `Deprecation` rather than emitting a non-standard value. `Sunset` follows the HTTP-date format specified by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594).
 
 ## Configuration reference
 

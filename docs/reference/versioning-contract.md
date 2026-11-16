@@ -540,7 +540,7 @@ API_VERSION_LIFECYCLE = {
 }
 ```
 
-The middleware serializes `deprecated_at` as an RFC 9745 Structured Field Date (`@` followed by the Unix timestamp). A missing or invalid value is logged and the `Deprecation` header is omitted; the middleware never emits the legacy non-standard boolean value. `Sunset` is serialized as an HTTP-date under RFC 8594. A sunset date in the past triggers `410 Gone`.
+Settings validation requires `deprecated_at` for deprecated versions and rejects missing or invalid lifecycle dates at initialization. If a value is changed after initialization, the middleware logs a warning and omits the `Deprecation` header. Valid values are serialized as an RFC 9745 Structured Field Date (`@` followed by the Unix timestamp); the middleware never emits the legacy non-standard boolean value. `Sunset` is serialized as an HTTP-date under RFC 8594. A sunset date in the past triggers `410 Gone`.
 
 This is a version-wide policy. The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
 
