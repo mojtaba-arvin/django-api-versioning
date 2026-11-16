@@ -185,7 +185,7 @@ python -m pytest tests --maxfail=1 --disable-warnings -q
 python -m pytest integration_test_project --maxfail=1 --disable-warnings -q
 ```
 
-The `.github/workflows/compatibility.yml` workflow runs this matrix automatically for relevant package, test, integration-project, dependency, tox, and verification-script pushes to `main` and `audit/comprehensive-package-review`, and when a pull request is opened, reopened, or marked ready for review. It also supports deliberate manual `workflow_dispatch` runs and reusable `workflow_call` from the tag-based publish workflow. It uses a separate GitHub Actions job for each tox environment. Documentation-only and website-only edits do not trigger this Python compatibility matrix.
+The `.github/workflows/compatibility.yml` workflow runs this matrix automatically for relevant package, test, integration-project, dependency, tox, and verification-script pushes to `main`, and when a pull request is opened, reopened, or marked ready for review. It also supports deliberate manual `workflow_dispatch` runs and reusable `workflow_call` from the tag-based publish workflow. It uses a separate GitHub Actions job for each tox environment. Documentation-only and website-only edits do not trigger this Python compatibility matrix.
 
 The tox configuration also defines one lint environment that runs:
 

@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/django-api-versioning.svg)](https://badge.fury.io/py/django-api-versioning)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![Build Status](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions)
-[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%2B%20%7C%206.x-blue)](https://www.djangoproject.com/)
+[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%20%7C%206.0%20%7C%206.1-blue)](https://www.djangoproject.com/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -145,6 +145,8 @@ Requirements:
 
 - Python >= 3.10
 - Django >= 4.2
+
+The automated compatibility matrix currently verifies Django 4.2, 5.2, 6.0, and 6.1 across the Python combinations listed in [`COMPATIBILITY_REPORT.md`](COMPATIBILITY_REPORT.md). Django 5.0 and 5.1 are not part of the verified matrix.
 
 Django REST Framework is optional. The package can be used with Django-native function-based and class-based views without installing DRF.
 
