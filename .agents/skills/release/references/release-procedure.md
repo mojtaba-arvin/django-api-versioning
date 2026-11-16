@@ -49,7 +49,7 @@ fi
 
 Do not classify technical impact from commit prefixes alone. Inspect source and tests. Runtime behavior, public API, supported configuration, dependencies, or user-facing integration examples count as technical impact. Test-only, formatting, CI-only, and editorial changes are not automatically technical changes.
 
-Apply the version policy in [CONTRIBUTING.md](../../../CONTRIBUTING.md). Update the dated `CHANGELOG.md` section using only categories that apply. Changelog entries describe user-visible changes; do not copy test counts, CI logs, task status, or internal implementation notes into the changelog.
+Apply the version policy in [CONTRIBUTING.md](../../../../CONTRIBUTING.md). Update the dated `CHANGELOG.md` section using only categories that apply. Changelog entries describe user-visible changes; do not copy test counts, CI logs, task status, or internal implementation notes into the changelog.
 
 ## 3. Handle article updates carefully
 
