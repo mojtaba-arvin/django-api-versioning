@@ -102,7 +102,7 @@ Require successful results for every workflow relevant to the PR's changed paths
 
 If website/article files changed, also inspect Website build and static verification. If agent instructions or skills changed, inspect Agent tooling.
 
-Results must correspond to the latest PR head SHA. Older successful runs are stale. Failed, skipped, pending, or NOT-RUN environments are not passes. Fix failures on the same release branch and wait for new checks. Do not bypass a relevant failing check.
+Require the always-running `PR gate` to pass for the exact latest PR head SHA. The gate invokes every path-relevant reusable workflow; a child workflow may be skipped only when the path classifier marks its scope unchanged. Independently inspect CodeQL results for package or website source changes. A failed, pending, or stale applicable check is not a pass. Fix failures on the same release branch; do not bypass a relevant failing check.
 
 Merge the PR through GitHub only after relevant checks pass. Never push the release branch directly to `main`.
 
@@ -134,7 +134,7 @@ git tag -a "v$NEW_VERSION" "$MERGE_SHA" -m "Release v$NEW_VERSION"
 git push origin "refs/tags/v$NEW_VERSION"
 ```
 
-Push only this explicit tag. Do not use `git push --tags`.
+Push only this explicit tag. Do not use `git push --tags`. The active `Protect release tags` ruleset must reject tag updates/deletion and restrict bypass to repository administrators.
 
 Verify the remote annotated tag object:
 

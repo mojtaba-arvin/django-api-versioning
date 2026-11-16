@@ -1,22 +1,8 @@
 name: Agent tooling
 
 on:
+  workflow_call:
   push:
-    branches: [main]
-    paths:
-      - "AGENTS.md"
-      - "CLAUDE.md"
-      - ".claude/skills/**"
-      - ".agents/skills/**"
-      - ".agents/evals/**"
-      - ".github/copilot-instructions.md"
-      - ".github/skills/**"
-      - ".github/workflows/agent-tooling.yml"
-      - "docs/agent-engineering.md"
-      - "scripts/agent.py"
-      - "scripts/agent_tests/**"
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
     branches: [main]
     paths:
       - "AGENTS.md"
@@ -56,6 +42,15 @@ jobs:
 
       - name: Validate agent configuration and helper tests
         run: python scripts/agent.py verify
+      - name: Enforce repository workflow policy
+        run: python scripts/verify_repository_policy.py
+      - name: Test pull-request path classification
+        run: python -m unittest scripts.test_classify_pr_changes
+      - name: Validate shell helper syntax
+        run: |
+          while IFS= read -r -d '' script; do
+            bash -n "$script"
+          done < <(find scripts .claude -type f -name "*.sh" -print0)
 
       - name: Validate workflow YAML
         run: |

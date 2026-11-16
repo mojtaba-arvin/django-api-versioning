@@ -1,6 +1,7 @@
 name: Python package artifacts
 
 on:
+  workflow_call:
   # PR checks run when review starts, not on every commit in a long review branch.
   # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
   workflow_dispatch:
@@ -21,25 +22,6 @@ on:
       - "scripts/verify_distribution_contents.py"
       - "scripts/smoke_installed_wheel.py"
       - ".github/workflows/package-artifacts.yml"
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
-    branches: [main]
-    paths:
-      - "django_api_versioning/**"
-      - "tests/**"
-      - "pyproject.toml"
-      - "MANIFEST.in"
-      - "README.md"
-      - "CHANGELOG.md"
-      - "LICENSE*"
-      - "requirements.txt"
-      - "requirements-dev.txt"
-      - "pytest.ini"
-      - "requirements-build.txt"
-      - "scripts/verify_distribution_contents.py"
-      - "scripts/smoke_installed_wheel.py"
-      - ".github/workflows/package-artifacts.yml"
-
 permissions:
   contents: read
 

@@ -1,0 +1,64 @@
+name: Bug report
+description: Report a reproducible defect in django-api-versioning.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Search existing issues first. Never include credentials, tokens, customer data, or private URLs."
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version
+      placeholder: "0.3.8"
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      placeholder: "3.12.8"
+    validations:
+      required: true
+  - type: input
+    id: django-version
+    attributes:
+      label: Django version
+      placeholder: "5.2.1"
+    validations:
+      required: true
+  - type: input
+    id: drf-version
+    attributes:
+      label: Django REST Framework version
+      description: Enter "not installed" when DRF is not used.
+      placeholder: "3.16.0"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include relevant settings and @endpoint declarations. Remove secrets and private data.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized traceback or logs
+      render: text
+    validations:
+      required: false

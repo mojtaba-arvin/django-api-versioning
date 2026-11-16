@@ -9,6 +9,35 @@ permissions:
   contents: read
 
 jobs:
+  verify-release-ref:
+    name: Verify annotated release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out full history and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify annotated tag and main ancestry
+        run: |
+          set -euo pipefail
+          test "$(git cat-file -t "$GITHUB_REF")" = "tag" || {
+            echo "Release tags must be annotated." >&2
+            exit 1
+          }
+          tagged_commit="$(git rev-parse "$GITHUB_REF^{commit}")"
+          test "$tagged_commit" = "$GITHUB_SHA" || {
+            echo "Tag target does not match the triggering commit." >&2
+            exit 1
+          }
+          git fetch origin main --no-tags
+          git merge-base --is-ancestor "$tagged_commit" FETCH_HEAD || {
+            echo "Release tag must target a commit reachable from main." >&2
+            exit 1
+          }
+
   compatibility:
     name: Full Python and Django compatibility matrix
     uses: ./.github/workflows/compatibility.yml
@@ -17,7 +46,7 @@ jobs:
 
   build:
     name: Build and verify distributions
-    needs: compatibility
+    needs: [verify-release-ref, compatibility]
     runs-on: ubuntu-latest
     permissions:
       contents: read

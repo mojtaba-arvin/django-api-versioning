@@ -1,6 +1,7 @@
 name: Python tests
 
 on:
+  workflow_call:
   # Validate main after pushes and proposed changes through pull requests targeting main.
   # Use workflow_dispatch for deliberate manual checkpoints.
   workflow_dispatch:
@@ -18,22 +19,6 @@ on:
       - "pytest.ini"
       - ".github/workflows/tests.yml"
       - "!**/*.md"
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
-    branches: [main]
-    paths:
-      - "django_api_versioning/**"
-      - "tests/**"
-      - "integration_test_project/**"
-      - "scripts/verify_distribution_contents.py"
-      - "scripts/smoke_installed_wheel.py"
-      - "requirements.txt"
-      - "requirements-ci.txt"
-      - "pyproject.toml"
-      - "pytest.ini"
-      - ".github/workflows/tests.yml"
-      - "!**/*.md"
-
 permissions:
   contents: read
 
