@@ -153,14 +153,14 @@ def test_timezone_aware_sunset_is_converted_to_utc(monkeypatch):
         2,
         {
             "status": "deprecated",
-            "deprecated_at": DEPRECATED_AT,
+            "deprecated_at": "2030-01-01T12:00:00+03:00",
             "sunset": "2030-01-01T12:00:00+03:00",
         },
     )
     middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
     response = middleware(_request("2"))
 
-    assert response["Deprecation"] == "@1735689600"
+    assert response["Deprecation"] == "@1893488400"
     assert response["Sunset"] == "Tue, 01 Jan 2030 09:00:00 GMT"
 
 
