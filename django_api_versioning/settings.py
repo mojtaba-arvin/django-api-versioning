@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime
 from dataclasses import dataclass, field
+from datetime import datetime
 from string import Formatter
 from typing import Any, Callable
 
