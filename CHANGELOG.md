@@ -8,9 +8,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+## [1.0.0] - 2026-11-16
 
-- Emit the RFC 9745 date-valued `Deprecation` Structured Field from `API_VERSION_LIFECYCLE[*].deprecated_at`; validate lifecycle statuses and ISO 8601 dates at settings initialization, and omit the header with a warning for invalid post-initialization overrides instead of sending the legacy boolean value.
+### Added
+
+- Emit the RFC 9745 date-valued `Deprecation` Structured Field from `API_VERSION_LIFECYCLE[*].deprecated_at`.
+- Add Windows and macOS smoke coverage for Python 3.12 / Django 5.2 alongside the existing 15-environment Linux compatibility matrix.
+
+### Changed
+
+- Validate lifecycle status values and ISO 8601 lifecycle dates during settings initialization. Deprecated versions require `deprecated_at`; retired versions require `sunset`; supported statuses are `active`, `deprecated`, and `retired`.
+- Replace the legacy `Deprecation: true` header with the RFC 9745 date value `Deprecation: @<unix-timestamp>`. The `Sunset` header continues to use the HTTP-date format defined by RFC 8594.
+
+### Migration from 0.3.8
+
+Update every `API_VERSION_LIFECYCLE` entry before upgrading:
+
+- Set `status` to `active`, `deprecated`, or `retired`. Previously omitted or unrecognized values are now configuration errors.
+- Add `deprecated_at` (an ISO 8601 date or datetime) to every deprecated version. This is the actual deprecation date, not the sunset deadline.
+- Keep or add `sunset` (an ISO 8601 date or datetime) for every retired version.
+- Update clients or tests that expect the non-standard `Deprecation: true` value to parse the RFC 9745 Structured Field Date instead.
+
+Example:
+
+```python
+API_VERSION_LIFECYCLE = {
+    1: {
+        "status": "deprecated",
+        "deprecated_at": "2026-01-01T00:00:00+00:00",
+        "sunset": "2027-06-30",
+    },
+    2: {"status": "active"},
+    3: {
+        "status": "retired",
+        "sunset": "2026-06-30",
+    },
+}
+```
+
+The package runtime minimum remains Python 3.10 and Django 4.2. Django REST Framework remains optional and is not a runtime dependency.
 
 ## [0.3.8] - 2026-11-16
 
