@@ -14,6 +14,7 @@ on:
       - ".github/skills/**"
       - ".github/workflows/agent-tooling.yml"
       - "docs/agent-engineering.md"
+      - "requirements-dev.txt"
       - "scripts/agent.py"
       - "scripts/agent_tests/**"
   workflow_dispatch:
@@ -42,6 +43,8 @@ jobs:
 
       - name: Validate agent configuration and helper tests
         run: python scripts/agent.py verify
+      - name: Validate maintainer requirements file
+        run: python -m pip install --dry-run --no-deps --disable-pip-version-check -r requirements-dev.txt
       - name: Enforce repository workflow policy
         run: python scripts/verify_repository_policy.py
       - name: Test pull-request path classification

@@ -123,4 +123,4 @@ The current Astro deployment configuration is:
 - Functions directory: unset/blank; the website does not use Netlify Functions.
 - Netlify root-hosted builds must not set `PUBLIC_BASE_PATH`; it is reserved for GitHub Pages project-site builds.
 
-For GitHub Pages project sites, the current implementation builds with the appropriate `PUBLIC_BASE_PATH` and publishes only `website/dist/`. If the redesign changes the frontend framework or build tooling, update these commands and paths to the new implementation. Both hosting targets must serve the same static application; no host-specific runtime code is permitted.
+For GitHub Pages project sites, the current implementation builds with the appropriate `PUBLIC_BASE_PATH` and publishes only `website/dist/`. The current 400-credit redesign must retain Astro 7.4.12 and the committed dependency lockfile. A future, separately approved framework or build-tool migration must update these commands and paths before implementation. Both hosting targets must serve the same static application; no host-specific runtime code is permitted.

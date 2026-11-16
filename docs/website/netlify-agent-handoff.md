@@ -4,7 +4,7 @@
 
 Start from the current `main` branch. The previous `audit/comprehensive-package-review` branch is superseded by `main` and must not be used as the redesign base. This task is a redesign of the existing documentation website, not a request to preserve its current visual design or frontend implementation.
 
-- Redesign the website freely: the current visual identity, page composition, component tree, layouts, navigation presentation, CSS, and frontend architecture are reference material, not mandatory design constraints.
+- Redesign the website within the existing Astro application: the current visual identity, page composition, component tree, layouts, navigation presentation, CSS, and client-side interactions are reference material, not mandatory design constraints.
 - Preserve the agreed ten homepage content responsibilities, the canonical article corpus, verified package behavior, real Segment Lab evidence and provenance, required user-facing capabilities, accessibility expectations, and static-hosting behavior.
 - For this 400-credit redesign, retain the existing Astro 7.4.12 application and committed dependency lockfile. Redesign and reorganize its visual system, components, layouts, interactions, and styles freely, but do not migrate frameworks, upgrade dependencies, or introduce a new frontend stack. A migration is outside this task and requires separate approval.
 - Preserve the existing Django integration project and Segment Lab. The recovered scenario code is already integrated into `integration_test_project/segment_lab/`; use its generator and tests. Do not create a parallel `tools/` Django project.

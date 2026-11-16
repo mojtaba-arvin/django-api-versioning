@@ -50,7 +50,7 @@ The suite is intentionally not an LLM-as-judge pipeline. It can be used across c
 
 ## Historical behavior lessons
 
-The review of the 418 newest commits on this branch is recorded in [docs/agent-history-audit-418.md](agent-history-audit-418.md). Its recurring findings are now guardrails: avoid duplicate status trackers, batch formatting and related workflow edits, preserve generated-evidence timestamps when content is unchanged, and attribute automation commits to the GitHub Actions bot.
+The historical review of 418 commits from 2026-11-14 through 2026-11-15 on `audit/comprehensive-package-review` is recorded in [docs/agent-history-audit-418.md](agent-history-audit-418.md). It is a bounded interval, not a review of the complete repository history. Its recurring findings are now guardrails: avoid duplicate status trackers, batch formatting and related workflow edits, preserve generated-evidence timestamps when content is unchanged, and attribute automation commits to the GitHub Actions bot. The broader 651-commit repository evolution review is recorded in [docs/repository-evolution-audit.md](repository-evolution-audit.md).
 
 ## Format references
 

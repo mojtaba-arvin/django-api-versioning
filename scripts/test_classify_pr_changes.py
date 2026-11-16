@@ -43,6 +43,13 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         result = classify_paths([".github/dependabot.yml"])
         self.assertTrue(result["agent"])
 
+    def test_developer_requirements_change_runs_agent_and_dependency_checks(self):
+        result = classify_paths(["requirements-dev.txt"])
+        self.assertTrue(result["python"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["dependency"])
+        self.assertTrue(result["agent"])
+
     def test_github_settings_script_runs_agent_validation(self):
         result = classify_paths(["scripts/configure_github_repository.sh"])
         self.assertTrue(result["agent"])
