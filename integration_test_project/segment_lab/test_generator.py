@@ -138,9 +138,7 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
     assert scenarios["order_reversed"]["matrix_equal_to"]["equal"] is True
 
     quick_start = scenarios["website_quick_start"]
-    quick_start_requests = {
-        item["path"]: item for item in quick_start["requests"]
-    }
+    quick_start_requests = {item["path"]: item for item in quick_start["requests"]}
     assert quick_start_requests["/api/v1/invoices/42/"]["status"] == 404
     for version in (2, 3):
         response = quick_start_requests[f"/api/v{version}/invoices/42/"]
@@ -148,7 +146,10 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
         assert response["body"] == {"id": 42, "status": "paid"}
 
     assert main_stdout.strip().startswith("users/:")
-    assert scenarios["website_check_versions"]["check_versions"][0]["stdout"] == main_stdout
+    assert (
+        scenarios["website_check_versions"]["check_versions"][0]["stdout"]
+        == main_stdout
+    )
 
 
 def test_generated_at_is_preserved_when_evidence_content_is_unchanged() -> None:
