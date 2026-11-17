@@ -1,21 +1,21 @@
 ---
 name: website-engineering
-description: Change or verify the static documentation website, content pipeline, generated evidence, accessibility, or deployment behavior.
+description: Change or verify the static documentation website, local article pipeline, static output, or deployment configuration.
 ---
 
 # Website engineering
 
-Use for website source, content-pipeline, generated evidence, accessibility, static output, or deployment work. This skill does not authorize deployment or publishing.
+Use for website source, the repository-local article pipeline, static output, or deployment-configuration work. This skill does not authorize deployment or publishing.
 
 ## Start and scope
 
 1. Run `python scripts/agent.py context website`.
-2. Read `docs/website/architecture.md`. It is the sole canonical source for website-specific hard requirements and design freedom.
+2. Read `website/AGENTS.md` for website-specific constraints. Root `AGENTS.md` remains authoritative for shared policy.
 3. Do not infer requirements from old handoffs, audits, status reports, screenshots, credit budgets, or the current page/component structure.
-4. Inspect the affected website routes, components, scripts, and tests. Verify package claims against current source and executable evidence.
+4. Inspect the affected website routes, components, scripts, and tests. Keep page URLs canonical and consistent: a trailing slash for every HTML route, `/reference/` for the Reference page, and no trailing slash for file URLs such as assets, RSS, sitemap, or robots. Verify package claims against current source and executable evidence.
 
 ## Verification
 
-Run the relevant website tests, static build, and root/base-path checks for the changed scope. Verify changed user-facing flows in a real browser, including responsive behavior, keyboard operation, focus visibility, reduced motion, and the no-JavaScript experience. Build success alone does not prove accessibility or deployment readiness.
+Run the relevant website tests, type checks, static build, and root/base-path distribution checks for the changed scope. Inspect generated files and links against the current static-only architecture. Production builds require the configured public `SITE_URL` origin; never invent the production domain. Verify canonical links, sitemap, robots.txt, legacy redirects, and both root and project-subpath output. Do not treat browser accessibility or responsive audits as required unless the user explicitly brings them into scope.
 
 Report PASS, FAIL, and NOT RUN accurately. Do not publish or deploy without explicit authorization.

@@ -11,8 +11,24 @@ PYTHON_PATHS = (
     "tests/",
     "integration_test_project/",
 )
-WEBSITE_PATHS = ("website/", "docs/articles/")
-AGENT_PATHS = (".agents/", ".claude/", ".github/")
+WEBSITE_PATHS = ("website/", "docs/articles/", "docs/reference/")
+WEBSITE_EXAMPLE_PATHS = {
+    "pyproject.toml",
+    "pytest.ini",
+    "requirements-ci.txt",
+    "requirements.txt",
+    "scripts/verify_distribution_contents.py",
+    "scripts/smoke_installed_wheel.py",
+    "integration_test_project/segment_lab/generate_routes.py",
+    "integration_test_project/segment_lab/scenario_catalog.py",
+}
+AGENT_PATHS = (
+    ".agents/",
+    ".claude/",
+    ".github/",
+    "website/.agents/",
+    "website/.claude/",
+)
 PYTHON_DEPENDENCIES = {
     "pyproject.toml",
     "uv.lock",
@@ -68,15 +84,24 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         }
         for path in normalized
     )
+    # Website examples are verified against the package checkout. A package,
+    # test, or evidence-harness change must therefore run the website gate too.
     is_website = any(
-        path.startswith(WEBSITE_PATHS)
-        or path == ".github/workflows/website-data-preflight.yml"
+        path.startswith(WEBSITE_PATHS + PYTHON_PATHS)
+        or path in WEBSITE_EXAMPLE_PATHS
+        or (path.startswith("requirements") and path.endswith(".txt"))
+        or path
+        in {
+            ".github/workflows/website-data-preflight.yml",
+            "scripts/verify_website_examples.py",
+        }
         for path in normalized
     )
     is_agent = any(
         path
         in {
             "AGENTS.md",
+            "website/AGENTS.md",
             "CLAUDE.md",
             "CONTRIBUTING.md",
             "SECURITY.md",
@@ -95,7 +120,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
     )
     needs_dependency_review = any(
         path in PYTHON_DEPENDENCIES
-        or path in {"website/package.json", "website/package-lock.json"}
+        or path in {"website/package.json", "website/pnpm-lock.yaml"}
         or path.startswith("requirements")
         for path in normalized
     )

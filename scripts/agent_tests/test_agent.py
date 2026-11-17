@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import agent  # noqa: E402
+import verify_repository_policy  # noqa: E402
 
 
 class AgentToolingTests(unittest.TestCase):
@@ -33,14 +34,50 @@ class AgentToolingTests(unittest.TestCase):
 
     def test_website_profile_uses_the_canonical_contract(self) -> None:
         profile = agent.context_profile("website")
-        self.assertIn("docs/website/architecture.md", profile["read"])
+        self.assertIn("website/AGENTS.md", profile["read"])
+        self.assertNotIn("docs/website/architecture.md", profile["read"])
         self.assertFalse(
             any("netlify-agent-handoff.md" in item for item in profile["read"])
         )
 
+    def test_nested_website_skill_registries_are_rejected(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            nested = root / "website/.agents/skills"
+            nested.mkdir(parents=True)
+            errors = agent._validate_nested_website_skills(root)
+            self.assertEqual(len(errors), 1)
+            self.assertIn("website/.agents/skills", errors[0])
+
     def test_unknown_profile_is_rejected(self) -> None:
         with self.assertRaises(KeyError):
             agent.context_profile("everything")
+
+    def test_release_context_does_not_reference_the_old_report_path(self) -> None:
+        profile = agent.context_profile("release")
+        self.assertNotIn("COMPATIBILITY_REPORT.md", profile["read"])
+
+    def test_workflow_security_policy_passes(self) -> None:
+        self.assertEqual(verify_repository_policy.validate(), [])
+
+    def test_root_permissions_parser_is_bounded_and_exact(self) -> None:
+        self.assertTrue(
+            verify_repository_policy._has_root_contents_read(
+                "name: Check\npermissions:\n  contents: read\njobs:\n  test:"
+            )
+        )
+        self.assertFalse(
+            verify_repository_policy._has_root_contents_read(
+                "name: Check\npermissions:\n  contents: write\njobs:\n  test:"
+            )
+        )
+        self.assertFalse(
+            verify_repository_policy._has_root_contents_read(
+                "name: Check\npermissions:\n" + ("\t\t\n" * 10000) + "jobs:"
+            )
+        )
 
     def test_skill_reference_links_must_exist_and_stay_inside_repository(self) -> None:
         from tempfile import TemporaryDirectory

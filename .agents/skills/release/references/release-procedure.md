@@ -65,7 +65,7 @@ If technical behavior changed, identify affected articles and ask the user wheth
 
 Update only exact package-version references, such as `django-api-versioning==OLD`, `>=OLD`, `~=OLD`, or package dependency declarations. Do not replace unrelated Django, Python, DRF, or API version numbers. Report remaining occurrences of `OLD_VERSION` not adjacent to the package name; do not auto-rewrite ambiguous references.
 
-Update `README.md` or `COMPATIBILITY_REPORT.md` only when their actual content is stale and available evidence supports the correction. Configured environments are not evidence that they passed.
+Update `README.md` only when its actual content is stale and available evidence supports the correction. Historical compatibility reports under `docs/reports/` are immutable evidence; do not rewrite them to reflect current matrix configuration or results. Configured environments are not evidence that they passed.
 
 ## 4. Prepare one coherent release change
 

@@ -13,6 +13,13 @@ Declare an endpoint with `@endpoint`, and the package generates its versioned UR
 
 No manually maintained `path()` declarations for every API version. No need to duplicate unchanged endpoint registrations when a new version is introduced.
 
+## Documentation
+
+- **Start here:** this README contains the installation guide and Quick Start.
+- **Reference:** [canonical Markdown source](docs/reference/index.md).
+- **Detailed routing contract:** [docs/reference/versioning-contract.md](docs/reference/versioning-contract.md).
+- **Documentation map and source-of-truth rules:** [docs/README.md](docs/README.md).
+
 ## "I need to change the response. v1 clients must not break."
 
 You shipped v1 with a string amount. Now the team needs integer cents and an explicit currency code. Changing the existing view would break clients that still depend on the v1 response contract.
@@ -146,7 +153,7 @@ Requirements:
 - Python >= 3.10
 - Django >= 4.2
 
-The automated compatibility matrix currently verifies Django 4.2, 5.2, 6.0, and 6.1 across the Python combinations listed in [`COMPATIBILITY_REPORT.md`](COMPATIBILITY_REPORT.md). Django 5.0 and 5.1 are not part of the verified matrix.
+The configured CI compatibility matrix is defined in [`tox.ini`](tox.ini) and checked against the [GitHub Actions workflow](.github/workflows/). It currently covers Django 4.2, 5.2, 6.0, and 6.1; Django 5.0 and 5.1 are not included. A configured environment is not evidence that a particular commit passed—check the [workflow runs](https://github.com/mojtaba-arvin/django-api-versioning/actions) for the result tied to the commit you are evaluating.
 
 Django REST Framework is optional. The package can be used with Django-native function-based and class-based views without installing DRF.
 
@@ -738,75 +745,7 @@ This allows the middleware to identify versions from the package's static versio
 
 ## Configuration reference
 
-### Django settings
-
-| Setting | Default | Description |
-| --- | --- | --- |
-| `API_BASE_PATH` | `"api/v{version}/"` | Base path template for versioned routes. Must contain exactly one plain `{version}` format field and no other format fields. |
-| `API_MIN_VERSION` | `1` | Lowest valid route version. |
-| `API_MAX_VERSION` | `1` | Highest valid route version. |
-| `API_VERSION_LIFECYCLE` | `{}` | Per-version lifecycle metadata. |
-| `API_VERSIONING_CHANNELS` | `["path"]` | Validated channel configuration; not currently used by the route registry. |
-| `API_EFFECTIVE_VERSION_RESOLVER` | `None` | Validated callable configuration; not currently used for route selection. |
-
-`API_BASE_PATH` is normalized to end with `/` if necessary.
-
-`API_MIN_VERSION` and `API_MAX_VERSION` must be integers, and the minimum cannot exceed the maximum. Boolean values are not accepted as version integers.
-
-### `@endpoint` arguments
-
-| Argument | Type | Default | Purpose |
-| --- | --- | --- | --- |
-| `postfix` (positional) | `str` | Required | Resource path, e.g. `"users/"` or `"users/<int:pk>/"`. |
-| `version` | `int \| None` | `None` | Registers a forward segment starting at this version. |
-| `versions` | `list[int] \| None` | `None` | Registers only the explicitly specified versions. |
-| `app_name` | `str \| None` | `None` | Optional path segment for grouping. |
-| `view_name` | `str \| None` | `None` | URL name used by `api_reverse()`. |
-
-Examples:
-
-```python
-@endpoint("users/", version=1)
-def user_list_v1(request):
-    ...
-
-
-@endpoint("users/", versions=[1, 3])
-def user_list_v1_and_v3(request):
-    ...
-
-
-@endpoint("users/", versions=ver_range(1, 3))
-def user_list_v1_to_v3(request):
-    ...
-
-
-@endpoint("health/")
-def health_check(request):
-    ...
-```
-
-**Registration rules:**
-
-- `version` and `versions` are mutually exclusive. Providing both raises `VersionRangeError`.
-- If neither is provided, the endpoint is registered as unversioned.
-- `version=N` registers the endpoint for versions `N` through `API_MAX_VERSION`.
-- `versions=[...]` registers the endpoint only for the listed versions.
-- `ver_range(start, end)` returns an inclusive list of integer versions.
-- Version identifiers must be integers. Boolean values are rejected.
-- A version greater than `API_MAX_VERSION` raises `InvalidVersionError`.
-- A source version below `API_MIN_VERSION` produces a warning and no routes are registered for that declaration.
-- Explicit versions below `API_MIN_VERSION` are warned about and skipped.
-
-**Collision resolution:**
-
-When two declarations produce the same complete route string:
-
-1. The declaration with the higher integer `source_version` takes precedence.
-2. If the source versions are equal, the last registration wins.
-3. If either source version is `None`, the last registration wins.
-
-Avoid relying on import order as an implicit policy when multiple modules declare the same route and source version.
+The current settings defaults, `@endpoint` arguments, validation rules, exception list, and management command examples are maintained in the [canonical Reference](docs/reference/index.md). For the complete routing semantics, see the [routing contract](docs/reference/versioning-contract.md).
 
 ## Supported views and ViewSets
 

@@ -6,15 +6,28 @@ from scripts.classify_pr_changes import classify_paths
 
 
 class ClassifyPullRequestChangesTests(unittest.TestCase):
-    def test_package_source_runs_python_compatibility_and_artifacts(self):
+    def test_package_source_runs_python_compatibility_artifacts_and_website(self):
         result = classify_paths(["django_api_versioning/registry.py"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["package"])
-        self.assertFalse(result["website"])
+        self.assertTrue(result["website"])
+
+    def test_integration_evidence_changes_run_website_verification(self):
+        result = classify_paths(
+            ["integration_test_project/segment_lab/scenario_catalog.py"]
+        )
+        self.assertTrue(result["python"])
+        self.assertTrue(result["website"])
 
     def test_article_change_runs_only_website(self):
         result = classify_paths(["docs/articles/versioning.md"])
+        self.assertTrue(result["website"])
+        self.assertFalse(result["python"])
+        self.assertFalse(result["package"])
+
+    def test_reference_source_change_runs_website_checks(self):
+        result = classify_paths(["docs/reference/index.md"])
         self.assertTrue(result["website"])
         self.assertFalse(result["python"])
         self.assertFalse(result["package"])
@@ -25,6 +38,21 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["dependency"])
         self.assertFalse(result["python"])
 
+    def test_website_agent_instructions_run_website_and_agent_validation(self):
+        result = classify_paths(["website/AGENTS.md"])
+        self.assertTrue(result["website"])
+        self.assertTrue(result["agent"])
+
+    def test_website_pnpm_lock_runs_dependency_review(self):
+        result = classify_paths(["website/pnpm-lock.yaml"])
+        self.assertTrue(result["website"])
+        self.assertTrue(result["dependency"])
+
+    def test_nested_website_agent_files_run_agent_validation(self):
+        result = classify_paths(["website/.agents/skills/obsolete/SKILL.md"])
+        self.assertTrue(result["website"])
+        self.assertTrue(result["agent"])
+
     def test_agent_and_workflow_changes_run_agent_validation(self):
         result = classify_paths(
             ["AGENTS.md", ".github/workflows/pull-request-gate.yml"]
@@ -32,12 +60,13 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["agent"])
         self.assertFalse(result["python"])
 
-    def test_pyproject_runs_all_python_release_checks_and_dependency_review(self):
+    def test_pyproject_runs_all_python_release_checks_and_website_verification(self):
         result = classify_paths(["pyproject.toml"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["package"])
         self.assertTrue(result["dependency"])
+        self.assertTrue(result["website"])
 
     def test_workflow_policy_updates_run_agent_validation(self):
         result = classify_paths([".github/dependabot.yml"])
@@ -50,12 +79,14 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["package"])
         self.assertTrue(result["agent"])
         self.assertTrue(result["dependency"])
+        self.assertTrue(result["website"])
 
     def test_all_requirements_files_run_python_and_compatibility_checks(self):
         result = classify_paths(["requirements-extra.txt"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["dependency"])
+        self.assertTrue(result["website"])
 
     def test_package_support_files_run_python_and_artifact_checks(self):
         result = classify_paths(
@@ -68,6 +99,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         )
         self.assertTrue(result["python"])
         self.assertTrue(result["package"])
+        self.assertTrue(result["website"])
 
     def test_reusable_workflow_files_trigger_their_matching_checks(self):
         cases = {

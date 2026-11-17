@@ -69,7 +69,6 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
         "read": [
             "pyproject.toml",
             "CHANGELOG.md",
-            "COMPATIBILITY_REPORT.md",
             ".github/workflows/compatibility.yml",
             ".github/workflows/package-artifacts.yml",
             ".github/workflows/publish.yml",
@@ -82,7 +81,7 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
     "website": {
         "skill": ".agents/skills/website-engineering/SKILL.md",
         "read": [
-            "docs/website/architecture.md",
+            "website/AGENTS.md",
             "affected website source and tests",
             "relevant website workflows",
         ],
@@ -355,10 +354,22 @@ def _validate_evaluation_suite(root: Path) -> list[str]:
     return errors
 
 
+def _validate_nested_website_skills(root: Path) -> list[str]:
+    """Keep all canonical skill discovery at the repository root."""
+    errors: list[str] = []
+    for relative in ("website/.agents/skills", "website/.claude/skills"):
+        if (root / relative).exists():
+            errors.append(
+                f"{relative} is not allowed; use root .agents/skills and client adapters"
+            )
+    return errors
+
+
 def validate_tree(root: Path = ROOT) -> list[str]:
     """Validate instructions, skills, client adapters, and evaluation cases."""
     root = root.resolve()
     errors = _validate_instruction_budgets(root)
+    errors.extend(_validate_nested_website_skills(root))
     canonical, skill_errors = _validate_canonical_skills(root)
     errors.extend(skill_errors)
     errors.extend(_validate_claude_adapters(root, canonical))

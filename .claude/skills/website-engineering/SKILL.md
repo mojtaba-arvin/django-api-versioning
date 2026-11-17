@@ -1,6 +1,6 @@
 ---
 name: website-engineering
-description: Change or verify the static documentation website, content pipeline, generated evidence, accessibility, or deployment behavior.
+description: Change or verify the static documentation website, local article pipeline, static output, or deployment configuration.
 ---
 
 # website-engineering

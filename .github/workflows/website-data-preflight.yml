@@ -1,16 +1,23 @@
-name: Website build and static verification
+name: Website static build and distribution checks
 
 on:
   workflow_call:
-  # Run once when a PR enters review; use workflow_dispatch for later checkpoints.
-  # Validate relevant website, article, and dependency changes on main and PRs.
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "website/**"
       - "docs/articles/**"
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - "requirements-ci.txt"
+      - "requirements.txt"
+      - "scripts/verify_website_examples.py"
       - ".github/workflows/website-data-preflight.yml"
+
 permissions:
   contents: read
 
@@ -21,40 +28,56 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: Install Python evidence dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-ci.txt
+      - name: Verify package-backed website examples and generated evidence
+        run: |
+          python integration_test_project/segment_lab/generate_routes.py
+          python scripts/verify_website_examples.py
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
         with:
           node-version: "22.23.4"
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.12.1 --activate
       - name: Install locked dependencies
         working-directory: website
-        run: npm ci
-      - name: Validate scripts and unit tests
+        run: pnpm install --frozen-lockfile
+      - name: Validate build scripts and run unit/distribution tests
         working-directory: website
         run: |
           node --check scripts/sync-articles.mjs
-          node --check scripts/sync-evidence.mjs
+          node --check scripts/sync-reference.mjs
           node --check scripts/check-dist.mjs
-          node --check scripts/serve-dist.mjs
-          npm test
-      - name: Run Astro type and content checks
+          node --check scripts/check-dist.test.mjs
+          pnpm test
+      - name: Type-check website
         working-directory: website
-        run: npm run check
-      - name: Build and inspect root-hosted artifact
+        run: pnpm typecheck
+      - name: Build and verify root-hosted static artifact
         working-directory: website
+        env:
+          PUBLIC_BASE_PATH: /
+          SITE_URL: https://example.invalid
         run: |
-          npm run build
-          npm run test:dist
-      - name: Build and inspect GitHub Pages project-site artifact
+          pnpm build
+          pnpm run test:dist:root
+      - name: Build and verify GitHub Pages project-site artifact
         working-directory: website
         env:
           PUBLIC_BASE_PATH: /django-api-versioning
+          SITE_URL: https://example.invalid
         run: |
-          npm run build
-          npm run test:dist
+          pnpm build
+          pnpm run test:dist:subpath

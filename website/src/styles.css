@@ -1,0 +1,282 @@
+@import 'tailwindcss' source('../');
+
+@theme {
+  --color-ink: #08120e;
+  --color-ink-2: #0d1b15;
+  --color-ink-3: #13261d;
+  --color-line: #1f3a2d;
+  --color-paper: #ecf3ee;
+  --color-mute: #8fa89b;
+  --color-leaf: #44b78b;
+  --color-leaf-2: #7fdcb3;
+  --color-amber: #f2b84b;
+  --color-rose: #f07a6a;
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-leaf);
+  color: var(--color-ink);
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgb(68 183 139 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(68 183 139 / 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.glow {
+  background: radial-gradient(
+    60% 60% at 50% 0%,
+    rgb(68 183 139 / 0.22),
+    transparent 70%
+  );
+}
+
+.eyebrow {
+  @apply font-mono text-xs uppercase tracking-[0.2em] text-leaf;
+}
+
+.section-title {
+  @apply font-display text-3xl font-semibold tracking-tight text-paper sm:text-4xl;
+}
+
+.btn {
+  @apply inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-leaf;
+}
+
+.btn-primary {
+  @apply bg-leaf text-ink hover:bg-leaf-2;
+}
+
+.btn-ghost {
+  @apply border border-line text-paper hover:border-leaf hover:text-leaf-2;
+}
+
+.card {
+  @apply rounded-2xl border border-line bg-ink-2;
+}
+
+.inline-code {
+  @apply rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[0.85em] text-leaf-2;
+}
+
+.tok-kw {
+  color: #f2b84b;
+}
+.tok-str {
+  color: #9be3bf;
+}
+.tok-com {
+  color: #5f7a6c;
+  font-style: italic;
+}
+.tok-dec {
+  color: #7fdcb3;
+  font-weight: 600;
+}
+.tok-num {
+  color: #f0a58f;
+}
+.tok-fn {
+  color: #b9c9ff;
+}
+
+.tok-prompt {
+  color: var(--color-leaf);
+  user-select: none;
+}
+
+/* Rendered markdown for /articles/* */
+.prose-article {
+  @apply text-[1.02rem] leading-[1.8] text-paper/90;
+}
+.prose-article > * + * {
+  @apply mt-5;
+}
+.prose-article h2 {
+  @apply mt-14 font-display text-2xl font-semibold tracking-tight text-paper sm:text-3xl;
+}
+.prose-article h3 {
+  @apply mt-10 font-display text-xl font-semibold tracking-tight text-paper;
+}
+.prose-article h4,
+.prose-article h5,
+.prose-article h6 {
+  @apply mt-8 font-semibold text-paper;
+}
+.prose-article h2,
+.prose-article h3,
+.prose-article h4 {
+  @apply relative;
+}
+.prose-article .anchor {
+  @apply absolute -left-6 font-mono text-leaf no-underline opacity-0 transition;
+}
+.prose-article :is(h2, h3, h4):hover .anchor {
+  @apply opacity-100;
+}
+.prose-article a {
+  @apply text-leaf-2 underline decoration-leaf/40 underline-offset-4 hover:decoration-leaf-2;
+}
+.prose-article strong {
+  @apply font-semibold text-paper;
+}
+.prose-article ul {
+  @apply list-disc space-y-2 pl-6 marker:text-leaf;
+}
+.prose-article ol {
+  @apply list-decimal space-y-2 pl-6 marker:text-leaf;
+}
+.prose-article li > ul,
+.prose-article li > ol {
+  @apply mt-2;
+}
+.prose-article blockquote {
+  @apply rounded-r-xl border-l-2 border-leaf bg-ink-2 px-5 py-4 text-mute;
+}
+.prose-article blockquote > * + * {
+  @apply mt-3;
+}
+.prose-article hr {
+  @apply my-12 border-line;
+}
+.prose-article :not(pre) > code {
+  @apply rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[0.85em] text-leaf-2;
+}
+.prose-article .article-code {
+  @apply m-0 mt-6 overflow-hidden rounded-2xl border border-line bg-ink-2;
+}
+.prose-article .article-code figcaption {
+  @apply flex items-center justify-between border-b border-line bg-ink-3/60 px-4 py-2 font-mono text-xs text-mute;
+}
+.prose-article .copy-code {
+  @apply cursor-pointer rounded-md border border-line bg-transparent px-2 py-1 font-mono text-[11px] text-mute transition hover:border-leaf hover:text-leaf-2;
+}
+.prose-article pre {
+  @apply m-0 overflow-x-auto p-4 text-[13px] leading-relaxed text-paper;
+}
+.prose-article .table-wrap {
+  @apply overflow-x-auto rounded-2xl border border-line;
+}
+.prose-article table {
+  @apply w-full border-collapse text-left text-sm;
+}
+.prose-article th {
+  @apply border-b border-line bg-ink-2 px-4 py-3 font-semibold text-paper;
+}
+.prose-article td {
+  @apply border-b border-line/60 px-4 py-3 align-top text-mute;
+}
+.prose-article tr:last-child td {
+  @apply border-b-0;
+}
+
+
+/* Rendered canonical Markdown for /docs, styled to match the existing Reference page. */
+.prose-reference {
+  @apply text-[0.95rem] leading-relaxed text-paper/90;
+}
+.prose-reference > * + * {
+  @apply mt-5;
+}
+.prose-reference h2 {
+  @apply mt-16 font-display text-2xl font-semibold tracking-tight text-paper sm:text-3xl;
+}
+.prose-reference h2:first-child {
+  @apply mt-0;
+}
+.prose-reference .reference-heading-link {
+  @apply text-paper no-underline;
+}
+.prose-reference .reference-heading-mark {
+  @apply text-line;
+}
+.prose-reference p {
+  @apply text-mute;
+}
+.prose-reference ul {
+  @apply list-disc space-y-2 pl-5 text-mute marker:text-leaf;
+}
+.prose-reference .reference-table {
+  @apply overflow-x-auto rounded-2xl border border-line bg-ink-2;
+}
+.prose-reference .reference-table table {
+  @apply w-full text-left text-sm;
+}
+.prose-reference .reference-table thead {
+  @apply border-b border-line bg-ink-3/60 text-xs uppercase tracking-wider text-mute;
+}
+.prose-reference .reference-table th {
+  @apply px-4 py-3 font-medium;
+}
+.prose-reference .reference-table td {
+  @apply px-4 py-3 align-top text-mute;
+}
+.prose-reference .reference-table tbody tr + tr {
+  @apply border-t border-line;
+}
+.prose-reference .reference-table td:first-child {
+  @apply whitespace-nowrap font-mono text-leaf-2;
+}
+.prose-reference .reference-table table[data-columns='3'] td:nth-child(2) {
+  @apply whitespace-nowrap font-mono text-paper;
+}
+.prose-reference .reference-code .reference-copy {
+  @apply cursor-pointer rounded-md border border-line bg-transparent px-2 py-1 font-mono text-[11px] text-mute transition hover:border-leaf hover:text-leaf-2;
+}
+.prose-reference .reference-code pre {
+  @apply m-0 overflow-x-auto p-4 text-[13px] leading-relaxed text-paper;
+}
+.prose-reference :not(pre) > code {
+  @apply rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[0.85em] text-leaf-2;
+}
+.prose-reference a {
+  @apply text-leaf-2 underline decoration-leaf/40 underline-offset-4 hover:decoration-leaf-2;
+}
+.prose-reference strong {
+  @apply font-semibold text-paper;
+}
+
+
+:focus-visible {
+  outline: 2px solid var(--color-leaf);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

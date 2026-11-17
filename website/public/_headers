@@ -1,0 +1,8 @@
+# Static documents and public files must revalidate after every deployment.
+# This applies to HTML, favicon.svg, rss.xml, and other unhashed public assets.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Vite-generated assets use content hashes in their filenames. Their URLs are immutable.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

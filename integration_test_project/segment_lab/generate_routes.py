@@ -4,7 +4,7 @@ Bootstrap the Segment Lab Django project, record what django-api-versioning
 actually does, and write:
 
   ../../website/src/data/generated/routes.json          every recorded scenario
-  ../../website/src/data/generated/check_versions_output.txt  main-scenario CLI output
+  ../../website/src/data/generated/check_versions_output.txt  website-example CLI output
 
 Usage (from anywhere):
 
@@ -482,15 +482,15 @@ def build() -> tuple[dict, str]:
         },
         "scenarios": {},
     }
-    main_stdout = ""
+    website_cli_stdout = ""
     for name, spec in SCENARIOS.items():
         print(f"  recording {name} ...", file=sys.stderr)
         probe = run_probe(name)
         cv = [run_check_versions(name, [])]
         for variant in spec.get("check_versions_variants", []):
             cv.append(run_check_versions(name, variant))
-        if name == "main":
-            main_stdout = cv[0]["stdout"]
+        if name == "website_check_versions":
+            website_cli_stdout = cv[0]["stdout"]
         data["scenarios"][name] = {
             "title": spec["title"],
             "question": spec["question"],
@@ -511,7 +511,7 @@ def build() -> tuple[dict, str]:
                 "equal": data["scenarios"][name]["build_version_matrix"]
                 == data["scenarios"][other]["build_version_matrix"],
             }
-    return data, main_stdout
+    return data, website_cli_stdout
 
 
 def _strip_volatile(data: dict) -> dict:
@@ -539,7 +539,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    data, main_stdout = build()
+    data, website_cli_stdout = build()
     if ROUTES_JSON.exists():
         existing = json.loads(ROUTES_JSON.read_text())
         if isinstance(existing, dict):
@@ -550,14 +550,14 @@ def main() -> None:
         stale = _strip_volatile(current) != _strip_volatile(json.loads(text))
         stale |= (
             not CHECK_VERSIONS_TXT.exists()
-            or CHECK_VERSIONS_TXT.read_text() != main_stdout
+            or CHECK_VERSIONS_TXT.read_text() != website_cli_stdout
         )
         print("stale" if stale else "up to date")
         raise SystemExit(1 if stale else 0)
 
     ROUTES_JSON.parent.mkdir(parents=True, exist_ok=True)
     ROUTES_JSON.write_text(text)
-    CHECK_VERSIONS_TXT.write_text(main_stdout)
+    CHECK_VERSIONS_TXT.write_text(website_cli_stdout)
     src = data["source"]
     print(
         f"wrote {ROUTES_JSON.relative_to(REPO_ROOT)} and {CHECK_VERSIONS_TXT.relative_to(REPO_ROOT)}\n"

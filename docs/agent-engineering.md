@@ -13,6 +13,18 @@ This document records the integration map only. Shared repository rules live in 
 
 Client adapters carry only discovery metadata and a pointer. Do not copy workflow bodies between clients.
 
+## Instruction ownership and scope
+
+- Root `AGENTS.md` is the shared repository contract. Scoped instruction files such as `website/AGENTS.md` may add constraints for their subtree but cannot override root safety, Git, release, or contribution policy.
+- All task skills are canonicalized in the repository-root `.agents/skills/`; Claude and Copilot entries are thin adapters. Do not create nested `.agents/skills/` or `.claude/skills/` registries inside projects.
+- Website-specific implementation constraints live in `website/AGENTS.md`; website work uses the root `website-engineering` skill. Framework starter notes that describe removed integrations are not project policy and must not be copied into the repository.
+
+## Workflow permissions and automation commits
+
+- Every GitHub Actions workflow defaults to `contents: read`; third-party Actions are pinned to full commit SHAs.
+- The manually dispatched evidence workflow generates and verifies artifacts in a read-only job with checkout credentials disabled. A separate commit-only job receives `contents: write`, does not run repository code, verifies that the branch still points to the triggering SHA, and uses a normal fast-forward push.
+- Only the PyPI publication job receives `id-token: write`. Deterministic repository policy checks enforce these boundaries.
+
 ## Progressive disclosure
 
 1. Load concise shared instructions and skill metadata.
@@ -50,7 +62,7 @@ The suite is intentionally not an LLM-as-judge pipeline. It can be used across c
 
 ## Historical behavior lessons
 
-The historical review of 418 commits from 2026-11-14 through 2026-11-15 on `audit/comprehensive-package-review` is recorded in [docs/agent-history-audit-418.md](agent-history-audit-418.md). It is a bounded interval, not a review of the complete repository history. Its recurring findings are now guardrails: avoid duplicate status trackers, batch formatting and related workflow edits, preserve generated-evidence timestamps when content is unchanged, and attribute automation commits to the GitHub Actions bot. The broader 651-commit repository evolution review is recorded in [docs/repository-evolution-audit.md](repository-evolution-audit.md).
+Historical review findings adopted as operating guardrails: avoid duplicate status trackers, batch formatting and related workflow edits, preserve generated-evidence timestamps when content is unchanged, and attribute automation commits to the GitHub Actions bot. The actionable rules belong in the root instructions, canonical skills, and deterministic checks—not in unmaintained audit snapshots.
 
 ## Format references
 

@@ -28,6 +28,35 @@ DRF_BASE = {
 }
 
 SCENARIOS: dict[str, dict] = {
+    "website_quick_start": {
+        "title": "Website quick-start endpoint example",
+        "question": "Does the website's documented DRF endpoint example register and serve the expected versions?",
+        "views": "segment_lab.scenarios.website_quick_start",
+        "settings": {
+            "API_MAX_VERSION": 3,
+            "ROOT_URLCONF": "segment_lab.website_urls",
+            "REST_FRAMEWORK": dict(DRF_BASE),
+        },
+        "requests": [
+            "/api/v1/invoices/42/",
+            "/api/v2/invoices/42/",
+            "/api/v3/invoices/42/",
+        ],
+        "reverse": [],
+    },
+    "website_check_versions": {
+        "title": "Website check_versions example",
+        "question": "What does the documented check_versions example print for a forward endpoint declaration?",
+        "views": "segment_lab.scenarios.website_check_versions",
+        "settings": {"API_MAX_VERSION": 4},
+        "requests": [
+            "/api/v1/users/",
+            "/api/v2/users/",
+            "/api/v3/users/",
+            "/api/v4/users/",
+        ],
+        "reverse": [],
+    },
     "main": {
         "title": "Contract change at v3",
         "question": "What does the registry contain after /users/ gets a new v3 view?",

@@ -18,7 +18,7 @@ Use only when changing the agent system itself: shared instructions, skill metad
 6. Update representative scenarios in `.agents/evals/scenarios.json` when an observed agent failure or important workflow is added. Scenarios are human/model-run acceptance tests, not automated proof of model quality.
 7. Avoid duplicate roadmap/progress/implementation-status files and commit-per-file formatting loops. Preserve one canonical owner for each fact; use task updates rather than permanent status trackers.
 8. For GitHub Actions-generated commits, use the `github-actions[bot]` identity so automation is not misattributed to the maintainer.
-9. Run `python scripts/agent.py verify`, inspect its exact output, parse changed workflows, and review the full diff.
+9. Run `python scripts/agent.py verify` and `python scripts/verify_repository_policy.py`, inspect their exact output, parse changed workflows, and review the full diff. Any workflow with write permissions must be isolated from repository-code execution and covered by a deterministic policy check.
 
 ## Performance acceptance
 
