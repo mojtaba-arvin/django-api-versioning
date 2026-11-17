@@ -377,6 +377,7 @@ Configure lifecycle metadata in Django settings:
 API_VERSION_LIFECYCLE = {
     1: {
         "status": "deprecated",
+        "deprecated_at": "2026-12-01T00:00:00+00:00",
         "sunset": "2027-06-01",
     },
     2: {
@@ -401,10 +402,10 @@ For a request whose version has matching lifecycle metadata, the middleware beha
 | Lifecycle metadata | Behavior |
 | --- | --- |
 | `status="active"` | No lifecycle headers are added |
-| `status="deprecated"` without `sunset` | Adds `Deprecation: true` to the downstream response |
-| `status="deprecated"` with a future `sunset` | Adds `Deprecation: true` and a `Sunset` HTTP-date header |
-| Any status with a past `sunset` | Returns `410 Gone` before calling the downstream view |
-| `status="retired"` without a past `sunset` | Does not, by itself, return `410 Gone` |
+| `status="deprecated"` with `deprecated_at` | Adds the RFC 9745 date-valued `Deprecation` header |
+| `status="deprecated"` with `deprecated_at` and a future `sunset` | Adds `Deprecation` and a `Sunset` HTTP-date header |
+| Any valid lifecycle entry with a past `sunset` | Returns `410 Gone` before calling the downstream view |
+| `status="retired"` with a future `sunset` | Does not add deprecation headers or return `410 Gone` yet |
 
 The middleware identifies the version using this priority:
 
@@ -418,17 +419,17 @@ There is an important integration detail for DRF: Django middleware runs before 
 
 ### Deprecation header standards
 
-The lifecycle middleware currently emits:
+A version configured as `deprecated` must include `deprecated_at` as an ISO 8601 date or datetime. The middleware emits that date as the RFC 9745 Structured Field value, for example:
 
 ```http
-Deprecation: true
+Deprecation: @1796083200
 ```
 
-This is a legacy draft-style value, not the date-based value specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html). Check the [current lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py) for the exact header behavior. Applications requiring RFC 9745 compliance need to provide the appropriate date-valued header themselves or use an implementation that supports it.
+This is the date-valued form specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html), not the legacy `Deprecation: true` value. Check the [v1.0.0 lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/lifecycle.py) for the exact header behavior.
 
 The `Sunset` header is generated as an HTTP-date from the configured ISO date. The middleware returns `410 Gone` when the configured sunset date is in the past. That enforcement is based on the date, not on `status="retired"`.
 
-The middleware does not add a `Link` header pointing to a deprecation policy or migration guide. If your API needs that link or RFC 9745-compliant deprecation metadata, implement the additional response behavior in your application.
+The middleware does not add a `Link` header pointing to a deprecation policy or migration guide. Implement those links in your application when clients need a migration guide or resource-specific successor URL.
 
 ## Verify the setup
 
