@@ -522,7 +522,7 @@ API_VERSION_LIFECYCLE = {
 }
 ```
 
-For a version configured with `status="deprecated"`, the middleware adds a `Deprecation` header. If a sunset date is configured, it also adds a `Sunset` header.
+For a version configured with `status="deprecated"` and a valid `deprecated_at` date, the middleware adds the date-valued `Deprecation` header. If a `sunset` date is also configured, it adds a `Sunset` header.
 
 A deprecated lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The package emits that date as the RFC 9745 Structured Field value, such as `Deprecation: @1796083200`; it no longer emits the legacy `Deprecation: true` value. The optional `sunset` value is emitted in the HTTP-date format defined by RFC 8594. See the [v1.0.0 lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/lifecycle.py) and [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#12-version-lifecycle-headers).
 
