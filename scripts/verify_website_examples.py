@@ -19,11 +19,7 @@ EXCEPTIONS = ROOT / "django_api_versioning" / "exceptions.py"
 SETTINGS = ROOT / "django_api_versioning" / "settings.py"
 DECORATORS = ROOT / "django_api_versioning" / "decorators.py"
 MIGRATE_COMMAND = (
-    ROOT
-    / "django_api_versioning"
-    / "management"
-    / "commands"
-    / "migrate_endpoints.py"
+    ROOT / "django_api_versioning" / "management" / "commands" / "migrate_endpoints.py"
 )
 
 
