@@ -1,3 +1,6 @@
 # Generated article copies and RSS feed are rebuilt from repository sources.
 /public/rss.xml
+/public/sitemap.xml
+/public/robots.txt
+/public/_redirects
 /content/reference/

@@ -65,7 +65,7 @@ exit "$TOX_EXIT"
 - Confirm the real exit status; a summary count alone is insufficient.
 - Verify lint separately. For test environments, confirm both unit and integration invocations ran and passed.
 - Classify interpreter/plugin/dependency failures as setup failures and pytest failures as test failures.
-- Update `COMPATIBILITY_REPORT.md` only after a complete successful Full run. Preserve its format and derive every value from that run. Record source commit, package version, resolved dependency versions, command, timestamp, and exit status.
+- Do not overwrite historical compatibility reports. `docs/reports/compatibility-0.3.8.md` is immutable release evidence, not a current results file. Report current matrix results against the exact commit and workflow run; create a new versioned report only when the user explicitly requests one.
 - Never change compatibility claims based only on configured environments.
 
 ## Change-to-check map

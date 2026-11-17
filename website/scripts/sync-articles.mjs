@@ -1,4 +1,4 @@
-// Copy the canonical repository article corpus and generate the static RSS feed.
+// Copy the canonical repository article corpus and generate static discovery metadata.
 // Usage: pnpm run sync:articles
 import { copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -35,6 +35,7 @@ function articleMetadata(file, raw) {
   const frontmatter = match[1]
   const body = raw.slice(match[0].length)
   const slug = scalar(frontmatter, 'slug') || file.replace(/\.md$/, '')
+  if (!/^[a-z0-9-]+$/.test(slug)) throw new Error('Article slug must be lowercase URL-safe text in ' + file)
   const title = scalar(frontmatter, 'title') || /^#\s+(.+)$/m.exec(body)?.[1] || slug
   const description = scalar(frontmatter, 'description')
   const authorBlock = /^author:\s*\r?\n((?:[ \t]+.*(?:\r?\n|$))*)/m.exec(frontmatter)?.[1] ?? ''
@@ -52,8 +53,34 @@ function articleMetadata(file, raw) {
 }
 
 function normalizedBasePath(value = '/') {
+  if (
+    (value && !value.startsWith('/')) ||
+    value.startsWith('//') ||
+    /[?#\\]/.test(value)
+  ) {
+    throw new Error('PUBLIC_BASE_PATH must be a root-relative path without query, hash, or backslashes.')
+  }
   const parts = value.split('/').filter(Boolean)
+  if (parts.some((part) => part === '.' || part === '..' || !/^[A-Za-z0-9._~-]+$/.test(part))) {
+    throw new Error('PUBLIC_BASE_PATH contains an invalid URL path segment.')
+  }
   return parts.length ? '/' + parts.join('/') + '/' : '/'
+}
+
+function normalizedOrigin(value) {
+  const parsed = new URL(value)
+  const isLocalHttp = parsed.protocol === 'http:' && parsed.hostname === 'localhost'
+  if (
+    (parsed.protocol !== 'https:' && !isLocalHttp) ||
+    parsed.pathname !== '/' ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.username ||
+    parsed.password
+  ) {
+    throw new Error('SITE_URL must be an HTTPS origin without a path, query, or credentials.')
+  }
+  return parsed.origin
 }
 
 const entries = (await readdir(source, { withFileTypes: true }))
@@ -72,23 +99,29 @@ for (const name of await readdir(output)) {
 }
 for (const name of entries) await copyFile(join(source, name), join(output, name))
 
-const baseUrl = new URL(process.env.SITE_URL || process.env.URL || 'http://localhost:3000').origin
+const siteOrigin = normalizedOrigin(process.env.SITE_URL || 'http://localhost:3000')
 const basePath = normalizedBasePath(process.env.PUBLIC_BASE_PATH)
-const absolute = (path) => baseUrl + basePath + path.replace(/^\/+/, '')
-const items = await Promise.all(entries.slice().reverse().map(async (file) => {
-  const metadata = articleMetadata(file, await readFile(join(source, file), 'utf8'))
-  const link = absolute('articles/' + encodeURIComponent(metadata.slug) + '/')
+const absolute = (pathname) => siteOrigin + basePath + pathname.replace(/^\/+/, '')
+const articles = await Promise.all(entries.map(async (file) => ({
+  file,
+  ...articleMetadata(file, await readFile(join(source, file), 'utf8')),
+})))
+const slugs = articles.map((article) => article.slug)
+if (new Set(slugs).size !== slugs.length) throw new Error('Article slugs must be unique')
+
+const items = articles.slice().reverse().map((article) => {
+  const link = absolute('articles/' + encodeURIComponent(article.slug) + '/')
   return [
     '<item>',
-    '<title>' + xmlEscape(metadata.title) + '</title>',
+    '<title>' + xmlEscape(article.title) + '</title>',
     '<link>' + xmlEscape(link) + '</link>',
     '<guid isPermaLink="true">' + xmlEscape(link) + '</guid>',
-    '<description>' + xmlEscape(metadata.description) + '</description>',
-    metadata.author ? '<dc:creator>' + xmlEscape(metadata.author) + '</dc:creator>' : '',
-    ...metadata.keywords.map((keyword) => '<category>' + xmlEscape(keyword) + '</category>'),
+    '<description>' + xmlEscape(article.description) + '</description>',
+    article.author ? '<dc:creator>' + xmlEscape(article.author) + '</dc:creator>' : '',
+    ...article.keywords.map((keyword) => '<category>' + xmlEscape(keyword) + '</category>'),
     '</item>',
   ].join('')
-}))
+})
 
 const feed = absolute('rss.xml')
 const xml = [
@@ -105,7 +138,45 @@ const xml = [
   '</rss>',
   '',
 ].join('\n')
-await mkdir(publicDirectory, { recursive: true })
-await writeFile(join(publicDirectory, 'rss.xml'), xml, 'utf8')
 
-console.log('Synced ' + entries.length + ' canonical articles and generated public/rss.xml.')
+const sitemapUrls = [
+  absolute(''),
+  absolute('reference/'),
+  absolute('articles/'),
+  ...articles.map((article) => absolute('articles/' + encodeURIComponent(article.slug) + '/')),
+]
+const sitemap = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  ...sitemapUrls.map((url) => '<url><loc>' + xmlEscape(url) + '</loc></url>'),
+  '</urlset>',
+  '',
+].join('\n')
+
+const robots = [
+  'User-agent: *',
+  'Allow: ' + basePath,
+  'Sitemap: ' + absolute('sitemap.xml'),
+  '',
+].join('\n')
+
+const redirects = [
+  [basePath + 'reference', basePath + 'reference/'],
+  [basePath + 'docs', basePath + 'reference/'],
+  [basePath + 'docs/', basePath + 'reference/'],
+  [basePath + 'articles', basePath + 'articles/'],
+  ...articles.map((article) => {
+    const slugPath = basePath + 'articles/' + encodeURIComponent(article.slug)
+    return [slugPath, slugPath + '/']
+  }),
+].map(([from, to]) => from + ' ' + to + ' 301').join('\n') + '\n'
+
+await mkdir(publicDirectory, { recursive: true })
+await Promise.all([
+  writeFile(join(publicDirectory, 'rss.xml'), xml, 'utf8'),
+  writeFile(join(publicDirectory, 'sitemap.xml'), sitemap, 'utf8'),
+  writeFile(join(publicDirectory, 'robots.txt'), robots, 'utf8'),
+  writeFile(join(publicDirectory, '_redirects'), redirects, 'utf8'),
+])
+
+console.log('Synced ' + entries.length + ' canonical articles and generated RSS, sitemap, robots.txt, and redirects.')

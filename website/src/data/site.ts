@@ -10,6 +10,13 @@ export const site = {
   install: 'pip install django-api-versioning',
 }
 
+/** Build an absolute canonical URL for the configured origin and deployment base path. */
+export function canonicalUrl(path = ''): string | undefined {
+  if (!__SITE_ORIGIN__) return undefined
+  const relativePath = path.replace(/^\/+/, '')
+  return new URL(import.meta.env.BASE_URL + relativePath, __SITE_ORIGIN__ + '/').toString()
+}
+
 export const rssHref = `${import.meta.env.BASE_URL}rss.xml`
 
 export const nav = [

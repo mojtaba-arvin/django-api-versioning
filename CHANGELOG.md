@@ -160,7 +160,7 @@ The package runtime minimum remains Python 3.10 and Django 4.2. Django REST Fram
 - **Comprehensive Integration Testing:** 222+ integration tests covering DRF APIView, GenericAPIView, ViewSets, routers, custom actions, authentication, permissions, and Django-native views.
 - **Enhanced Testing Infrastructure:** Management command tests for `check_versions` and version matrix validation.
 - **Feature Verification Matrix:** Complete traceability matrix documenting 90+ features verified against implementation.
-- **Compatibility Report:** Comprehensive Python 3.10+, Django 4.2–6.1, and DRF 3.14+ compatibility matrix with test results.
+- **Historical compatibility report:** [v0.3.8 compatibility evidence](docs/reports/compatibility-0.3.8.md), covering the Python 3.10+, Django 4.2–6.1, and DRF 3.14+ matrix at that release.
 
 ### Changed
 

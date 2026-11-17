@@ -31,7 +31,6 @@ node_modules/
 website/node_modules/
 website/content/
 website/dist/
-website/public/rss.xml
 
 # Visual Studio Code workspace settings
 .vscode/

@@ -31,14 +31,14 @@ export function SiteHeader() {
             </a>
           ))}
           <Link
-            to="/docs"
+            to="/reference/"
             className="hover:text-paper"
             activeProps={{ className: 'text-paper' }}
           >
             Reference
           </Link>
           <Link
-            to="/articles"
+            to="/articles/"
             className="hover:text-paper"
             activeProps={{ className: 'text-paper' }}
           >
@@ -69,10 +69,10 @@ export function SiteFooter() {
           </p>
         </div>
         <div className="flex flex-wrap gap-5">
-          <Link to="/docs" className="hover:text-paper">
+          <Link to="/reference/" className="hover:text-paper">
             Reference
           </Link>
-          <Link to="/articles" className="hover:text-paper">
+          <Link to="/articles/" className="hover:text-paper">
             Articles
           </Link>
           <a href={rssHref} className="hover:text-paper">

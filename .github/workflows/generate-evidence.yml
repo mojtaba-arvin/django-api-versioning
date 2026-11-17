@@ -14,10 +14,10 @@ jobs:
   generate-and-verify:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-    timeout-minutes: 25
+      contents: read
+    timeout-minutes: 35
     steps:
-      - name: Refuse direct changes to main
+      - name: Require a short-lived branch
         run: |
           case "$GITHUB_REF" in
             refs/heads/*) ;;
@@ -27,24 +27,28 @@ jobs:
             echo "Dispatch this helper on a short-lived topic branch, never main." >&2
             exit 1
           fi
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+
+      - name: Check out the exact dispatch commit without a persistent token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
           python-version: "3.15"
           cache: pip
           cache-dependency-path: requirements-ci.txt
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
-        with:
-          node-version: "22.23.4"
+
       - name: Install integration dependencies
         run: python -m pip install -r requirements-ci.txt
-      - name: Validate article synchronizer
-        run: node --check website/scripts/sync-articles.mjs
+
       - name: Generate evidence from the exact triggering checkout
         env:
           SOURCE_COMMIT: ${{ github.sha }}
-        run: |
-          python integration_test_project/segment_lab/generate_routes.py
+        run: python integration_test_project/segment_lab/generate_routes.py
+
       - name: Verify repeated evidence generation is idempotent
         env:
           SOURCE_COMMIT: ${{ github.sha }}
@@ -54,66 +58,116 @@ jobs:
           python integration_test_project/segment_lab/generate_routes.py
           cmp /tmp/routes-first.json website/src/data/generated/routes.json
           cmp /tmp/check-versions-first.txt website/src/data/generated/check_versions_output.txt
-      - name: Commit generated evidence against the latest branch head
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
+        with:
+          node-version: "22.23.4"
+
+      - name: Enable the pinned pnpm version
         run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          corepack enable
+          corepack prepare pnpm@10.12.1 --activate
 
-          # The branch may advance while evidence is being generated. Never
-          # force-push or overwrite those commits: fetch, reset the disposable
-          # runner checkout, and regenerate evidence against the latest head.
-          for attempt in 1 2 3; do
-            git fetch origin "${GITHUB_REF_NAME}"
-            remote_sha="$(git rev-parse FETCH_HEAD)"
-            current_sha="$(git rev-parse HEAD)"
-            export SOURCE_COMMIT="$current_sha"
-
-            if [ "$remote_sha" != "$current_sha" ]; then
-              git reset --hard "$remote_sha"
-              export SOURCE_COMMIT="$(git rev-parse HEAD)"
-              python integration_test_project/segment_lab/generate_routes.py
-            fi
-
-            git diff --check
-            git add website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
-
-            if git diff --cached --quiet; then
-              echo "Generated evidence is already current at $SOURCE_COMMIT."
-              exit 0
-            fi
-
-            git commit -m "data: generate source-pinned Segment Lab evidence"
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
-              exit 0
-            fi
-
-            echo "Branch advanced during push attempt $attempt; retrying from its latest head."
-            git reset --hard "$remote_sha"
-          done
-
-          echo "Could not publish generated evidence after three concurrent-update retries." >&2
-          exit 1
-      - name: Synchronize canonical articles from the generated source commit
-        run: node website/scripts/sync-articles.mjs
-      - name: Install locked website dependencies
-        working-directory: website
-        run: npm ci
-      - name: Run website unit tests
-        working-directory: website
-        run: npm test
-      - name: Run Astro type and content checks
-        working-directory: website
-        run: npm run check
-      - name: Build and inspect root-hosted artifact
+      - name: Validate website scripts and install the frozen lockfile
         working-directory: website
         run: |
-          npm run build
-          npm run test:dist
-      - name: Build and inspect GitHub Pages project-site artifact
+          node --check scripts/sync-articles.mjs
+          node --check scripts/sync-reference.mjs
+          node --check scripts/check-dist.mjs
+          pnpm install --frozen-lockfile
+
+      - name: Run website unit and distribution tests
+        working-directory: website
+        run: pnpm test
+
+      - name: Type-check the TanStack website
+        working-directory: website
+        run: pnpm typecheck
+
+      - name: Build and verify root-hosted static output
+        working-directory: website
+        env:
+          PUBLIC_BASE_PATH: /
+          SITE_URL: https://example.invalid
+        run: |
+          pnpm build
+          pnpm run test:dist:root
+
+      - name: Build and verify project-subpath static output
         working-directory: website
         env:
           PUBLIC_BASE_PATH: /django-api-versioning
+          SITE_URL: https://example.invalid
         run: |
-          npm run build
-          npm run test:dist
+          pnpm build
+          pnpm run test:dist:subpath
+
+      - name: Upload only the generated evidence files
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6
+        with:
+          name: source-pinned-website-evidence
+          path: |
+            website/src/data/generated/routes.json
+            website/src/data/generated/check_versions_output.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  commit-evidence:
+    needs: generate-and-verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 5
+    steps:
+      - name: Require the branch to remain at the dispatch commit
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/*) ;;
+            *) echo "Evidence can only be committed to a branch." >&2; exit 1 ;;
+          esac
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "Direct commits to main are forbidden." >&2
+            exit 1
+          fi
+
+      - name: Check out the exact dispatch commit for the evidence commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+
+      - name: Download verified evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53  # v6
+        with:
+          name: source-pinned-website-evidence
+          path: generated-evidence
+
+      - name: Commit generated evidence with bot identity
+        run: |
+          set -euo pipefail
+
+          git fetch origin "$GITHUB_REF_NAME"
+          remote_sha="$(git rev-parse FETCH_HEAD)"
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "Branch advanced after evidence generation. No commit was made; rerun this workflow on the latest branch head." >&2
+            exit 1
+          fi
+
+          test -f generated-evidence/routes.json
+          test -f generated-evidence/check_versions_output.txt
+          mkdir -p website/src/data/generated
+          cp generated-evidence/routes.json website/src/data/generated/routes.json
+          cp generated-evidence/check_versions_output.txt website/src/data/generated/check_versions_output.txt
+
+          git diff --check
+          git add -- website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
+          if git diff --cached --quiet; then
+            echo "Generated evidence is already current at $GITHUB_SHA."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "data: generate source-pinned Segment Lab evidence"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"

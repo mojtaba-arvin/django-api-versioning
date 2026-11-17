@@ -132,6 +132,40 @@
         "Ignores a real evidence change by preserving an old timestamp unconditionally.",
         "Attributes an automated evidence commit to the maintainer's personal account."
       ]
+    },
+    {
+      "id": "canonical-static-site-urls",
+      "profile": "website",
+      "task": "Standardize the static website's page URLs and rename a misleading Reference route without breaking existing links or root/project-subpath hosting.",
+      "checks": [
+        "Chooses one explicit trailing-slash policy for HTML routes and preserves file-style URLs for assets, RSS, sitemap, and robots.",
+        "Uses one canonical Reference URL and provides a working legacy redirect fallback on static hosts with and without redirect-file support.",
+        "Generates absolute canonical links, sitemap.xml, robots.txt, and RSS links from the configured public origin and base path.",
+        "Verifies exact prerendered output, local links, canonical URLs, redirects, and both root and project-subpath artifacts."
+      ],
+      "failure_modes": [
+        "Changes visible labels but leaves the confusing route or canonical metadata unchanged.",
+        "Hardcodes an unverified production domain or emits localhost canonical URLs.",
+        "Breaks GitHub Pages subpath hosting or assumes every host supports _redirects.",
+        "Adds redirects to the sitemap or emits inconsistent trailing-slash variants."
+      ]
+    },
+    {
+      "id": "least-privilege-workflow-maintenance",
+      "profile": "agent-maintenance",
+      "task": "Review a manually dispatched workflow that generates repository evidence and commits it back to a topic branch.",
+      "checks": [
+        "Runs source generation and tests with contents: read and a checkout that does not persist credentials.",
+        "Moves contents: write into a separate, narrowly scoped commit job that does not execute repository scripts.",
+        "Binds generated artifacts to the exact dispatch SHA and fails safely if the branch advances before commit.",
+        "Pins every third-party Action to a full commit SHA and preserves the bot commit identity."
+      ],
+      "failure_modes": [
+        "Exposes a write token while running package or repository code.",
+        "Force-pushes, resets a remote branch, or overwrites commits created during generation.",
+        "Commits generated output from a stale source SHA.",
+        "Uses unpinned Actions or attributes automation commits to the maintainer."
+      ]
     }
   ]
 }

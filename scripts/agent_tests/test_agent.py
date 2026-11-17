@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import agent  # noqa: E402
+import verify_repository_policy  # noqa: E402
 
 
 class AgentToolingTests(unittest.TestCase):
@@ -53,6 +54,13 @@ class AgentToolingTests(unittest.TestCase):
     def test_unknown_profile_is_rejected(self) -> None:
         with self.assertRaises(KeyError):
             agent.context_profile("everything")
+
+    def test_release_context_does_not_reference_the_old_report_path(self) -> None:
+        profile = agent.context_profile("release")
+        self.assertNotIn("COMPATIBILITY_REPORT.md", profile["read"])
+
+    def test_workflow_security_policy_passes(self) -> None:
+        self.assertEqual(verify_repository_policy.validate(), [])
 
     def test_skill_reference_links_must_exist_and_stay_inside_repository(self) -> None:
         from tempfile import TemporaryDirectory

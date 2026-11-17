@@ -19,6 +19,12 @@ Client adapters carry only discovery metadata and a pointer. Do not copy workflo
 - All task skills are canonicalized in the repository-root `.agents/skills/`; Claude and Copilot entries are thin adapters. Do not create nested `.agents/skills/` or `.claude/skills/` registries inside projects.
 - Website-specific implementation constraints live in `website/AGENTS.md`; website work uses the root `website-engineering` skill. Framework starter notes that describe removed integrations are not project policy and must not be copied into the repository.
 
+## Workflow permissions and automation commits
+
+- Every GitHub Actions workflow defaults to `contents: read`; third-party Actions are pinned to full commit SHAs.
+- The manually dispatched evidence workflow generates and verifies artifacts in a read-only job with checkout credentials disabled. A separate commit-only job receives `contents: write`, does not run repository code, verifies that the branch still points to the triggering SHA, and uses a normal fast-forward push.
+- Only the PyPI publication job receives `id-token: write`. Deterministic repository policy checks enforce these boundaries.
+
 ## Progressive disclosure
 
 1. Load concise shared instructions and skill metadata.

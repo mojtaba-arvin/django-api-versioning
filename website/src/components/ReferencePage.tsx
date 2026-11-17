@@ -23,7 +23,7 @@ function handleCopy(e: MouseEvent<HTMLElement>) {
   })
 }
 
-export function DocsPage() {
+export function ReferencePage() {
   return (
     <>
       <SiteHeader />

@@ -86,6 +86,67 @@ def _validate_oidc_permissions(errors: list[str]) -> None:
         errors.append("Only publish.yml may grant id-token: write")
 
 
+def _validate_workflow_permissions(errors: list[str]) -> None:
+    for workflow in sorted(WORKFLOWS.glob("*.yml")):
+        content = workflow.read_text(encoding="utf-8")
+        if "pull_request_target:" in content:
+            errors.append(f"{workflow} must not use pull_request_target")
+        root_section = content.split("\njobs:", maxsplit=1)[0]
+        if not re.search(
+            r"(?m)^permissions:\n(?:[ \t]+.*\n)*?  contents: read$",
+            root_section,
+        ):
+            errors.append(f"{workflow} must default to contents: read")
+
+    evidence = WORKFLOWS / "generate-evidence.yml"
+    if not evidence.exists():
+        errors.append("Missing .github/workflows/generate-evidence.yml")
+        return
+    content = evidence.read_text(encoding="utf-8")
+
+    def job_block(name: str) -> str:
+        match = re.search(
+            rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            content,
+        )
+        return match.group(1) if match else ""
+
+    generator = job_block("generate-and-verify")
+    committer = job_block("commit-evidence")
+    if not re.search(r"(?m)^    permissions:\n      contents: read$", generator):
+        errors.append("Evidence generation must run with contents: read")
+    if "persist-credentials: false" not in generator:
+        errors.append("Evidence generation checkout must not persist its read token")
+    if re.search(r"(?m)^      contents: write$", generator):
+        errors.append("Evidence generation must not receive contents: write")
+    if not re.search(r"(?m)^    permissions:\n      contents: write$", committer):
+        errors.append(
+            "Only the isolated evidence commit job may receive contents: write"
+        )
+    if "persist-credentials: true" not in committer:
+        errors.append(
+            "Evidence commit job must explicitly persist its write token for git push"
+        )
+    if not generator or not committer:
+        errors.append(
+            "Evidence workflow must separate generation and commit into distinct jobs"
+        )
+    if re.search(r"(?m)^\s*(?:python|node|npm|pnpm|uv|tox)\b", committer):
+        errors.append("Evidence commit job must not execute repository or package code")
+    if "--force" in committer or "git reset" in committer:
+        errors.append("Evidence commit job must not rewrite or reset Git history")
+
+    write_grants = []
+    for workflow in sorted(WORKFLOWS.glob("*.yml")):
+        for line in workflow.read_text(encoding="utf-8").splitlines():
+            if re.match(r"^\s*contents:\s*write\s*$", line):
+                write_grants.append((workflow.name, len(line) - len(line.lstrip())))
+    if write_grants != [("generate-evidence.yml", 6)]:
+        errors.append(
+            "Only generate-evidence's commit job may grant contents: write"
+        )
+
+
 def _validate_reusable_workflows(errors: list[str]) -> None:
     filenames = (
         "tests.yml",
@@ -114,6 +175,7 @@ def validate() -> list[str]:
     _validate_website_contract(errors)
     _validate_pr_gate(errors)
     _validate_oidc_permissions(errors)
+    _validate_workflow_permissions(errors)
     _validate_reusable_workflows(errors)
     return errors
 

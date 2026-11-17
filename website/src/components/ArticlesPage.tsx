@@ -61,7 +61,7 @@ export function ArticlesPage({ articles }: { articles: ArticleMeta[] }) {
             {filtered.map((a) => (
               <li key={a.slug}>
                 <Link
-                  to="/articles/$slug"
+                  to="/articles/$slug/"
                   params={{ slug: a.slug }}
                   className="card group flex h-full flex-col p-6 transition hover:border-leaf"
                 >

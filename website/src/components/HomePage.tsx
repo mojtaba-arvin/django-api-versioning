@@ -316,7 +316,7 @@ function GoodToKnow() {
         </div>
         <p className="mt-8 text-sm text-mute">
           Full settings, arguments, and collision rules are on the{' '}
-          <Link to="/docs" className="text-leaf-2 underline underline-offset-4 hover:text-leaf">
+          <Link to="/reference/" className="text-leaf-2 underline underline-offset-4 hover:text-leaf">
             reference page
           </Link>
           .
@@ -346,7 +346,7 @@ function Articles({ articles }: { articles: ArticleMeta[] }) {
             title="Go deeper"
             body={`${articles.length} long-form guides on routing models, inheriting endpoints, deprecation and migrations.`}
           />
-          <Link to="/articles" className="btn btn-ghost shrink-0 self-start sm:self-auto">
+          <Link to="/articles/" className="btn btn-ghost shrink-0 self-start sm:self-auto">
             All articles →
           </Link>
         </div>
@@ -354,7 +354,7 @@ function Articles({ articles }: { articles: ArticleMeta[] }) {
           {featured.map((a) => (
             <Link
               key={a.slug}
-              to="/articles/$slug"
+              to="/articles/$slug/"
               params={{ slug: a.slug }}
               className="card group flex flex-col p-6 transition hover:border-leaf"
             >

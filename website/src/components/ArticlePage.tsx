@@ -24,7 +24,7 @@ export function ArticlePage({ article }: { article: ArticleWithNeighbours }) {
       <main className="mx-auto grid max-w-6xl gap-12 px-5 py-16 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="hidden lg:block">
           <nav className="sticky top-24 max-h-[calc(100vh-7rem)] space-y-1 overflow-y-auto text-sm" aria-label="On this page">
-            <Link to="/articles" className="mb-6 block font-mono text-xs text-mute hover:text-leaf-2">
+            <Link to="/articles/" className="mb-6 block font-mono text-xs text-mute hover:text-leaf-2">
               ← All articles
             </Link>
             {article.toc.length > 0 && <p className="eyebrow mb-3">On this page</p>}
@@ -42,7 +42,7 @@ export function ArticlePage({ article }: { article: ArticleWithNeighbours }) {
 
         <article className="min-w-0 max-w-3xl">
           <header className="border-b border-line pb-8">
-            <Link to="/articles" className="eyebrow hover:text-leaf-2 lg:hidden">
+            <Link to="/articles/" className="eyebrow hover:text-leaf-2 lg:hidden">
               ← Articles
             </Link>
             <p className="eyebrow mt-4 lg:mt-0">Article {String(article.number).padStart(3, '0')}</p>
@@ -78,7 +78,7 @@ export function ArticlePage({ article }: { article: ArticleWithNeighbours }) {
 
           <nav className="mt-16 grid gap-4 border-t border-line pt-8 sm:grid-cols-2" aria-label="More articles">
             {prev ? (
-              <Link to="/articles/$slug" params={{ slug: prev.slug }} className="card p-5 transition hover:border-leaf">
+              <Link to="/articles/$slug/" params={{ slug: prev.slug }} className="card p-5 transition hover:border-leaf">
                 <span className="font-mono text-xs text-mute">← Previous</span>
                 <span className="mt-1 block font-display font-semibold text-paper">{prev.title}</span>
               </Link>
@@ -87,7 +87,7 @@ export function ArticlePage({ article }: { article: ArticleWithNeighbours }) {
             )}
             {next && (
               <Link
-                to="/articles/$slug"
+                to="/articles/$slug/"
                 params={{ slug: next.slug }}
                 className="card p-5 text-right transition hover:border-leaf"
               >

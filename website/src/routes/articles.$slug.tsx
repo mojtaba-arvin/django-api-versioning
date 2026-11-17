@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { ArticlePage } from '../components/ArticlePage'
-import { site, rssHref } from '../data/site'
+import { canonicalUrl, site, rssHref } from '../data/site'
 import { getArticle } from '../lib/article-data'
 
 export const Route = createFileRoute('/articles/$slug')({
@@ -24,6 +24,11 @@ export const Route = createFileRoute('/articles/$slug')({
           { property: 'og:type', content: 'article' },
         ]
       : [],
-    links: [{ rel: 'alternate', type: 'application/rss+xml', title: `${site.name} articles`, href: rssHref }],
+    links: [
+      { rel: 'alternate', type: 'application/rss+xml', title: `${site.name} articles`, href: rssHref },
+      ...(loaderData && canonicalUrl(`articles/${encodeURIComponent(loaderData.slug)}/`)
+        ? [{ rel: 'canonical', href: canonicalUrl(`articles/${encodeURIComponent(loaderData.slug)}/`)! }]
+        : []),
+    ],
   }),
 })

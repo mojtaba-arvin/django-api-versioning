@@ -5,8 +5,8 @@ The canonical project website for [django-api-versioning](https://github.com/moj
 ## What's on the site
 
 - **Home (`/`)**: product overview, quick start, interactive version-matrix playground, lifecycle demo, reliability tooling, and caveats.
-- **Reference (`/docs`)**: settings, `@endpoint` arguments, validation and collision rules, exceptions, management commands, and development setup.
-- **Articles (`/articles`)**: the repository's canonical Markdown articles, rendered as individual static pages.
+- **Reference (`/reference/`)**: settings, `@endpoint` arguments, validation and collision rules, exceptions, management commands, and development setup.
+- **Articles (`/articles/`)**: the repository's canonical Markdown articles, rendered as individual static pages.
 - **RSS (`/rss.xml`)**: generated from the same canonical article corpus during the build.
 
 ## Architecture
@@ -16,6 +16,13 @@ The canonical project website for [django-api-versioning](https://github.com/moj
 - Vite emits a static deployable artifact under `dist/client/`.
 - No Netlify adapter, Server Functions, API routes, or runtime server is required to serve the website.
 - The site can be hosted on any static file host that supports the configured base path.
+
+## URL and search-discovery policy
+
+- Page routes use one trailing slash: `/`, `/reference/`, `/articles/`, and `/articles/<slug>/`. This matches the static directory/index.html output and the article URLs already used by RSS.
+- `/reference/` is the canonical Reference route. `/docs` and `/docs/` are legacy aliases: hosts supporting `_redirects` receive permanent redirects; other static hosts serve a small HTML meta-refresh fallback with a canonical link to `/reference/`.
+- The build generates absolute canonical links, `sitemap.xml`, and `robots.txt` from `SITE_URL` and `PUBLIC_BASE_PATH`. `SITE_URL` must be the public origin only (scheme and host, no path); it is required for production builds. `PUBLIC_BASE_PATH` must be a root-relative path such as `/django-api-versioning`, without query/hash or unsafe segments. The repository does not guess the production domain.
+- `sitemap.xml` contains only canonical page URLs, never legacy aliases. RSS article links use the same trailing-slash canonical URLs. On a project-subpath deployment, the generated `robots.txt` is also under that subpath; the Robots Exclusion Protocol only discovers a policy at the host root, so configure a host-root `robots.txt` separately or submit the subpath sitemap directly to search tools.
 
 ## Cache and deployment policy
 
@@ -35,25 +42,25 @@ pnpm install
 pnpm dev
 pnpm test
 pnpm typecheck
-pnpm build
-pnpm run test:dist:root
+SITE_URL=https://example.com pnpm build
+SITE_URL=https://example.com pnpm run test:dist:root
 ```
 
 The default base path is `/`. To validate a GitHub Pages-style project site:
 
 ```bash
 PUBLIC_BASE_PATH=/django-api-versioning SITE_URL=https://example.invalid pnpm build
-pnpm run test:dist:subpath
+PUBLIC_BASE_PATH=/django-api-versioning SITE_URL=https://example.invalid pnpm run test:dist:subpath
 ```
 
-Set `SITE_URL` to the final public origin when producing a production RSS feed. When omitted, the feed uses `http://localhost:3000` for local development.
+Set `SITE_URL` to the final public origin for production builds (scheme and host only, without a path). It is required for canonical URLs, RSS, sitemap, and robots metadata. Local development can omit it; the RSS feed then uses `http://localhost:3000`.
 
 ## Editing content
 
 Homepage copy and snippets live in src/data/site.ts and src/data/content.ts.
 
-The Reference page is rendered from the canonical repository file ../docs/reference/index.md. Edit that Markdown file—not src/components/DocsPage.tsx or the generated copy. pnpm run sync:reference copies it into website/content/reference/index.md; pnpm dev, pnpm test, and pnpm build run this synchronization automatically. The React page owns presentation, navigation, and styling only.
+The Reference page at `/reference/` is rendered from the canonical repository file ../docs/reference/index.md. Edit that Markdown file—not src/components/ReferencePage.tsx or the generated copy. pnpm run sync:reference copies it into website/content/reference/index.md; pnpm dev, pnpm test, and pnpm build run this synchronization automatically. The React page owns presentation, navigation, and styling only.
 
 The detailed package behavior contract lives in ../docs/reference/versioning-contract.md. Package implementation and executable tests remain authoritative when checking technical claims.
 
-The canonical article source is the repository-root docs/articles/ directory. Edit articles there. pnpm run sync:articles copies this local corpus into website/content/articles/ and generates website/public/rss.xml; pnpm build and pnpm test run this synchronization automatically. The build does not fetch article content from GitHub or another branch. Do not edit generated copies or the RSS feed directly.
+The canonical article source is the repository-root docs/articles/ directory. Edit articles there. pnpm run sync:articles copies this local corpus into website/content/articles/ and generates website/public/rss.xml, sitemap.xml, robots.txt, and _redirects; pnpm build and pnpm test run this synchronization automatically. The build does not fetch article content from GitHub or another branch. Do not edit generated copies or the RSS feed directly.
