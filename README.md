@@ -1,6 +1,13 @@
+<p align="center">
+  <a href="https://mojtaba-arvin.github.io/django-api-versioning/">
+    <img src="https://raw.githubusercontent.com/mojtaba-arvin/django-api-versioning/main/website/public/favicon.svg" alt="Django API Versioning logo" width="72" height="72">
+  </a>
+</p>
+
 # Django API Versioning
 
-[![PyPI version](https://badge.fury.io/py/django-api-versioning.svg)](https://badge.fury.io/py/django-api-versioning)
+[![PyPI version](https://img.shields.io/pypi/v/django-api-versioning?logo=pypi&logoColor=white)](https://pypi.org/project/django-api-versioning/)
+[![Documentation](https://img.shields.io/badge/website-documentation-44b78b?logo=readthedocs&logoColor=white)](https://mojtaba-arvin.github.io/django-api-versioning/)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
 [![Build Status](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions)
 [![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%20%7C%206.0%20%7C%206.1-blue)](https://www.djangoproject.com/)
@@ -15,10 +22,12 @@ No manually maintained `path()` declarations for every API version. No need to d
 
 ## Documentation
 
-- **Start here:** this README contains the installation guide and Quick Start.
-- **Reference:** [canonical Markdown source](docs/reference/index.md).
-- **Detailed routing contract:** [docs/reference/versioning-contract.md](docs/reference/versioning-contract.md).
-- **Documentation map and source-of-truth rules:** [docs/README.md](docs/README.md).
+- **Official website:** [Django API Versioning](https://mojtaba-arvin.github.io/django-api-versioning/) — product overview, interactive playground, lifecycle demo, and documentation.
+- **Quick start:** this README includes installation instructions and a working integration example.
+- **API reference:** [online reference](https://mojtaba-arvin.github.io/django-api-versioning/reference/) ([source](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/index.md)).
+- **Routing contract:** [versioning behavior and routing rules](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+- **Technical articles:** [guides and articles](https://mojtaba-arvin.github.io/django-api-versioning/articles/).
+- **Documentation map:** [source-of-truth rules](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
 
 ## "I need to change the response. v1 clients must not break."
 
@@ -153,7 +162,7 @@ Requirements:
 - Python >= 3.10
 - Django >= 4.2
 
-The configured CI compatibility matrix is defined in [`tox.ini`](tox.ini) and checked against the [GitHub Actions workflow](.github/workflows/). It currently covers Django 4.2, 5.2, 6.0, and 6.1; Django 5.0 and 5.1 are not included. A configured environment is not evidence that a particular commit passed—check the [workflow runs](https://github.com/mojtaba-arvin/django-api-versioning/actions) for the result tied to the commit you are evaluating.
+The configured CI compatibility matrix is defined in [`tox.ini`](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini) and checked against the [GitHub Actions workflow](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/.github/workflows/). It currently covers Django 4.2, 5.2, 6.0, and 6.1; Django 5.0 and 5.1 are not included. A configured environment is not evidence that a particular commit passed—check the [workflow runs](https://github.com/mojtaba-arvin/django-api-versioning/actions) for the result tied to the commit you are evaluating.
 
 Django REST Framework is optional. The package can be used with Django-native function-based and class-based views without installing DRF.
 
@@ -745,7 +754,7 @@ This allows the middleware to identify versions from the package's static versio
 
 ## Configuration reference
 
-The current settings defaults, `@endpoint` arguments, validation rules, exception list, and management command examples are maintained in the [canonical Reference](docs/reference/index.md). For the complete routing semantics, see the [routing contract](docs/reference/versioning-contract.md).
+The current settings defaults, `@endpoint` arguments, validation rules, exception list, and management command examples are maintained in the [canonical Reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/index.md). For the complete routing semantics, see the [routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Supported views and ViewSets
 
@@ -907,7 +916,7 @@ For the current compatibility and CI verification status, see the [GitHub Action
 
 ## Contributing
 
-Contributions, bug reports, and documentation improvements are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, commit, pull-request, and release workflow.
+Contributions, bug reports, and documentation improvements are welcome. See [CONTRIBUTING.md](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CONTRIBUTING.md) for the branch, commit, pull-request, and release workflow.
 
 ### Setup
 
@@ -1004,4 +1013,4 @@ When reporting an issue, include:
 
 ## License
 
-Released under the [MIT License](LICENSE).
+Released under the [MIT License](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/LICENSE).
