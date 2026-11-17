@@ -2,7 +2,7 @@
 # django-api-versioning: canonical routing contract
 
 > **Applies to:** django-api-versioning 1.0.0
-> **Release source:** the annotated `v1.0.0` tag. The tag-based publish workflow verifies the tag target, runs the complete compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The exact source commit, workflow run, and provenance are recorded in [COMPATIBILITY_REPORT.md](../../COMPATIBILITY_REPORT.md) after the release gate succeeds.
+> **Release source:** the annotated `v1.0.0` tag. The tag-based publish workflow verifies the tag target, runs the compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
@@ -49,7 +49,7 @@ Import the generated URL patterns from:
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 ```
 
-The decorator signature in 0.3.8 is:
+The public decorator signature in 1.0.0 is:
 
 ```python
 endpoint(
