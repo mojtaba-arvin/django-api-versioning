@@ -12,7 +12,10 @@
     "test": "vitest run",
     "sync:articles": "node scripts/sync-articles.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:dist": "node scripts/check-dist.mjs",
+    "test:dist:root": "PUBLIC_BASE_PATH=/ node scripts/check-dist.mjs dist/client /",
+    "test:dist:subpath": "PUBLIC_BASE_PATH=/django-api-versioning node scripts/check-dist.mjs dist/client /django-api-versioning"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.46",
@@ -22,7 +25,6 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@netlify/vite-plugin-tanstack-start": "1.3.19",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/react": "16.3.3",
     "@testing-library/user-event": "14.6.8",
@@ -39,5 +41,6 @@
   },
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.12.1"
 }
