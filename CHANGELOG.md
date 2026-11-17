@@ -8,11 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-17
+
 ### Documentation
 
-- Add the official website logo, live documentation links, and a current PyPI version badge to the README.
-- Use absolute repository links in the README so its PyPI long description retains working source links.
-- Add Homepage and Documentation URLs to the package metadata.
+- Rework the README onboarding flow to show a working DRF example and generated version routes before the detailed explanation.
+- Add descriptive links to the official documentation site and PyPI, plus the website logo and current PyPI version badge.
+- Use absolute repository links in the README so the PyPI long description retains working source links.
+- Expand and reconcile the canonical API reference, routing contract, article index, and documentation ownership guidance.
+- Correct lifecycle documentation and examples to match the released 1.0.0 behavior.
+- Add and refine Homepage, Documentation, Source, Issues, Changelog, and Security project URLs in package metadata.
+
+### Packaging
+
+- Publish updated project metadata and documentation only; no runtime code or dependency changes.
 
 ## [1.0.0] - 2026-11-16
 
