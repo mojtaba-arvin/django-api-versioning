@@ -33,10 +33,22 @@ class AgentToolingTests(unittest.TestCase):
 
     def test_website_profile_uses_the_canonical_contract(self) -> None:
         profile = agent.context_profile("website")
-        self.assertIn("docs/website/architecture.md", profile["read"])
+        self.assertIn("website/AGENTS.md", profile["read"])
+        self.assertNotIn("docs/website/architecture.md", profile["read"])
         self.assertFalse(
             any("netlify-agent-handoff.md" in item for item in profile["read"])
         )
+
+    def test_nested_website_skill_registries_are_rejected(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            nested = root / "website/.agents/skills"
+            nested.mkdir(parents=True)
+            errors = agent._validate_nested_website_skills(root)
+            self.assertEqual(len(errors), 1)
+            self.assertIn("website/.agents/skills", errors[0])
 
     def test_unknown_profile_is_rejected(self) -> None:
         with self.assertRaises(KeyError):
