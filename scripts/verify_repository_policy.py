@@ -93,7 +93,7 @@ def _has_root_contents_read(root_section: str) -> bool:
     except ValueError:
         return False
 
-    for line in lines[permissions_index + 1:]:
+    for line in lines[permissions_index + 1 :]:
         if line and not line[0].isspace():
             break
         if line == "  contents: read":

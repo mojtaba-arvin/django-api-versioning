@@ -28,9 +28,9 @@ export function renderReferenceMarkdown(body: string): { title: string; html: st
 
   marked.use({
     renderer: {
-      html({ text }: Tokens.HTML) {
+      html(token) {
         // Raw HTML in canonical Markdown must remain inert in generated pages.
-        return escapeHtml(text)
+        return escapeHtml(token.text)
       },
       heading({ tokens, depth }: Tokens.Heading) {
         const inner = this.parser.parseInline(tokens)

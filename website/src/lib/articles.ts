@@ -99,9 +99,9 @@ export function renderMarkdown(body: string): { html: string; toc: TocEntry[] } 
   const marked = new Marked({ gfm: true })
   marked.use({
     renderer: {
-      html({ text }: Tokens.HTML) {
+      html(token) {
         // Raw HTML in repository Markdown must remain inert in generated pages.
-        return escapeHtml(text)
+        return escapeHtml(token.text)
       },
       heading({ tokens, depth }: Tokens.Heading) {
         const inner = this.parser.parseInline(tokens)
