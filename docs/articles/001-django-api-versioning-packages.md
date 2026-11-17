@@ -139,7 +139,7 @@ For ViewSets, DRF's [ViewSets](https://www.django-rest-framework.org/api-guide/v
 
 A registration library addresses a different concern: mapping endpoint implementations to versioned URL patterns. `django-api-versioning` uses a decorator to register a view at the version where that implementation becomes active. Its segment rule carries that registration forward through `API_MAX_VERSION`; a later declaration for the same route at a higher version takes over from that version onward.
 
-The package-specific contract—including integer version identifiers, imports, URL construction, collision precedence, and import order—is defined in the [canonical routing reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md). If you want to evaluate this model as a package, see [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
+The package-specific contract—including integer version identifiers, imports, URL construction, collision precedence, and import order—is defined in the [canonical routing reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). If you want to evaluate this model as a package, see [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
 
 For example, with `API_MIN_VERSION = 1` and `API_MAX_VERSION = 3`:
 
