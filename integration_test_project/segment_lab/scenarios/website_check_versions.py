@@ -1,3 +1,4 @@
+# isort: skip_file
 """Executable fixture for the CLI output shown in the website."""
 
 from django.http import JsonResponse
