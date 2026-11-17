@@ -1,24 +1,31 @@
-// Re-downloads the upstream articles into content/articles/.
-// Usage: node scripts/sync-articles.mjs
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
+// Copies the canonical article corpus from the repository into the website build input.
+// Usage: pnpm run sync:articles
+import { copyFile, mkdir, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 
-const API = 'https://api.github.com/repos/mojtaba-arvin/django-api-versioning/contents/docs/articles?ref=main'
-const out = join(import.meta.dirname, '..', 'content', 'articles')
+const repositoryRoot = join(import.meta.dirname, '..', '..')
+const source = join(repositoryRoot, 'docs', 'articles')
+const output = join(import.meta.dirname, '..', 'content', 'articles')
 
-const res = await fetch(API, { headers: { accept: 'application/vnd.github+json' } })
-if (!res.ok) throw new Error(`GitHub API responded ${res.status}`)
-const entries = (await res.json()).filter((e) => e.type === 'file' && /^[\w.-]+\.md$/.test(e.name))
+const entries = (await readdir(source, { withFileTypes: true }))
+  .filter((entry) => entry.isFile() && /^[\\w.-]+\\.md$/.test(entry.name))
+  .map((entry) => entry.name)
+  .sort()
 
-await mkdir(out, { recursive: true })
-const keep = new Set(entries.map((e) => e.name))
-for (const name of await readdir(out)) {
-  if (name.endsWith('.md') && !keep.has(name)) await rm(join(out, name))
+if (entries.length === 0) {
+  throw new Error(`No Markdown articles found in canonical source: ${source}`)
 }
-for (const e of entries) {
-  const r = await fetch(e.download_url)
-  if (!r.ok) throw new Error(`Failed to download ${e.name}: ${r.status}`)
-  await writeFile(join(out, e.name), await r.text())
-  console.log(`✓ ${e.name}`)
+
+await mkdir(output, { recursive: true })
+const expected = new Set(entries)
+for (const name of await readdir(output)) {
+  if (name.endsWith('.md') && !expected.has(name)) {
+    await rm(join(output, name))
+  }
 }
-console.log(`Synced ${entries.length} articles.`)
+
+for (const name of entries) {
+  await copyFile(join(source, name), join(output, name))
+}
+
+console.log(`Copied ${entries.length} canonical articles from docs/articles/.`)
