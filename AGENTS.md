@@ -9,8 +9,7 @@ Shared policy for all coding agents. Procedures belong in skills; domain constra
 - `tests/` contains package unit and regression tests.
 - `integration_test_project/` is the existing Django integration and executable-evidence project. Extend it; do not create a parallel project or overwrite its tests.
 - `docs/articles/` is the only editable article corpus.
-- `docs/reference/index.md` is the canonical Markdown source for the human-facing website Reference page.
-- `docs/reference/versioning-contract.md` is the detailed canonical package routing contract; package source and executable tests remain authoritative.
+- `docs/reference/index.md` owns website Reference copy; `versioning-contract.md` defines routing behavior.
 - `website/AGENTS.md` owns website-specific architecture and implementation constraints; it supplements, and cannot override, this shared contract.
 
 ## Non-negotiable invariants
