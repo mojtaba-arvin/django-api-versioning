@@ -66,7 +66,9 @@ def _validate_pr_gate(errors: list[str]) -> None:
     trigger = content.split("\npermissions:", maxsplit=1)[0]
     if "pull_request:" not in trigger:
         errors.append("PR gate must subscribe to pull_request")
-    if not re.search(r"^\s+branches:\s*\[main\]$", trigger, flags=re.MULTILINE):
+    if not re.search(
+        r"^\s+branches:\s*\[main\]$", trigger, flags=re.MULTILINE
+    ):
         errors.append("PR gate must target pull requests to main")
     if re.search(r"^\s+paths(-ignore)?:", trigger, flags=re.MULTILINE):
         errors.append("PR gate must not use workflow-level path filters")
