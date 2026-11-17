@@ -411,7 +411,7 @@ The middleware can identify the version from the request and, when necessary, ex
 
 The lifecycle behavior has important details:
 
-- A version with `status: "deprecated"` receives a `Deprecation` response header.
+- A version with `status: "deprecated"` and a valid `deprecated_at` value receives a date-valued `Deprecation` response header.
 - If a sunset date is configured for that deprecated version, the middleware also sends a `Sunset` header.
 - A `deprecated` lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The middleware emits it as the RFC 9745 date-valued Structured Field, not as the legacy `Deprecation: true` value.
 - When the configured sunset date has passed, the middleware returns `410 Gone`.
