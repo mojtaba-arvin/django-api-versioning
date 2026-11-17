@@ -83,7 +83,6 @@ def verify_package_symbols(source: str, evidence: dict) -> None:
         raise ValueError("Website migrate_endpoints example has no package command.")
 
 
-
 def markdown_fence(source: str, language: str, title: str) -> str:
     """Return a titled fenced code block from the canonical Reference Markdown."""
     lines = source.splitlines()
