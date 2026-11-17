@@ -29,4 +29,12 @@ describe('canonical Reference content', () => {
     expect(html).toContain('data-copy')
     expect(html).toContain('MyViewSet.as_view({&quot;get&quot;: &quot;list&quot;})')
   })
+
+  it('keeps raw HTML inert in Reference Markdown', () => {
+    const result = renderReferenceMarkdown('# Title\n\n## Safe <img src=x onerror=alert(1)> heading\n\n<script>alert(1)</script>')
+    expect(result.html).not.toContain('<script>')
+    expect(result.html).not.toContain('<img')
+    expect(result.html).toContain('&lt;script&gt;')
+    expect(result.toc).toEqual([{ id: 'safe-heading', text: 'Safe  heading' }])
+  })
 })

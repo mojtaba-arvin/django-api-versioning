@@ -70,25 +70,24 @@ export function parseFrontmatter(raw: string): { data: Frontmatter; body: string
   return { data, body: raw.slice(m[0].length) }
 }
 
+function inlineText(tokens: Tokens.Generic[]): string {
+  return tokens.map((token) => {
+    if (token.type === 'html') return ''
+    if ('tokens' in token && Array.isArray(token.tokens)) {
+      return inlineText(token.tokens as Tokens.Generic[])
+    }
+    return 'text' in token && typeof token.text === 'string' ? token.text : ''
+  }).join('')
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/<[^>]+>/g, '')
     .replace(/&[a-z#0-9]+;/g, '')
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-}
-
-function stripTags(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, '')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
 }
 
 /** Renders article markdown to HTML, collecting h2 entries for a table of contents. */
@@ -100,6 +99,10 @@ export function renderMarkdown(body: string): { html: string; toc: TocEntry[] } 
   const marked = new Marked({ gfm: true })
   marked.use({
     renderer: {
+      html({ text }: Tokens.HTML) {
+        // Raw HTML in repository Markdown must remain inert in generated pages.
+        return escapeHtml(text)
+      },
       heading({ tokens, depth }: Tokens.Heading) {
         const inner = this.parser.parseInline(tokens)
         // The page header already shows the title, so drop the leading h1.
@@ -108,7 +111,7 @@ export function renderMarkdown(body: string): { html: string; toc: TocEntry[] } 
           return ''
         }
         const level = Math.max(2, depth)
-        const plain = stripTags(inner)
+        const plain = inlineText(tokens)
         let id = slugify(plain) || 'section'
         const n = used.get(id) ?? 0
         used.set(id, n + 1)

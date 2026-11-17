@@ -86,16 +86,28 @@ def _validate_oidc_permissions(errors: list[str]) -> None:
         errors.append("Only publish.yml may grant id-token: write")
 
 
+def _has_root_contents_read(root_section: str) -> bool:
+    lines = root_section.splitlines()
+    try:
+        permissions_index = lines.index("permissions:")
+    except ValueError:
+        return False
+
+    for line in lines[permissions_index + 1:]:
+        if line and not line[0].isspace():
+            break
+        if line == "  contents: read":
+            return True
+    return False
+
+
 def _validate_workflow_permissions(errors: list[str]) -> None:
     for workflow in sorted(WORKFLOWS.glob("*.yml")):
         content = workflow.read_text(encoding="utf-8")
         if "pull_request_target:" in content:
             errors.append(f"{workflow} must not use pull_request_target")
         root_section = content.split("\njobs:", maxsplit=1)[0]
-        if not re.search(
-            r"(?m)^permissions:\n(?:[ \t]+.*\n)*?  contents: read$",
-            root_section,
-        ):
+        if not _has_root_contents_read(root_section):
             errors.append(f"{workflow} must default to contents: read")
 
     evidence = WORKFLOWS / "generate-evidence.yml"

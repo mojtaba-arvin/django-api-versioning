@@ -65,6 +65,14 @@ describe('renderMarkdown', () => {
     expect(html).toContain('class="table-wrap"')
     expect(html).toContain('rel="noopener noreferrer"')
   })
+
+  it('keeps raw HTML inert and derives heading IDs from text tokens', () => {
+    const result = renderMarkdown('## Safe <img src=x onerror=alert(1)> heading\n\n<script>alert(1)</script>')
+    expect(result.html).not.toContain('<script>')
+    expect(result.html).not.toContain('<img')
+    expect(result.html).toContain('&lt;script&gt;')
+    expect(result.toc).toEqual([{ id: 'safe-heading', text: 'Safe  heading' }])
+  })
 })
 
 describe('parseArticle', () => {

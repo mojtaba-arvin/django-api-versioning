@@ -62,6 +62,23 @@ class AgentToolingTests(unittest.TestCase):
     def test_workflow_security_policy_passes(self) -> None:
         self.assertEqual(verify_repository_policy.validate(), [])
 
+    def test_root_permissions_parser_is_bounded_and_exact(self) -> None:
+        self.assertTrue(
+            verify_repository_policy._has_root_contents_read(
+                "name: Check\npermissions:\n  contents: read\njobs:\n  test:"
+            )
+        )
+        self.assertFalse(
+            verify_repository_policy._has_root_contents_read(
+                "name: Check\npermissions:\n  contents: write\njobs:\n  test:"
+            )
+        )
+        self.assertFalse(
+            verify_repository_policy._has_root_contents_read(
+                "name: Check\npermissions:\n" + ("\t\t\n" * 10000) + "jobs:"
+            )
+        )
+
     def test_skill_reference_links_must_exist_and_stay_inside_repository(self) -> None:
         from tempfile import TemporaryDirectory
 

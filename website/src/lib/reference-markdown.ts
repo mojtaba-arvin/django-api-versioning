@@ -3,18 +3,18 @@ import { escapeHtml, highlightToHtml } from './highlight'
 
 export type ReferenceTocEntry = { id: string; text: string }
 
-function stripTags(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, '')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+function inlineText(tokens: Tokens.Generic[]): string {
+  return tokens.map((token) => {
+    if (token.type === 'html') return ''
+    if ('tokens' in token && Array.isArray(token.tokens)) {
+      return inlineText(token.tokens as Tokens.Generic[])
+    }
+    return 'text' in token && typeof token.text === 'string' ? token.text : ''
+  }).join('')
 }
 
 function slugify(text: string): string {
-  return text.toLowerCase().replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/g, '')
+  return text.toLowerCase().replace(/&[a-z#0-9]+;/g, '')
     .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-')
 }
 
@@ -28,6 +28,10 @@ export function renderReferenceMarkdown(body: string): { title: string; html: st
 
   marked.use({
     renderer: {
+      html({ text }: Tokens.HTML) {
+        // Raw HTML in canonical Markdown must remain inert in generated pages.
+        return escapeHtml(text)
+      },
       heading({ tokens, depth }: Tokens.Heading) {
         const inner = this.parser.parseInline(tokens)
         if (depth === 1 && !skippedTitle) {
@@ -35,7 +39,7 @@ export function renderReferenceMarkdown(body: string): { title: string; html: st
           return ''
         }
         const level = Math.max(2, depth)
-        const plain = stripTags(inner)
+        const plain = inlineText(tokens)
         let id = slugify(plain) || 'section'
         const count = used.get(id) ?? 0
         used.set(id, count + 1)
