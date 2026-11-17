@@ -15,7 +15,7 @@ It does not create a second `manage.py`, a second top-level Django project, or a
 
 ## Scenarios
 
-The catalogue contains the 18 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router (19 scenarios total). Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
+The catalogue contains the 17 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router, and a dedicated `website_check_versions` fixture for the public CLI example (19 scenarios total). Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
 
 The recovered scenario definitions are test inputs, not trusted results. All outputs must be regenerated against the current checkout.
 
