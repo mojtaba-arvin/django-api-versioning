@@ -142,9 +142,7 @@ def _validate_workflow_permissions(errors: list[str]) -> None:
             if re.match(r"^\s*contents:\s*write\s*$", line):
                 write_grants.append((workflow.name, len(line) - len(line.lstrip())))
     if write_grants != [("generate-evidence.yml", 6)]:
-        errors.append(
-            "Only generate-evidence's commit job may grant contents: write"
-        )
+        errors.append("Only generate-evidence's commit job may grant contents: write")
 
 
 def _validate_reusable_workflows(errors: list[str]) -> None:

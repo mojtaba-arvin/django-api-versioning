@@ -69,7 +69,6 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
         "read": [
             "pyproject.toml",
             "CHANGELOG.md",
-
             ".github/workflows/compatibility.yml",
             ".github/workflows/package-artifacts.yml",
             ".github/workflows/publish.yml",
