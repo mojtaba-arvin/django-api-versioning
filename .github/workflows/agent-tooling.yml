@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - "AGENTS.md"
+      - "website/AGENTS.md"
+      - "website/.agents/**"
+      - "website/.claude/**"
       - "CLAUDE.md"
       - ".claude/skills/**"
       - ".agents/skills/**"
