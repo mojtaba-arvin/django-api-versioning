@@ -26,6 +26,8 @@ def snippet(source: str, key: str) -> str:
 
 def normalize_code(value: str) -> str:
     lines = [line.rstrip() for line in value.strip().splitlines()]
+    if lines and lines[0] == "# isort: skip_file":
+        lines = lines[1:]
     normalized = chr(10).join(lines)
     triple_newline = chr(10) * 3
     double_newline = chr(10) * 2
