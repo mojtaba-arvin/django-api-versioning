@@ -35,6 +35,14 @@ GitHub Pages and other hosts that do not implement `_headers` ignore this file. 
 
 Deploy the complete `dist/client/` artifact as one release. Prefer atomic deployments, and retain old fingerprinted assets for a reasonable rollback/client-cache window rather than deleting them immediately. Do not apply long-lived immutable caching to HTML or unhashed public files.
 
+## GitHub Pages deployment
+
+The repository deploys the project site to `https://mojtaba-arvin.github.io/django-api-versioning/` through `.github/workflows/pages.yml`. The workflow runs on relevant changes to the website and its canonical article/reference content, and can also be started manually from the Actions tab.
+
+The build uses `SITE_URL=https://mojtaba-arvin.github.io` and `PUBLIC_BASE_PATH=/django-api-versioning`, runs the website tests and type-check, then validates the complete static artifact before deployment. The build and deploy jobs are separate; only the deploy job receives `pages: write` and `id-token: write`.
+
+GitHub Pages does not apply the generated `_headers` or `_redirects` files. The cache rules remain validated as part of the portable artifact contract, but GitHub Pages controls the actual HTTP cache headers. The static `/docs/` fallback remains available, while provider-level 301 redirects are not configured on GitHub Pages. The project sitemap is available at `/django-api-versioning/sitemap.xml`; submit that URL directly to search engines because the generated robots file lives under the project path, not the host root.
+
 ## Run locally
 
 ```bash

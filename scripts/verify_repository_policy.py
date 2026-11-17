@@ -82,8 +82,8 @@ def _validate_oidc_permissions(errors: list[str]) -> None:
         for workflow in sorted(WORKFLOWS.glob("*.yml"))
         if "id-token: write" in workflow.read_text(encoding="utf-8")
     ]
-    if id_token_workflows != ["publish.yml"]:
-        errors.append("Only publish.yml may grant id-token: write")
+    if id_token_workflows != ["pages.yml", "publish.yml"]:
+        errors.append("Only pages.yml and publish.yml may grant id-token: write")
 
 
 def _has_root_contents_read(root_section: str) -> bool:
