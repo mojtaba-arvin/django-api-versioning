@@ -12,7 +12,13 @@ PYTHON_PATHS = (
     "integration_test_project/",
 )
 WEBSITE_PATHS = ("website/", "docs/articles/")
-AGENT_PATHS = (".agents/", ".claude/", ".github/", "website/.agents/", "website/.claude/")
+AGENT_PATHS = (
+    ".agents/",
+    ".claude/",
+    ".github/",
+    "website/.agents/",
+    "website/.claude/",
+)
 PYTHON_DEPENDENCIES = {
     "pyproject.toml",
     "uv.lock",
