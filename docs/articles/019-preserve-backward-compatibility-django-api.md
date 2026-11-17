@@ -30,7 +30,7 @@ The package handles routing, not compatibility policy. You still decide which ch
 
 The examples use a `User` model with `first_name`, `last_name`, `email`, `is_active`, `phone`, and `bio` fields. They demonstrate how to keep older representations available while introducing new behavior without manually maintaining every versioned URL.
 
-For the package's canonical routing rules, including version identifiers, registration precedence, URL names, imports, and ViewSet boundaries, see the [versioning contract reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the package's canonical routing rules, including version identifiers, registration precedence, URL names, imports, and ViewSet boundaries, see the [versioning contract reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
 
 ## Start with versioned endpoint contracts
 
@@ -714,6 +714,7 @@ Keeping an older endpoint available is only one part of a compatibility strategy
 API_VERSION_LIFECYCLE = {
     1: {
         "status": "deprecated",
+        "deprecated_at": "2026-12-01T00:00:00+00:00",
         "sunset": "2027-06-01",
     },
     2: {
@@ -742,7 +743,7 @@ There are important distinctions:
 
 - A `retired` status by itself does not trigger `410 Gone`; the middleware uses the sunset date to determine when to return 410.
 - A future sunset date with `retired` status does not produce the deprecation headers; those are associated with the `deprecated` status.
-- The current middleware emits `Deprecation: true`. That is a legacy draft form, not the date-valued Structured Field specified by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html).
+- A deprecated lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The middleware emits the RFC 9745 date-valued Structured Field (for example, `Deprecation: @1796083200`), not the legacy `Deprecation: true` value.
 - The middleware does not automatically generate a `Link` header with `rel="deprecation"`.
 
 The `Sunset` response header is defined separately in [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html). If the application also emits an RFC 9745 date-valued `Deprecation` field, ensure that the `Sunset` date is not earlier than the deprecation date. The two headers describe different lifecycle milestones and should be planned together.
