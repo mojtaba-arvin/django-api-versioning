@@ -27,7 +27,7 @@ This means an endpoint introduced in v1 can remain available in v2 without a sec
 
 The package manages routing, not semantic API compatibility. You still decide whether a response, request schema, permission rule, or other behavior is compatible with older clients.
 
-The examples in this article demonstrate the package's endpoint registration and routing model. For the exact registration and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+The examples in this article demonstrate the package's endpoint registration and routing model. For the exact registration and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Register unchanged endpoints once
 
@@ -524,7 +524,7 @@ API_VERSION_LIFECYCLE = {
 
 For a version configured with `status="deprecated"`, the middleware adds a `Deprecation` header. If a sunset date is configured, it also adds a `Sunset` header.
 
-A deprecated lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The package emits that date as the RFC 9745 Structured Field value, such as `Deprecation: @1796083200`; it no longer emits the legacy `Deprecation: true` value. The optional `sunset` value is emitted in the HTTP-date format defined by RFC 8594. See the [v1.0.0 lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/lifecycle.py) and [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md#12-version-lifecycle-headers).
+A deprecated lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The package emits that date as the RFC 9745 Structured Field value, such as `Deprecation: @1796083200`; it no longer emits the legacy `Deprecation: true` value. The optional `sunset` value is emitted in the HTTP-date format defined by RFC 8594. See the [v1.0.0 lifecycle implementation](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/lifecycle.py) and [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#12-version-lifecycle-headers).
 
 The middleware also enforces the configured sunset date:
 
