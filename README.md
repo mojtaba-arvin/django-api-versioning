@@ -22,31 +22,55 @@ Register a view with `@endpoint`. The package generates versioned Django URL pat
 
 [Website and interactive playground](https://mojtaba-arvin.github.io/django-api-versioning/) · [API reference](https://mojtaba-arvin.github.io/django-api-versioning/reference/) · [PyPI](https://pypi.org/project/django-api-versioning/)
 
+## The problem this package solves
+
+When an API evolves, some endpoints change while others remain valid. A common URL-based approach is to maintain separate URL patterns for every API version, even when many versions still use the same implementation. As the API grows, that can create repeated routing declarations and make it harder to see which implementation serves each version.
+
+Django API Versioning makes that routing decision explicit at the endpoint declaration:
+
+- **Declare when behavior changes.** Register an implementation starting at the version where it becomes valid.
+- **Carry unchanged routes forward.** A declaration for v1 serves v1 through the configured maximum version unless a later declaration replaces it.
+- **Override without rewriting history.** A v2 declaration replaces the v1 implementation from v2 onward; earlier versions keep their original implementation.
+- **Inspect the result.** The generated route matrix and `check_versions` command make registrations visible and help detect gaps.
+
+This is route-registration inheritance, not automatic API compatibility. The package chooses which view handles each version; your application still owns serializers, response contracts, and compatibility tests.
+
+## Why use this alongside Django REST Framework?
+
+DRF already includes version-identification strategies such as URL-path, namespace, query-parameter, and accept-header versioning. Those are useful when an application needs to determine the requested version (for example, through `request.version`).
+
+This package addresses a different concern: **registering distinct view implementations against versioned URL patterns and carrying unchanged registrations forward**. It does not replace DRF's version-identification features, and it does not automatically set `request.version`.
+
+You may not need this package if your project only needs to identify a version on the request, uses a small fixed set of routes, or already has a clear routing strategy. It is useful when you want version-to-view registration to be declarative, avoid repeating unchanged routes across versions, and inspect the resulting route matrix.
+
 ## Install
+
+For a Django REST Framework project:
+
+```bash
+pip install django-api-versioning djangorestframework
+```
+
+The package installs Django as a runtime dependency. DRF remains optional: if your project uses Django-native views, install only:
 
 ```bash
 pip install django-api-versioning
 ```
 
-The package installs Django as a runtime dependency. Install Django REST Framework separately only when your application uses DRF:
+## Quick start (Django REST Framework)
 
-```bash
-pip install djangorestframework
-```
-
-## Quick start
-
-This complete example uses Django-native views; it does not require Django REST Framework.
+This example uses DRF's `APIView`. The package also supports Django function-based views, Django class-based views, and DRF generic views.
 
 ### 1. Configure Django
 
-Add the package to `INSTALLED_APPS` and set the highest API version your project serves:
+Add the package and DRF to `INSTALLED_APPS`, then set the highest API version your project serves:
 
 ```python
 # settings.py
 
 INSTALLED_APPS = [
     # ... your Django apps
+    "rest_framework",
     "django_api_versioning",
 ]
 
@@ -60,19 +84,22 @@ API_MAX_VERSION = 3
 Put the views in a module such as `orders/views.py`:
 
 ```python
-from django.http import JsonResponse
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from django_api_versioning import endpoint
 
 
 @endpoint("orders/", version=1, view_name="order-list")
-def order_list_v1(request):
-    return JsonResponse({"total": "19.99"})
+class OrderListV1(APIView):
+    def get(self, request):
+        return Response({"total": "19.99"})
 
 
 @endpoint("orders/", version=2, view_name="order-list")
-def order_list_v2(request):
-    return JsonResponse({"total": 1999, "currency": "USD"})
+class OrderListV2(APIView):
+    def get(self, request):
+        return Response({"total": 1999, "currency": "USD"})
 ```
 
 A declaration with `version=1` registers that implementation from v1 through `API_MAX_VERSION`. The v2 declaration takes over from v2 onward.
@@ -98,9 +125,9 @@ With the default `API_BASE_PATH`, these requests resolve as follows:
 
 | Request | Registered view |
 | --- | --- |
-| `GET /api/v1/orders/` | `order_list_v1` |
-| `GET /api/v2/orders/` | `order_list_v2` |
-| `GET /api/v3/orders/` | `order_list_v2` |
+| `GET /api/v1/orders/` | `OrderListV1` |
+| `GET /api/v2/orders/` | `OrderListV2` |
+| `GET /api/v3/orders/` | `OrderListV2` |
 
 The v2 view is reused for v3 because no later declaration replaces it. This is route-registration inheritance: it does not mean that response schemas or business behavior are automatically backward-compatible.
 
@@ -113,6 +140,21 @@ python manage.py check_versions
 ```
 
 It prints the logical endpoint matrix and warns about gaps between an endpoint's first and last registered versions.
+
+### Using Django without DRF
+
+DRF is not a dependency of this package. For a Django-native endpoint, use a function-based view instead:
+
+```python
+from django.http import JsonResponse
+
+from django_api_versioning import endpoint
+
+
+@endpoint("health/", version=1)
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+```
 
 ## How version registration works
 
