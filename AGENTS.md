@@ -1,7 +1,7 @@
 
 # Repository instructions
 
-This is the single engineering contract for every coding agent. Keep it concise. Task procedures belong in skills; detailed domain constraints belong in their canonical project documents.
+Shared policy for all coding agents. Procedures belong in skills; domain constraints belong in canonical project documents.
 
 ## Repository boundaries
 
@@ -40,10 +40,10 @@ This is the single engineering contract for every coding agent. Keep it concise.
 ## Efficient agent workflow
 
 1. Invoke only the matching task skill; do not read every skill or project document.
-2. Run `python scripts/agent.py context implementation` (or the matching `audit`, `testing`, `release`, `website`, or `agent-maintenance` profile) for a task-scoped reading list before broad exploration.
-3. Use `python scripts/agent.py doctor` for read-only environment diagnostics; use `validate` after changing agent configuration and `verify` to run its deterministic checks.
+2. Run `python scripts/agent.py context <profile>` for a task-scoped reading list before broad exploration.
+3. Use `python scripts/agent.py doctor` for read-only diagnostics, `validate` after agent-config edits, and `verify` for deterministic checks.
 4. Read relevant source modules, callers, tests, and references only. Prefer targeted search over dumping large directories or documents.
-5. Prefer existing Python, pytest, tox/tox-uv, pre-commit, package-validation scripts, and GitHub Actions over new tools or services.
+5. Prefer existing Python, pytest, tox/tox-uv, pre-commit, and GitHub Actions over new tools or services.
 
 ## Git lifecycle
 
