@@ -12,7 +12,7 @@ PYTHON_PATHS = (
     "integration_test_project/",
 )
 WEBSITE_PATHS = ("website/", "docs/articles/")
-AGENT_PATHS = (".agents/", ".claude/", ".github/")
+AGENT_PATHS = (".agents/", ".claude/", ".github/", "website/.agents/", "website/.claude/")
 PYTHON_DEPENDENCIES = {
     "pyproject.toml",
     "uv.lock",
@@ -77,6 +77,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         path
         in {
             "AGENTS.md",
+            "website/AGENTS.md",
             "CLAUDE.md",
             "CONTRIBUTING.md",
             "SECURITY.md",
@@ -95,7 +96,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
     )
     needs_dependency_review = any(
         path in PYTHON_DEPENDENCIES
-        or path in {"website/package.json", "website/package-lock.json"}
+        or path in {"website/package.json", "website/pnpm-lock.yaml"}
         or path.startswith("requirements")
         for path in normalized
     )
