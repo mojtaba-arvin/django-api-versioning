@@ -92,12 +92,21 @@ export async function validateDist(distRoot, basePath = '/') {
     'articles/index.html',
     'rss.xml',
     'favicon.svg',
+    '_headers',
   ]
   const missing = []
   for (const relative of required) {
     if (!await exists(path.join(root, relative))) missing.push(relative)
   }
   if (missing.length) throw new Error('Missing required static output: ' + missing.join(', '))
+
+  const cacheHeaders = await readFile(path.join(root, '_headers'), 'utf8')
+  if (!/^\/\*\s*\r?\n\s+Cache-Control:\s*public,\s*max-age=0,\s*must-revalidate\s*$/m.test(cacheHeaders)) {
+    throw new Error('Static cache policy must require revalidation for HTML and unhashed public files')
+  }
+  if (!/^\/assets\/\*\s*\r?\n\s+Cache-Control:\s*public,\s*max-age=31536000,\s*immutable\s*$/m.test(cacheHeaders)) {
+    throw new Error('Static cache policy must mark Vite fingerprinted assets immutable for one year')
+  }
 
   const sourceFiles = (await readdir(canonicalArticles, { withFileTypes: true }))
     .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
@@ -159,7 +168,7 @@ export async function validateDist(distRoot, basePath = '/') {
 
   const broken = await findBrokenLocalReferences(root, basePath)
   if (broken.length) {
-    throw new Error('Broken local references (' + broken.length + '):\n- ' + broken.join('\n- '))
+    throw new Error('Broken local references (' + broken.length + '):\\n- ' + broken.join('\\n- '))
   }
 
   const summary = {
@@ -169,7 +178,7 @@ export async function validateDist(distRoot, basePath = '/') {
     basePath: normalizeBasePath(basePath),
   }
   console.log('[static-dist] verified ' + summary.htmlPages + ' HTML pages, ' +
-    summary.articlePages + ' articles, RSS, and local references at ' + summary.basePath)
+    summary.articlePages + ' articles, RSS, cache headers, and local references at ' + summary.basePath)
   return summary
 }
 
