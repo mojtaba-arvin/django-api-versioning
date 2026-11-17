@@ -15,7 +15,8 @@
     "format:check": "prettier --check .",
     "test:dist": "node scripts/check-dist.mjs",
     "test:dist:root": "PUBLIC_BASE_PATH=/ node scripts/check-dist.mjs dist/client /",
-    "test:dist:subpath": "PUBLIC_BASE_PATH=/django-api-versioning node scripts/check-dist.mjs dist/client /django-api-versioning"
+    "test:dist:subpath": "PUBLIC_BASE_PATH=/django-api-versioning node scripts/check-dist.mjs dist/client /django-api-versioning",
+    "predev": "pnpm run sync:articles"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.46",
