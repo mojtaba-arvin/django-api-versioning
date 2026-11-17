@@ -38,6 +38,47 @@ def normalize_code(value: str) -> str:
     return normalized
 
 
+def verify_package_symbols(source: str, evidence: dict) -> None:
+    symbols = evidence.get("source_refs", {}).get("symbols", {})
+    lines = evidence.get("source_refs", {}).get("lines", {})
+    checks = {
+        "settings": (
+            "APISettings.from_django_settings",
+            ("API_BASE_PATH", "API_MIN_VERSION", "API_MAX_VERSION"),
+        ),
+        "urls": (
+            "registry_urlpatterns",
+            ("django_api_versioning.urls", "urlpatterns"),
+        ),
+        "snapshot": ("assert_version_matrix", ("assert_version_matrix",)),
+        "reverse": ("api_reverse", ("api_reverse",)),
+        "lifecycle": (
+            "LifecycleMiddleware.__call__",
+            ("django_api_versioning.lifecycle.LifecycleMiddleware",),
+        ),
+        "checkVersions": ("check_versions.handle", ("manage.py check_versions",)),
+    }
+    for key, (reference, tokens) in checks.items():
+        available = reference in symbols or reference in lines
+        example = snippet(source, key)
+        if not available or any(token not in example for token in tokens):
+            raise ValueError(
+                f"Website snippet {key!r} no longer matches its package API reference."
+            )
+
+    migrate_command = (
+        ROOT
+        / "django_api_versioning"
+        / "management"
+        / "commands"
+        / "migrate_endpoints.py"
+    )
+    if not migrate_command.is_file() or "migrate_endpoints" not in snippet(
+        source, "migrate"
+    ):
+        raise ValueError("Website migrate_endpoints example has no package command.")
+
+
 def main() -> int:
     if (
         not CONTENT.is_file()
@@ -55,6 +96,7 @@ def main() -> int:
         cli_example = snippet(source, "checkVersions")
         hero_example = snippet(source, "heroView")
         evidence = json.loads(ROUTES.read_text(encoding="utf-8"))
+        verify_package_symbols(source, evidence)
     except (ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
