@@ -24,6 +24,11 @@ def snippet(source: str, key: str) -> str:
     return match.group(1)
 
 
+def normalize_code(value: str) -> str:
+    lines = [line.rstrip() for line in value.strip().splitlines()]
+    return re.sub(r"\\n{3,}", "\\n\\n", "\\n".join(lines))
+
+
 def main() -> int:
     if not CONTENT.is_file() or not CLI_OUTPUT.is_file() or not ROUTES.is_file():
         print(
@@ -66,7 +71,7 @@ def main() -> int:
     scenarios = evidence.get("scenarios", {})
     quick_start = scenarios.get("website_quick_start", {})
     fixture = quick_start.get("views_source") or {}
-    if hero_example.rstrip(newline) != fixture.get("code", "").rstrip(newline):
+    if normalize_code(hero_example) != normalize_code(fixture.get("code", "")):
         print(
             "The website hero endpoint snippet differs from its executable fixture.",
             file=sys.stderr,
