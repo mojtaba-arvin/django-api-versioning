@@ -251,7 +251,7 @@ This is route-registration inheritance, not Python class inheritance. The regist
 
 This behavior is useful when an implementation remains valid across later API releases. It also creates a responsibility: when an endpoint's contract changes, register a new implementation or deliberately choose an explicit version set. Otherwise, the previous implementation continues to serve later versions.
 
-For package-specific details—including collision precedence, version boundaries, URL construction, and import behavior—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For package-specific details—including collision precedence, version boundaries, URL construction, and import behavior—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## DRF-only alternative 1: Separate APIView classes per version
 
