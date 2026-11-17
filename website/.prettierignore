@@ -1,5 +1,5 @@
 node_modules
 dist
-.netlify
 .tanstack
+public/rss.xml
 src/routeTree.gen.ts
