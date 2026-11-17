@@ -25,6 +25,21 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["dependency"])
         self.assertFalse(result["python"])
 
+    def test_website_agent_instructions_run_website_and_agent_validation(self):
+        result = classify_paths(["website/AGENTS.md"])
+        self.assertTrue(result["website"])
+        self.assertTrue(result["agent"])
+
+    def test_website_pnpm_lock_runs_dependency_review(self):
+        result = classify_paths(["website/pnpm-lock.yaml"])
+        self.assertTrue(result["website"])
+        self.assertTrue(result["dependency"])
+
+    def test_nested_website_agent_files_run_agent_validation(self):
+        result = classify_paths(["website/.agents/skills/obsolete/SKILL.md"])
+        self.assertTrue(result["website"])
+        self.assertTrue(result["agent"])
+
     def test_agent_and_workflow_changes_run_agent_validation(self):
         result = classify_paths(
             ["AGENTS.md", ".github/workflows/pull-request-gate.yml"]
