@@ -30,7 +30,7 @@ The package handles routing, not compatibility policy. You still decide which ch
 
 The examples use a `User` model with `first_name`, `last_name`, `email`, `is_active`, `phone`, and `bio` fields. They demonstrate how to keep older representations available while introducing new behavior without manually maintaining every versioned URL.
 
-For the package's canonical routing rules, including version identifiers, registration precedence, URL names, imports, and ViewSet boundaries, see the [versioning contract reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For the package's canonical routing rules, including version identifiers, registration precedence, URL names, imports, and ViewSet boundaries, see the [versioning contract reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Start with versioned endpoint contracts
 
