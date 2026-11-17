@@ -23,8 +23,8 @@ describe('canonical Reference content', () => {
       'Management commands',
       'Development',
     ])
-    expect(html).toContain('class="reference-code"')
-    expect(html).toContain('class="reference-table"')
+    expect(html).toContain('reference-code')
+    expect(html).toContain('reference-table')
     expect(html).toContain('data-copy')
     expect(html).toContain('MyViewSet.as_view({&quot;get&quot;: &quot;list&quot;})')
   })

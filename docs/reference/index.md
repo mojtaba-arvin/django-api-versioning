@@ -12,7 +12,7 @@ Requires Python ≥ 3.10 and Django ≥ 4.2. Django REST Framework is optional. 
 
 | Setting | Default | Description |
 | --- | --- | --- |
-| `API_BASE_PATH` | `"api/v{version}/"` | URL prefix for versioned routes. Must contain exactly one plain {version} field. |
+| `API_BASE_PATH` | `"api/v{version}/"` | URL prefix for versioned routes. Must contain exactly one plain ``{version}`` field. |
 | `API_MIN_VERSION` | `1` | Lowest version served. Declarations below it are skipped with a warning. |
 | `API_MAX_VERSION` | `1` | Highest version served. Declarations above it raise `InvalidVersionError`. |
 | `API_VERSION_LIFECYCLE` | `{}` | Per-version status, `deprecated_at` and `sunset` used by `LifecycleMiddleware`. |
@@ -23,7 +23,7 @@ Requires Python ≥ 3.10 and Django ≥ 4.2. Django REST Framework is optional. 
 
 | Argument | Default | Purpose |
 | --- | --- | --- |
-| `postfix` | required | Resource path, positional. e.g. "invoices/<int:invoice_id>/" |
+| `postfix` | required | Resource path, positional. e.g. `invoices/<int:invoice_id>/` |
 | `version` | `None` | Start of a forward segment. |
 | `versions` | `None` | Explicit list of versions, or `ver_range(a, b)`. |
 | `app_name` | `None` | Optional grouping path segment. |

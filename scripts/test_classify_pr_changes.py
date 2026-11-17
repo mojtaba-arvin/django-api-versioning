@@ -25,6 +25,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["website"])
         self.assertFalse(result["python"])
         self.assertFalse(result["package"])
+
     def test_reference_source_change_runs_website_checks(self):
         result = classify_paths(["docs/reference/index.md"])
         self.assertTrue(result["website"])
