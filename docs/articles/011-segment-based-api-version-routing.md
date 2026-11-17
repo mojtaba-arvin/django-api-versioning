@@ -294,7 +294,7 @@ A version outside the configured range is different from an endpoint that has no
 
 There is also an important contract risk: increasing `API_MAX_VERSION` can carry an older implementation into a newer version. That implementation may not satisfy the newer API contract. The package does not determine semantic compatibility. Review and test each supported version's response contract, serializers, permissions, filtering, and pagination.
 
-For the exact decorator signature, URL construction, precedence rules, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For the exact decorator signature, URL construction, precedence rules, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ### Adding v3
 
