@@ -89,6 +89,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
     is_website = any(
         path.startswith(WEBSITE_PATHS + PYTHON_PATHS)
         or path in WEBSITE_EXAMPLE_PATHS
+        or (path.startswith("requirements") and path.endswith(".txt"))
         or path
         in {
             ".github/workflows/website-data-preflight.yml",
