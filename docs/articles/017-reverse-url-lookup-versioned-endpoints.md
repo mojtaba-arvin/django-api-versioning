@@ -218,7 +218,7 @@ urlpatterns = [
 
 The exact module imports depend on the application's structure. Decorated views must be loaded before code relies on their registered routes, including calls to `api_reverse()`. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view modules does not permanently capture an empty snapshot. Keep imports explicit during URLconf initialization.
 
-For more information about the package's registration behavior and public API, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md) and the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
+For more information about the package's registration behavior and public API, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) and the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning).
 
 ## Use `api_reverse()` in HTTP responses
 
