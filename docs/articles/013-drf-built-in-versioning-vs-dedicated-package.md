@@ -95,7 +95,7 @@ urlpatterns = [
 
 The `account_views` import is intentional: it executes the decorators and populates the registry. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing that list before the view module does not permanently capture an empty snapshot. Keep imports explicit and ensure registration is complete before request resolution.
 
-The package's routing behavior, version validation, registration precedence, and import behavior are defined in its [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+The package's routing behavior, version validation, registration precedence, and import behavior are defined in its [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
 
 ### How registration inheritance works
 
