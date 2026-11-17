@@ -19,15 +19,18 @@ describe('canonical Reference content', () => {
       'Installation',
       'Settings',
       '@endpoint arguments',
-      'Validation & collisions',
+      'URL reversal',
+      'Validation and collisions',
       'Exceptions',
+      'Route-matrix tools',
+      'API lifecycle',
       'Management commands',
       'Development',
     ])
     expect(html).toContain('reference-code')
     expect(html).toContain('reference-table')
     expect(html).toContain('data-copy')
-    expect(html).toContain('MyViewSet.as_view({&quot;get&quot;: &quot;list&quot;})')
+    expect(html).toContain('ItemViewSet.as_view({&quot;get&quot;: &quot;list&quot;})')
   })
 
   it('keeps raw HTML inert in Reference Markdown', () => {
