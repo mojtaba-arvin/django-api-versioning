@@ -294,7 +294,7 @@ A version outside the configured range is different from an endpoint that has no
 
 There is also an important contract risk: increasing `API_MAX_VERSION` can carry an older implementation into a newer version. That implementation may not satisfy the newer API contract. The package does not determine semantic compatibility. Review and test each supported version's response contract, serializers, permissions, filtering, and pagination.
 
-For the exact decorator signature, URL construction, precedence rules, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the exact decorator signature, URL construction, precedence rules, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ### Adding v3
 
@@ -519,7 +519,7 @@ The practical boundary is:
 
 The package does not automatically integrate with or inherit DRF router registrations.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 
 ## Trade-offs and scope
 

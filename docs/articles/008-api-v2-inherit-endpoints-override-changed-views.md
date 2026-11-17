@@ -182,7 +182,7 @@ Two different forms of inheritance are involved:
 
 **Scope: routing only.** The package selects which view handles each versioned URL. It does not determine whether a response change is backward compatible, merge serializers, or guarantee that an unchanged implementation still satisfies the v2 API contract. Test each supported version's response behavior and contract separately.
 
-For the package's exact registration, collision, and ViewSet behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the package's exact registration, collision, and ViewSet behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## DRF ViewSet alternative: Python inheritance with per-version routers
 
@@ -318,7 +318,7 @@ If you want to keep a ViewSet, you have two options:
 
 The package example uses generic views, not ViewSets. It demonstrates versioned endpoint registration and view inheritance, but it is not a drop-in replacement for all router-generated ViewSet functionality.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
 
 ## Trade-offs and scope
 

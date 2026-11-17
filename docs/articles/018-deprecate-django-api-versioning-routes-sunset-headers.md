@@ -157,7 +157,7 @@ urlpatterns = [
 
 The package also provides version-level lifecycle handling through `LifecycleMiddleware`. It reads `API_VERSION_LIFECYCLE`, adds `Deprecation` and `Sunset` headers when applicable, and returns `410 Gone` after a configured sunset date. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view modules does not permanently capture an empty snapshot. Keep the imports explicit and ensure registration is complete before request resolution.
 
-The following sections extend this built-in behavior with application-level policies for requirements such as RFC 9745 date-valued deprecation metadata, migration links, and resource-specific successor URLs.
+The following sections extend the built-in behavior with application-level features that the package does not provide: migration-documentation links, resource-specific successor URLs, and custom operational controls.
 
 ## 2. Understand the deprecation headers
 
@@ -189,7 +189,7 @@ Sunset: Wed, 30 Jun 2027 00:00:00 GMT
 
 The value identifies when the resource is expected to become unavailable.
 
-A sunset date is a communicated deadline, not an automatic enforcement mechanism. Your application must decide what happens when that deadline arrives.
+The `Sunset` header itself communicates an expected deadline. The package's built-in `LifecycleMiddleware` additionally enforces its configured `sunset` value: after that date passes, it returns `410 Gone`.
 
 ### `Link`
 
@@ -249,7 +249,7 @@ This configuration can be used by middleware to apply the same policy to every r
 
 The package already provides `LifecycleMiddleware` for version-wide deprecation and sunset enforcement.
 
-The custom middleware below is an application-level alternative for requirements that the built-in implementation does not cover, such as a date-valued RFC 9745 `Deprecation` header and migration links.
+The custom middleware below is an application-level alternative for requirements that the built-in implementation does not cover, such as migration links, resource-specific successor URLs, and a custom removal flag. The built-in middleware already emits the RFC 9745 date-valued `Deprecation` field when `deprecated_at` is configured.
 
 Do not enable both middleware implementations as independent owners of the same lifecycle policy without explicitly coordinating their response headers and retirement behavior. Otherwise, they may overwrite lifecycle headers or apply conflicting removal rules.
 
@@ -775,11 +775,11 @@ Use a mixin when deprecation is specific to selected endpoints or when clients n
 
 For a version-wide retirement with resource-specific migration links, combining the two is reasonable.
 
-**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. Its route registration does not configure a DRF versioning class or automatically populate DRF's `request.version`; it selects the registered callable through generated URL patterns. Its built-in lifecycle support does not provide RFC 9745 date-valued deprecation metadata, migration links, resource-specific successor URLs, or client-usage monitoring. Those additional responsibilities remain with the application.
+**Scope: routing and response lifecycle.** `django-api-versioning` provides route registration and version-level lifecycle enforcement through `LifecycleMiddleware`. When a deprecated version has `deprecated_at`, the middleware emits the RFC 9745 date-valued `Deprecation` field; it can also emit `Sunset` and return `410 Gone` after the configured sunset date. It does not configure a DRF versioning class, automatically populate DRF's `request.version`, create migration-documentation links, resolve resource-specific successor URLs, or monitor client usage. Those additional responsibilities remain with the application.
 
 The same HTTP headers can be used with other Django routing and DRF versioning approaches, but the package-specific part of this implementation is the explicit registration of old and new routes and the use of `api_reverse()` to resolve a successor route from the package registry.
 
-For exact route registration and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For exact route registration and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Next steps
 

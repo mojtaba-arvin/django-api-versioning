@@ -347,7 +347,7 @@ can be registered as a specific route, but this is not a substitute for normal r
 
 The integration test project's URLconf demonstrates manually mounting router URLs under versioned prefixes. It should be understood as a separate routing configuration, not automatic integration between the router and `@endpoint`.
 
-For the exact endpoint registration and URL construction rules, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the exact endpoint registration and URL construction rules, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Next steps
 

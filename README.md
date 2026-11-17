@@ -1,1015 +1,172 @@
 <p align="center">
   <a href="https://mojtaba-arvin.github.io/django-api-versioning/">
-    <img src="https://raw.githubusercontent.com/mojtaba-arvin/django-api-versioning/main/website/public/favicon.svg" alt="Django API Versioning logo" width="72" height="72">
+    <img src="https://raw.githubusercontent.com/mojtaba-arvin/django-api-versioning/main/website/public/favicon.svg" alt="Django API Versioning logo" width="64" height="64">
   </a>
 </p>
 
 # Django API Versioning
 
 [![PyPI version](https://img.shields.io/pypi/v/django-api-versioning?logo=pypi&logoColor=white)](https://pypi.org/project/django-api-versioning/)
-[![Documentation](https://img.shields.io/badge/website-documentation-44b78b?logo=readthedocs&logoColor=white)](https://mojtaba-arvin.github.io/django-api-versioning/)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
-[![Python tests](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml)
-[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%20%7C%206.0%20%7C%206.1-blue)](https://www.djangoproject.com/)
 [![Python versions](https://img.shields.io/pypi/pyversions/django-api-versioning.svg)](https://pypi.org/project/django-api-versioning/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Django versions](https://img.shields.io/badge/django-4.2%20%7C%205.2%20%7C%206.0%20%7C%206.1-blue)](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini)
+[![Python tests](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml/badge.svg)](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/LICENSE)
 
-**Django API Versioning** is a Python package for version-aware endpoint registration in Django and Django REST Framework (DRF) projects.
+**Version your Django API by endpoint, not by duplicating URL patterns.** Register a view once; unchanged routes carry forward to later API versions, and a newer declaration replaces the implementation from that version onward.
 
-Declare an endpoint with `@endpoint`, and the package generates its versioned URL patterns automatically. You define which view serves each version; the registry handles route registration and forward segment inheritance.
+[Explore Django API Versioning — documentation, examples, and interactive playground](https://mojtaba-arvin.github.io/django-api-versioning/) · [Install django-api-versioning from PyPI](https://pypi.org/project/django-api-versioning/)
 
-No manually maintained `path()` declarations for every API version. No need to duplicate unchanged endpoint registrations when a new version is introduced.
+## See how it works
 
-## Documentation
-
-- **Official website:** [Django API Versioning](https://mojtaba-arvin.github.io/django-api-versioning/) — product overview, interactive playground, lifecycle demo, and documentation.
-- **Quick start:** this README includes installation instructions and a working integration example.
-- **API reference:** [online reference](https://mojtaba-arvin.github.io/django-api-versioning/reference/) ([source](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/index.md)).
-- **Routing contract:** [versioning behavior and routing rules](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
-- **Technical articles:** [guides and articles](https://mojtaba-arvin.github.io/django-api-versioning/articles/).
-- **Documentation map:** [source-of-truth rules](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
-
-## "I need to change the response. v1 clients must not break."
-
-You shipped v1 with a string amount. Now the team needs integer cents and an explicit currency code. Changing the existing view would break clients that still depend on the v1 response contract.
-
-With `django-api-versioning`, register a separate implementation for v2:
-
-```python
-# apps/orders/views.py
-
-from django.http import JsonResponse
-from django_api_versioning import endpoint
-
-
-@endpoint("orders/", version=1)
-def order_list_v1(request):
-    return JsonResponse({"total": "19.99"})
-
-
-@endpoint("orders/", version=2)
-def order_list_v2(request):
-    return JsonResponse({
-        "total": 1999,
-        "currency": "USD",
-    })
-```
-
-Both declarations are registered when `apps.orders.views` is imported. Make sure endpoint modules are imported before the package's URL patterns are loaded (see Quick Start below).
-
-With `API_MAX_VERSION = 5`, the resulting routes are:
-
-```text
-GET /api/v1/orders/  →  {"total": "19.99"}
-GET /api/v2/orders/  →  {"total": 1999, "currency": "USD"}
-GET /api/v3/orders/  →  {"total": 1999, "currency": "USD"}
-GET /api/v4/orders/  →  {"total": 1999, "currency": "USD"}
-GET /api/v5/orders/  →  {"total": 1999, "currency": "USD"}
-```
-
-**Why do v3, v4, and v5 use the v2 implementation?**
-
-Because `version=2` declares a forward segment: the view serves v2 through `API_MAX_VERSION`, unless a later declaration for the same route takes over.
-
-When v4 needs its own response contract, add another declaration:
-
-```python
-@endpoint("orders/", version=4)
-def order_list_v4(request):
-    return JsonResponse({
-        "total": 1999,
-        "currency": "USD",
-        "status": "confirmed",
-    })
-```
-
-The resulting mapping becomes:
-
-| Route version | Implementation |
-| --- | --- |
-| v1 | `order_list_v1` |
-| v2 | `order_list_v2` |
-| v3 | `order_list_v2` |
-| v4 | `order_list_v4` |
-| v5 | `order_list_v4` |
-
-The v2 implementation continues serving v2 and v3. The v4 implementation serves v4 and v5.
-
-The function name `order_list_v2` is a convention for readers. The segment is defined by `version=2`, not by the function name.
-
-- **Package:** [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/)
-- **Source code:** [mojtaba-arvin/django-api-versioning](https://github.com/mojtaba-arvin/django-api-versioning)
-- **License:** MIT
-
-## Why not just use DRF's built-in versioning?
-
-Django REST Framework provides several versioning schemes:
-
-- `URLPathVersioning`
-- `NamespaceVersioning`
-- `AcceptHeaderVersioning`
-- `QueryParameterVersioning`
-- `HostNameVersioning`
-
-These mechanisms identify the requested API version according to a configured strategy. They do not, by themselves, define a separate view implementation for every version or generate a complete set of version-specific endpoint registrations.
-
-DRF intentionally leaves the application-specific behavior to the developer.
-
-For example, you can use DRF's version information inside a shared view:
-
-```python
-def order_list(request):
-    if request.version == "1":
-        return ...
-
-    if request.version == "2":
-        return ...
-```
-
-Or you can maintain separate URL patterns and connect each version to its own view manually.
-
-`django-api-versioning` addresses the endpoint-registration part of that problem: declare the view for a source version, and let the registry generate the corresponding versioned routes.
-
-| Concern | DRF versioning mechanisms | `django-api-versioning` |
-| --- | --- | --- |
-| Identify a requested version | Yes, according to the configured scheme | Routes requests to the registered version-specific view |
-| Register version-specific URL patterns | Application configuration required | Generated from endpoint declarations |
-| Map different versions to different views | Application code or URL configuration | `@endpoint` declarations |
-| Reuse an implementation for later versions | Application-managed | Forward segment inheritance |
-| Register explicit version sets | Application-managed | `versions=[...]` |
-| Register bounded version ranges | Application-managed | `ver_range()` |
-| Register unversioned endpoints in the same registry | Application-managed | Supported |
-| Lifecycle headers and sunset enforcement | Application-managed | `LifecycleMiddleware` |
-| Inspect registered route matrix | Application-managed | `check_versions` |
-| Guard routing changes with a snapshot | Application-managed | `assert_version_matrix()` |
-| Reverse a registered route by API version | Django URL reversal | `api_reverse()` |
-| Work without DRF | Django-native schemes and URL configuration | Yes |
-
-The two approaches solve different parts of the problem. You can continue using DRF for serializers, authentication, permissions, request parsing, and response handling while using this package for version-aware endpoint registration.
-
-**Important:** The package does not automatically set `request.version`. Its registry maps generated URL patterns to views. If your application also needs DRF's `request.version`, configure the appropriate DRF versioning scheme separately.
-
-## Installation
-
-Install [Django API Versioning](https://pypi.org/project/django-api-versioning/) from PyPI:
+Install the package and Django REST Framework:
 
 ```bash
-pip install django-api-versioning
+pip install django-api-versioning djangorestframework
 ```
 
-Requirements:
-
-- Python >= 3.10
-- Django >= 4.2
-
-The configured CI compatibility matrix is defined in [`tox.ini`](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini) and checked against the [GitHub Actions workflow](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/.github/workflows/). It currently covers Django 4.2, 5.2, 6.0, and 6.1; Django 5.0 and 5.1 are not included. A configured environment is not evidence that a particular commit passed—check the [workflow runs](https://github.com/mojtaba-arvin/django-api-versioning/actions) for the result tied to the commit you are evaluating.
-
-Django REST Framework is optional. The package can be used with Django-native function-based and class-based views without installing DRF.
-
-## Quick Start
-
-### 1. Configure Django settings
-
-Add the package to `INSTALLED_APPS` and configure the supported version range:
+Declare only the versions where an endpoint's behavior changes:
 
 ```python
-# settings.py
-
-INSTALLED_APPS = [
-    # ... your other apps
-    "django_api_versioning",
-]
-
-API_BASE_PATH = "api/v{version}/"
-API_MIN_VERSION = 1
-API_MAX_VERSION = 3
-```
-
-`API_BASE_PATH` must contain exactly one plain `{version}` format field. Additional format fields, conversions, and format specifications are rejected.
-
-The default values for `API_MIN_VERSION` and `API_MAX_VERSION` are both `1`. Set `API_MAX_VERSION` to the highest route version your project intends to register.
-
-### 2. Define your API endpoints
-
-Create a view and decorate it with `@endpoint`.
-
-For example, in your application's `views.py`:
-
-```python
-# your_app/views.py
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from django_api_versioning import endpoint
 
 
-@endpoint(
-    "invoices/<int:invoice_id>/",
-    version=2,
-    view_name="invoice-detail",
-)
-class InvoiceDetailView(APIView):
-    def get(self, request, invoice_id):
-        return Response({
-            "id": invoice_id,
-            "status": "paid",
-        })
+@endpoint("orders/", version=1, view_name="order-list")
+class OrderListV1(APIView):
+    def get(self, request):
+        return Response({"total": "19.99"})
+
+
+@endpoint("orders/", version=2, view_name="order-list")
+class OrderListV2(APIView):
+    def get(self, request):
+        return Response({"total": 1999, "currency": "USD"})
 ```
 
-The decorator registers the endpoint when this module is imported.
+With `API_MAX_VERSION = 3`, the generated routes are:
 
-### 3. Import endpoint modules and include generated URLs
-
-Django does not automatically import every application's `views.py` module.
-
-You must import every module containing `@endpoint` declarations before importing the package's generated URL patterns.
-
-In your project's root URL configuration:
-
-```python
-# project/urls.py
-
-from django.urls import include, path
-
-from your_app import views  # noqa: F401
-
-from django_api_versioning.urls import urlpatterns as api_urlpatterns
-
-urlpatterns = [
-    # ... your other URL patterns
-    path("", include(api_urlpatterns)),
-]
-```
-
-Replace `your_app` with the actual Python package name of your Django application.
-
-If endpoint declarations are spread across multiple modules, import each module before importing `api_urlpatterns`.
-
-The imported modules do not need to be referenced elsewhere. Their imports execute the decorators and register the endpoints.
-
-**Import order matters:**
-
-1. Import modules containing `@endpoint` declarations.
-2. Import `api_urlpatterns`.
-3. Include the generated patterns in your root URL configuration.
-
-You do not need to write individual `path()` entries for versioned endpoints. The package generates those patterns from the registered declarations.
-
-With the example above, the endpoint is available for v2 and v3:
-
-```text
-GET /api/v1/invoices/42/  →  404
-GET /api/v2/invoices/42/  →  {"id": 42, "status": "paid"}
-GET /api/v3/invoices/42/  →  {"id": 42, "status": "paid"}
-```
-
-The endpoint was introduced in v2, so it is not registered for v1.
-
-Path converters such as `<int:pk>` and `<slug:name>` are supported by the generated Django `path()` patterns.
-
-## Before and after
-
-Consider an API with 150 endpoints and five supported versions.
-
-Some endpoints change their implementation between versions. Others remain unchanged and should continue using their existing implementation.
-
-### Without `django-api-versioning`
-
-You maintain the URL patterns for every endpoint and version manually:
-
-```python
-# urls.py
-
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path("api/v1/users/", views.user_list_v1),
-    path("api/v2/users/", views.user_list_v2),
-    path("api/v3/users/", views.user_list_v2),
-    path("api/v4/users/", views.user_list_v4),
-    path("api/v5/users/", views.user_list_v4),
-
-    path("api/v1/orders/", views.order_list),
-    path("api/v2/orders/", views.order_list),
-    path("api/v3/orders/", views.order_list),
-    path("api/v4/orders/", views.order_list),
-    path("api/v5/orders/", views.order_list),
-
-    # Repeat for the remaining endpoints and versions.
-]
-```
-
-If all 150 endpoints are registered for all five versions, that means 750 manually maintained URL patterns.
-
-Every new API version requires reviewing the URL configuration, even when many endpoints have not changed.
-
-### With `django-api-versioning`
-
-Declare the implementation at each change point:
-
-```python
-# apps/users/views.py
-
-from django_api_versioning import endpoint
-
-
-@endpoint("users/", version=1)
-def user_list_v1(request):
-    ...
-
-
-@endpoint("users/", version=2)
-def user_list_v2(request):
-    ...
-
-
-@endpoint("users/", version=4)
-def user_list_v4(request):
-    ...
-
-
-# apps/orders/views.py
-
-@endpoint("orders/", version=1)
-def order_list(request):
-    ...
-```
-
-The user endpoint has three implementation declarations. The order endpoint has one declaration because its implementation does not change across the configured versions.
-
-With `API_MAX_VERSION = 5`, the package generates the versioned routes from these declarations.
-
-Import the endpoint modules and include the generated patterns once:
-
-```python
-# project/urls.py
-
-from django.urls import include, path
-
-from apps.users import views as _user_views  # noqa: F401
-from apps.orders import views as _order_views  # noqa: F401
-
-from django_api_versioning.urls import urlpatterns as api_urlpatterns
-
-urlpatterns = [
-    # ... your existing URLs
-    path("", include(api_urlpatterns)),
-]
-```
-
-### What changes?
-
-| Concern | Manual URL configuration | `django-api-versioning` |
-| --- | --- | --- |
-| Add a new endpoint implementation in v2 | Add a view and URL pattern | Add one `@endpoint` declaration |
-| Keep an unchanged endpoint available in v3 | Add another URL pattern | No additional declaration |
-| Change an endpoint in v4 | Update URL configuration and route mappings | Add a v4 declaration |
-| Inspect which view serves a version | Review URL configuration | Run `check_versions` |
-| Organize endpoint ownership | Often centralized in `urls.py` | Declarations can live with their views |
-| URL configuration | One entry per endpoint/version combination | One generated URL include |
-
-For the example above, the user endpoint has three declarations because its implementation changes at v1, v2, and v4. The order endpoint has one declaration because it remains unchanged.
-
-The package reduces repeated route declarations. It does not eliminate the need to implement and test behavior changes.
-
-### Inspect the generated routes
-
-Run:
-
-```bash
-python manage.py check_versions
-```
-
-The command prints the registered route matrix and warns about missing versions within the configured range.
-
-For the example above, the mapping is conceptually:
-
-```text
-api/v1/users/:
-  v1           → user_list_v1
-
-api/v2/users/:
-  v2           → user_list_v2
-
-api/v3/users/:
-  v3           → user_list_v2
-
-api/v4/users/:
-  v4           → user_list_v4
-
-api/v5/users/:
-  v5           → user_list_v4
-
-api/v1/orders/:
-  v1           → order_list
-
-api/v2/orders/:
-  v2           → order_list
-
-api/v3/orders/:
-  v3           → order_list
-
-api/v4/orders/:
-  v4           → order_list
-
-api/v5/orders/:
-  v5           → order_list
-```
-
-The command reports registered routes and gaps. A gap warning is a routing observation; whether a missing version is a problem depends on the intended API contract.
-
-### Add a new version without changing unchanged endpoints
-
-Suppose v6 introduces a new users response contract, while orders remain unchanged.
-
-Add a new declaration:
-
-```python
-@endpoint("users/", version=6)
-def user_list_v6(request):
-    ...
-```
-
-The v6 implementation serves v6 and subsequent configured versions. Earlier user versions keep their existing mappings. The order endpoint requires no new declaration.
-
-## Four endpoint registration patterns
-
-Each pattern represents a different API evolution requirement.
-
-### 1. Segment — introduce an endpoint in v3
-
-```python
-from django.http import JsonResponse
-from django_api_versioning import endpoint
-
-
-@endpoint("reports/", version=3)
-def report_list(request):
-    return JsonResponse({"reports": []})
-```
-
-With `API_MAX_VERSION = 5`:
-
-```text
-GET /api/v1/reports/  →  404
-GET /api/v2/reports/  →  404
-GET /api/v3/reports/  →  {"reports": []}
-GET /api/v4/reports/  →  {"reports": []}
-GET /api/v5/reports/  →  {"reports": []}
-```
-
-The endpoint did not exist in v1 or v2. Its v3 implementation is reused for later versions until another declaration takes over.
-
-### 2. Explicit set — v2 and v4 only
-
-```python
-from django.http import JsonResponse
-from django_api_versioning import endpoint
-
-
-@endpoint("ranking/", versions=[2, 4])
-def ranking(request):
-    return JsonResponse({"algorithm": "new"})
-```
-
-The endpoint is registered only for the specified versions:
-
-```text
-GET /api/v1/ranking/  →  404
-GET /api/v2/ranking/  →  {"algorithm": "new"}
-GET /api/v3/ranking/  →  404
-GET /api/v4/ranking/  →  {"algorithm": "new"}
-GET /api/v5/ranking/  →  404
-```
-
-Use explicit versions when an implementation should be registered only for selected, potentially non-contiguous versions.
-
-### 3. Bounded range — v1 through v3
-
-```python
-from django.http import JsonResponse
-from django_api_versioning import endpoint, ver_range
-
-
-@endpoint("legacy/", versions=ver_range(1, 3))
-def legacy_endpoint(request):
-    return JsonResponse({"deprecated": True})
-```
-
-```text
-GET /api/v1/legacy/  →  {"deprecated": true}
-GET /api/v2/legacy/  →  {"deprecated": true}
-GET /api/v3/legacy/  →  {"deprecated": true}
-GET /api/v4/legacy/  →  404
-GET /api/v5/legacy/  →  404
-```
-
-`ver_range(start, end)` returns an inclusive list:
-
-```python
-ver_range(1, 3) == [1, 2, 3]
-```
-
-Use it when an endpoint should stop being registered after a particular version.
-
-### 4. Unversioned — no version prefix
-
-```python
-from django.http import JsonResponse
-from django_api_versioning import endpoint
-
-
-@endpoint("health/")
-def health_check(request):
-    return JsonResponse({"status": "ok"})
-```
-
-The endpoint is registered without the versioned `API_BASE_PATH` prefix.
-
-With the root URL include shown in Quick Start:
-
-```text
-GET /health/  →  {"status": "ok"}
-```
-
-Unversioned routes are registered at the include prefix, not under the versioned base path.
-
-If you need unversioned and versioned routes under a shared `/api/` prefix, configure the base path and URL include accordingly. For example:
-
-```python
-# settings.py
-API_BASE_PATH = "v{version}/"
-```
-
-```python
-# project/urls.py
-urlpatterns = [
-    path("api/", include(api_urlpatterns)),
-]
-```
-
-This produces versioned paths such as `/api/v1/...` and an unversioned path such as `/api/health/`.
-
-## How segments resolve
-
-Consider two declarations for the same route:
-
-```python
-from django.http import JsonResponse
-from django_api_versioning import endpoint
-
-
-@endpoint("orders/", version=1)
-def order_list_v1(request):
-    return JsonResponse({"version": 1})
-
-
-@endpoint("orders/", version=3)
-def order_list_v3(request):
-    return JsonResponse({"version": 3})
-```
-
-With `API_MAX_VERSION = 5`, the resulting mapping is:
-
-```text
-GET /api/v1/orders/  →  {"version": 1}   # order_list_v1
-GET /api/v2/orders/  →  {"version": 1}   # order_list_v1
-GET /api/v3/orders/  →  {"version": 3}   # order_list_v3
-GET /api/v4/orders/  →  {"version": 3}   # order_list_v3
-GET /api/v5/orders/  →  {"version": 3}   # order_list_v3
-```
-
-The v3 declaration takes over from v3 onward. The v1 implementation continues serving v1 and v2.
-
-This is route-level implementation inheritance. It does not imply Python class inheritance or automatic serializer compatibility.
-
-## Reliability tools
-
-### `check_versions` — inspect the registered matrix
-
-```bash
-python manage.py check_versions
-```
-
-Prints registered routes, their route versions, and the associated callback names. It also warns about missing versions in the configured range.
-
-Use it to inspect the routing result after adding or changing endpoint declarations.
-
-**Output interpretation:**
-
-The command groups routes by their *logical endpoint* (the path without versioning), not by physical URL. This means:
-
-```text
-users/:
-  v1           → users_list_v1
-  v2           → users_list_v2
-  v3           → users_list_v2
-  v4           → users_list_v2
-```
-
-Even though physical URLs are `/api/v1/users/`, `/api/v2/users/`, etc., the command groups them under the logical endpoint `users`.
-
-**Callback name resolution:**
-
-The command resolves callback names intelligently:
-
-- **Function-based views:** Shows the function name (e.g., `my_view`)
-- **Django View classes:** Shows the class name (e.g., `MyView`)
-- **DRF APIView:** Shows the class name (e.g., `MyAPIView`)
-- **DRF ViewSet actions:** Shows the ViewSet class name (e.g., `MyViewSet`)
-
-**Gap detection:**
-
-The command warns about missing versions within an endpoint's span:
-
-```text
-users:
-  v1           → users_list_v1
-  v3           → users_list_v3
-  [users] v2 is not defined.
-```
-
-It does NOT warn about versions before an endpoint's introduction or after its final declaration:
-
-```text
-# No warning for v1 (starts at v2)
-# No warning for v4 (ends at v3)
-```
-
-### `assert_version_matrix` — guard routing changes in CI
-
-The package provides a snapshot utility for detecting unintended changes to the registered route matrix.
-
-```python
-# tests/test_versions.py
-
-from django_api_versioning.testing import assert_version_matrix
-
-
-def test_version_matrix():
-    assert_version_matrix(snapshot=".version_matrix.json")
-```
-
-If the current matrix differs from the snapshot, `assert_version_matrix()` raises `VersionMatrixError` with a diff.
-
-To accept an intentional routing change, update the snapshot:
-
-```python
-assert_version_matrix(
-    snapshot=".version_matrix.json",
-    update=True,
-)
-```
-
-The snapshot is created automatically if it does not exist.
-
-**Import requirement:** Build and compare the matrix only after all modules containing `@endpoint` declarations have been imported. The registry is populated at module import time.
-
-The matrix checks routing structure only. It does not validate response schemas, serializer behavior, business logic, or backward compatibility of API contracts. Keep request-level and contract tests for those guarantees.
-
-### `api_reverse` — reverse a registered route by version
-
-Use `api_reverse()` to reverse a route registered by this package:
-
-```python
-from django_api_versioning import api_reverse
-
-
-url = api_reverse("order-list", version=2)
-```
-
-When the same `view_name` is registered for multiple versions, pass the version to select the exact route.
-
-If only one route is registered for the name, the version can be omitted:
-
-```python
-url = api_reverse("health-check")
-```
-
-If multiple routes match and no version is supplied, the function raises `AmbiguousVersionError` rather than silently selecting one.
-
-To use URL reversal, give the endpoint a `view_name`:
-
-```python
-@endpoint(
-    "orders/",
-    version=2,
-    view_name="order-list",
-)
-def order_list_v2(request):
-    ...
-```
-
-`api_reverse()` is intended for package-registered routes. It is not a general replacement for Django's `reverse()`.
-
-### Deprecation and sunset headers
-
-Configure lifecycle metadata in Django settings:
-
-```python
-# settings.py
-
-API_VERSION_LIFECYCLE = {
-    1: {"status": "retired", "sunset": "2025-01-01"},
-    2: {
-        "status": "deprecated",
-        "deprecated_at": "2026-01-01T00:00:00+00:00",
-        "sunset": "2027-06-01",
-    },
-    3: {"status": "active"},
-}
-
-MIDDLEWARE = [
-    "django_api_versioning.lifecycle.LifecycleMiddleware",
-    # ... your other middleware
-]
-```
-
-For a version configured as deprecated with a future sunset date, the middleware adds:
-
-```http
-Deprecation: @1767225600
-Sunset: Tue, 01 Jun 2027 00:00:00 GMT
-```
-
-When a configured sunset date is in the past, the middleware returns:
-
-```http
-HTTP/1.1 410 Gone
-```
-
-The expired sunset date triggers the `410 Gone` response regardless of the lifecycle status string.
-
-The middleware attempts to identify the request version in this order:
-
-1. `request.version`
-2. `resolver_match.kwargs["version"]`
-3. The version in the request path, extracted using `API_BASE_PATH`
-
-This allows the middleware to identify versions from the package's static versioned URL paths even when `request.version` is not set.
-
-**Standards note:** Configure `deprecated_at` as an ISO 8601 date or datetime for deprecated versions. The middleware emits the date-valued Structured Field required by [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745), using `@` followed by the Unix timestamp. A deprecated lifecycle entry without a valid `deprecated_at` is rejected during settings validation. If the value is changed after initialization, the middleware logs a warning and omits `Deprecation` rather than emitting a non-standard value. `Sunset` follows the HTTP-date format specified by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594).
-
-## Configuration reference
-
-The current settings defaults, `@endpoint` arguments, validation rules, exception list, and management command examples are maintained in the [canonical Reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/index.md). For the complete routing semantics, see the [routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
-
-## Supported views and ViewSets
-
-The package supports Django function-based views and supported class-based views, including Django REST Framework `APIView` and generic views.
-
-For class-based views, the registry calls `as_view()` on the class when creating the URL pattern.
-
-A generic view must implement the HTTP handlers required by its registered route.
-
-### ViewSets
-
-A DRF `ViewSet` class cannot be passed directly to `@endpoint` as a normal class-based view. Its `as_view()` method requires an action mapping, while the package invokes `as_view()` without one.
-
-To register a ViewSet action, pass a pre-configured callable:
-
-```python
-from rest_framework.viewsets import ViewSet
-from django_api_versioning import endpoint
-
-
-class MyViewSet(ViewSet):
-    def list(self, request):
-        return JsonResponse({})
-
-    def create(self, request):
-        return JsonResponse({})
-
-
-# ✓ Correct: pass a configured callable
-@endpoint("items/", version=1)
-def list_items(request):
-    return MyViewSet.as_view({"get": "list"})(request)
-
-# ✗ Incorrect: class without action mapping
-# @endpoint("items/", version=1, MyViewSet)  # TypeError!
-```
-
-For standard ViewSet resource routing (list, create, retrieve, update, destroy), use DRF routers separately.
-
-The package does not automatically generate router-style ViewSet routes.
-
-## Known limitations and scope
-
-`django-api-versioning` focuses on version-aware endpoint registration and routing.
-
-It does not:
-
-- Automatically make response schemas backward-compatible.
-- Select serializers based on a request version.
-- Replace DRF authentication or permission classes.
-- Replace DRF routers for ViewSet resource routing.
-- Automatically set `request.version` (DRF's concern).
-- Use `API_VERSIONING_CHANNELS` to select routes.
-- Use `API_EFFECTIVE_VERSION_RESOLVER` for tenant-specific route selection.
-- Validate response payload compatibility through route-matrix checks.
-
-Your application remains responsible for API contract design, serializer selection, authentication, permissions, business logic, and request-level compatibility tests.
-
-### Package vs. DRF: Division of responsibilities
-
-**Package responsibility: Route selection**
-
-The package registers literal URL paths (`/api/v1/endpoint`, `/api/v2/endpoint`) and selects the correct handler based on the URL path.
-
-**DRF responsibility: request.version**
-
-DRF's versioning classes (like `URLPathVersioning`) populate `request.version` if configured. However, DRF's `URLPathVersioning` uses a URL resolver keyword argument named `version`, which the package does not populate. This means:
-
-- The package successfully routes requests to version-specific handlers.
-- `request.version` may be `None` unless you configure a custom versioning class.
-
-If you need `request.version` populated, consider implementing a custom DRF versioning class that extracts the version from the URL path or adds a custom resolver keyword argument when registering routes.
-
-### Configuration timing
-
-Route-registry settings, such as `API_MAX_VERSION` and `API_BASE_PATH`, are loaded when the package modules and endpoint declarations are imported. Changing these settings with `override_settings` after endpoint registration does not rebuild the existing URL patterns.
-
-`LifecycleMiddleware` is different: it reads `API_VERSION_LIFECYCLE` and `API_BASE_PATH` from `django.conf.settings` at request time. This allows lifecycle behavior to respond to runtime setting overrides, but it does not make the already-registered URL patterns dynamic.
-
-Configure route-registry settings before importing modules containing `@endpoint` declarations:
-
-```python
-# ✓ Correct: configure before importing views
-os.environ["DJANGO_SETTINGS_MODULE"] = "myapp.settings"
-from django.conf import settings
-settings.API_MAX_VERSION = 5
-from myapp import views  # Package uses the configured API_MAX_VERSION
-
-# ✗ Incorrect: configure after importing
-from django_api_versioning import api_settings
-from django.test import override_settings
-with override_settings(API_MAX_VERSION=5):
-    # This does NOT affect api_settings (already loaded)
-    ...
-```
-
-Set all configuration in Django settings before importing modules containing `@endpoint` decorators.
-
-## Migration from 0.2.0
-
-Version 0.3.0 replaced the previous forward/backward inheritance flags model with segment-based registration.
-
-The current `@endpoint` signature accepts:
-
-```python
-endpoint(
-    postfix,
-    version=None,
-    versions=None,
-    app_name=None,
-    view_name=None,
-)
-```
-
-The `forward` and `backward` arguments are not part of the current decorator API. The old `API_FORWARD_INHERITANCE` setting is also not part of the current configuration.
-
-### Common migration patterns
-
-| Previous intent | Current declaration |
+| Request | View |
 | --- | --- |
-| Start a forward segment at v3 | `@endpoint("x/", version=3)` |
-| Register only v3 | `@endpoint("x/", versions=[3])` |
-| Register v1 through v3 explicitly | `@endpoint("x/", versions=ver_range(1, 3))` |
-| Register only v2 and v4 | `@endpoint("x/", versions=[2, 4])` |
+| `GET /api/v1/orders/` | `OrderListV1` |
+| `GET /api/v2/orders/` | `OrderListV2` |
+| `GET /api/v3/orders/` | `OrderListV2` |
 
-The exact replacement depends on the routing behavior your application relied on before upgrading. In particular, do not assume that every old combination of `forward` and `backward` flags has an identical one-line replacement.
+The v1 view serves v1 until another declaration replaces it. The v2 view then serves v2 and v3. **You write a new view when the endpoint changes—not another copy of every unchanged route.**
 
-### Automated migration suggestions
+For the complete setup, including Django settings and URL configuration, see the [Django API Versioning getting-started guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/022-django-api-versioning-how-does-it-work/).
 
-The package includes a `migrate_endpoints` management command:
+## What problem does it solve?
+
+In a growing API, only some endpoints change between releases. Manually maintaining a separate URL configuration for every version can repeat registrations and obscure which implementation handles each version.
+
+Django API Versioning makes that mapping explicit with `@endpoint`:
+
+- **Forward route inheritance:** `version=1` registers the endpoint from v1 through `API_MAX_VERSION`.
+- **Version-specific replacement:** a v2 declaration takes over from v2 onward; earlier versions retain the v1 implementation.
+- **Explicit registration:** use `versions=[...]` or `ver_range(...)` when an endpoint should exist only in selected versions.
+- **Visibility:** inspect the generated route matrix with `check_versions` and test it with `assert_version_matrix()`.
+
+This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
+
+## Why use it with Django REST Framework?
+
+DRF already provides versioning schemes to identify the requested API version, for example through `request.version`. This package solves a related but different problem: **mapping versioned URL paths to specific view implementations and carrying unchanged registrations forward**.
+
+Use DRF's built-in versioning when request-version identification is all you need. Use this package when you want declarative version-to-view routing and an inspectable route matrix. They can be used together; this package does not automatically populate `request.version`.
+
+DRF is optional. The package also supports Django function-based and class-based views. For a Django-only project, install just:
 
 ```bash
-python manage.py migrate_endpoints --dry-run
-python manage.py migrate_endpoints
+pip install django-api-versioning
 ```
 
-The command parses Python source into an AST and uses tokenizer-aware checks to identify supported `@endpoint` declarations containing legacy `forward` or `backward` arguments. It rewrites only literal integer `version` values and literal boolean flags. Dynamic expressions, comments inside a decorator, unsupported forms, and files with syntax errors are left unchanged for manual migration.
+## Quick configuration
 
-**Review every proposed change before applying it.** This syntax-aware rewrite is not a proof of semantic equivalence: confirm the intended version coverage, inspect the generated route matrix with `check_versions`, and test request behavior for every affected API version.
+Add the package (and DRF, if used) to `INSTALLED_APPS` and configure the supported version range:
 
-After migration:
+```python
+# settings.py
+INSTALLED_APPS = [
+    "rest_framework",  # omit when using Django-native views only
+    "django_api_versioning",
+]
 
-1. Review every changed decorator.
-2. Inspect the generated route matrix with `check_versions`.
-3. Update routing snapshots intentionally.
-4. Run the complete test suite.
-5. Add request-level tests for every API version whose behavior changed.
+API_MIN_VERSION = 1
+API_MAX_VERSION = 3
+# API_BASE_PATH defaults to "api/v{version}/"
+```
 
-## Requirements and compatibility
+Import modules containing endpoint declarations before including the generated patterns:
 
-The package requires:
+```python
+# project/urls.py
+from django.urls import include, path
 
-- Python >= 3.10
-- Django >= 4.2
+from orders import views as _order_views  # noqa: F401
+from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
-Django REST Framework is optional.
+urlpatterns = [
+    path("", include(api_urlpatterns)),
+]
+```
 
-For the current compatibility and CI verification status, see the [GitHub Actions workflows](https://github.com/mojtaba-arvin/django-api-versioning/actions).
+Run the route-matrix check:
+
+```bash
+python manage.py check_versions
+```
+
+## Registration options
+
+| Declaration | Routes created |
+| --- | --- |
+| `@endpoint("orders/", version=2)` | v2 through `API_MAX_VERSION` |
+| `@endpoint("orders/", versions=[1, 3, 5])` | Only v1, v3, and v5 |
+| `@endpoint("health/")` | One unversioned route |
+
+For an inclusive range, use `ver_range(1, 3)`. Other APIs include `api_reverse()` for version-aware URL reversal and `assert_version_matrix()` for regression tests.
+
+See the [versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for exact URL construction, import order, collision precedence, validation, and edge cases.
+
+## DRF ViewSet boundary
+
+A DRF `ViewSet` or `ModelViewSet` cannot be passed directly to `@endpoint`, because `as_view()` requires an action mapping. You can register a configured callable for an individual route, but this does not create the full router-managed set of list, detail, and custom-action routes. Use DRF's `DefaultRouter` or `SimpleRouter` when you need standard ViewSet routing.
+
+See [ViewSet support and limitations](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
+
+## Requirements
+
+- Python 3.10+
+- Django 4.2+
+- Django REST Framework is optional.
+
+The configured CI matrix covers selected combinations of Python 3.10–3.15 and Django 4.2, 5.2, 6.0, and 6.1. See [tox.ini](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini) for configured environments and [GitHub Actions](https://github.com/mojtaba-arvin/django-api-versioning/actions) for results tied to a specific commit.
+
+## Upgrading to 1.0.0
+
+Version 1.0.0 tightened API lifecycle configuration and changed the `Deprecation` response header format. If you use `API_VERSION_LIFECYCLE`:
+
+- Every entry must have a `status` of `active`, `deprecated`, or `retired`.
+- A deprecated version must define `deprecated_at` as an ISO 8601 date or datetime.
+- A retired version must define a `sunset` date.
+- The `Deprecation` header now uses the RFC 9745 date-valued Structured Field (for example, `Deprecation: @1767225600`), not the legacy `Deprecation: true` value.
+
+For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md#100---2026-11-16).
+
+## Documentation
+
+- [Django API Versioning documentation and interactive playground](https://mojtaba-arvin.github.io/django-api-versioning/) — overview, examples, lifecycle demonstration, and guides.
+- [API reference](https://mojtaba-arvin.github.io/django-api-versioning/reference/) — settings, decorators, URL reversal, validation, and management commands.
+- [Routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) — implementation-backed behavior and limitations.
+- [DRF integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/013-drf-version-negotiation-vs-endpoint-registration/).
+- [Python and Django compatibility guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/024-django-api-versioning-supported-django-python-versions/).
+- [Documentation source map](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
 
 ## Contributing
 
-Contributions, bug reports, and documentation improvements are welcome. See [CONTRIBUTING.md](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CONTRIBUTING.md) for the branch, commit, pull-request, and release workflow.
-
-### Setup
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-
-pip install -e ".[dev]"
-pre-commit install
-```
-
-### Running tests
-
-Run the unit tests:
-
-```bash
-python -m pytest tests
-```
-
-Run the integration tests:
-
-```bash
-python -m pytest integration_test_project
-```
-
-Run the complete configured Python/Django test matrix:
-
-```bash
-python -m pip install tox
-tox run-parallel -p auto
-```
-
-The parallel run uses the available CPU count; use `tox run-parallel -p 4`
-to limit concurrency on memory-constrained machines.
-
-Run pre-commit checks:
-
-```bash
-pre-commit run --all-files
-```
-
-### Docker
-
-The `Dockerfile` parameterizes Python via `PYTHON_VERSION` (default: `3.15`)
-and delegates execution to `entrypoint.sh`.
-
-```bash
-# Build the Docker image
-docker build -t dapi .
-
-# Run the default test command (unit tests)
-docker run --rm dapi
-
-# Run pre-commit checks followed by the unit tests
-docker run --rm -e RUN_PRE_COMMIT=true dapi
-
-# Build and run with a specific Python version
-docker build --build-arg PYTHON_VERSION=3.15 -t dapi:py315 .
-docker run --rm dapi:py315
-```
-
-### Releasing
-
-Releases are maintainer operations. Prepare the version bump and changelog
-on a temporary release branch created from the latest `main`, then submit
-them through a reviewed pull request. The pull request must pass the
-compatibility and artifact checks for its latest commit. Do not push directly
-to `main` or tag an unmerged release branch.
-
-After the reviewed release commit is present on the default branch, create
-and push the matching version tag:
-
-```bash
-git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push origin vX.Y.Z
-```
-
-Pushing a `v*` tag triggers GitHub Actions to run the compatibility matrix,
-build and validate the exact distribution with `twine check --strict`,
-smoke-test the wheel, and publish it to PyPI using Trusted Publishing
-(GitHub Actions OIDC). A successful tag push alone does not prove that
-publication completed; verify the workflow and the version-specific PyPI
-release page before announcing the release.
-
-### Reporting issues
-
-When reporting an issue, include:
-
-- Python and Django versions.
-- The package version and relevant settings.
-- The `@endpoint` declarations involved.
-- Expected and actual URL patterns.
-- A minimal example that reproduces the behavior.
+Bug reports, corrections, and pull requests are welcome. Read the [contribution guidelines](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CONTRIBUTING.md) and [security policy](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/SECURITY.md).
 
 ## License
 

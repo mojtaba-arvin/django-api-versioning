@@ -167,7 +167,7 @@ If a v2 declaration is added later, it replaces the v1 registration for that rou
 
 A version outside the configured range is different from a version that has no separate endpoint declaration. With `API_MAX_VERSION = 2`, the package does not generate a v3 route. A request to `/api/v3/users/` therefore does not match a generated URL pattern and normally results in Django returning 404. Within the configured range, an endpoint can be carried forward from a lower source version.
 
-For the exact decorator signature, version-range behavior, import behavior, and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the exact decorator signature, version-range behavior, import behavior, and routing rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ### Adding v3
 
@@ -405,7 +405,7 @@ A configured callable such as `UserViewSetV1.as_view({"get": "list"})` can be re
 
 This follows the package's canonical ViewSet/Router position: use routers for resource-shaped ViewSets and `@endpoint` for supported generic views and explicitly configured callables. The [DRF router documentation](https://www.django-rest-framework.org/api-guide/routers/) explains the router registration model.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 
 ## Trade-offs and scope
 

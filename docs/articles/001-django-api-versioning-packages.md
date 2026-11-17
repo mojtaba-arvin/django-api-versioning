@@ -139,7 +139,7 @@ For ViewSets, DRF's [ViewSets](https://www.django-rest-framework.org/api-guide/v
 
 A registration library addresses a different concern: mapping endpoint implementations to versioned URL patterns. `django-api-versioning` uses a decorator to register a view at the version where that implementation becomes active. Its segment rule carries that registration forward through `API_MAX_VERSION`; a later declaration for the same route at a higher version takes over from that version onward.
 
-The package-specific contract—including integer version identifiers, imports, URL construction, collision precedence, and import order—is defined in the [canonical routing reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md). If you want to evaluate this model as a package, see [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
+The package-specific contract—including integer version identifiers, imports, URL construction, collision precedence, and import order—is defined in the [canonical routing reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). If you want to evaluate this model as a package, see [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/).
 
 For example, with `API_MIN_VERSION = 1` and `API_MAX_VERSION = 3`:
 
@@ -221,7 +221,7 @@ No option is universally best. Manual routing remains appropriate when the route
 
 For the package, the trade-off is between fewer repeated route declarations and more implicit routing behavior. The team must understand the segment rule, import order, collision precedence, and the risk of a missed override. It should test the route matrix and contract behavior for each supported version. Do not infer lower runtime latency or performance from a smaller URLconf; this is a code-organization and routing-registration choice, not a benchmark result.
 
-**Project status and compatibility:** For the current package status, runtime requirements, tested Python and Django combinations, and CI results, consult the project's [package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/pyproject.toml), [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/COMPATIBILITY_REPORT.md), and [changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/CHANGELOG.md). These project-maintained sources are authoritative for release-specific information and are intentionally not duplicated in this article.
+**Project status and compatibility:** The `v1.0.0` [package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/pyproject.toml) declares the runtime requirements and optional development dependencies. The [configured compatibility environments](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/tox.ini) describe what CI is set up to test; inspect the [compatibility workflow history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) for results tied to a specific commit. Release-specific changes are documented in the [changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/CHANGELOG.md).
 
 ## When the benefit is smaller
 

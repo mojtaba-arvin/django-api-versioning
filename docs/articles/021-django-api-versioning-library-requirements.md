@@ -21,7 +21,7 @@ keywords:
 
 A production API versioning strategy needs more than a version number in a URL. The application must resolve each version to the intended view, preserve older response contracts, expose a predictable routing structure, and manage the eventual retirement of older versions.
 
-This article evaluates those requirements through **django-api-versioning**. Rather than treating versioned routing as a collection of manually maintained URL patterns, it examines how the package's declarative registration model works, what it automates, and which production responsibilities remain with the application. For release-specific requirements and compatibility information, consult the project's package metadata and compatibility report.
+This article evaluates those requirements through **django-api-versioning**. Rather than treating versioned routing as a collection of manually maintained URL patterns, it examines how the package's declarative registration model works, what it automates, and which production responsibilities remain with the application. For release-specific requirements, consult the package metadata and changelog. For actual compatibility results, inspect workflow runs for the exact source commit.
 
 The package provides:
 
@@ -79,7 +79,7 @@ The path is derived from three elements:
 
 The Python class name does not determine the URL path or URL name. Use `view_name` when the route needs an explicit Django URL pattern name.
 
-The package's registration rules, import paths, version identifiers, route construction, and ViewSet boundary are documented in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md). That document is the reference for package-specific routing semantics used throughout this article.
+The package's registration rules, import paths, version identifiers, route construction, and ViewSet boundary are documented in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). That document is the reference for package-specific routing semantics used throughout this article.
 
 ## 2. Route inheritance and version-specific implementations
 
@@ -387,7 +387,8 @@ For example, an application can define lifecycle metadata:
 API_VERSION_LIFECYCLE = {
     1: {
         "status": "deprecated",
-        "sunset": "YYYY-MM-DD",
+        "deprecated_at": "2026-12-01T00:00:00+00:00",
+        "sunset": "2027-06-30",
     },
     2: {
         "status": "active",
@@ -410,9 +411,9 @@ The middleware can identify the version from the request and, when necessary, ex
 
 The lifecycle behavior has important details:
 
-- A version with `status: "deprecated"` receives a `Deprecation` response header.
+- A version with `status: "deprecated"` and a valid `deprecated_at` value receives a date-valued `Deprecation` response header.
 - If a sunset date is configured for that deprecated version, the middleware also sends a `Sunset` header.
-- The current implementation sends `Deprecation: true`. This is a legacy draft-era value, not the date value specified by RFC 9745. Applications requiring RFC 9745 conformance should account for this limitation.
+- A `deprecated` lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The middleware emits it as the RFC 9745 date-valued Structured Field, not as the legacy `Deprecation: true` value.
 - When the configured sunset date has passed, the middleware returns `410 Gone`.
 - A `retired` status by itself does not trigger `410 Gone`; the configured sunset date must have passed.
 - A future sunset date combined with `retired` status does not produce the same deprecation headers as `deprecated`.

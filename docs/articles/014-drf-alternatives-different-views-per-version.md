@@ -161,7 +161,7 @@ This is registration-time behavior. The package does not search older view class
 
 **Scope: routing only.** The package does not decide whether a response change is backward compatible, merge serializers, or share business logic between versions.
 
-For the exact behavior of version validation, route construction, collision precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the exact behavior of version validation, route construction, collision precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## When the project uses ModelViewSet
 
