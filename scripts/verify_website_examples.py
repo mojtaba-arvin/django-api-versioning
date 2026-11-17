@@ -9,25 +9,37 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "website" / "src" / "data" / "content.ts"
-CLI_OUTPUT = ROOT / "website" / "src" / "data" / "generated" / "check_versions_output.txt"
+CLI_OUTPUT = (
+    ROOT / "website" / "src" / "data" / "generated" / "check_versions_output.txt"
+)
 
 
 def main() -> int:
     if not CONTENT.is_file() or not CLI_OUTPUT.is_file():
-        print("Website example inputs or generated CLI evidence are missing.", file=sys.stderr)
+        print(
+            "Website example inputs or generated CLI evidence are missing.",
+            file=sys.stderr,
+        )
         return 1
 
     source = CONTENT.read_text(encoding="utf-8")
     delimiter = re.escape(chr(96))
-    match = re.search(r"(?ms)^ *checkVersions: *" + delimiter + r"(.*?)" + delimiter, source)
+    pattern = r"(?ms)^ *checkVersions: *" + delimiter + r"(.*?)" + delimiter
+    match = re.search(pattern, source)
     if match is None:
-        print("Could not locate snippets.checkVersions in website content.", file=sys.stderr)
+        print(
+            "Could not locate snippets.checkVersions in website content.",
+            file=sys.stderr,
+        )
         return 1
 
     displayed = match.group(1)
     command, separator, displayed_output = displayed.partition(chr(10))
     if not separator or command.strip() != "$ python manage.py check_versions":
-        print("The website check_versions example must retain its documented command.", file=sys.stderr)
+        print(
+            "The website check_versions example must retain its documented command.",
+            file=sys.stderr,
+        )
         return 1
 
     actual_output = CLI_OUTPUT.read_text(encoding="utf-8")
