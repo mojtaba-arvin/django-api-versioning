@@ -70,9 +70,10 @@ dev = [
 ]
 
 [project.urls]
+Homepage = "https://mojtaba-arvin.github.io/django-api-versioning/"
+Documentation = "https://mojtaba-arvin.github.io/django-api-versioning/reference/"
 Source = "https://github.com/mojtaba-arvin/django-api-versioning"
 Issues = "https://github.com/mojtaba-arvin/django-api-versioning/issues"
-Documentation = "https://github.com/mojtaba-arvin/django-api-versioning#readme"
 Changelog = "https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
