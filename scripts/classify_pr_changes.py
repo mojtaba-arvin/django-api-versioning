@@ -147,7 +147,7 @@ def main() -> int:
     outputs = classify_paths(changed_files)
     with Path(sys.argv[2]).open("a", encoding="utf-8") as output_file:
         for name, enabled in outputs.items():
-            output_file.write(f"{name}={'true' if enabled else 'false'}\\n")
+            output_file.write(f"{name}={'true' if enabled else 'false'}\n")
 
     print("Changed paths:")
     for path in changed_files:
