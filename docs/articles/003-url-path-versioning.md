@@ -277,7 +277,7 @@ The package applies a deterministic registration rule when multiple implementati
 
 The package uses its generated URL patterns to select the registered callable; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If view logic needs that attribute, configure DRF version identification separately and verify that the chosen scheme's URL keyword argument or namespace is actually present. In particular, the package's literal version path segments do not automatically satisfy DRF `URLPathVersioning`'s dynamic `version` keyword argument.
 
-For the full contract—including identifier types, URL construction, import behavior, registration precedence, and supported view types—see the [canonical versioning reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For the full contract—including identifier types, URL construction, import behavior, registration precedence, and supported view types—see the [canonical versioning reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 **Scope: routing only.** Registration inheritance determines which view is reachable at a versioned URL. It does not prove that the selected view's response remains semantically backward-compatible, nor does it manage serializer compatibility, database migrations, or OpenAPI schema evolution. Those remain application-level responsibilities.
 
