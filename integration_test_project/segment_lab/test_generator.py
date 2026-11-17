@@ -147,7 +147,7 @@ def test_full_evidence_build_records_current_package_behaviour() -> None:
         assert response["status"] == 200
         assert response["body"] == {"id": 42, "status": "paid"}
 
-    assert main_stdout.lstrip("\\n").startswith("users/:")
+    assert main_stdout.strip().startswith("users/:")
     assert scenarios["website_check_versions"]["check_versions"][0]["stdout"] == main_stdout
 
 
