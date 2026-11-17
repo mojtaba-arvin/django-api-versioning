@@ -90,7 +90,7 @@ When a name is registered for multiple versions, pass `version`. If multiple rou
 
 ### Register a configured ViewSet callable
 
-A DRF ViewSet class needs an action map. Register the configured callable for an individual route:
+A DRF ViewSet class needs an action map. For example, `ItemViewSet.as_view({"get": "list"})` creates a configured callable that can be registered for an individual route:
 
 ~~~python title="views.py"
 from rest_framework.viewsets import ViewSet
