@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { nav, site } from '../data/site'
+import { nav, rssHref, site } from '../data/site'
 
 export function Logo() {
   return (
@@ -75,7 +75,7 @@ export function SiteFooter() {
           <Link to="/articles" className="hover:text-paper">
             Articles
           </Link>
-          <a href="/rss.xml" className="hover:text-paper">
+          <a href={rssHref} className="hover:text-paper">
             RSS
           </a>
           <a href={site.github} className="hover:text-paper">
