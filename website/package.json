@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
+    "prebuild": "pnpm run sync:articles",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
