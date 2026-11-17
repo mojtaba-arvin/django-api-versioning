@@ -66,11 +66,14 @@ export async function findBrokenLocalReferences(distRoot, basePath = '/') {
         continue
       }
       const relativeTarget = pathname.slice(base.length)
-      let target = relativeTarget
-        ? path.resolve(distRoot, ...relativeTarget.split('/'))
-        : path.join(distRoot, 'index.html')
-      if (pathname.endsWith('/') || !path.extname(target)) target = path.join(target, 'index.html')
       const root = path.resolve(distRoot)
+      const isSiteRoot = relativeTarget.length === 0
+      let target = isSiteRoot
+        ? path.join(root, 'index.html')
+        : path.resolve(root, ...relativeTarget.split('/'))
+      if (!isSiteRoot && (pathname.endsWith('/') || !path.extname(target))) {
+        target = path.join(target, 'index.html')
+      }
       if (target !== path.join(root, 'index.html') && !target.startsWith(root + path.sep)) {
         issues.push(relativePage + ': URL resolves outside dist: ' + raw)
       } else if (!await exists(target)) {
