@@ -1,4 +1,6 @@
-# Compatibility Report
+# Historical Compatibility Report — v0.3.8
+
+> Historical release evidence only. This report describes package version 0.3.8 and must not be used as the current compatibility matrix or as a description of current package behavior. The current configured matrix is defined by the repository-root `tox.ini` and checked against GitHub Actions; actual pass/fail status must be read from a workflow run for the commit in question.
 
 **Package version:** 0.3.8  
 **Release source commit:** `a372e2faa3e915d31083f70cb1b6c7e56fdc0372`  
@@ -61,7 +63,7 @@ The matrix ran on GitHub-hosted Ubuntu runners. It does not establish separate W
 
 ## Implemented capabilities and known boundaries
 
-The current implementation and tests support path-based endpoint registration, forward segment inheritance, explicit version sets, URL reversal for registered routes, lifecycle middleware, route-matrix inspection, and preview-first legacy endpoint migration.
+At v0.3.8, the implementation and tests supported path-based endpoint registration, forward segment inheritance, explicit version sets, URL reversal for registered routes, lifecycle middleware, route-matrix inspection, and preview-first legacy endpoint migration.
 
 The following are not end-to-end capabilities of the package:
 
@@ -70,7 +72,7 @@ The following are not end-to-end capabilities of the package:
 - The package does not automatically populate DRF's `request.version`.
 - A DRF ViewSet class cannot be passed directly to `@endpoint` without an action map. A configured callable such as `MyViewSet.as_view({"get": "list"})` can be registered; router-generated route construction remains the application's responsibility.
 - Route registration does not prove semantic compatibility of serializers, permissions, response payloads, or database behavior across API versions.
-- The lifecycle middleware currently emits the legacy `Deprecation: true` value, not the date-valued Structured Field required by RFC 9745. Application teams still own deprecation policy and client migration.
+- At v0.3.8, the lifecycle middleware emitted the legacy `Deprecation: true` value, not the date-valued Structured Field required by RFC 9745. Application teams still own deprecation policy and client migration.
 
 The `migrate_endpoints` command uses AST/tokenizer-aware inspection and previews changes by default. Dynamic expressions and unsupported declarations may be skipped. A suggested rewrite is not proof of semantic equivalence; review each change, inspect `check_versions`, and test affected requests.
 

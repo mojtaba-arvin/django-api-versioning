@@ -153,7 +153,7 @@ Requirements:
 - Python >= 3.10
 - Django >= 4.2
 
-The automated compatibility matrix currently verifies Django 4.2, 5.2, 6.0, and 6.1 across the Python combinations listed in [`COMPATIBILITY_REPORT.md`](COMPATIBILITY_REPORT.md). Django 5.0 and 5.1 are not part of the verified matrix.
+The configured CI compatibility matrix is defined in [`tox.ini`](tox.ini) and checked against the [GitHub Actions workflow](.github/workflows/). It currently covers Django 4.2, 5.2, 6.0, and 6.1; Django 5.0 and 5.1 are not included. A configured environment is not evidence that a particular commit passed—check the [workflow runs](https://github.com/mojtaba-arvin/django-api-versioning/actions) for the result tied to the commit you are evaluating.
 
 Django REST Framework is optional. The package can be used with Django-native function-based and class-based views without installing DRF.
 

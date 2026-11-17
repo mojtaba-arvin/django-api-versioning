@@ -11,6 +11,10 @@ The repository README is the human-friendly entry point: it explains the problem
 
 - [Articles](articles/): the canonical article corpus used by the website and generated RSS feed.
 
+## Historical release evidence
+
+- [Compatibility report for v0.3.8](reports/compatibility-0.3.8.md): a historical record of the checks performed for that release. It is not the current compatibility matrix or a statement of current package behavior; consult the root `tox.ini`, GitHub Actions workflow, and commit-specific workflow runs for current configuration and results.
+
 ## Website
 
 The static website renders the Reference source from `docs/reference/index.md`. During local development and builds, `website/scripts/sync-reference.mjs` copies it into the generated `website/content/reference/` input directory. Never edit that generated copy directly.
