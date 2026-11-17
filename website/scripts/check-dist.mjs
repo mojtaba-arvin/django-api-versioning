@@ -86,7 +86,7 @@ export async function findBrokenLocalReferences(distRoot, basePath = '/') {
 
 export async function validateDist(distRoot, basePath = '/') {
   const root = path.resolve(distRoot)
-  const required = ['index.html', 'docs/index.html', 'articles/index.html', 'rss.xml']
+  const required = ['index.html', 'docs/index.html', 'articles/index.html', 'rss.xml', 'favicon.svg']
   const missing = []
   for (const relative of required) {
     if (!await exists(path.join(root, relative))) missing.push(relative)
@@ -124,6 +124,19 @@ export async function validateDist(distRoot, basePath = '/') {
   }
 
   const files = await walkFiles(root)
+  const htmlPages = files.filter((file) => file.endsWith('.html'))
+  for (const file of htmlPages) {
+    const html = await readFile(path.join(root, file), 'utf8')
+    if (!html.includes('favicon.svg')) {
+      throw new Error('Project favicon link missing from prerendered page: ' + file)
+    }
+  }
+
+  const favicon = await readFile(path.join(root, 'favicon.svg'), 'utf8')
+  if (!favicon.includes('<svg') || !favicon.includes('</svg>')) {
+    throw new Error('Project favicon is not a valid SVG document')
+  }
+
   const forbidden = files.filter((file) =>
     /(^|\/)(?:server|functions|\.netlify|_serverFn)(?:\/|$)/i.test(file),
   )
