@@ -39,7 +39,7 @@ pip show django-api-versioning
 
 The package's runtime requirements are declared in its project metadata. Django REST Framework is not required to install the core package; it is used by the DRF integration examples and the project's development and testing setup.
 
-For the current Python and Django requirements, see the [package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/pyproject.toml). For tested environment combinations, see the [compatibility report](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/COMPATIBILITY_REPORT.md).
+For the declared Python and Django requirements, see the [package metadata](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/pyproject.toml). For configured combinations, see [tox.ini](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini); for actual test outcomes, inspect the [compatibility workflow runs](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) and verify the source commit SHA.
 
 If your project uses DRF, install it separately:
 
