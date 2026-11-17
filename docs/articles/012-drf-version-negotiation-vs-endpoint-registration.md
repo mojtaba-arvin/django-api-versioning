@@ -115,7 +115,7 @@ The import executes the decorators and registers the views. The package does not
 
 If endpoint declarations are distributed across multiple modules, import each relevant module during URLconf initialization.
 
-For the exact registration, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For the exact registration, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ### Registration precedence
 
