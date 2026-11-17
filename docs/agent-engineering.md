@@ -13,6 +13,12 @@ This document records the integration map only. Shared repository rules live in 
 
 Client adapters carry only discovery metadata and a pointer. Do not copy workflow bodies between clients.
 
+## Instruction ownership and scope
+
+- Root `AGENTS.md` is the shared repository contract. Scoped instruction files such as `website/AGENTS.md` may add constraints for their subtree but cannot override root safety, Git, release, or contribution policy.
+- All task skills are canonicalized in the repository-root `.agents/skills/`; Claude and Copilot entries are thin adapters. Do not create nested `.agents/skills/` or `.claude/skills/` registries inside projects.
+- Website-specific implementation constraints live in `website/AGENTS.md`; website work uses the root `website-engineering` skill. Framework starter notes that describe removed integrations are not project policy and must not be copied into the repository.
+
 ## Progressive disclosure
 
 1. Load concise shared instructions and skill metadata.
