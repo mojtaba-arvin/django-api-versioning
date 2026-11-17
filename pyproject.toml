@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "django-api-versioning"
 version = "1.0.0"
-description = "API versioning for Django and Django REST Framework (DRF), with decorator-based endpoint registration, automatic URL routing, version-specific views, and forward inheritance for backward-compatible API evolution."
+description = "Decorator-based API versioning for Django and Django REST Framework, with generated versioned URL routes and forward endpoint inheritance."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -15,18 +15,12 @@ authors = [
 ]
 keywords = [
     "django api versioning",
-    "api versioning",
-    "django",
-    "django framework",
-    "django rest framework",
-    "drf",
-    "url-based api versioning",
-    "api versioning decorator",
-    "versioned api endpoints",
-    "automatic url registration",
-    "backward compatibility",
-    "forward endpoint inheritance",
-    "segment model",
+    "django rest framework api versioning",
+    "drf versioning",
+    "url path api versioning",
+    "versioned url routing",
+    "endpoint registration",
+    "version-specific django views",
     "django-api-versioning",
 ]
 classifiers = [
@@ -75,6 +69,7 @@ Documentation = "https://mojtaba-arvin.github.io/django-api-versioning/reference
 Source = "https://github.com/mojtaba-arvin/django-api-versioning"
 Issues = "https://github.com/mojtaba-arvin/django-api-versioning/issues"
 Changelog = "https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md"
+Security = "https://github.com/mojtaba-arvin/django-api-versioning/blob/main/SECURITY.md"
 
 [tool.setuptools.packages.find]
 # Only the importable distribution package belongs in the wheel.
