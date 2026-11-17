@@ -116,6 +116,12 @@ export async function validateDist(distRoot, basePath = '/') {
   if (feedItems !== expectedSlugs.length) {
     throw new Error('RSS item count mismatch: expected ' + expectedSlugs.length + ', found ' + feedItems)
   }
+  const missingFeedItems = expectedSlugs.filter((slug) =>
+    !feed.includes('/articles/' + encodeURIComponent(slug) + '/'),
+  )
+  if (missingFeedItems.length) {
+    throw new Error('RSS is missing canonical article links: ' + missingFeedItems.join(', '))
+  }
 
   const files = await walkFiles(root)
   const forbidden = files.filter((file) =>
