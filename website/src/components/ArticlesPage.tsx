@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { ArticleMeta } from '../lib/articles'
-import { site } from '../data/site'
+import { rssHref, site } from '../data/site'
 import { SiteFooter, SiteHeader } from './Layout'
 
 export function ArticlesPage({ articles }: { articles: ArticleMeta[] }) {
@@ -43,7 +43,7 @@ export function ArticlesPage({ articles }: { articles: ArticleMeta[] }) {
                 className="w-full rounded-lg border border-line bg-ink-2 px-4 py-2.5 text-sm text-paper placeholder:text-mute focus:border-leaf focus:outline-none"
               />
             </label>
-            <a href="/rss.xml" className="btn btn-ghost justify-center">
+            <a href={rssHref} className="btn btn-ghost justify-center">
               <RssIcon /> RSS
             </a>
           </div>
