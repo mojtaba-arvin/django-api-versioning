@@ -82,7 +82,7 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
     "website": {
         "skill": ".agents/skills/website-engineering/SKILL.md",
         "read": [
-            "docs/website/architecture.md",
+            "website/AGENTS.md",
             "affected website source and tests",
             "relevant website workflows",
         ],
