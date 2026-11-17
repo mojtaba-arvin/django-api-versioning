@@ -121,6 +121,13 @@ export async function validateDist(distRoot, basePath = '/') {
   if (forbidden.length) {
     throw new Error('Server/runtime artifacts found in static output: ' + forbidden.join(', '))
   }
+  const runtimeFiles = files.filter((file) => /\\.(?:html|js|mjs|json)$/i.test(file))
+  for (const file of runtimeFiles) {
+    const content = await readFile(path.join(root, file), 'utf8')
+    if (content.includes('/_serverFn') || content.includes('/.netlify/functions')) {
+      throw new Error('Server-function endpoint reference found in deployable file: ' + file)
+    }
+  }
 
   const broken = await findBrokenLocalReferences(root, basePath)
   if (broken.length) {
