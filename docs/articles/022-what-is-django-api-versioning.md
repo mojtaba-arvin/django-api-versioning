@@ -598,6 +598,7 @@ Then configure lifecycle metadata:
 API_VERSION_LIFECYCLE = {
     1: {
         "status": "deprecated",
+        "deprecated_at": "2026-12-01T00:00:00+00:00",
         "sunset": "2030-01-01",
     },
     2: {
@@ -610,7 +611,7 @@ The example sunset date is in the future relative to this article's publication 
 
 For a request whose version is 1, the middleware:
 
-- Adds `Deprecation: true` when the configured status is `deprecated`.
+- When `status` is `deprecated` and `deprecated_at` is configured, adds the RFC 9745 date-valued `Deprecation` header.
 - Adds a `Sunset` header when the status is `deprecated` and a sunset date is configured.
 - Returns `410 Gone` when the configured sunset date is in the past.
 
@@ -625,7 +626,7 @@ The middleware attempts to identify the version from `request.version`, then fro
 
 In ordinary DRF request processing, middleware runs before the APIView has initialized its DRF request. Therefore, do not assume that a version selected later through DRF header negotiation is already available as `request.version` when this middleware executes. The path-based extraction is particularly relevant for the package's URL-segment routing.
 
-There is also a standards consideration. The package currently emits `Deprecation: true`, which is a legacy draft-style value. [RFC 9745](https://www.rfc-editor.org/rfc/rfc9745.html) defines the `Deprecation` response header using a date value represented as a Structured Field Date. The package's current value should not be described as a complete RFC 9745 implementation.
+A deprecated lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The middleware serializes it as the RFC 9745 date-valued Structured Field (for example, `Deprecation: @1796083200`); it does not emit the legacy `Deprecation: true` value.
 
 The `Sunset` header uses an HTTP-date value. Its meaning and format are defined by [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594.html). The package converts a valid configured ISO date into an HTTP-date value. Use a valid date and verify the resulting value before relying on it in a production response.
 
