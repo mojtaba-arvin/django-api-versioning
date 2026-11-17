@@ -17,9 +17,7 @@ ROUTES = GENERATED / "routes.json"
 
 def snippet(source: str, key: str) -> str:
     delimiter = re.escape(chr(96))
-    pattern = (
-        r"(?ms)^ *" + re.escape(key) + r": *" + delimiter + r"(.*?)" + delimiter
-    )
+    pattern = r"(?ms)^ *" + re.escape(key) + r": *" + delimiter + r"(.*?)" + delimiter
     match = re.search(pattern, source)
     if match is None:
         raise ValueError(f"Could not locate snippets.{key} in website content.")
@@ -130,8 +128,7 @@ def main() -> int:
         return 1
 
     observed = {
-        row.get("path"): row.get("status")
-        for row in quick_start.get("requests", [])
+        row.get("path"): row.get("status") for row in quick_start.get("requests", [])
     }
     expected = {
         "/api/v1/invoices/42/": 404,
