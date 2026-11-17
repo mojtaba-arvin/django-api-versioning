@@ -353,7 +353,7 @@ DRF's versioning classes handle version detection: they identify which version t
 - A **single URLconf included under multiple namespaces** is specific to `NamespaceVersioning`. It relies on Django's namespace-based URL organization and does not generalize to the other two schemes.
 - **Version-range registration** treats view organization as a first-class concern. Each endpoint is registered at the version where it becomes active, and remains active across subsequent versions unless overridden. The registration layer—not the view layer—decides which endpoint-version pairs exist.
 
-The package's exact registration and routing behavior is defined in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+The package's exact registration and routing behavior is defined in the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Explore version-range registration
 
