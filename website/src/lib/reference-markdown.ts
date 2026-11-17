@@ -20,7 +20,7 @@ function slugify(text: string): string {
 
 /** Render canonical Reference Markdown with the existing /docs visual components. */
 export function renderReferenceMarkdown(body: string): { title: string; html: string; toc: ReferenceTocEntry[] } {
-  let title = ''
+  const title = body.split(/\r?\n/).find((line) => /^#\s/.test(line))?.replace(/^#\s+/, '').trim() ?? ''
   const toc: ReferenceTocEntry[] = []
   const used = new Map<string, number>()
   let skippedTitle = false
@@ -32,7 +32,6 @@ export function renderReferenceMarkdown(body: string): { title: string; html: st
         const inner = this.parser.parseInline(tokens)
         if (depth === 1 && !skippedTitle) {
           skippedTitle = true
-          title = stripTags(inner)
           return ''
         }
         const level = Math.max(2, depth)
