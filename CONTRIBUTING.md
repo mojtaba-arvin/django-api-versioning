@@ -76,7 +76,7 @@ Review Dependabot PRs promptly; merge useful dependency updates or close obsolet
 
 ## Package release
 
-A package release is separate from a website deployment. A Netlify deployment does not publish the Python package.
+A package release is separate from a website deployment. A website deployment does not publish the Python package.
 
 A release requires explicit authorization for a specific version. Prepare the version bump, dated `CHANGELOG.md` entry, and approved documentation changes on one short-lived `release/vX.Y.Z` branch. Open a PR to `main`; do not tag or publish from that branch.
 
