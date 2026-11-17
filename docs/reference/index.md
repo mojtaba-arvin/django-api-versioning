@@ -13,7 +13,7 @@ Requires Python ≥ 3.10 and Django ≥ 4.2. Django REST Framework is optional. 
 | Setting | Default | Description |
 | --- | --- | --- |
 | `API_BASE_PATH` | `"api/v{version}/"` | URL prefix for versioned routes. Must contain exactly one plain ``{version}`` field. |
-| `API_MIN_VERSION` | `1` | Lowest version served. Declarations below it are skipped with a warning. |
+| `API_MIN_VERSION` | `1` | Lowest version that can be registered. A forward declaration below it registers no routes; explicit lower versions are skipped with a warning. |
 | `API_MAX_VERSION` | `1` | Highest version served. Declarations above it raise `InvalidVersionError`. |
 | `API_VERSION_LIFECYCLE` | `{}` | Per-version status, `deprecated_at` and `sunset` used by `LifecycleMiddleware`. |
 | `API_VERSIONING_CHANNELS` | `["path"]` | Validated, but not used to select routes. |
@@ -56,7 +56,7 @@ Each declaration above is a separate example. When a route has several forward d
 
 - Combining `version` and `versions` raises `VersionRangeError`.
 - A version above `API_MAX_VERSION` raises `InvalidVersionError`.
-- Versions below `API_MIN_VERSION` trigger a warning and are skipped.
+- A forward declaration below `API_MIN_VERSION` registers no routes after a warning; explicit versions below it are warned about and skipped individually.
 - Booleans are rejected as version values.
 - On collision the higher `source_version` wins.
 - If source versions are equal, or either is `None`, the last registration wins.
