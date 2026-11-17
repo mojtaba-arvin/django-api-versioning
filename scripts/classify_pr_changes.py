@@ -11,7 +11,7 @@ PYTHON_PATHS = (
     "tests/",
     "integration_test_project/",
 )
-WEBSITE_PATHS = ("website/", "docs/articles/")
+WEBSITE_PATHS = ("website/", "docs/articles/", "docs/reference/")
 WEBSITE_EXAMPLE_PATHS = {
     "pyproject.toml",
     "pytest.ini",

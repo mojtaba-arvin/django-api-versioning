@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
-    "prebuild": "pnpm run sync:articles",
+    "prebuild": "pnpm run sync:articles && pnpm run sync:reference",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "pretest": "pnpm run sync:articles",
+    "pretest": "pnpm run sync:articles && pnpm run sync:reference",
     "test": "vitest run && node --test scripts/check-dist.test.mjs",
     "sync:articles": "node scripts/sync-articles.mjs",
     "format": "prettier --write .",
@@ -16,7 +16,8 @@
     "test:dist": "node scripts/check-dist.mjs",
     "test:dist:root": "PUBLIC_BASE_PATH=/ node scripts/check-dist.mjs dist/client /",
     "test:dist:subpath": "PUBLIC_BASE_PATH=/django-api-versioning node scripts/check-dist.mjs dist/client /django-api-versioning",
-    "predev": "pnpm run sync:articles"
+    "predev": "pnpm run sync:articles && pnpm run sync:reference",
+    "sync:reference": "node scripts/sync-reference.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.46",

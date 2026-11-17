@@ -50,8 +50,10 @@ Set `SITE_URL` to the final public origin when producing a production RSS feed. 
 
 ## Editing content
 
-Most site copy lives in `src/data/site.ts` (links and site identity) and `src/data/content.ts` (snippets, features, patterns, and caveats). Reference tables live in `src/components/DocsPage.tsx`.
+Homepage copy and snippets live in src/data/site.ts and src/data/content.ts.
 
-The canonical article source is the repository-root `docs/articles/` directory. Edit articles there. `pnpm run sync:articles` copies this local corpus into `website/content/articles/` and generates `website/public/rss.xml`; `pnpm build` and `pnpm test` run this synchronization automatically. The build does not fetch article content from GitHub or another branch. Do not edit generated copies or the RSS feed directly.
+The Reference page is rendered from the canonical repository file ../docs/reference/index.md. Edit that Markdown file—not src/components/DocsPage.tsx or the generated copy. pnpm run sync:reference copies it into website/content/reference/index.md; pnpm dev, pnpm test, and pnpm build run this synchronization automatically. The React page owns presentation, navigation, and styling only.
 
-When package behavior or the README changes, verify all package-specific claims and examples on the site against the implementation and canonical package documentation.
+The detailed package behavior contract lives in ../docs/reference/versioning-contract.md. Package implementation and executable tests remain authoritative when checking technical claims.
+
+The canonical article source is the repository-root docs/articles/ directory. Edit articles there. pnpm run sync:articles copies this local corpus into website/content/articles/ and generates website/public/rss.xml; pnpm build and pnpm test run this synchronization automatically. The build does not fetch article content from GitHub or another branch. Do not edit generated copies or the RSS feed directly.

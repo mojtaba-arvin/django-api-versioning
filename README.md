@@ -13,6 +13,13 @@ Declare an endpoint with `@endpoint`, and the package generates its versioned UR
 
 No manually maintained `path()` declarations for every API version. No need to duplicate unchanged endpoint registrations when a new version is introduced.
 
+## Documentation
+
+- **Start here:** this README contains the installation guide and Quick Start.
+- **Reference:** [canonical Markdown source](docs/reference/index.md).
+- **Detailed routing contract:** [docs/reference/versioning-contract.md](docs/reference/versioning-contract.md).
+- **Documentation map and source-of-truth rules:** [docs/README.md](docs/README.md).
+
 ## "I need to change the response. v1 clients must not break."
 
 You shipped v1 with a string amount. Now the team needs integer cents and an explicit currency code. Changing the existing view would break clients that still depend on the v1 response contract.

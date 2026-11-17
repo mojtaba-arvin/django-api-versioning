@@ -193,3 +193,69 @@ kbd {
 .prose-article tr:last-child td {
   @apply border-b-0;
 }
+
+
+/* Rendered canonical Markdown for /docs, styled to match the existing Reference page. */
+.prose-reference {
+  @apply text-[0.95rem] leading-relaxed text-paper/90;
+}
+.prose-reference > * + * {
+  @apply mt-5;
+}
+.prose-reference h2 {
+  @apply mt-16 font-display text-2xl font-semibold tracking-tight text-paper sm:text-3xl;
+}
+.prose-reference h2:first-child {
+  @apply mt-0;
+}
+.prose-reference .reference-heading-link {
+  @apply text-paper no-underline;
+}
+.prose-reference .reference-heading-mark {
+  @apply text-line;
+}
+.prose-reference p {
+  @apply text-mute;
+}
+.prose-reference ul {
+  @apply list-disc space-y-2 pl-5 text-mute marker:text-leaf;
+}
+.prose-reference .reference-table {
+  @apply overflow-x-auto rounded-2xl border border-line bg-ink-2;
+}
+.prose-reference .reference-table table {
+  @apply w-full text-left text-sm;
+}
+.prose-reference .reference-table thead {
+  @apply border-b border-line bg-ink-3/60 text-xs uppercase tracking-wider text-mute;
+}
+.prose-reference .reference-table th {
+  @apply px-4 py-3 font-medium;
+}
+.prose-reference .reference-table td {
+  @apply px-4 py-3 align-top text-mute;
+}
+.prose-reference .reference-table tbody tr + tr {
+  @apply border-t border-line;
+}
+.prose-reference .reference-table td:first-child {
+  @apply whitespace-nowrap font-mono text-leaf-2;
+}
+.prose-reference .reference-table table[data-columns='3'] td:nth-child(2) {
+  @apply whitespace-nowrap font-mono text-paper;
+}
+.prose-reference .reference-code .reference-copy {
+  @apply cursor-pointer rounded-md border border-line bg-transparent px-2 py-1 font-mono text-[11px] text-mute transition hover:border-leaf hover:text-leaf-2;
+}
+.prose-reference .reference-code pre {
+  @apply m-0 overflow-x-auto p-4 text-[13px] leading-relaxed text-paper;
+}
+.prose-reference :not(pre) > code {
+  @apply rounded bg-ink-3 px-1.5 py-0.5 font-mono text-[0.85em] text-leaf-2;
+}
+.prose-reference a {
+  @apply text-leaf-2 underline decoration-leaf/40 underline-offset-4 hover:decoration-leaf-2;
+}
+.prose-reference strong {
+  @apply font-semibold text-paper;
+}

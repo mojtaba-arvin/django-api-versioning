@@ -58,6 +58,7 @@ jobs:
         working-directory: website
         run: |
           node --check scripts/sync-articles.mjs
+          node --check scripts/sync-reference.mjs
           node --check scripts/check-dist.mjs
           node --check scripts/check-dist.test.mjs
           pnpm test

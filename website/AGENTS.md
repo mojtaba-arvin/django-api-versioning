@@ -19,6 +19,8 @@ Static marketing and documentation site for the `django-api-versioning` Python p
   - `Layout.tsx`: header, footer, logo and GitHub icon.
 - `src/lib/matrix.ts`: pure routing-rule model covered by `matrix.test.ts`.
 - `src/data/`: site identity, navigation, links and product copy.
+- `../docs/reference/index.md` is the canonical Markdown source for `/docs`; `scripts/sync-reference.mjs` copies it into the generated `content/reference/` build input. Do not hardcode Reference content in React or edit the generated copy.
+- `../docs/reference/versioning-contract.md` is the detailed written routing contract; verify technical claims against package source and tests.
 - Articles: repository-root `docs/articles/*.md` is the only canonical source. `pnpm run sync:articles` copies this local corpus into `content/articles/` and generates `public/rss.xml`. The script must never download from GitHub or another branch. Edit articles only in the root `docs/articles/` directory.
 - `src/lib/articles.ts` parses front matter and renders Markdown. `src/lib/article-data.ts` loads the locally generated corpus for route loaders; these are ordinary build-time/local data functions, not server endpoints.
 - Routes: `/`, `/docs`, `/articles`, and `/articles/$slug`. Every article page must be prerendered. RSS is a generated static file, not a route handler.
