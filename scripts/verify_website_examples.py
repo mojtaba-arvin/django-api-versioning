@@ -80,11 +80,7 @@ def verify_package_symbols(source: str, evidence: dict) -> None:
 
 
 def main() -> int:
-    if (
-        not CONTENT.is_file()
-        or not CLI_OUTPUT.is_file()
-        or not ROUTES.is_file()
-    ):
+    if not CONTENT.is_file() or not CLI_OUTPUT.is_file() or not ROUTES.is_file():
         print(
             "Website example inputs or generated package evidence are missing.",
             file=sys.stderr,
@@ -102,10 +98,7 @@ def main() -> int:
         return 1
 
     command, separator, displayed_output = cli_example.partition(chr(10))
-    if (
-        not separator
-        or command.strip() != "$ python manage.py check_versions"
-    ):
+    if not separator or command.strip() != "$ python manage.py check_versions":
         print(
             "The website check_versions example must retain its documented command.",
             file=sys.stderr,
