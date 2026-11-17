@@ -72,7 +72,7 @@ for (const name of await readdir(output)) {
 }
 for (const name of entries) await copyFile(join(source, name), join(output, name))
 
-const baseUrl = (process.env.SITE_URL || process.env.URL || 'http://localhost:3000').replace(/\/+$/, '')
+const baseUrl = new URL(process.env.SITE_URL || process.env.URL || 'http://localhost:3000').origin
 const basePath = normalizedBasePath(process.env.PUBLIC_BASE_PATH)
 const absolute = (path) => baseUrl + basePath + path.replace(/^\/+/, '')
 const items = await Promise.all(entries.slice().reverse().map(async (file) => {
