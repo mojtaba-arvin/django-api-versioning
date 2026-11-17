@@ -220,7 +220,7 @@ Both registration mechanisms produce URLs under the same `/api/v{version}/` stru
 
 **Scope: routing only.** The package does not register ViewSet actions, configure DRF's `request.version`, or determine whether a response change is backward-compatible.
 
-For the exact package behavior—including version ranges, collision precedence, and URLconf import behavior—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the exact package behavior—including version ranges, collision precedence, and URLconf import behavior—see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
 
 ## Why @endpoint does not replace ViewSet routers
 
