@@ -221,7 +221,14 @@ export function Playground() {
         </div>
         <p className="mt-1 font-mono text-xs text-mute">{PATH}</p>
 
-        <div className="mt-5 space-y-2" role="table" aria-label="Version matrix">
+        <div className="mt-5" role="table" aria-label="Version matrix">
+          <div role="rowgroup">
+            <div className="flex items-center gap-3 pb-2 font-mono text-[10px] uppercase tracking-wide text-mute" role="row">
+              <span className="w-40 shrink-0" role="columnheader">Endpoint</span>
+              <span className="flex-1" role="columnheader">Resolved view</span>
+            </div>
+          </div>
+          <div role="rowgroup" className="space-y-2">
           {result.versions.map((v, i) => {
             const c = result.cells[i]
             return (
@@ -248,6 +255,7 @@ export function Playground() {
               </div>
             )
           })}
+          </div>
         </div>
 
         <div className="mt-6 space-y-2 border-t border-line pt-4 font-mono text-xs">

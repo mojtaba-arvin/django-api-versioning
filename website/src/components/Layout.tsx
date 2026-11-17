@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { nav, rssHref, site } from '../data/site'
 
-export function Logo() {
+export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
       <span
@@ -10,7 +10,7 @@ export function Logo() {
       >
         {'{v}'}
       </span>
-      <span className="font-mono text-sm font-semibold tracking-tight text-paper">
+      <span className={`font-mono text-sm font-semibold tracking-tight text-paper ${compact ? 'hidden sm:inline' : ''}`}>
         django-api-versioning
       </span>
     </span>
@@ -22,9 +22,9 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-line/70 bg-ink/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
         <Link to="/" aria-label="django-api-versioning home">
-          <Logo />
+          <Logo compact />
         </Link>
-        <nav className="hidden items-center gap-6 text-sm text-mute md:flex">
+        <nav aria-label="Primary navigation" className="hidden items-center gap-6 text-sm text-mute md:flex">
           {nav.map((n) => (
             <a key={n.href} href={n.href} className="hover:text-paper">
               {n.label}
@@ -54,6 +54,13 @@ export function SiteHeader() {
           </a>
         </div>
       </div>
+      <nav
+        aria-label="Primary navigation"
+        className="flex items-center justify-center gap-8 border-t border-line/70 py-2 text-sm text-mute md:hidden"
+      >
+        <Link to="/reference/" className="hover:text-paper">Reference</Link>
+        <Link to="/articles/" className="hover:text-paper">Articles</Link>
+      </nav>
     </header>
   )
 }
