@@ -145,7 +145,8 @@ def verify_reference(source: str, actual_output: str) -> None:
     try:
         ast.parse(example)
     except SyntaxError as exc:
-        raise ValueError(f"Reference endpoint example is not valid Python: {exc}") from exc
+        message = f"Reference endpoint example is not valid Python: {exc}"
+        raise ValueError(message) from exc
 
     cli_block = markdown_fence(source, "text", "check_versions output")
     command, separator, displayed_output = cli_block.partition(chr(10))
@@ -155,13 +156,15 @@ def verify_reference(source: str, actual_output: str) -> None:
         )
     if displayed_output.rstrip(chr(10)) != actual_output.rstrip(chr(10)):
         raise ValueError(
-            "Reference check_versions output differs from current package-generated output."
+            "Reference check_versions output differs from current "
+            "package-generated output."
         )
 
     migration = markdown_fence(source, "bash", "migrate_endpoints")
     if migration.strip() != "$ python manage.py migrate_endpoints --dry-run":
         raise ValueError(
-            "Reference migrate_endpoints block must use the non-writing preview command."
+            "Reference migrate_endpoints block must use the non-writing "
+            "preview command."
         )
     if not MIGRATE_COMMAND.is_file() or "--dry-run" not in MIGRATE_COMMAND.read_text(
         encoding="utf-8"
