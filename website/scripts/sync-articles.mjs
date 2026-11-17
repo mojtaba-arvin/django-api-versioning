@@ -8,12 +8,12 @@ const source = join(repositoryRoot, 'docs', 'articles')
 const output = join(import.meta.dirname, '..', 'content', 'articles')
 
 const entries = (await readdir(source, { withFileTypes: true }))
-  .filter((entry) => entry.isFile() && /^[\\w.-]+\\.md$/.test(entry.name))
+  .filter((entry) => entry.isFile() && /^[\w.-]+\.md$/.test(entry.name))
   .map((entry) => entry.name)
   .sort()
 
 if (entries.length === 0) {
-  throw new Error(`No Markdown articles found in canonical source: ${source}`)
+  throw new Error('No Markdown articles found in canonical source: ' + source)
 }
 
 await mkdir(output, { recursive: true })
@@ -28,4 +28,4 @@ for (const name of entries) {
   await copyFile(join(source, name), join(output, name))
 }
 
-console.log(`Copied ${entries.length} canonical articles from docs/articles/.`)
+console.log('Copied ' + entries.length + ' canonical articles from docs/articles/.')
