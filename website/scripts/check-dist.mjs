@@ -86,7 +86,13 @@ export async function findBrokenLocalReferences(distRoot, basePath = '/') {
 
 export async function validateDist(distRoot, basePath = '/') {
   const root = path.resolve(distRoot)
-  const required = ['index.html', 'docs/index.html', 'articles/index.html', 'rss.xml', 'favicon.svg']
+  const required = [
+    'index.html',
+    'docs/index.html',
+    'articles/index.html',
+    'rss.xml',
+    'favicon.svg',
+  ]
   const missing = []
   for (const relative of required) {
     if (!await exists(path.join(root, relative))) missing.push(relative)
