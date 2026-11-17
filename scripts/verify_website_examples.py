@@ -26,7 +26,12 @@ def snippet(source: str, key: str) -> str:
 
 def normalize_code(value: str) -> str:
     lines = [line.rstrip() for line in value.strip().splitlines()]
-    return re.sub(r"\\n{3,}", "\\n\\n", "\\n".join(lines))
+    normalized = chr(10).join(lines)
+    triple_newline = chr(10) * 3
+    double_newline = chr(10) * 2
+    while triple_newline in normalized:
+        normalized = normalized.replace(triple_newline, double_newline)
+    return normalized
 
 
 def main() -> int:
