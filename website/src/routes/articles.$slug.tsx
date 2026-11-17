@@ -1,11 +1,11 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { ArticlePage } from '../components/ArticlePage'
-import { site } from '../data/site'
-import { getArticle } from '../server/articles'
+import { site, rssHref } from '../data/site'
+import { getArticle } from '../lib/article-data'
 
 export const Route = createFileRoute('/articles/$slug')({
   loader: async ({ params }) => {
-    const article = await getArticle({ data: params.slug })
+    const article = getArticle(params.slug)
     if (!article) throw notFound()
     return article
   },
@@ -24,6 +24,6 @@ export const Route = createFileRoute('/articles/$slug')({
           { property: 'og:type', content: 'article' },
         ]
       : [],
-    links: [{ rel: 'alternate', type: 'application/rss+xml', title: `${site.name} articles`, href: '/rss.xml' }],
+    links: [{ rel: 'alternate', type: 'application/rss+xml', title: `${site.name} articles`, href: rssHref }],
   }),
 })
