@@ -38,7 +38,7 @@ function articleMetadata(file, raw) {
   const title = scalar(frontmatter, 'title') || /^#\s+(.+)$/m.exec(body)?.[1] || slug
   const description = scalar(frontmatter, 'description')
   const authorBlock = /^author:\s*\r?\n((?:[ \t]+.*(?:\r?\n|$))*)/m.exec(frontmatter)?.[1] ?? ''
-  const author = /^\s+name:\s*(.+)$/m.exec(authorBlock)?.[1] ?? ''
+  const author = scalar(authorBlock, 'name')
   const keywordsBlock = /^keywords:\s*\r?\n((?:[ \t]+-\s+.*(?:\r?\n|$))*)/m.exec(frontmatter)?.[1] ?? ''
   const keywords = [...keywordsBlock.matchAll(/^\s+-\s+(.+)$/gm)].map((item) => {
     const value = item[1].trim()
@@ -75,7 +75,7 @@ for (const name of entries) await copyFile(join(source, name), join(output, name
 const baseUrl = (process.env.SITE_URL || process.env.URL || 'http://localhost:3000').replace(/\/+$/, '')
 const basePath = normalizedBasePath(process.env.PUBLIC_BASE_PATH)
 const absolute = (path) => baseUrl + basePath + path.replace(/^\/+/, '')
-const items = await Promise.all(entries.map(async (file) => {
+const items = await Promise.all(entries.slice().reverse().map(async (file) => {
   const metadata = articleMetadata(file, await readFile(join(source, file), 'utf8'))
   const link = absolute('articles/' + encodeURIComponent(metadata.slug) + '/')
   return [
