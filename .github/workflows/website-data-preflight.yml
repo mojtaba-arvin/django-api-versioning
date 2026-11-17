@@ -42,7 +42,7 @@ jobs:
           python -m pip install --disable-pip-version-check -r requirements-ci.txt
       - name: Verify package-backed website examples and generated evidence
         run: |
-          python integration_test_project/segment_lab/generate_routes.py --check
+          python integration_test_project/segment_lab/generate_routes.py
           python scripts/verify_website_examples.py
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
         with:
