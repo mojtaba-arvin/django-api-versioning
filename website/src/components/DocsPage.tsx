@@ -11,7 +11,11 @@ function handleCopy(e: MouseEvent<HTMLElement>) {
   const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-copy]')
   if (!button) return
   const code = button.closest('.reference-code')?.querySelector('pre')?.textContent ?? ''
-  navigator.clipboard?.writeText(code).then(() => {
+  const copyText = code
+    .split('\n')
+    .map((line) => (line.startsWith('$ ') ? line.slice(2) : line))
+    .join('\n')
+  navigator.clipboard?.writeText(copyText).then(() => {
     button.textContent = 'Copied ✓'
     setTimeout(() => {
       button.textContent = 'Copy'

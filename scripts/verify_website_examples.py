@@ -18,7 +18,13 @@ REFERENCE = ROOT / "docs" / "reference" / "index.md"
 EXCEPTIONS = ROOT / "django_api_versioning" / "exceptions.py"
 SETTINGS = ROOT / "django_api_versioning" / "settings.py"
 DECORATORS = ROOT / "django_api_versioning" / "decorators.py"
-MIGRATE_COMMAND = ROOT / "django_api_versioning" / "management" / "commands" / "migrate_endpoints.py"
+MIGRATE_COMMAND = (
+    ROOT
+    / "django_api_versioning"
+    / "management"
+    / "commands"
+    / "migrate_endpoints.py"
+)
 
 
 def snippet(source: str, key: str) -> str:
@@ -112,12 +118,18 @@ def verify_reference(source: str, actual_output: str) -> None:
     decorator_source = DECORATORS.read_text(encoding="utf-8")
     syntax = ast.parse(decorator_source)
     endpoint = next(
-        node for node in syntax.body
+        node
+        for node in syntax.body
         if isinstance(node, ast.FunctionDef) and node.name == "endpoint"
     )
     for argument in ("postfix", "version", "versions", "app_name", "view_name"):
-        if argument not in [arg.arg for arg in endpoint.args.args] or f"`{argument}`" not in source:
-            raise ValueError(f"Reference @endpoint argument {argument!r} is missing or stale.")
+        if (
+            argument not in [arg.arg for arg in endpoint.args.args]
+            or f"`{argument}`" not in source
+        ):
+            raise ValueError(
+                f"Reference @endpoint argument {argument!r} is missing or stale."
+            )
 
     exception_source = EXCEPTIONS.read_text(encoding="utf-8")
     exception_names = [
@@ -138,19 +150,34 @@ def verify_reference(source: str, actual_output: str) -> None:
     cli_block = markdown_fence(source, "text", "check_versions output")
     command, separator, displayed_output = cli_block.partition(chr(10))
     if not separator or command.strip() != "$ python manage.py check_versions":
-        raise ValueError("Reference check_versions block must include the documented command.")
+        raise ValueError(
+            "Reference check_versions block must include the documented command."
+        )
     if displayed_output.rstrip(chr(10)) != actual_output.rstrip(chr(10)):
-        raise ValueError("Reference check_versions output differs from current package-generated output.")
+        raise ValueError(
+            "Reference check_versions output differs from current package-generated output."
+        )
 
     migration = markdown_fence(source, "bash", "migrate_endpoints")
     if migration.strip() != "$ python manage.py migrate_endpoints --dry-run":
-        raise ValueError("Reference migrate_endpoints block must use the non-writing preview command.")
-    if not MIGRATE_COMMAND.is_file() or "--dry-run" not in MIGRATE_COMMAND.read_text(encoding="utf-8"):
-        raise ValueError("Reference migrate_endpoints example has no matching package command.")
+        raise ValueError(
+            "Reference migrate_endpoints block must use the non-writing preview command."
+        )
+    if not MIGRATE_COMMAND.is_file() or "--dry-run" not in MIGRATE_COMMAND.read_text(
+        encoding="utf-8"
+    ):
+        raise ValueError(
+            "Reference migrate_endpoints example has no matching package command."
+        )
 
 
 def main() -> int:
-    if not CONTENT.is_file() or not CLI_OUTPUT.is_file() or not ROUTES.is_file() or not REFERENCE.is_file():
+    if (
+        not CONTENT.is_file()
+        or not CLI_OUTPUT.is_file()
+        or not ROUTES.is_file()
+        or not REFERENCE.is_file()
+    ):
         print(
             "Website example inputs or generated package evidence are missing.",
             file=sys.stderr,
@@ -163,7 +190,10 @@ def main() -> int:
         hero_example = snippet(source, "heroView")
         evidence = json.loads(ROUTES.read_text(encoding="utf-8"))
         verify_package_symbols(source, evidence)
-        verify_reference(REFERENCE.read_text(encoding="utf-8"), CLI_OUTPUT.read_text(encoding="utf-8").removeprefix(chr(10)))
+        verify_reference(
+            REFERENCE.read_text(encoding="utf-8"),
+            CLI_OUTPUT.read_text(encoding="utf-8").removeprefix(chr(10)),
+        )
     except (ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
