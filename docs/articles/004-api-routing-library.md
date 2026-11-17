@@ -626,7 +626,7 @@ DRF ViewSet classes are also not directly supported by `@endpoint`. A ViewSet's 
 
 Use DRF's `DefaultRouter` or `SimpleRouter` to register ViewSets and mount their generated URLs separately under the desired versioned prefixes. This router setup is separate from the package's endpoint registry; it is not automatic router integration.
 
-For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/035a4054f3e0d7e3e47adfeef1889e89e0660443/docs/reference/versioning-contract.md).
+For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
 
 ## Getting started with django-api-versioning
 
