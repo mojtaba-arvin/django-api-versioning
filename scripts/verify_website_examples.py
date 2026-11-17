@@ -49,7 +49,7 @@ def main() -> int:
         )
         return 1
 
-    actual_output = CLI_OUTPUT.read_text(encoding="utf-8")
+    actual_output = CLI_OUTPUT.read_text(encoding="utf-8").removeprefix(chr(10))
     newline = chr(10)
     if displayed_output.rstrip(newline) != actual_output.rstrip(newline):
         print(
