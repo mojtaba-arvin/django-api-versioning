@@ -88,6 +88,30 @@ When a name is registered for multiple versions, pass `version`. If multiple rou
 - The package does not set DRF's `request.version`. DRF ViewSet classes cannot be decorated directly; pass a configured `as_view(actions)` callable for an individual route or use a DRF router for standard ViewSet routing.
 - The package's route selection is URL-path based. `API_VERSIONING_CHANNELS` values such as `header` and `query` are accepted by settings validation but are not implemented as request-routing mechanisms.
 
+### Register a configured ViewSet callable
+
+A DRF ViewSet class needs an action map. Register the configured callable for an individual route:
+
+~~~python title="views.py"
+from rest_framework.viewsets import ViewSet
+
+from django_api_versioning import endpoint
+
+
+class ItemViewSet(ViewSet):
+    def list(self, request):
+        ...
+
+
+list_items_v1 = endpoint(
+    "items/",
+    version=1,
+    view_name="item-list",
+)(ItemViewSet.as_view({"get": "list"}))
+~~~
+
+This registers only the configured route. It does not create the full list/detail/custom-action route set that a DRF router provides. Use `DefaultRouter` or `SimpleRouter` when you need standard ViewSet routing; see the [ViewSet support guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
+
 ## Exceptions
 
 | Exception | Raised when |
