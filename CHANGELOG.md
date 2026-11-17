@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use absolute repository links in the README so its PyPI long description retains working source links.
 - Add Homepage and Documentation URLs to the package metadata.
 
-
 ## [1.0.0] - 2026-11-16
 
 ### Added
