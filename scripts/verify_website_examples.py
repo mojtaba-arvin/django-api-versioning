@@ -92,7 +92,7 @@ def verify_package_symbols(source: str, evidence: dict) -> None:
 def markdown_fence(source: str, language: str, title: str) -> str:
     """Return a titled fenced code block from the canonical Reference Markdown."""
     lines = source.splitlines()
-    opening = f"~~~{language} title=\"{title}\""
+    opening = f'~~~{language} title="{title}"'
     try:
         start = lines.index(opening)
         end = lines.index("~~~", start + 1)
