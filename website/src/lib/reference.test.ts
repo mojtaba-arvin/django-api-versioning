@@ -13,7 +13,8 @@ describe('canonical Reference content', () => {
   })
 
   it('renders every Reference section and preserves the existing presentation hooks', () => {
-    const { html, toc } = renderReferenceMarkdown(markdown)
+    const { title, html, toc } = renderReferenceMarkdown(markdown)
+    expect(title).toBe('django-api-versioning reference')
     expect(toc.map((item) => item.text)).toEqual([
       'Installation',
       'Settings',

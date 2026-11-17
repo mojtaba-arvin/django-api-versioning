@@ -43,7 +43,7 @@ export function DocsPage() {
           <header>
             <p className="eyebrow">Reference</p>
             <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              django-api-versioning reference
+              {reference.title}
             </h1>
             <p className="mt-4 max-w-2xl text-mute">
               Settings, decorator arguments, rules and tooling at a glance. New here? Start with the{' '}

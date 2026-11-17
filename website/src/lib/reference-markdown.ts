@@ -19,7 +19,8 @@ function slugify(text: string): string {
 }
 
 /** Render canonical Reference Markdown with the existing /docs visual components. */
-export function renderReferenceMarkdown(body: string): { html: string; toc: ReferenceTocEntry[] } {
+export function renderReferenceMarkdown(body: string): { title: string; html: string; toc: ReferenceTocEntry[] } {
+  const title = { value: '' }
   const toc: ReferenceTocEntry[] = []
   const used = new Map<string, number>()
   let skippedTitle = false
@@ -31,6 +32,7 @@ export function renderReferenceMarkdown(body: string): { html: string; toc: Refe
         const inner = this.parser.parseInline(tokens)
         if (depth === 1 && !skippedTitle) {
           skippedTitle = true
+          title.value = stripTags(inner)
           return ''
         }
         const level = Math.max(2, depth)
@@ -68,5 +70,5 @@ export function renderReferenceMarkdown(body: string): { html: string; toc: Refe
     },
   })
 
-  return { html: marked.parse(body, { async: false }) as string, toc }
+  return { title: title.value, html: marked.parse(body, { async: false }) as string, toc }
 }
