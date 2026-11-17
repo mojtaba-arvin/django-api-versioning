@@ -8,24 +8,42 @@ on:
     paths:
       - "website/**"
       - "docs/articles/**"
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "pyproject.toml"
+      - "pytest.ini"
+      - "requirements-ci.txt"
+      - "requirements.txt"
+      - "scripts/verify_website_examples.py"
       - ".github/workflows/website-data-preflight.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: website-build-${{ github.event.pull_request.number || github.ref }}
+  group: website-build-${ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: Install Python evidence dependencies
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-ci.txt
+      - name: Verify package-backed website examples and generated evidence
+        run: |
+          python integration_test_project/segment_lab/generate_routes.py --check
+          python scripts/verify_website_examples.py
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
         with:
           node-version: "22.23.4"
