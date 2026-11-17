@@ -1,3 +1,4 @@
+# isort: skip_file
 from django_api_versioning import endpoint
 from rest_framework.views import APIView
 from rest_framework.response import Response
