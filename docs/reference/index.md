@@ -32,13 +32,25 @@ Requires Python ≥ 3.10 and Django ≥ 4.2. Django REST Framework is optional. 
 ~~~python title="views.py"
 from django_api_versioning import endpoint, ver_range
 
-@endpoint("reports/", version=3)                      # v3 → max
-@endpoint("ranking/", versions=[2, 4])                # v2 and v4 only
-@endpoint("legacy/", versions=ver_range(1, 3))        # v1, v2, v3
-@endpoint("health/")                                  # unversioned: /health/
+# These examples assume API_MAX_VERSION >= 4.
+@endpoint("reports/", version=3)
+def reports(request):
+    ...
+
+@endpoint("ranking/", versions=[2, 4])
+def ranking(request):
+    ...
+
+@endpoint("legacy/", versions=ver_range(1, 3))
+def legacy(request):
+    ...
+
+@endpoint("health/")
+def health(request):
+    ...
 ~~~
 
-Each line above is a separate example. When a route has several forward declarations (for example `version=1` and `version=3`), each serves from its own version until the next declaration takes over.
+Each declaration above is a separate example. When a route has several forward declarations (for example `version=1` and `version=3`), each serves from its own version until the next declaration takes over.
 
 ## Validation & collisions
 
