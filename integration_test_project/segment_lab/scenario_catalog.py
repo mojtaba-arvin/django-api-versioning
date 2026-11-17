@@ -1,5 +1,18 @@
-"""
-Scenario catalogue for the Segment Lab.
+SCENARIOS: dict[str, dict] = {
+    "website_check_versions": {
+        "title": "Website check_versions example",
+        "question": "What does the documented check_versions example print for a forward endpoint declaration?",
+        "views": "segment_lab.scenarios.website_check_versions",
+        "settings": {"API_MAX_VERSION": 4},
+        "requests": [
+            "/api/v1/users/",
+            "/api/v2/users/",
+            "/api/v3/users/",
+            "/api/v4/users/",
+        ],
+        "reverse": [],
+    },
+Segment Lab.
 
 A scenario = one views module + settings overrides + the requests and
 reverse() calls to record. ``generate_routes.py`` runs every scenario in a
