@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The recovered Netlify scenario code has been ported into this directory and adapted to the repository's existing Django integration project. The harness contains 19 executable scenarios. Test counts and pass/fail status belong to the linked GitHub Actions runs, not this operational guide; do not copy transient CI counts here.
+The recovered Netlify scenario code has been ported into this directory and adapted to the repository's existing Django integration project. The harness contains 20 executable scenarios. Test counts and pass/fail status belong to the linked GitHub Actions runs, not this operational guide; do not copy transient CI counts here.
 
 The harness reuses:
 - `../manage.py`
@@ -15,7 +15,7 @@ It does not create a second `manage.py`, a second top-level Django project, or a
 
 ## Scenarios
 
-The catalogue contains the 17 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router, and a dedicated `website_check_versions` fixture for the public CLI example (19 scenarios total). Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
+The catalogue contains the 17 scenarios recovered from the interrupted Netlify run, plus an `existing_integration_project` scenario that exercises the repository's real API views and DRF router, and dedicated `website_check_versions` and `website_quick_start` fixtures for the public CLI and endpoint examples (20 scenarios total). Scenarios run in fresh Python interpreters because package settings and the route registry are process-global.
 
 The recovered scenario definitions are test inputs, not trusted results. All outputs must be regenerated against the current checkout.
 
