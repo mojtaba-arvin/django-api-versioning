@@ -221,7 +221,7 @@ An endpoint first registered at v3 is therefore not available in v1 or v2. This 
 
 This is routing inheritance, not Python inheritance. The registry stores endpoint registrations and their source and route versions; it does not create Python subclasses or determine whether an API change is backward compatible.
 
-For the exact registration contract, including version-range behavior and collision resolution, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For the exact registration contract, including version-range behavior and collision resolution, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Python inheritance and DRF's built-in versioning
 
