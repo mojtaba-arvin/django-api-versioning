@@ -29,8 +29,6 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
         with:
           node-version: "22.23.4"
-          cache: pnpm
-          cache-dependency-path: website/pnpm-lock.yaml
       - name: Enable pinned pnpm
         run: |
           corepack enable
