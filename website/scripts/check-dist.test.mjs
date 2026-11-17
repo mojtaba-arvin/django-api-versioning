@@ -8,14 +8,20 @@ import { findBrokenLocalReferences, validateDist } from './check-dist.mjs'
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url))
 const canonicalDirectory = path.resolve(scriptDirectory, '../../docs/articles')
+const cacheHeaders = `/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+`
 
 async function canonicalSlugs() {
   const files = (await readdir(canonicalDirectory)).filter((file) => file.endsWith('.md')).sort()
   return Promise.all(files.map(async (file) => {
     const raw = await readFile(path.join(canonicalDirectory, file), 'utf8')
-    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(raw)?.[1] ?? ''
-    const match = /^slug:\s*(?:"([^"]+)"|'([^']+)'|([^\s#]+))\s*$/m.exec(frontmatter)
-    return match?.[1] ?? match?.[2] ?? match?.[3] ?? file.replace(/\.md$/, '')
+    const frontmatter = /^---\\r?\\n([\\s\\S]*?)\\r?\\n---(?:\\r?\\n|$)/.exec(raw)?.[1] ?? ''
+    const match = /^slug:\\s*(?:"([^"]+)"|'([^']+)'|([^\\s#]+))\\s*$/m.exec(frontmatter)
+    return match?.[1] ?? match?.[2] ?? match?.[3] ?? file.replace(/\\.md$/, '')
   }))
 }
 
@@ -28,6 +34,7 @@ async function createArtifact(basePath) {
   await mkdir(path.join(root, '_build'), { recursive: true })
   await writeFile(path.join(root, '_build', 'app.js'), '/* static client asset */')
   await writeFile(path.join(root, 'favicon.svg'), '<svg></svg>')
+  await writeFile(path.join(root, '_headers'), cacheHeaders)
   const html = (title, links = '') =>
     '<!doctype html><html><head><title>' + title + '</title>' +
     '<link rel="icon" type="image/svg+xml" href="' + base + 'favicon.svg"></head><body>' +
@@ -48,7 +55,7 @@ async function createArtifact(basePath) {
   return root
 }
 
-test('validates a root-hosted static artifact', async () => {
+test('validates a root-hosted static artifact and cache policy', async () => {
   const root = await createArtifact('/')
   try {
     const result = await validateDist(root, '/')
@@ -65,6 +72,16 @@ test('validates a project-site artifact under /django-api-versioning/', async ()
     const result = await validateDist(root, '/django-api-versioning')
     assert.equal(result.articlePages, (await canonicalSlugs()).length)
     assert.equal(result.basePath, '/django-api-versioning/')
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('rejects a static artifact without the required cache headers', async () => {
+  const root = await createArtifact('/')
+  try {
+    await writeFile(path.join(root, '_headers'), '/*\\n  Cache-Control: public, max-age=3600\\n')
+    await assert.rejects(() => validateDist(root, '/'), /cache policy must require revalidation/)
   } finally {
     await rm(root, { recursive: true, force: true })
   }
