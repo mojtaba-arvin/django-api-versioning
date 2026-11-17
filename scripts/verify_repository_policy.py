@@ -38,9 +38,9 @@ def _validate_website_contract(errors: list[str]) -> None:
         errors.append("Website must have package.json and its pnpm lockfile")
     else:
         try:
-            package_manager = json.loads(
-                package_json.read_text(encoding="utf-8")
-            ).get("packageManager")
+            package_manager = json.loads(package_json.read_text(encoding="utf-8")).get(
+                "packageManager"
+            )
         except (json.JSONDecodeError, OSError):
             package_manager = None
         if package_manager != "pnpm@10.12.1":
@@ -66,9 +66,7 @@ def _validate_pr_gate(errors: list[str]) -> None:
     trigger = content.split("\npermissions:", maxsplit=1)[0]
     if "pull_request:" not in trigger:
         errors.append("PR gate must subscribe to pull_request")
-    if not re.search(
-        r"^\s+branches:\s*\[main\]$", trigger, flags=re.MULTILINE
-    ):
+    if not re.search(r"^\s+branches:\s*\[main\]$", trigger, flags=re.MULTILINE):
         errors.append("PR gate must target pull requests to main")
     if re.search(r"^\s+paths(-ignore)?:", trigger, flags=re.MULTILINE):
         errors.append("PR gate must not use workflow-level path filters")
