@@ -29,8 +29,9 @@ async function createArtifact(basePath) {
   await writeFile(path.join(root, '_build', 'app.js'), '/* static client asset */')
   await writeFile(path.join(root, 'favicon.svg'), '<svg></svg>')
   const html = (title, links = '') =>
-    '<!doctype html><html><head><title>' + title + '</title><link rel="icon" type="image/svg+xml" href="' + base + 'favicon.svg"></head><body>' + links +
-    '<script src="' + base + '_build/app.js"></script></body></html>'
+    '<!doctype html><html><head><title>' + title + '</title>' +
+    '<link rel="icon" type="image/svg+xml" href="' + base + 'favicon.svg"></head><body>' +
+    links + '<script src="' + base + '_build/app.js"></script></body></html>'
   const links = '<a href="' + base + 'docs/">Reference</a><a href="' + base + 'articles/">Articles</a>'
   await writeFile(path.join(root, 'index.html'), html('Home', links))
   await writeFile(path.join(root, 'docs', 'index.html'), html('Reference', '<a href="' + base + '">Home</a>'))
