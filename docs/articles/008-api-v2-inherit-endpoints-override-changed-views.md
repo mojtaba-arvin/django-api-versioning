@@ -182,7 +182,7 @@ Two different forms of inheritance are involved:
 
 **Scope: routing only.** The package selects which view handles each versioned URL. It does not determine whether a response change is backward compatible, merge serializers, or guarantee that an unchanged implementation still satisfies the v2 API contract. Test each supported version's response behavior and contract separately.
 
-For the package's exact registration, collision, and ViewSet behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For the package's exact registration, collision, and ViewSet behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## DRF ViewSet alternative: Python inheritance with per-version routers
 
