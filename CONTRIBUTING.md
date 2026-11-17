@@ -104,7 +104,8 @@ Follow `AGENTS.md` and the relevant canonical skill in `.agents/skills/`. The pa
 - Compatibility: `tox.ini` is authoritative; `scripts/check_tox_workflow_matrix.py` checks parity with GitHub Actions.
 - Packaging: build wheel and sdist and verify their contents.
 - Website: run checks from `website/`; a website-only deployment does not change the Python package release.
-- Generated Segment Lab evidence and website lockfiles must be generated on the active topic branch, never committed directly to `main`.
+- Edit website articles only in `docs/articles/`; generated article copies and RSS output are build products and must not be committed.
+- Update `website/pnpm-lock.yaml` from `website/package.json` with the pinned pnpm version on the active topic branch. Do not use npm lockfiles or update dependency locks directly on `main`.
 
 
 ## Security and dependency policy
