@@ -17,7 +17,9 @@ ROUTES = GENERATED / "routes.json"
 
 def snippet(source: str, key: str) -> str:
     delimiter = re.escape(chr(96))
-    pattern = r"(?ms)^ *" + re.escape(key) + r": *" + delimiter + r"(.*?)" + delimiter
+    pattern = (
+        r"(?ms)^ *" + re.escape(key) + r": *" + delimiter + r"(.*?)" + delimiter
+    )
     match = re.search(pattern, source)
     if match is None:
         raise ValueError(f"Could not locate snippets.{key} in website content.")
@@ -37,7 +39,11 @@ def normalize_code(value: str) -> str:
 
 
 def main() -> int:
-    if not CONTENT.is_file() or not CLI_OUTPUT.is_file() or not ROUTES.is_file():
+    if (
+        not CONTENT.is_file()
+        or not CLI_OUTPUT.is_file()
+        or not ROUTES.is_file()
+    ):
         print(
             "Website example inputs or generated package evidence are missing.",
             file=sys.stderr,
@@ -54,7 +60,10 @@ def main() -> int:
         return 1
 
     command, separator, displayed_output = cli_example.partition(chr(10))
-    if not separator or command.strip() != "$ python manage.py check_versions":
+    if (
+        not separator
+        or command.strip() != "$ python manage.py check_versions"
+    ):
         print(
             "The website check_versions example must retain its documented command.",
             file=sys.stderr,
