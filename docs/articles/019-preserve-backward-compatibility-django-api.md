@@ -737,7 +737,7 @@ MIDDLEWARE += [
 
 The date above is illustrative and must be reviewed before deployment. Do not treat it as a permanent production date.
 
-For a version configured as `deprecated` with a sunset date, the middleware adds `Deprecation` and `Sunset` response headers. Once the sunset date has passed, requests for that version receive `410 Gone`.
+For a version configured as `deprecated` with a valid `deprecated_at` date, the middleware adds the date-valued `Deprecation` header. If a `sunset` date is also configured, it adds the `Sunset` header. Once the sunset date has passed, requests for that version receive `410 Gone`.
 
 There are important distinctions:
 
