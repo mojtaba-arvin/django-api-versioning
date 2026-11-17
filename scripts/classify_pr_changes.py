@@ -12,6 +12,16 @@ PYTHON_PATHS = (
     "integration_test_project/",
 )
 WEBSITE_PATHS = ("website/", "docs/articles/")
+WEBSITE_EXAMPLE_PATHS = {
+    "pyproject.toml",
+    "pytest.ini",
+    "requirements-ci.txt",
+    "requirements.txt",
+    "scripts/verify_distribution_contents.py",
+    "scripts/smoke_installed_wheel.py",
+    "integration_test_project/segment_lab/generate_routes.py",
+    "integration_test_project/segment_lab/scenario_catalog.py",
+}
 AGENT_PATHS = (
     ".agents/",
     ".claude/",
@@ -74,9 +84,16 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         }
         for path in normalized
     )
+    # Website examples are verified against the package checkout. A package,
+    # test, or evidence-harness change must therefore run the website gate too.
     is_website = any(
-        path.startswith(WEBSITE_PATHS)
-        or path == ".github/workflows/website-data-preflight.yml"
+        path.startswith(WEBSITE_PATHS + PYTHON_PATHS)
+        or path in WEBSITE_EXAMPLE_PATHS
+        or path
+        in {
+            ".github/workflows/website-data-preflight.yml",
+            "scripts/verify_website_examples.py",
+        }
         for path in normalized
     )
     is_agent = any(
@@ -129,7 +146,7 @@ def main() -> int:
     outputs = classify_paths(changed_files)
     with Path(sys.argv[2]).open("a", encoding="utf-8") as output_file:
         for name, enabled in outputs.items():
-            output_file.write(f"{name}={'true' if enabled else 'false'}\n")
+            output_file.write(f"{name}={'true' if enabled else 'false'}\\n")
 
     print("Changed paths:")
     for path in changed_files:
