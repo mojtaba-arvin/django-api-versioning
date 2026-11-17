@@ -10,9 +10,11 @@ export const site = {
   install: 'pip install django-api-versioning',
 }
 
+export const rssHref = `${import.meta.env.BASE_URL}rss.xml`
+
 export const nav = [
-  { label: 'Features', href: '/#features' },
-  { label: 'Quick start', href: '/#quick-start' },
-  { label: 'Playground', href: '/#playground' },
-  { label: 'Lifecycle', href: '/#lifecycle' },
+  { label: 'Features', href: `${import.meta.env.BASE_URL}#features` },
+  { label: 'Quick start', href: `${import.meta.env.BASE_URL}#quick-start` },
+  { label: 'Playground', href: `${import.meta.env.BASE_URL}#playground` },
+  { label: 'Lifecycle', href: `${import.meta.env.BASE_URL}#lifecycle` },
 ]
