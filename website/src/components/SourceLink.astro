@@ -1,9 +1,0 @@
----
-import { repoUrl, source } from "../lib/data";
-interface Props { file: string; line?: number; label?: string; }
-const { file, line, label } = Astro.props;
-const href = `${repoUrl}/blob/${source.commit}/${file}${line ? `#L${line}` : ""}`;
----
-<a class="source-link" href={href} target="_blank" rel="noreferrer">
-  {label ?? `${file}${line ? `:${line}` : ""}`}
-</a>

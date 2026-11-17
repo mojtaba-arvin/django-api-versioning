@@ -1,55 +1,29 @@
-# Documentation website
+# django-api-versioning website
 
-Static documentation website for `django-api-versioning`.
+The project website for [django-api-versioning](https://github.com/mojtaba-arvin/django-api-versioning) ([PyPI](https://pypi.org/project/django-api-versioning/)), a decorator-based API versioning package for Django and Django REST Framework.
 
-The sole source of website requirements and design freedom is [the website contract](../docs/website/architecture.md). This README contains local development and verification commands only.
+## What's on the site
 
-## Requirements
+- **Home (`/`)**: hero with a copyable install command, feature overview, a three-step quick start, registration patterns, an interactive **version-matrix playground**, a **lifecycle headers demo** (Deprecation, Sunset and 410 Gone), the reliability tooling, and caveats.
+- **Reference (`/docs`)**: settings, `@endpoint` arguments, validation and collision rules, exceptions, management commands and development setup.
 
-- Node.js 22.23.4 or newer.
-- npm bundled with the selected Node.js release.
+## Tech
 
-## Development
+- [TanStack Start](https://tanstack.com/start) + React 19, file-based routes
+- Tailwind CSS v4 (theme tokens in `src/styles.css`)
+- Vitest for unit tests
+- Deployed on Netlify
 
-Run from `website/`:
-
-```bash
-npm ci
-npm run dev
-```
-
-## Verification
-
-Run from `website/`:
+## Run locally
 
 ```bash
-npm audit --audit-level=high
-npm test
-npm run check
-npm run build
-npm run test:dist
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm test
 ```
 
-To verify a GitHub Pages-style project base path:
+Or run `netlify dev` to use the Netlify dev proxy.
 
-```bash
-PUBLIC_BASE_PATH=/django-api-versioning npm run build
-PUBLIC_BASE_PATH=/django-api-versioning npm run test:dist
-```
+## Editing content
 
-To serve the built output locally:
-
-```bash
-npm run serve:dist
-```
-
-Set `PUBLIC_BASE_PATH` when serving a project-site build as well.
-
-## Regenerating recorded evidence
-
-From the repository root, install `requirements-ci.txt` and run:
-
-```bash
-python integration_test_project/segment_lab/generate_routes.py
-python integration_test_project/segment_lab/generate_routes.py --check
-```
+Most copy lives in `src/data/site.ts` (links, name) and `src/data/content.ts` (code snippets, features, patterns, caveats). The reference tables are in `src/components/DocsPage.tsx`. When the package README changes, update these to match.

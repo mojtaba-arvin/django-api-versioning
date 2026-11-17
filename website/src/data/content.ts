@@ -1,0 +1,156 @@
+export const snippets = {
+  heroView: `from django_api_versioning import endpoint
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+@endpoint("invoices/<int:invoice_id>/", version=2, view_name="invoice-detail")
+class InvoiceDetailView(APIView):
+    def get(self, request, invoice_id):
+        return Response({"id": invoice_id, "status": "paid"})`,
+
+  settings: `# settings.py
+INSTALLED_APPS = [
+    # ...
+    "django_api_versioning",
+]
+
+API_BASE_PATH = "api/v{version}/"
+API_MIN_VERSION = 1
+API_MAX_VERSION = 3`,
+
+  urls: `# urls.py
+from django.urls import include, path
+from your_app import views  # noqa: F401 — import endpoint modules first
+from django_api_versioning.urls import urlpatterns as api_urlpatterns
+
+urlpatterns = [
+    path("", include(api_urlpatterns)),
+]`,
+
+  checkVersions: `$ python manage.py check_versions
+users/:
+  v1           → users_list_v1
+  v2           → users_list_v2
+  v3           → users_list_v2
+  v4           → users_list_v2`,
+
+  snapshot: `from django_api_versioning.testing import assert_version_matrix
+
+def test_version_matrix():
+    # Creates the snapshot on first run.
+    # Raises VersionMatrixError with a diff when routes change.
+    assert_version_matrix(snapshot=".version_matrix.json")
+
+# Accept an intentional change:
+# assert_version_matrix(snapshot=".version_matrix.json", update=True)`,
+
+  reverse: `from django_api_versioning import api_reverse
+
+url = api_reverse("order-list", version=2)
+
+# version can be omitted when only one route has the name
+url = api_reverse("health-check")
+
+# ...but raises AmbiguousVersionError if several match.`,
+
+  lifecycle: `MIDDLEWARE = [
+    # ...
+    "django_api_versioning.lifecycle.LifecycleMiddleware",
+]
+
+API_VERSION_LIFECYCLE = {
+    1: {"status": "retired", "sunset": "2025-01-01"},
+    2: {
+        "status": "deprecated",
+        "deprecated_at": "2026-01-01T00:00:00+00:00",
+        "sunset": "2027-06-01",
+    },
+    3: {"status": "active"},
+}`,
+
+  migrate: `$ python manage.py migrate_endpoints --dry-run`,
+
+  dev: `$ pip install -e ".[dev]" && pre-commit install
+$ python -m pytest tests
+$ python -m pytest integration_test_project
+$ tox run-parallel -p auto`,
+}
+
+export const features = [
+  {
+    title: 'Declare once, serve forward',
+    body: 'Decorate a view with @endpoint and a starting version. Every later version reuses it until a newer implementation takes over.',
+    icon: '→',
+  },
+  {
+    title: 'Generated URL patterns',
+    body: 'The package builds versioned routes from API_BASE_PATH. No hand-maintained v1/, v2/, v3/ URLconfs.',
+    icon: '{}',
+  },
+  {
+    title: 'Django & DRF',
+    body: 'Works with plain Django views and Django REST Framework APIViews. DRF stays optional.',
+    icon: '⌘',
+  },
+  {
+    title: 'Route matrix & gap checks',
+    body: 'check_versions prints every logical endpoint across versions and warns about gaps inside a span.',
+    icon: '▦',
+  },
+  {
+    title: 'CI snapshot guard',
+    body: 'assert_version_matrix pins the matrix to a JSON snapshot so accidental route changes fail the build.',
+    icon: '✓',
+  },
+  {
+    title: 'Deprecation & Sunset',
+    body: 'LifecycleMiddleware adds RFC 9745 Deprecation and RFC 8594 Sunset headers, then 410 Gone after sunset.',
+    icon: '◐',
+  },
+]
+
+export const patterns = [
+  {
+    name: 'Forward segment',
+    code: '@endpoint("reports/", version=3)',
+    on: [3, 4, 5],
+    result: 'v3 → v5',
+  },
+  {
+    name: 'Explicit set',
+    code: '@endpoint("ranking/", versions=[2, 4])',
+    on: [2, 4],
+    result: 'v2 and v4 only',
+  },
+  {
+    name: 'Bounded range',
+    code: '@endpoint("legacy/", versions=ver_range(1, 3))',
+    on: [1, 2, 3],
+    result: 'v1 → v3 inclusive',
+  },
+  {
+    name: 'Unversioned',
+    code: '@endpoint("health/")',
+    on: [],
+    result: '/health/',
+  },
+]
+
+export const caveats = [
+  {
+    title: 'request.version is not set',
+    body: 'Routing is handled for you, but configure DRF versioning separately if your views need request.version.',
+  },
+  {
+    title: 'Settings are read at import time',
+    body: 'override_settings will not rebuild URL patterns. The lifecycle middleware, however, reads its settings per request.',
+  },
+  {
+    title: 'Import order matters',
+    body: 'Import your endpoint modules in the root URLconf before including django_api_versioning.urls.',
+  },
+  {
+    title: 'Upgrading from 0.2.0',
+    body: 'The old forward/backward flags are replaced. Run migrate_endpoints --dry-run and review every change.',
+  },
+]
