@@ -92,6 +92,20 @@ describe('parseArticle', () => {
     }
     expect(slugs.size).toBe(files.length)
   })
+
+  it('keeps the generated website corpus byte-for-byte aligned with the repository source', () => {
+    const generatedDir = join(__dirname, '../../content/articles')
+    const canonicalDir = join(__dirname, '../../../docs/articles')
+    const generated = readdirSync(generatedDir).filter((f) => f.endsWith('.md')).sort()
+    const canonical = readdirSync(canonicalDir).filter((f) => f.endsWith('.md')).sort()
+
+    expect(generated).toEqual(canonical)
+    for (const file of canonical) {
+      expect(readFileSync(join(generatedDir, file), 'utf8'), file).toBe(
+        readFileSync(join(canonicalDir, file), 'utf8'),
+      )
+    }
+  })
 })
 
 describe('slugify', () => {
