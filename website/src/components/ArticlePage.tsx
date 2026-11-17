@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react'
 import { Link } from '@tanstack/react-router'
-import type { ArticleWithNeighbours } from '../server/articles'
+import type { ArticleWithNeighbours } from '../lib/article-data'
 import { SiteFooter, SiteHeader } from './Layout'
 
 /** Delegated handler for the copy buttons rendered into article code blocks. */
