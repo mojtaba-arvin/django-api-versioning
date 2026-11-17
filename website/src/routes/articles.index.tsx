@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ArticlesPage } from '../components/ArticlesPage'
-import { site } from '../data/site'
-import { getArticleList } from '../server/articles'
+import { site, rssHref } from '../data/site'
+import { getArticleList } from '../lib/article-data'
 
 export const Route = createFileRoute('/articles/')({
   loader: () => getArticleList(),
@@ -17,6 +17,6 @@ export const Route = createFileRoute('/articles/')({
           'Long-form guides on Django and DRF API versioning: routing models, inheriting endpoints between versions, deprecation headers, reverse lookups and migrations.',
       },
     ],
-    links: [{ rel: 'alternate', type: 'application/rss+xml', title: `${site.name} articles`, href: '/rss.xml' }],
+    links: [{ rel: 'alternate', type: 'application/rss+xml', title: `${site.name} articles`, href: rssHref }],
   }),
 })
