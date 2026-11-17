@@ -22,7 +22,8 @@ Static marketing and documentation site for the `django-api-versioning` Python p
 - Articles: repository-root `docs/articles/*.md` is the only canonical source. `pnpm run sync:articles` copies this local corpus into `content/articles/` and generates `public/rss.xml`. The script must never download from GitHub or another branch. Edit articles only in the root `docs/articles/` directory.
 - `src/lib/articles.ts` parses front matter and renders Markdown. `src/lib/article-data.ts` loads the locally generated corpus for route loaders; these are ordinary build-time/local data functions, not server endpoints.
 - Routes: `/`, `/docs`, `/articles`, and `/articles/$slug`. Every article page must be prerendered. RSS is a generated static file, not a route handler.
-- `scripts/check-dist.mjs` validates the deployable artifact, all canonical article pages, RSS entries, local references, and absence of server/runtime artifacts. Its tests cover root hosting and `/django-api-versioning/`.
+- `scripts/check-dist.mjs` validates the deployable artifact, all canonical article pages, RSS entries, local references, cache-header policy, and absence of server/runtime artifacts. Its tests cover root hosting and `/django-api-versioning/`.
+- `public/_headers` is the canonical static-host cache policy: HTML and unhashed public files must revalidate; Vite-fingerprinted `/assets/` files may be cached as immutable. Hosts that ignore `_headers` require equivalent CDN/hosting configuration. Artifact validation proves the policy file is present, not that a deployed host sends the headers.
 
 ## Conventions
 
