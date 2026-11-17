@@ -18,7 +18,7 @@ function slugify(text: string): string {
     .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-')
 }
 
-/** Render canonical Reference Markdown with the existing /docs visual components. */
+/** Render canonical Reference Markdown for the /reference/ page. */
 export function renderReferenceMarkdown(body: string): { title: string; html: string; toc: ReferenceTocEntry[] } {
   const title = body.split(/\r?\n/).find((line) => /^#\s/.test(line))?.replace(/^#\s+/, '').trim() ?? ''
   const toc: ReferenceTocEntry[] = []

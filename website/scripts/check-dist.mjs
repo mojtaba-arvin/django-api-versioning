@@ -169,6 +169,16 @@ export async function validateDist(distRoot, basePath = '/', siteUrl = process.e
     ]),
   ])
 
+  const websiteSourceFiles = await walkFiles(path.join(websiteRoot, 'src'))
+  const serverFunctionSources = []
+  for (const file of websiteSourceFiles.filter((item) => /\\.(?:ts|tsx|js|jsx)$/i.test(item))) {
+    const source = await readFile(path.join(websiteRoot, 'src', file), 'utf8')
+    if (/\\bcreateServerFn\\b/.test(source)) serverFunctionSources.push(file)
+  }
+  if (serverFunctionSources.length) {
+    throw new Error('Static website source must not use createServerFn: ' + serverFunctionSources.join(', '))
+  }
+
   const files = await walkFiles(root)
   const htmlPages = files.filter((file) => file.endsWith('.html'))
   if (htmlPages.length !== expectedCanonical.size) {
@@ -180,6 +190,9 @@ export async function validateDist(distRoot, basePath = '/', siteUrl = process.e
     if (!expected) throw new Error('Unexpected HTML route in static output: ' + file)
     if (canonicalHref(html) !== expected) {
       throw new Error('Non-canonical or missing canonical URL in ' + file + '; expected ' + expected)
+    }
+    if (html.includes('/_serverFn') || html.includes('/.netlify/functions')) {
+      throw new Error('Server-function endpoint reference found in prerendered HTML: ' + file)
     }
     if (!html.includes('favicon.svg')) throw new Error('Project favicon link missing from prerendered page: ' + file)
   }
@@ -242,14 +255,6 @@ export async function validateDist(distRoot, basePath = '/', siteUrl = process.e
     /(^|\/)(?:server|functions|\.netlify|_serverFn)(?:\/|$)/i.test(file),
   )
   if (forbidden.length) throw new Error('Server/runtime artifacts found in static output: ' + forbidden.join(', '))
-
-  const runtimeFiles = files.filter((file) => /\.(?:html|js|mjs|json)$/i.test(file))
-  for (const file of runtimeFiles) {
-    const content = await readFile(path.join(root, file), 'utf8')
-    if (content.includes('/_serverFn') || content.includes('/.netlify/functions')) {
-      throw new Error('Server-function endpoint reference found in deployable file: ' + file)
-    }
-  }
 
   const broken = await findBrokenLocalReferences(root, base)
   if (broken.length) throw new Error('Broken local references (' + broken.length + '):\n- ' + broken.join('\n- '))

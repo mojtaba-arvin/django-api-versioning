@@ -20,7 +20,7 @@ The canonical project website for [django-api-versioning](https://github.com/moj
 ## URL and search-discovery policy
 
 - Page routes use one trailing slash: `/`, `/reference/`, `/articles/`, and `/articles/<slug>/`. This matches the static directory/index.html output and the article URLs already used by RSS.
-- `/reference/` is the canonical Reference route. `/docs` and `/docs/` are legacy aliases: hosts supporting `_redirects` receive permanent redirects; other static hosts serve a small HTML meta-refresh fallback with a canonical link to `/reference/`.
+- `/reference/` is the canonical Reference route. `/docs` and `/docs/` are legacy aliases: hosts that apply `_redirects` before existing files return 301; hosts where a static file shadows a non-forced redirect serve the HTML meta-refresh fallback. Use provider-specific redirect configuration if a host-level 301 is required.
 - The build generates absolute canonical links, `sitemap.xml`, and `robots.txt` from `SITE_URL` and `PUBLIC_BASE_PATH`. `SITE_URL` must be the public origin only (scheme and host, no path); it is required for production builds. `PUBLIC_BASE_PATH` must be a root-relative path such as `/django-api-versioning`, without query/hash or unsafe segments. The repository does not guess the production domain.
 - `sitemap.xml` contains only canonical page URLs, never legacy aliases. RSS article links use the same trailing-slash canonical URLs. On a project-subpath deployment, the generated `robots.txt` is also under that subpath; the Robots Exclusion Protocol only discovers a policy at the host root, so configure a host-root `robots.txt` separately or submit the subpath sitemap directly to search tools.
 

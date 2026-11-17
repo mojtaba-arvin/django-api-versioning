@@ -142,6 +142,18 @@ test('rejects a static artifact that omits the sitemap route', async () => {
   }
 })
 
+test('rejects server-function endpoints in prerendered HTML', async () => {
+  const root = await createArtifact('/')
+  try {
+    const file = path.join(root, 'index.html')
+    const html = await readFile(file, 'utf8')
+    await writeFile(file, html.replace('</body>', '<a href="/_serverFn">bad</a></body>'))
+    await assert.rejects(() => validateDist(root, '/', siteOrigin), /Server-function endpoint reference found/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
 test('rejects local references that escape the configured base path', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'website-links-'))
   try {
