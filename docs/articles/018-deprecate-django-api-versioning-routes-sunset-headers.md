@@ -779,7 +779,7 @@ For a version-wide retirement with resource-specific migration links, combining 
 
 The same HTTP headers can be used with other Django routing and DRF versioning approaches, but the package-specific part of this implementation is the explicit registration of old and new routes and the use of `api_reverse()` to resolve a successor route from the package registry.
 
-For exact route registration and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/docs/reference/versioning-contract.md).
+For exact route registration and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Next steps
 
