@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "pretest": "pnpm run sync:articles",
     "test": "vitest run",
     "sync:articles": "node scripts/sync-articles.mjs",
     "format": "prettier --write .",
