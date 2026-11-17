@@ -19,9 +19,9 @@ async function canonicalSlugs() {
   const files = (await readdir(canonicalDirectory)).filter((file) => file.endsWith('.md')).sort()
   return Promise.all(files.map(async (file) => {
     const raw = await readFile(path.join(canonicalDirectory, file), 'utf8')
-    const frontmatter = /^---\\r?\\n([\\s\\S]*?)\\r?\\n---(?:\\r?\\n|$)/.exec(raw)?.[1] ?? ''
-    const match = /^slug:\\s*(?:"([^"]+)"|'([^']+)'|([^\\s#]+))\\s*$/m.exec(frontmatter)
-    return match?.[1] ?? match?.[2] ?? match?.[3] ?? file.replace(/\\.md$/, '')
+    const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(raw)?.[1] ?? ''
+    const match = /^slug:\s*(?:"([^"]+)"|'([^']+)'|([^\s#]+))\s*$/m.exec(frontmatter)
+    return match?.[1] ?? match?.[2] ?? match?.[3] ?? file.replace(/\.md$/, '')
   }))
 }
 
@@ -80,7 +80,7 @@ test('validates a project-site artifact under /django-api-versioning/', async ()
 test('rejects a static artifact without the required cache headers', async () => {
   const root = await createArtifact('/')
   try {
-    await writeFile(path.join(root, '_headers'), '/*\\n  Cache-Control: public, max-age=3600\\n')
+    await writeFile(path.join(root, '_headers'), '/*\n  Cache-Control: public, max-age=3600\n')
     await assert.rejects(() => validateDist(root, '/'), /cache policy must require revalidation/)
   } finally {
     await rm(root, { recursive: true, force: true })
