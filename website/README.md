@@ -26,4 +26,8 @@ Or run `netlify dev` to use the Netlify dev proxy.
 
 ## Editing content
 
-Most copy lives in `src/data/site.ts` (links, name) and `src/data/content.ts` (code snippets, features, patterns, caveats). The reference tables are in `src/components/DocsPage.tsx`. When the package README changes, update these to match.
+Most copy lives in `src/data/site.ts` (links, name) and `src/data/content.ts` (code snippets, features, patterns, caveats). The reference tables are in `src/components/DocsPage.tsx`.
+
+The canonical article source is the repository-root `docs/articles/` directory. Edit articles there. `pnpm run sync:articles` copies that local corpus into `website/content/articles/`; `pnpm build` runs this sync automatically before building. The website build does not fetch article content from GitHub or depend on network access. Do not edit the generated copies under `website/content/articles/` directly.
+
+When package behavior or the README changes, verify all package-specific claims and examples on the site against the implementation and canonical package documentation.
