@@ -188,7 +188,7 @@ Other capabilities include:
 
 See the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for exact URL construction, import order, collision precedence, validation rules, and edge cases.
 
-## Django REST Framework integration
+## DRF integration details
 
 DRF is optional. The package can register Django function-based views, Django class-based views, DRF `APIView` classes, and DRF generic views.
 
