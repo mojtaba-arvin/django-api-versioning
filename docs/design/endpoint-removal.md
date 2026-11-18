@@ -56,7 +56,7 @@ For explicit registrations, only declared versions are candidates. A tombstone s
 
 - Keep active URLPattern objects in the existing urlpatterns list only.
 - Store tombstone boundaries separately by logical endpoint and version.
-- When a boundary is declared, remove already-registered patterns whose source version predates it.
+- When a boundary is declared, remove already-registered patterns whose source version is equal to or lower than the boundary.
 - When an older pattern is registered after a boundary, suppress it and retain an explicit removed-state record.
 - When a later source version reintroduces the operation, register it normally and clear the removed state for the reintroduced concrete versions.
 - Keep the original URLPattern as tombstone evidence so route-matrix output can identify the removed physical path and version.
