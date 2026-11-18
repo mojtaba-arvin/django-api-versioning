@@ -178,7 +178,10 @@ def _parse_lifecycle_date(value: Any, field_name: str) -> datetime | None:
         return None
 
     try:
-        parsed = datetime.fromisoformat(value)
+        # datetime.fromisoformat() only accepted the ISO 8601 UTC "Z" suffix
+        # starting with Python 3.11; normalize it for the Python 3.10 floor.
+        normalized_value = value[:-1] + "+00:00" if value.endswith("Z") else value
+        parsed = datetime.fromisoformat(normalized_value)
     except ValueError:
         logger.warning("Invalid %s date %r; ignoring.", field_name, value)
         return None
