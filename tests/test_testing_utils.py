@@ -19,6 +19,17 @@ def test_matrix_snapshot_created(tmp_path):
     assert snapshot.exists()
 
 
+def test_matrix_snapshot_update_creates_non_empty_baseline(tmp_path):
+    registry.urlpatterns.clear()
+    registry.register("api/v1/x", lambda request: None, route_version=1)
+    snapshot = tmp_path / "matrix.json"
+
+    assert_version_matrix(snapshot=str(snapshot), update=True)
+
+    assert json.loads(snapshot.read_text()) == {"api/v1/x": {"1": "<lambda>"}}
+    assert_version_matrix(snapshot=str(snapshot), strict=True)
+
+
 def test_strict_matrix_requires_existing_snapshot(tmp_path):
     registry.urlpatterns.clear()
     registry.register("api/v1/x", lambda request: None, route_version=1)
