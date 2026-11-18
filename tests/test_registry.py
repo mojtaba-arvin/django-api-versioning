@@ -495,9 +495,7 @@ def test_register_urlpattern_preserves_regex_pattern_and_callback_metadata(
     assert pattern.name == "order-detail"
     assert getattr(pattern, registry._SOURCE_VERSION_ATTR) == 1
     assert getattr(pattern, registry._ROUTE_VERSION_ATTR) == 1
-    assert getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR) == (
-        "orders:order-detail"
-    )
+    assert getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR) == ("orders:order-detail")
 
 
 def test_register_urlpattern_preserves_path_converters_and_defaults(clear_registry):
