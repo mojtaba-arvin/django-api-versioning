@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.urls import NoReverseMatch, clear_url_caches
 
 from django_api_versioning import api_reverse, endpoint, remove_endpoint
-from django_api_versioning.exceptions import VersionMatrixError, VersioningError
+from django_api_versioning.exceptions import VersioningError, VersionMatrixError
 from django_api_versioning.registry import registry
 from django_api_versioning.testing import assert_version_matrix, build_version_matrix
 
