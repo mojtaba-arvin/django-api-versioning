@@ -1,0 +1,79 @@
+name: OpenAPI contract integration
+
+on:
+  pull_request:
+    paths:
+      - "django_api_versioning/routers.py"
+      - "examples/openapi_contract/**"
+      - "docs/design/versioned-openapi-contract.md"
+      - ".github/workflows/openapi-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  versioned-openapi:
+    name: Versioned OpenAPI consumer contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install package and pinned schema tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r examples/openapi_contract/requirements.txt
+
+      - name: Verify runtime routing and versioned OpenAPI schemas
+        run: python examples/openapi_contract/verify.py
+
+      - name: Export versioned OpenAPI schemas
+        run: |
+          python examples/openapi_contract/generate_schemas.py \
+            --output-dir "$RUNNER_TEMP/openapi-contract-schemas"
+
+      - name: Install pinned oasdiff
+        run: |
+          archive="$RUNNER_TEMP/oasdiff_1.38.0_linux_amd64.tar.gz"
+          curl -fsSL \
+            https://github.com/oasdiff/oasdiff/releases/download/v1.38.0/oasdiff_1.38.0_linux_amd64.tar.gz \
+            -o "$archive"
+          echo "613037fd6a1d3362a1b742d6d86c338c0eb5ab3511f4942ce3948e78720ea2da  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/oasdiff"
+          binary="$(find "$RUNNER_TEMP/oasdiff" -type f -name oasdiff -perm -u+x -print -quit)"
+          test -n "$binary"
+          sudo install "$binary" /usr/local/bin/oasdiff
+          oasdiff --help >/dev/null
+
+      - name: Verify semantic breaking-change detection
+        run: |
+          python examples/openapi_contract/verify_oasdiff.py \
+            --oasdiff /usr/local/bin/oasdiff \
+            --schema-dir "$RUNNER_TEMP/openapi-contract-schemas"
+
+      - name: Compare candidate schemas with committed version baselines
+        run: |
+          oasdiff breaking --fail-on ERR \
+            examples/openapi_contract/schemas/v1/openapi.yaml \
+            "$RUNNER_TEMP/openapi-contract-schemas/v1/openapi.yaml"
+          oasdiff breaking --fail-on ERR \
+            examples/openapi_contract/schemas/v2/openapi.yaml \
+            "$RUNNER_TEMP/openapi-contract-schemas/v2/openapi.yaml"
+
+      - name: Upload generated OpenAPI schemas for review
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: versioned-openapi-contract-schemas
+          path: ${{ runner.temp }}/openapi-contract-schemas/
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,80 @@
+openapi: 3.0.3
+info:
+  title: Versioned Router Contract Example
+  version: 1.0.0 (1)
+  description: Per-version ViewSet and serializer selection with django-api-versioning.
+paths:
+  /api/v1/products/:
+    get:
+      operationId: v1_products_list
+      description: V1 implementation and custom action inherited by V2.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductV1'
+          description: ''
+  /api/v1/products/{id}/:
+    get:
+      operationId: v1_products_retrieve
+      description: V1 implementation and custom action inherited by V2.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductV1'
+          description: ''
+  /api/v1/products/availability/:
+    get:
+      operationId: v1_products_availability_retrieve
+      description: V1 implementation and custom action inherited by V2.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+          description: ''
+components:
+  schemas:
+    Availability:
+      type: object
+      properties:
+        available:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+      required:
+      - available
+      - checked_at
+    ProductV1:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        price:
+          type: string
+      required:
+      - id
+      - name
+      - price

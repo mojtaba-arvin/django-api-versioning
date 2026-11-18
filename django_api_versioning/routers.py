@@ -11,8 +11,7 @@ from django.urls import URLPattern, URLResolver, include, path
 
 try:
     from rest_framework.exceptions import NotFound
-    from rest_framework.routers import SimpleRouter
-    from rest_framework.versioning import BaseVersioning
+    from rest_framework.versioning import NamespaceVersioning
 except ImportError as exc:  # pragma: no cover - exercised without optional DRF
     raise ImportError(
         "VersionedRouter requires Django REST Framework. Install a DRF release "
@@ -148,6 +147,11 @@ class VersionedRouter:
         source_version: int | None,
         route_version: int | None,
     ) -> None:
+        # Import lazily: DRF's SimpleRouter imports APIView, which resolves
+        # DEFAULT_VERSIONING_CLASS. Importing it at module load time would
+        # recurse while DRF is trying to import VersionedRouterVersioning.
+        from rest_framework.routers import SimpleRouter
+
         route_prefix = prefix
         if route_version is not None:
             route_prefix = (
@@ -223,7 +227,7 @@ class VersionedRouter:
         return urlpatterns
 
 
-class VersionedRouterVersioning(BaseVersioning):
+class VersionedRouterVersioning(NamespaceVersioning):
     """Expose the router-selected version through DRF's request.version.
 
     The router namespaces each concrete version as vN. This adapter reads
@@ -281,8 +285,8 @@ class VersionedRouterVersioning(BaseVersioning):
         format: str | None = None,
         **extra: Any,
     ) -> str:
-        if request is not None:
-            viewname = self.get_versioned_viewname(viewname, request)
+        # NamespaceVersioning.reverse() calls our get_versioned_viewname().
+        # Do not pre-qualify the name here or the namespace would be applied twice.
         return super().reverse(
             viewname,
             args=args,
