@@ -176,7 +176,7 @@ MIDDLEWARE = [
 ]
 ~~~
 
-For a deprecated version with valid lifecycle dates, the middleware emits the date-valued RFC 9745 `Deprecation` field and the RFC 8594 `Sunset` HTTP date. When the configured sunset date is in the past, it returns `410 Gone`. A retired entry must define `sunset`; the sunset date—not the status label by itself—is what triggers the expired-version response. Until that date passes, a retired version is still served and its responses carry the `Sunset` header (plus `Deprecation` when `deprecated_at` is set).
+For a deprecated version with valid lifecycle dates, the middleware emits the date-valued RFC 9745 `Deprecation` field and the RFC 8594 `Sunset` HTTP date. When both dates are configured, `sunset` must not be earlier than `deprecated_at`. When the configured sunset date is in the past, it returns `410 Gone`. A retired entry must define `sunset`; the sunset date—not the status label by itself—is what triggers the expired-version response. Until that date passes, a retired version is still served and its responses carry the `Sunset` header (plus `Deprecation` when `deprecated_at` is set).
 
 See [API lifecycle behavior in the routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#12-version-lifecycle-headers) and the [deprecation guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/018-deprecate-django-api-versioning-routes-sunset-headers/).
 
