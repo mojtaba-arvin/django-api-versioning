@@ -887,7 +887,7 @@ class TestMigrateEndpointsCommand:
         call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
 
         assert "@api_endpoint(" in out.getvalue()
-        assert "versions=[2]" in out.getvalue()
+        assert "versions=list(range(1, 3))" in out.getvalue()
         assert view_file.read_text() == source
 
     def test_dynamic_imported_endpoint_alias_is_reported(self, tmp_path):
