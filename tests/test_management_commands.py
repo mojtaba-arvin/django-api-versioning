@@ -49,6 +49,16 @@ class TestCheckVersionsCommand:
         # Should show a clear message when no endpoints are registered
         assert "No endpoints registered" in output
 
+    def test_check_versions_can_fail_when_registry_is_empty(
+        self, clear_registry_and_settings
+    ):
+        out = StringIO()
+
+        with pytest.raises(CommandError, match="No endpoints registered"):
+            call_command("check_versions", fail_on_empty=True, stdout=out)
+
+        assert "imports the modules containing @endpoint" in out.getvalue()
+
     def test_check_versions_with_registered_endpoints(
         self, clear_registry_and_settings
     ):

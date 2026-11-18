@@ -1,8 +1,28 @@
 import json
 from pathlib import Path
 
+from django.urls import get_resolver
+from django.urls.resolvers import URLResolver
+
 from .exceptions import VersionMatrixError
 from .registry import registry
+
+
+def _load_root_urlconf() -> None:
+    """Import the root URLconf and recursively resolve included URLconfs."""
+    seen: set[int] = set()
+
+    def visit(resolver: URLResolver) -> None:
+        resolver_id = id(resolver)
+        if resolver_id in seen:
+            return
+        seen.add(resolver_id)
+
+        for pattern in resolver.url_patterns:
+            if isinstance(pattern, URLResolver):
+                visit(pattern)
+
+    visit(get_resolver())
 
 
 def build_version_matrix() -> dict:
@@ -46,31 +66,43 @@ def assert_version_matrix(
     snapshot: str | None = None,
     *,
     update: bool = False,
+    strict: bool = False,
 ) -> None:
     """
-    Compare the current version matrix against a JSON snapshot.
+    Compare the current route matrix with a JSON snapshot.
 
-    - If ``snapshot`` does not exist, it is created.
-    - If ``update=True``, the snapshot is overwritten.
-    - Otherwise, raises ``VersionMatrixError`` with a diff.
+    Omitting snapshot keeps the historical no-op behavior. By default, a
+    missing snapshot is created for backward compatibility. Set strict=True
+    in CI to require an existing, non-empty baseline. Pass update=True
+    explicitly to create or refresh a snapshot.
 
-    Usage::
-
-        def test_version_matrix():
-            assert_version_matrix(snapshot=".version_matrix.json")
-
-    Note:
-        Same import requirement as ``build_version_matrix`` — call after all
-        ``@endpoint``-decorated modules have been imported. If the snapshot is
-        generated before imports complete, it will be empty and later test runs
-        that do import the modules will fail against it.
+    Bootstrap once with update=True, review and commit the file, then run
+    with strict=True and without update=True in CI.
     """
-    current = build_version_matrix()
     if snapshot is None:
+        if strict:
+            raise VersionMatrixError("A snapshot path is required when strict=True.")
         return
 
+    current = build_version_matrix()
     path = Path(snapshot)
-    if not path.exists() or update:
+
+    if strict and not current:
+        raise VersionMatrixError(
+            "No endpoints are registered. Check that endpoint modules are "
+            "imported before building the version matrix."
+        )
+
+    if update:
+        path.write_text(json.dumps(current, indent=2, sort_keys=True))
+        return
+
+    if not path.exists():
+        if strict:
+            raise VersionMatrixError(
+                f"Version matrix snapshot {str(path)!r} does not exist. "
+                "Create it explicitly with update=True, then commit the file."
+            )
         path.write_text(json.dumps(current, indent=2, sort_keys=True))
         return
 

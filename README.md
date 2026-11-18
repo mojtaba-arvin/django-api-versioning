@@ -66,7 +66,7 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 - **Forward route inheritance:** `version=1` registers the endpoint from v1 through `API_MAX_VERSION`.
 - **Version-specific replacement:** a v2 declaration takes over from v2 onward; earlier versions retain the v1 implementation.
 - **Explicit registration:** use `versions=[...]` or `ver_range(...)` when an endpoint should exist only in selected versions.
-- **Visibility:** inspect the generated route matrix with `check_versions` and test it with `assert_version_matrix()`.
+- **Visibility:** inspect the generated route matrix with `python manage.py check_versions --fail-on-empty` and guard it with `assert_version_matrix(snapshot=".version_matrix.json", strict=True)`.
 
 This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
 
