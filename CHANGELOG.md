@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Clarify that `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` are reserved settings with no runtime effect; log a warning when non-default values are configured.
+
 ### Fixed
 
 - `LifecycleMiddleware` now sends the `Sunset` header (and `Deprecation`, when `deprecated_at` is configured) for `retired` versions whose `sunset` date is still in the future. Previously these responses carried no lifecycle headers even though the version was about to be removed. Retired versions with a past `sunset` still return `410 Gone`, and `active` and unknown versions are unchanged.
