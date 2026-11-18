@@ -410,10 +410,10 @@ class TestMigrateEndpointsRewriting:
     def test_invalid_syntax_is_not_rewritten(self):
         args = '"users", version=2, backward=True, forward='
         assert _rewrite_args(args) == args
-        assert _suggest("@endpoint(\\n") == []
+        assert _suggest("@endpoint(\n") == []
 
     def test_tokenizer_errors_are_treated_as_unsafe_comments(self):
-        assert _has_comments("endpoint(\\n")
+        assert _has_comments("endpoint(\n")
 
     @pytest.mark.parametrize(
         "args",
@@ -628,9 +628,9 @@ class TestMigrateEndpointsCommand:
 
     def test_diff_mode_is_deterministic_and_does_not_modify_files(self, tmp_path):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def view(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -642,7 +642,7 @@ class TestMigrateEndpointsCommand:
 
         output = first.getvalue()
         assert output == second.getvalue()
-        assert output.startswith("--- views.py\\n+++ views.py\\n")
+        assert output.startswith("--- views.py\n+++ views.py\n")
         assert '-@endpoint("users", version=2, backward=True, forward=False)' in output
         assert '+@endpoint("users", versions=list(range(1, 3)))' in output
         assert view_file.read_text() == source
@@ -652,9 +652,9 @@ class TestMigrateEndpointsCommand:
     )
     def test_atomic_write_preserves_file_permissions(self, tmp_path):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def view(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -675,9 +675,9 @@ class TestMigrateEndpointsCommand:
         self, tmp_path, monkeypatch
     ):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def view(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
