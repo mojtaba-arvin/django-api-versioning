@@ -1,6 +1,6 @@
 # Explicit endpoint removal and reintroduction
 
-**Status:** Implementation in progress  
+**Status:** Implemented in PR #44  
 **Runtime policy:** Removed endpoint routes are absent and resolve to 404  
 **Scope:** Django-native endpoints and DRF VersionedRouter routes
 
