@@ -21,7 +21,8 @@ AVAILABILITY = {
 LEGACY_EXPORT = {
     version: f"/api/v{version}/orders/legacy/export/" for version in ("1", "2", "3")
 }
-RISK_SUMMARY = "/api/v3/orders/risk-summary/"
+RISK_SUMMARY = "/api/v3/orders/{id}/risk-summary/"
+RISK_SUMMARY_RUNTIME = "/api/v3/orders/101/risk-summary/"
 
 
 def _setup_django():
@@ -71,9 +72,9 @@ def verify_runtime() -> None:
     assert client.get(LEGACY_EXPORT["2"]).status_code == 200
     assert client.get(LEGACY_EXPORT["3"]).status_code == 404
 
-    assert client.get(RISK_SUMMARY).status_code == 200
-    assert client.get("/api/v1/orders/risk-summary/").status_code == 404
-    assert client.get("/api/v2/orders/risk-summary/").status_code == 404
+    assert client.get(RISK_SUMMARY_RUNTIME).status_code == 200
+    assert client.get("/api/v1/orders/101/risk-summary/").status_code == 404
+    assert client.get("/api/v2/orders/101/risk-summary/").status_code == 404
 
     # Prove the eventual retirement behavior without depending on wall-clock time.
     with override_settings(
