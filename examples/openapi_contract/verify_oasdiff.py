@@ -202,8 +202,9 @@ def verify_nullability(binary: Path, root: Path) -> None:
             expected_check=response_check,
         )
 
-    # v1.38.0 specifically fixed nullable:true next to an allOf/$ref when
-    # allOf flattening is enabled. Exercise that exact regression surface.
+    # Keep nullable allOf/$ref detection separate from flattening tests.
+    # The pinned v1.38.0 binary is checked directly for this transition;
+    # separate constraints below exercise --flatten-allof semantics.
     _assert_case(
         binary, root, "allof-request-became-nonnullable",
         openapi="3.0.3", before=_nullable_allof_30(),
