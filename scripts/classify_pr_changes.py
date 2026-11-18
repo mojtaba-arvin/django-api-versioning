@@ -131,6 +131,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         path in PYTHON_DEPENDENCIES
         or path in {"website/package.json", "website/pnpm-lock.yaml"}
         or path.startswith("requirements")
+        or path.endswith("/requirements.txt")
         for path in normalized
     )
     is_openapi = any(
