@@ -144,7 +144,9 @@ See [ViewSet support and limitations](https://mojtaba-arvin.github.io/django-api
 
 **For new deployments, use a currently supported Django release, preferably Django 5.2 LTS or later.** Django 4.2 reached the end of extended support on 7 April 2026. It remains in this package's compatibility matrix for existing projects, but no longer receives Django security fixes. See [Django's supported versions](https://www.djangoproject.com/download/#supported-versions).
 
-The configured CI matrix covers selected combinations of Python 3.10–3.15 and Django 4.2, 5.2, 6.0, and 6.1. See [tox.ini](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini) for configured environments and [GitHub Actions](https://github.com/mojtaba-arvin/django-api-versioning/actions) for results tied to a specific commit.
+The configured CI matrix covers selected combinations of Python 3.10–3.15 and Django 4.2, 5.2, 6.0, and 6.1. DRF is tested against versions supported by each upstream combination: DRF 3.17.2 on Django 4.2, and DRF 3.18.x on Django 5.2, 6.0, and 6.1. DRF 3.18 dropped Django 4.2, so these lines are deliberately pinned separately rather than relying on an unbounded latest version.
+
+See [tox.ini](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini) for configured environments and [GitHub Actions](https://github.com/mojtaba-arvin/django-api-versioning/actions) for results tied to a specific commit.
 
 ## Upgrading to 1.0.0
 
