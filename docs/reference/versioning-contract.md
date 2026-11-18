@@ -575,7 +575,11 @@ Settings validation requires `deprecated_at` for deprecated versions and rejects
 
 A `retired` version whose sunset date is still in the future is still served. Its responses carry the `Sunset` header, and also the `Deprecation` header when `deprecated_at` is configured; unlike for `deprecated` versions, a missing `deprecated_at` is not logged as a problem. `active` and unknown versions never receive lifecycle headers.
 
-This is a version-wide policy. The middleware also recognizes the configured API base path below parent URL prefixes, so lifecycle headers continue to work when a versioned router is mounted through nested URL includes. It does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
+This is a version-wide policy. For a resolved request, the middleware uses Django's actual resolver match and the registered route metadata, including the full route contributed by parent URL includes. A parent path that happens to contain another API-like version segment cannot override the version of the child endpoint that Django selected.
+
+For a request that does not resolve to a view, the middleware retains path-based lifecycle behavior only when the configured API base path identifies exactly one distinct version. If an unresolved path contains multiple different version segments, the version is ambiguous and the middleware does not guess; the unresolved request remains a 404 rather than receiving a potentially incorrect 410. A resolved view's own 404 response still receives the matched version's lifecycle headers.
+
+The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
 
 ## 13. Scope and known limitations
 
