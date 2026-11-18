@@ -124,17 +124,13 @@ def _nullable_anyof() -> dict[str, Any]:
 
 def _nullable_allof_30() -> dict[str, Any]:
     return {
-        "type": "string",
         "nullable": True,
         "allOf": [{"$ref": "#/components/schemas/Scalar"}],
     }
 
 
 def _nonnull_allof_30() -> dict[str, Any]:
-    return {
-        "type": "string",
-        "allOf": [{"$ref": "#/components/schemas/Scalar"}],
-    }
+    return {"allOf": [{"$ref": "#/components/schemas/Scalar"}]}
 
 
 def verify_nullability(binary: Path, root: Path) -> None:
