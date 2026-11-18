@@ -18,6 +18,10 @@ ACTION_PATHS = {
     "1": "/api/v1/products/availability/",
     "2": "/api/v2/products/availability/",
 }
+LEGACY_EXPORT_PATHS = {
+    "1": "/api/v1/products/legacy-export/",
+    "2": "/api/v2/products/legacy-export/",
+}
 
 
 def generate(version: str, output: Path) -> bytes:
@@ -76,6 +80,11 @@ assert v2.json()[0]["currency"] == "USD"
 inherited = client.get("/api/v2/products/availability/")
 assert inherited.status_code == 200, inherited.content
 assert inherited.json()["available"] is True
+
+legacy_v1 = client.get("/api/v1/products/legacy-export/")
+assert legacy_v1.status_code == 200, legacy_v1.content
+legacy_v2 = client.get("/api/v2/products/legacy-export/")
+assert legacy_v2.status_code == 404, legacy_v2.content
 """
     subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, check=True)
 
@@ -102,6 +111,8 @@ def verify_schema(version: str) -> dict:
         assert product_path in document["paths"]
         assert action_path in document["paths"]
         assert PRODUCT_PATHS[other_version] not in document["paths"]
+        legacy_path = LEGACY_EXPORT_PATHS[version]
+        assert (legacy_path in document["paths"]) is (version == "1")
 
         product = component(document, response_schema(document, product_path))
         fields = product["properties"]
@@ -130,6 +141,7 @@ def main() -> None:
                 "deterministic": True,
                 "version_specific_serializers": True,
                 "inherited_custom_action": True,
+                "removed_action_absent_from_v2_runtime_and_schema": True,
             },
             indent=2,
         )
