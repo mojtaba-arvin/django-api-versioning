@@ -1,6 +1,8 @@
 """Tests for management commands."""
 
 import ast
+import os
+import stat
 from io import StringIO
 
 import pytest
@@ -9,6 +11,9 @@ from django.core.management.base import CommandError
 from django.http import JsonResponse
 
 from django_api_versioning.decorators import endpoint
+from django_api_versioning.management.commands import (
+    migrate_endpoints as migrate_module,
+)
 from django_api_versioning.management.commands.migrate_endpoints import (
     _has_comments,
     _rewrite_args,
@@ -621,3 +626,282 @@ class TestMigrateEndpointsCommand:
         assert "versions=list(range(1, 3))" in updated
         assert "versions=[3]" in updated
         ast.parse(updated)
+
+    def test_diff_mode_is_deterministic_and_does_not_modify_files(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        first = StringIO()
+        second = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), diff=True, stdout=first)
+        call_command("migrate_endpoints", path=str(tmp_path), diff=True, stdout=second)
+
+        output = first.getvalue()
+        assert output == second.getvalue()
+        assert output.startswith("--- views.py\n+++ views.py\n")
+        assert '-@endpoint("users", version=2, backward=True, forward=False)' in output
+        assert '+@endpoint("users", versions=list(range(1, 3)))' in output
+        assert view_file.read_text() == source
+
+    @pytest.mark.skipif(
+        os.name == "nt",
+        reason="POSIX permission bits are not fully supported on Windows",
+    )
+    def test_atomic_write_preserves_file_permissions(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+        view_file.chmod(0o640)
+
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            write=True,
+            stdout=StringIO(),
+        )
+
+        assert "versions=list(range(1, 3))" in view_file.read_text()
+        assert stat.S_IMODE(view_file.stat().st_mode) == 0o640
+        assert list(tmp_path.glob(".views.py.*.tmp")) == []
+
+    def test_failed_atomic_replace_keeps_original_and_cleans_temp_file(
+        self, tmp_path, monkeypatch
+    ):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def view(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        def fail_replace(source_path, target_path):
+            raise OSError("simulated atomic replace failure")
+
+        monkeypatch.setattr(migrate_module.os, "replace", fail_replace)
+
+        out = StringIO()
+        with pytest.raises(CommandError, match="Could not update views.py"):
+            call_command(
+                "migrate_endpoints",
+                path=str(tmp_path),
+                write=True,
+                stdout=out,
+            )
+
+        assert "Already updated files: none" in out.getvalue()
+        assert view_file.read_text() == source
+        assert list(tmp_path.glob(".views.py.*.tmp")) == []
+
+    def test_dynamic_legacy_decorator_is_reported_with_path_line_and_reason(
+        self, tmp_path
+    ):
+        source = (
+            '@endpoint("users", version=VERSION, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        output = out.getvalue()
+        assert "views.py:1:" in output
+        assert "version must be a literal integer" in output
+        assert "1 skipped for manual review" in output
+        assert view_file.read_text() == source
+
+    def test_positional_version_and_comments_are_reported_separately(self, tmp_path):
+        source = (
+            '@endpoint("users", 2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+            '@endpoint("posts", version=2, backward=True, # preserve this note\n'
+            "          forward=False)\n"
+            "def posts(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        output = out.getvalue()
+        assert "views.py:1:" in output
+        assert "version positionally" in output
+        assert "views.py:4:" in output
+        assert "contains comments inside the decorator" in output
+        assert "2 skipped for manual review" in output
+
+    def test_diff_reports_skipped_occurrences_in_a_separate_section(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+            '@endpoint("posts", version=VERSION, backward=True, forward=False)\n'
+            "def posts(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), diff=True, stdout=out)
+
+        output = out.getvalue()
+        assert output.startswith("--- views.py\n+++ views.py\n")
+        assert "Skipped legacy decorators (manual review required):" in output
+        assert "views.py:4: version must be a literal integer" in output
+        assert view_file.read_text() == source
+
+    def test_syntax_error_with_legacy_markers_is_reported(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def broken(\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        output = out.getvalue()
+        assert "file syntax error prevents safe inspection" in output
+        assert "views.py:" in output
+        assert view_file.read_text() == source
+
+    def test_file_processing_order_is_deterministic(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+        )
+        z_file = tmp_path / "z.py"
+        a_file = tmp_path / "a.py"
+        z_file.write_text(source)
+        a_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        output = out.getvalue()
+        assert output.index(str(a_file)) < output.index(str(z_file))
+
+    def test_write_failure_reports_files_already_updated(self, tmp_path, monkeypatch):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+        )
+        first_file = tmp_path / "a.py"
+        second_file = tmp_path / "b.py"
+        first_file.write_text(source)
+        second_file.write_text(source)
+        original_replace = os.replace
+
+        def fail_second_replace(source_path, target_path):
+            if os.path.basename(target_path) == "b.py":
+                raise OSError("simulated second-file replace failure")
+            return original_replace(source_path, target_path)
+
+        monkeypatch.setattr(migrate_module.os, "replace", fail_second_replace)
+        out = StringIO()
+
+        with pytest.raises(CommandError, match="Could not update b.py"):
+            call_command(
+                "migrate_endpoints",
+                path=str(tmp_path),
+                write=True,
+                stdout=out,
+            )
+
+        assert "Already updated files: a.py" in out.getvalue()
+        assert "versions=list(range(1, 3))" in first_file.read_text()
+        assert second_file.read_text() == source
+        assert list(tmp_path.glob(".*.tmp")) == []
+
+    @pytest.mark.parametrize(
+        ("decorator", "expected_reason"),
+        [
+            (
+                '@endpoint("users", version=2, backward=True, backward=False)',
+                "duplicate backward= arguments",
+            ),
+            (
+                '@endpoint("users", version=2, backward=True, versions=[1])',
+                "explicit versions argument",
+            ),
+            (
+                '@endpoint("users", version=2, backward=True, forward=False, **options)',
+                "**kwargs expansion",
+            ),
+            (
+                '@endpoint("users", version=2, backward=FLAG, forward=False)',
+                "backward must be a literal boolean",
+            ),
+            (
+                '@endpoint("users", version=2, backward=True, forward=FLAG)',
+                "forward must be a literal boolean or None",
+            ),
+        ],
+    )
+    def test_unsupported_legacy_forms_are_reported(
+        self, tmp_path, decorator, expected_reason
+    ):
+        source = decorator + "\n" + "def view(request):\n    return None\n"
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        output = out.getvalue()
+        assert "views.py:1:" in output
+        assert expected_reason in output
+        assert "1 skipped for manual review" in output
+        assert view_file.read_text() == source
+
+    def test_imported_endpoint_alias_is_rewritten(self, tmp_path):
+        source = (
+            "from django_api_versioning import endpoint as api_endpoint\n"
+            '@api_endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        assert "@api_endpoint(" in out.getvalue()
+        assert "versions=list(range(1, 3))" in out.getvalue()
+        assert view_file.read_text() == source
+
+    def test_dynamic_imported_endpoint_alias_is_reported(self, tmp_path):
+        source = (
+            "from django_api_versioning.decorators import endpoint as api_endpoint\n"
+            '@api_endpoint("users", version=VERSION, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        assert "views.py:2:" in out.getvalue()
+        assert "version must be a literal integer" in out.getvalue()
