@@ -97,6 +97,34 @@ class UrlRegistry:
             None,
         )
 
+    def get_resolved_route_version(self, route: str) -> int | None:
+        """Resolve a version from the longest registered route suffix.
+
+        Django's ResolverMatch.route includes every parent URLResolver prefix.
+        Matching a registered route as a complete suffix therefore supports
+        nested includes without confusing a parent API-like prefix for the
+        child endpoint's version.
+        """
+        matches: list[tuple[int, int]] = []
+        for pattern in self.urlpatterns:
+            registered_route = str(pattern.pattern)
+            start = len(route) - len(registered_route)
+            if start < 0 or route[start:] != registered_route:
+                continue
+            if start and route[start - 1] != "/":
+                continue
+
+            version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            if isinstance(version, int) and not isinstance(version, bool):
+                matches.append((len(registered_route), version))
+
+        if not matches:
+            return None
+
+        longest = max(length for length, _ in matches)
+        versions = {version for length, version in matches if length == longest}
+        return next(iter(versions)) if len(versions) == 1 else None
+
     def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{route: {route_version: callback}}``.
