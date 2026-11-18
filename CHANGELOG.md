@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the optional `VersionedRouter` integration for DRF `SimpleRouter` ViewSets, preserving standard routes, custom actions, callback metadata, and per-route version inheritance.
 - Add `VersionedRouterVersioning` to expose the concrete router namespace as DRF's `request.version` and keep `reverse_action()` and hyperlinked serializer URLs within the active version.
 - Preserve regex-backed and path-converter URLPatterns in the registry; extend `api_reverse()` to reverse DRF regex routes through Django's URL resolver and reject duplicate names within one concrete version.
+- Add an executable, optional OpenAPI consumer example with per-version drf-spectacular snapshots and an oasdiff breaking-change CI gate; neither tool is a runtime dependency.
 
 ### Changed
 
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Make `VersionedRouterVersioning` interoperable with drf-spectacular's namespace version filtering while preserving package-specific reversal; avoid double namespace qualification and defer SimpleRouter import to prevent a DRF initialization cycle.
 - Add opt-in strict route-matrix assertions that reject empty registries and missing committed snapshots while preserving existing default behavior; add `check_versions --fail-on-empty` and resolve root and included URLconfs before inspecting registered endpoints.
 - Reject deprecated or retired lifecycle configurations where `sunset` is earlier than `deprecated_at`, comparing dates as UTC instants and interpreting timezone-naive ISO 8601 values as UTC.
 - `LifecycleMiddleware` now sends the `Sunset` header (and `Deprecation`, when `deprecated_at` is configured) for `retired` versions whose `sunset` date is still in the future. Previously these responses carried no lifecycle headers even though the version was about to be removed. Retired versions with a past `sunset` still return `410 Gone`, and `active` and unknown versions are unchanged.
