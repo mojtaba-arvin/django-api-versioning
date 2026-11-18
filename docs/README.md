@@ -53,6 +53,10 @@ The files in `articles/` are the only editable article sources. Each article's f
 - [Using DRF routers with django-api-versioning](articles/016-integrate-url-based-versioning-drf-routers.md)
 - [ViewSet support and limitations](articles/025-django-api-versioning-viewset-support.md)
 
+### OpenAPI contract and schema compatibility
+
+- [Executable versioned OpenAPI contract example](../examples/openapi_contract/README.md): a real consumer project that generates and validates one drf-spectacular schema per VersionedRouter API version, checks serializer selection, inherited actions, and deterministic output. Schema snapshots and semantic breaking-change CI are a separate follow-up; this example does not imply that route-matrix checks prove response compatibility.
+
 ### Routing operations and API compatibility
 
 - [Reverse URL lookup for versioned endpoints](articles/017-reverse-url-lookup-versioned-endpoints.md)
