@@ -10,7 +10,7 @@ Forward route inheritance intentionally carries unchanged registrations into lat
 
 Removal must be a first-class declaration, not an accidental side effect of missing imports or manual URLPattern mutation.
 
-## Public API proposal
+## Public API
 
 For decorator-registered Django endpoints:
 
