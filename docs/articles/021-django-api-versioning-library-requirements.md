@@ -416,7 +416,7 @@ The lifecycle behavior has important details:
 - A `deprecated` lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The middleware emits it as the RFC 9745 date-valued Structured Field, not as the legacy `Deprecation: true` value.
 - When the configured sunset date has passed, the middleware returns `410 Gone`.
 - A `retired` status by itself does not trigger `410 Gone`; the configured sunset date must have passed.
-- A future sunset date combined with `retired` status does not produce the same deprecation headers as `deprecated`.
+- A `retired` version with a future sunset date is still served and carries the `Sunset` header, plus `Deprecation` when `deprecated_at` is configured.
 
 The middleware implements technical lifecycle behavior. The application team still owns the retirement policy, date selection, client communication, usage monitoring, and migration plan.
 

@@ -233,7 +233,7 @@ LINES = {
         "callback_name = self._get_callback_name(versions[version])",
     ),
     "sunset_410": ("lifecycle.py", "if sunset_date and _is_past(sunset_date):"),
-    "deprecated_header": ("lifecycle.py", 'if meta.get("status") == "deprecated":'),
+    "deprecated_header": ("lifecycle.py", 'if status in ("deprecated", "retired"):'),
     "reverse_ambiguous": ("reverse.py", "if version is None and len(matches) > 1:"),
 }
 

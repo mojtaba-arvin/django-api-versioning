@@ -2675,10 +2675,12 @@ class LifecycleMiddlewareIntegrationTestCase(TestCase):
 
         response = self.client.get("/api/v1/users/")
 
-        # Should serve normally if Sunset is in future
+        # Should serve normally if Sunset is in future, and announce the sunset
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["version"], 1)
+        self.assertIn("Sunset", response)
+        self.assertNotIn("Deprecation", response)
 
     def test_scenario_f_unversioned_routes(self):
         """Scenario F: Unversioned routes don't get lifecycle headers."""

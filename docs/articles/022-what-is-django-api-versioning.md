@@ -611,15 +611,15 @@ The example sunset date is in the future relative to this article's publication 
 
 For a request whose version is 1, the middleware:
 
-- When `status` is `deprecated` and `deprecated_at` is configured, adds the RFC 9745 date-valued `Deprecation` header.
-- Adds a `Sunset` header when the status is `deprecated` and a sunset date is configured.
+- When `status` is `deprecated` or `retired` and `deprecated_at` is configured, adds the RFC 9745 date-valued `Deprecation` header.
+- Adds a `Sunset` header when the status is `deprecated` or `retired` and a sunset date is configured.
 - Returns `410 Gone` when the configured sunset date is in the past.
 
 There are important distinctions:
 
 - A status of `retired` alone does not cause a `410 Gone` response.
 - A past `sunset` date causes `410 Gone` regardless of whether the status is `deprecated` or `retired`.
-- `Deprecation` and `Sunset` response headers are added only when the status is `deprecated`.
+- `Deprecation` and `Sunset` response headers are added only for the `deprecated` and `retired` statuses; `active` versions get none.
 - The middleware does not automatically add a `Link` header.
 
 The middleware attempts to identify the version from `request.version`, then from `request.resolver_match.kwargs`, and finally from the request path using `API_BASE_PATH`.
