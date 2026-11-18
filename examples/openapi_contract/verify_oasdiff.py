@@ -212,7 +212,9 @@ def verify_warn_policy(binary: Path, root: Path) -> None:
     severity_path = case_dir / "severity-levels.txt"
     _write(_document("3.1.0", _nonnull_31(), "request"), base_path)
     _write(_document("3.1.0", _nullable_31(), "request"), revision_path)
-    severity_path.write_text("request-property-became-nullable warn\n", encoding="utf-8")
+    severity_path.write_text(
+        "request-property-became-nullable warn\n", encoding="utf-8"
+    )
 
     result = _run(
         binary,
