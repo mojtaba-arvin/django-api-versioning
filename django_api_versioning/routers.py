@@ -135,9 +135,16 @@ class VersionedRouter:
         route_name is the URL name generated from the registration basename
         and action (for example, "order-archive"), not a regex pattern.
         """
-        if not isinstance(prefix, str) or not prefix:
-            raise VersioningError("prefix must be a non-empty string.")
-        if not isinstance(route_name, str) or not route_name:
+        if not isinstance(prefix, str):
+            raise TypeError("prefix must be a string.")
+        if not prefix or prefix.startswith("/") or prefix.endswith("/"):
+            raise VersioningError(
+                "prefix must be a non-empty relative path without leading "
+                "or trailing '/'."
+            )
+        if not isinstance(route_name, str):
+            raise TypeError("route_name must be a string.")
+        if not route_name:
             raise VersioningError("route_name must be a non-empty string.")
         registry.remove(f"{prefix}:{route_name}", from_version)
 
