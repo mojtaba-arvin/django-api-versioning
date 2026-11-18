@@ -136,6 +136,10 @@ These classifiers describe the versions associated with the package metadata. Th
 
 The actual Django version installed during a test run depends on the dependency constraints and the versions resolved by pip at that time.
 
+The compatibility matrix still includes Django 4.2 to detect regressions for existing installations, but that does not make 4.2 a supported production target today. Django 4.2 reached the end of extended support on 7 April 2026 and no longer receives security fixes. For new deployments, choose a currently supported Django series; Django 5.2 is the current LTS line and has extended support through April 2028. Django 6.0 and 6.1 are also currently supported, with shorter support windows.
+
+Check Django's [live supported-versions table](https://www.djangoproject.com/download/) before selecting a deployment version, because support windows change independently of this package's CI matrix. The Django team explicitly [announced the end of Django 4.2 extended support](https://www.djangoproject.com/weblog/2026/apr/07/security-releases/) and recommends upgrading to Django 5.2 or later.
+
 ## What Do GitHub Actions and tox Actually Test?
 
 The repository has separate workflows for the focused Python test suites and the broader Python/Django compatibility matrix. They serve different purposes and should not be treated as the same test configuration.

@@ -18,6 +18,10 @@ ACTION_PATHS = {
     "1": "/api/v1/products/availability/",
     "2": "/api/v2/products/availability/",
 }
+LEGACY_EXPORT_PATHS = {
+    "1": "/api/v1/products/legacy/export/",
+    "2": "/api/v2/products/legacy/export/",
+}
 
 
 def generate(version: str, output: Path) -> bytes:
@@ -68,14 +72,23 @@ v1 = client.get("/api/v1/products/")
 assert v1.status_code == 200, v1.content
 assert v1.json()[0]["price"] == "12.50"
 assert "currency" not in v1.json()[0]
+assert v1.headers["Deprecation"] == "@1767225600"
+assert v1.headers["Sunset"] == "Wed, 30 Jun 2027 00:00:00 GMT"
 
 v2 = client.get("/api/v2/products/")
 assert v2.status_code == 200, v2.content
 assert v2.json()[0]["currency"] == "USD"
+assert "Deprecation" not in v2.headers
+assert "Sunset" not in v2.headers
 
 inherited = client.get("/api/v2/products/availability/")
 assert inherited.status_code == 200, inherited.content
 assert inherited.json()["available"] is True
+
+legacy_v1 = client.get("/api/v1/products/legacy/export/")
+assert legacy_v1.status_code == 200, legacy_v1.content
+legacy_v2 = client.get("/api/v2/products/legacy/export/")
+assert legacy_v2.status_code == 404, legacy_v2.content
 """
     subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, check=True)
 
@@ -102,6 +115,8 @@ def verify_schema(version: str) -> dict:
         assert product_path in document["paths"]
         assert action_path in document["paths"]
         assert PRODUCT_PATHS[other_version] not in document["paths"]
+        legacy_path = LEGACY_EXPORT_PATHS[version]
+        assert (legacy_path in document["paths"]) is (version == "1")
 
         product = component(document, response_schema(document, product_path))
         fields = product["properties"]
@@ -130,6 +145,7 @@ def main() -> None:
                 "deterministic": True,
                 "version_specific_serializers": True,
                 "inherited_custom_action": True,
+                "removed_action_absent_from_v2_runtime_and_schema": True,
             },
             indent=2,
         )

@@ -25,6 +25,7 @@ jobs:
       website: ${{ steps.classify.outputs.website }}
       agent: ${{ steps.classify.outputs.agent }}
       dependency: ${{ steps.classify.outputs.dependency }}
+      openapi: ${{ steps.classify.outputs.openapi }}
     steps:
       - name: Fetch changed paths from the pull request
         env:
@@ -60,6 +61,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.compatibility == 'true'
     uses: ./.github/workflows/compatibility.yml
+    with:
+      scope: pull-request
     permissions:
       contents: read
 
@@ -84,6 +87,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.agent == 'true'
     uses: ./.github/workflows/agent-tooling.yml
+    permissions:
+      contents: read
+
+  openapi-contract:
+    name: Versioned OpenAPI consumer contract
+    needs: changes
+    if: needs.changes.outputs.openapi == 'true'
+    uses: ./.github/workflows/openapi-contract.yml
     permissions:
       contents: read
 
@@ -113,6 +124,7 @@ jobs:
       - package-artifacts
       - website
       - agent-tooling
+      - openapi-contract
       - dependency-review
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -137,6 +149,7 @@ jobs:
               "package-artifacts": "package",
               "website": "website",
               "agent-tooling": "agent",
+              "openapi-contract": "openapi",
               "dependency-review": "dependency",
           }
           failures = []

@@ -1,8 +1,8 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Applies to:** the `1.1.0` release candidate on `main`; the `v1.1.0` tag is created only after the release PR is merged and verified.
-> **Current stable release:** `1.0.1`, published from the annotated `v1.0.1` tag. The tag-based publish workflow verifies the tag target, runs the compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
+> **Applies to:** `django-api-versioning` `1.1.0`, published from the annotated `v1.1.0` tag.
+> **Current stable release:** `1.1.0`. The tag-based publish workflow verified the release tag, ran the compatibility matrix, built and verified the wheel and sdist, smoke-tested the installed wheel, and published both artifacts to PyPI through Trusted Publishing. The release workflow completed successfully on commit `66bb4da557b9df4081be3ee65b9ad01db5030f2a`. The tag-based publish workflow verifies the tag target, runs the compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
@@ -27,18 +27,18 @@ Do not copy DRF examples using string identifiers such as `"v1"` or `"1.0"` into
 
 ## 2. Canonical imports and public API
 
-The package exposes `endpoint`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
+The package exposes `endpoint`, `remove_endpoint`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
 
 Use these public imports:
 
 ```python
-from django_api_versioning import endpoint, ver_range, api_reverse
+from django_api_versioning import endpoint, remove_endpoint, ver_range, api_reverse
 ```
 
 The decorators are implemented in `django_api_versioning.decorators`, so importing them directly from that module also works:
 
 ```python
-from django_api_versioning.decorators import endpoint, ver_range
+from django_api_versioning.decorators import endpoint, remove_endpoint, ver_range
 ```
 
 For application code and documentation examples, prefer the top-level import path. It is the package's public API and avoids coupling consumers to the internal module structure.
@@ -244,6 +244,38 @@ def legacy(request):
 [1, 2, 3]
 ```
 
+### Explicit endpoint removal
+
+Forward inheritance can be stopped deliberately without deleting the route
+from earlier API versions. Use the top-level remove_endpoint() function:
+
+```python
+from django_api_versioning import endpoint, remove_endpoint
+
+
+@endpoint("orders/", version=1, view_name="orders-list")
+def orders_v1(request):
+    ...
+
+
+remove_endpoint("orders/", from_version=3)
+```
+
+A removal boundary suppresses source declarations at or before that version
+for the matching concrete route versions. A later declaration with a strictly
+higher source version reintroduces the route from that version onward. The
+result is independent of whether the removal or older endpoint module is
+imported first.
+
+Removed routes are absent from Django's active URL patterns and return 404.
+api_reverse() raises NoReverseMatch for a removed version; it never falls back
+to an older implementation. The version-matrix snapshot records the state as
+`<removed>`, which is distinct from an undeclared/missing route.
+
+This is an endpoint-level removal, not a version retirement. It does not emit
+410 or lifecycle headers; version-wide deprecation and sunset remain the
+responsibility of LifecycleMiddleware.
+
 ### Unversioned registration
 
 When neither argument is supplied, the endpoint is registered once without a version prefix:
@@ -366,7 +398,13 @@ Configure `VersionedRouterVersioning` as DRF's `DEFAULT_VERSIONING_CLASS` or on 
 
 A manually configured callable such as `MyViewSet.as_view({"get": "list"})` remains valid for a single route, but it does not provide the complete router-generated route set.
 
-The router uses per-route inheritance: a later ViewSet replaces matching routes while earlier custom actions that are not redeclared remain inherited. There is not yet an explicit route-removal/tombstone API; see Issue #39.
+The router uses per-route inheritance: a later ViewSet replaces matching routes while earlier custom actions that are not redeclared remain inherited. Remove one generated route/action without removing the rest of the ViewSet by using its URL name:
+
+```python
+router.remove("orders", "order-archive", from_version=3)
+```
+
+The first argument is the router prefix; the second is the URL name generated from the basename and action. The removal applies from the requested version onward and can be reversed only by a later source-version registration.
 
 ## 8. Routing inheritance is not Python inheritance or contract compatibility
 
@@ -537,7 +575,11 @@ Settings validation requires `deprecated_at` for deprecated versions and rejects
 
 A `retired` version whose sunset date is still in the future is still served. Its responses carry the `Sunset` header, and also the `Deprecation` header when `deprecated_at` is configured; unlike for `deprecated` versions, a missing `deprecated_at` is not logged as a problem. `active` and unknown versions never receive lifecycle headers.
 
-This is a version-wide policy. The middleware also recognizes the configured API base path below parent URL prefixes, so lifecycle headers continue to work when a versioned router is mounted through nested URL includes. It does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
+This is a version-wide policy. For a resolved request, the middleware uses Django's actual resolver match and the registered route metadata, including the full route contributed by parent URL includes. A parent path that happens to contain another API-like version segment cannot override the version of the child endpoint that Django selected.
+
+For a request that does not resolve to a view, the middleware retains path-based lifecycle behavior only when the configured API base path identifies exactly one distinct version. If an unresolved path contains multiple different version segments, the version is ambiguous and the middleware does not guess; the unresolved request remains a 404 rather than receiving a potentially incorrect 410. A resolved view's own 404 response still receives the matched version's lifecycle headers.
+
+The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
 
 ## 13. Scope and known limitations
 
@@ -549,7 +591,7 @@ It does not:
 - Select serializers based on a request version.
 - Replace DRF authentication, permission, throttle, filter, pagination, or renderer behavior.
 - Provide `DefaultRouter` API-root or format-suffix behavior; the current integration targets `SimpleRouter`.
-- Remove an inherited route when a later ViewSet omits its action; explicit route tombstones are tracked separately in Issue #39.
+- Infer endpoint removal from an omitted import or missing ViewSet action; use remove_endpoint() or VersionedRouter.remove() to declare it explicitly.
 - Enable header, query-parameter, host, or tenant-based route negotiation. `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` remain reserved settings with no runtime effect.
 - Validate response payload compatibility through route-matrix checks.
 - Automatically generate versioned OpenAPI schemas or diff their compatibility; the optional drf-spectacular/oasdiff workflow is tracked in Issue #38.

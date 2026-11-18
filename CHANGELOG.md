@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add explicit endpoint removal through `remove_endpoint()` and `VersionedRouter.remove()`. Removed routes remain available in earlier API versions, disappear from runtime routing and URL reversal at the removal boundary, and may be explicitly reintroduced by a later version declaration.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added

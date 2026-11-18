@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Consumer API Migration Walkthrough
+  version: 1.0.0 (3)
+  description: A runnable V1 to V2 to V3 migration showing coexistence, route inheritance,
+    explicit removal, and version lifecycle headers.
+paths:
+  /api/v3/orders/:
+    get:
+      operationId: v3_orders_list
+      description: V3 evolves the response and adds a new action; availability is
+        inherited.
+      tags:
+      - v3
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderV3'
+          description: ''
+  /api/v3/orders/{id}/:
+    get:
+      operationId: v3_orders_retrieve
+      description: V3 evolves the response and adds a new action; availability is
+        inherited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v3
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderV3'
+          description: ''
+  /api/v3/orders/{id}/risk-summary/:
+    get:
+      operationId: v3_orders_risk_summary_retrieve
+      description: V3 evolves the response and adds a new action; availability is
+        inherited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v3
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskSummary'
+          description: ''
+  /api/v3/orders/availability/:
+    get:
+      operationId: v3_orders_availability_retrieve
+      description: Original V1 contract, including the legacy export action.
+      tags:
+      - v3
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+          description: ''
+components:
+  schemas:
+    Availability:
+      type: object
+      properties:
+        available:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+      required:
+      - available
+      - checked_at
+    FulfillmentStateEnum:
+      enum:
+      - processing
+      - ready
+      - shipped
+      type: string
+      description: |-
+        * `processing` - processing
+        * `ready` - ready
+        * `shipped` - shipped
+    OrderV3:
+      type: object
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,6}(?:\.\d{0,2})?$
+        currency:
+          type: string
+        fulfillment_state:
+          $ref: '#/components/schemas/FulfillmentStateEnum'
+      required:
+      - currency
+      - fulfillment_state
+      - id
+      - sku
+      - total
+    RiskLevelEnum:
+      enum:
+      - low
+      - medium
+      - high
+      type: string
+      description: |-
+        * `low` - low
+        * `medium` - medium
+        * `high` - high
+    RiskSummary:
+      type: object
+      properties:
+        risk_level:
+          $ref: '#/components/schemas/RiskLevelEnum'
+        delayed_orders:
+          type: integer
+      required:
+      - delayed_orders
+      - risk_level

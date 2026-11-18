@@ -6,6 +6,7 @@ from typing import Any, Callable
 from django.conf import settings as django_settings
 from django.http import HttpRequest, HttpResponse, HttpResponseGone
 
+from .registry import registry
 from .settings import api_settings
 
 logger = logging.getLogger(__name__)
@@ -21,13 +22,9 @@ def _get_api_setting(name: str, default: Any = None) -> Any:
 
     Falls back to default if setting is not configured in either location.
     """
-    # First, check if the setting exists in django.conf.settings
-    # This handles override_settings() and other dynamic setting changes
     if hasattr(django_settings, name):
         return getattr(django_settings, name)
 
-    # Fall back to cached api_settings for backward compatibility with tests
-    # that use monkeypatch to modify api_settings directly
     if hasattr(api_settings, name):
         return getattr(api_settings, name)
 
@@ -36,52 +33,63 @@ def _get_api_setting(name: str, default: Any = None) -> Any:
 
 class LifecycleMiddleware:
     """
-    Inject ``Deprecation`` / ``Sunset`` headers and enforce sunset.
+    Inject Deprecation / Sunset headers and enforce version-wide sunset.
 
-    Configure via ``API_VERSION_LIFECYCLE``::
-
-        API_VERSION_LIFECYCLE = {
-            1: {"status": "retired", "sunset": "2024-01-01"},
-            2: {
-                "status": "deprecated",
-                "deprecated_at": "2026-01-01T00:00:00+00:00",
-                "sunset": "2026-06-01",
-            },
-            3: {"status": "active"},
-        }
+    Resolved requests use Django's actual resolver match. Unresolved requests
+    retain path-based lifecycle behavior only when the API version is
+    unambiguous.
     """
 
     def __init__(self, get_response: Callable) -> None:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        version = _extract_version(request)
-        if version is None:
-            return self.get_response(request)
+        response = self.get_response(request)
+        return self.process_response(request, response)
 
-        lifecycle = _get_api_setting("API_VERSION_LIFECYCLE", {})
-        meta = lifecycle.get(version)
-        if not meta:
-            return self.get_response(request)
+    def process_view(
+        self,
+        request: HttpRequest,
+        view_func: Callable,
+        view_args: list,
+        view_kwargs: dict,
+    ) -> HttpResponse | None:
+        """Enforce sunset after URL resolution and before the selected view."""
+        state = _get_lifecycle_state(request)
+        if state is None:
+            return None
 
-        deprecated_at = meta.get("deprecated_at")
-        deprecation_date = (
-            _parse_lifecycle_date(deprecated_at, "deprecation")
-            if deprecated_at
-            else None
-        )
+        version, meta, _, sunset_date = state
+        if not meta or sunset_date is None or not _is_past(sunset_date):
+            return None
+
+        request._django_api_version_lifecycle_sunset_enforced = True
         sunset = meta.get("sunset")
-        sunset_date = _parse_sunset(sunset) if sunset else None
-        if sunset_date and _is_past(sunset_date):
+        return HttpResponseGone(
+            f"API version {version} has been retired as of {sunset}."
+        )
+
+    def process_response(
+        self, request: HttpRequest, response: HttpResponse
+    ) -> HttpResponse:
+        """Apply lifecycle headers or preserve version-wide 410 behavior."""
+        state = _get_lifecycle_state(request)
+        if state is None:
+            return response
+
+        version, meta, deprecation_date, sunset_date = state
+        if not meta:
+            return response
+
+        if sunset_date is not None and _is_past(sunset_date):
+            if getattr(request, "_django_api_version_lifecycle_sunset_enforced", False):
+                return response
+            sunset = meta.get("sunset")
             return HttpResponseGone(
                 f"API version {version} has been retired as of {sunset}."
             )
 
-        response = self.get_response(request)
         status = meta.get("status")
-        # A retired version whose sunset is still in the future is still served
-        # (past sunsets returned 410 above), so clients must be warned about the
-        # upcoming removal exactly like for a deprecated version.
         if status in ("deprecated", "retired"):
             if deprecation_date is not None:
                 response["Deprecation"] = _to_structured_field_date(deprecation_date)
@@ -96,6 +104,36 @@ class LifecycleMiddleware:
         return response
 
 
+def _get_lifecycle_state(
+    request: HttpRequest,
+) -> tuple[int, dict | None, datetime | None, datetime | None] | None:
+    """Resolve and cache lifecycle metadata once per request."""
+    if hasattr(request, "_django_api_version_lifecycle_state"):
+        return request._django_api_version_lifecycle_state
+
+    version = _extract_version(request)
+    if version is None:
+        return None
+
+    lifecycle = _get_api_setting("API_VERSION_LIFECYCLE", {})
+    meta = lifecycle.get(version)
+    if not meta:
+        state = (version, None, None, None)
+    else:
+        deprecated_at = meta.get("deprecated_at")
+        deprecation_date = (
+            _parse_lifecycle_date(deprecated_at, "deprecation")
+            if deprecated_at
+            else None
+        )
+        sunset = meta.get("sunset")
+        sunset_date = _parse_sunset(sunset) if sunset else None
+        state = (version, meta, deprecation_date, sunset_date)
+
+    request._django_api_version_lifecycle_state = state
+    return state
+
+
 def _coerce_version(value: Any) -> int | None:
     """Accept integer versions without truncating booleans or other numeric types."""
     if isinstance(value, bool):
@@ -108,63 +146,62 @@ def _coerce_version(value: Any) -> int | None:
 
 
 def _extract_version(request: HttpRequest) -> int | None:
-    # Path-based: request.version is set by DRF or by URLPathVersioning.
+    """Prefer the actual matched route over request/path heuristics."""
+    match = getattr(request, "resolver_match", None)
+    if match:
+        kwargs = getattr(match, "kwargs", {}) or {}
+        version = _coerce_version(kwargs.get("version"))
+        if version is not None:
+            return version
+
+        route = getattr(match, "route", None)
+        if isinstance(route, str):
+            version = registry.get_resolved_route_version(route)
+            if version is not None:
+                return _coerce_version(version)
+            version = _extract_version_from_value(route)
+            if version is not None:
+                return version
+
+    # Retain support for explicitly supplied request.version when no matched
+    # route metadata identifies a version.
     version = _coerce_version(getattr(request, "version", None))
     if version is not None:
         return version
 
-    # Fallback: parse from resolver_match kwargs.
-    match = getattr(request, "resolver_match", None)
-    if match:
-        version = _coerce_version(match.kwargs.get("version"))
-        if version is not None:
-            return version
-
-    # Fallback: extract from static URL path using API_BASE_PATH pattern.
+    # Unresolved requests use a conservative path fallback. Multiple distinct
+    # version segments are ambiguous and must not select the wrong policy.
     return _extract_version_from_path(request)
 
 
 def _extract_version_from_path(request: HttpRequest) -> int | None:
     """
-    Extract API version from static URL paths generated by @endpoint.
+    Extract an unambiguous version from a static URL path.
 
-    For example, with API_BASE_PATH = "api/v{version}/", a request to
-    /api/v2/users/ will extract version 2.
-
-    Returns None if no valid version is found.
+    This fallback is used for unresolved requests. A resolved request uses
+    ResolverMatch and registry route metadata instead.
     """
-    api_base_path = _get_api_setting("API_BASE_PATH", "api/v{version}/")
-    if not api_base_path or "{version}" not in api_base_path:
-        return None
-
-    # Get the request path (without query string)
     path = request.path_info or request.path or ""
+    return _extract_version_from_value(path)
 
-    # Build regex pattern from API_BASE_PATH
-    # Split on {version}, escape each part, then rejoin with version pattern
-    parts = api_base_path.split("{version}")
-    if len(parts) != 2:
+
+def _extract_version_from_value(value: str) -> int | None:
+    """Extract one distinct version from a path or resolved route string."""
+    api_base_path = _get_api_setting("API_BASE_PATH", "api/v{version}/")
+    if not api_base_path or api_base_path.count("{version}") != 1:
         return None
 
-    # Escape regex special characters in each part
-    prefix = re.escape(parts[0])
+    parts = api_base_path.split("{version}")
+    prefix = re.escape(parts[0].lstrip("/"))
     suffix = re.escape(parts[1])
-
-    # The API may be mounted below a parent URL prefix via include(). Match
-    # API_BASE_PATH at a path-segment boundary rather than only at path start.
-    # This still avoids false positives such as "notapi/v2/".
-    prefix = prefix.lstrip("/")
     pattern = f"(?:^|/){prefix}(\\d+){suffix}"
 
     try:
-        regex_match = re.search(pattern, path)
-        if regex_match:
-            version_str = regex_match.group(1)
-            return int(version_str)
+        versions = {int(match.group(1)) for match in re.finditer(pattern, value)}
     except (IndexError, ValueError, re.error):
-        pass
+        return None
 
-    return None
+    return next(iter(versions)) if len(versions) == 1 else None
 
 
 def _parse_sunset(value: Any) -> datetime | None:
@@ -179,8 +216,6 @@ def _parse_lifecycle_date(value: Any, field_name: str) -> datetime | None:
         return None
 
     try:
-        # datetime.fromisoformat() only accepted the ISO 8601 UTC "Z" suffix
-        # starting with Python 3.11; normalize it for the Python 3.10 floor.
         normalized_value = value[:-1] + "+00:00" if value.endswith("Z") else value
         parsed = datetime.fromisoformat(normalized_value)
     except ValueError:

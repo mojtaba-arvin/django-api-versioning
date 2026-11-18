@@ -152,9 +152,20 @@ A reverse call without an explicit version may use only a configured default. It
 
 ### 4.7 Caching and security
 
-Header-selected responses must include `Vary: Accept-Version`. Tenant-specific version selection must also account for the tenant dimension in the application's cache key and vary policy. The package must not allow a shared cache to serve one tenant's effective-version response to another tenant.
+Header-selected responses must include `Vary: Accept-Version`. That response header is part of HTTP's cache-selection contract, but it is not a substitute for configuring every CDN or reverse proxy correctly: the cache must honor the nominated header and include it in its cache key. A CDN configuration that ignores `Vary` or does not forward/cache on `Accept-Version` can still serve the wrong representation.
+
+Query-selected responses use distinct request target URIs, but deployments must not assume that every CDN includes query strings in its cache key. For example, CloudFront cache policies can exclude all query strings or include only selected names. The configured `version` parameter must be included in the cache key and forwarded to the origin whenever query mode is used.
+
+Tenant-specific version selection must also account for the tenant dimension in the application's cache key and vary policy. A tenant identifier should not be trusted merely because it appears in a client-controlled header. If a trusted tenant context cannot be represented safely in the shared cache key, tenant-specific responses must bypass shared caching or be marked private. The package must not allow a shared cache to serve one tenant's effective-version response to another tenant.
 
 The resolver must consume trusted server-side context. A client-supplied version is a request, not authorization to access a tenant's version. Resolver outcomes must be validated against the global version range and the endpoint's registered implementations.
+
+Implementation acceptance tests must verify the response's `Vary` behavior and tenant isolation at the application boundary. CDN cache-key configuration remains a deployment responsibility and must be covered by the consumer's infrastructure tests or deployment checklist.
+
+References:
+- [RFC 9111: HTTP Caching, cache keys and Vary](https://www.rfc-editor.org/rfc/rfc9111.html)
+- [Cloudflare: Vary and cache-key behavior](https://developers.cloudflare.com/cache/concepts/vary/)
+- [Amazon CloudFront: cache policy and query-string cache keys](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cache-key-understand-cache-policy.html)
 
 ## 5. Explicit non-goals
 

@@ -77,7 +77,7 @@ def test_source_references_resolve_against_current_package() -> None:
     assert "LifecycleMiddleware.__call__" in refs["symbols"]
     assert "_parse_sunset" in refs["symbols"]
     assert refs["lines"]["sunset_410"]["code"] == (
-        "if sunset_date and _is_past(sunset_date):"
+        "request._django_api_version_lifecycle_sunset_enforced = True"
     )
     assert refs["lines"]["gap_warning"]["code"] == (
         'self.style.WARNING(f"  [{endpoint}] v{v} is not defined.")'

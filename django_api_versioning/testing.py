@@ -5,7 +5,7 @@ from django.urls import get_resolver
 from django.urls.resolvers import URLResolver
 
 from .exceptions import VersionMatrixError
-from .registry import registry
+from .registry import REMOVED_ROUTE, registry
 
 
 def _load_root_urlconf() -> None:
@@ -48,6 +48,8 @@ def build_version_matrix() -> dict:
 
 def _callback_name(callback: object) -> str:
     """Return a stable display name for function, class-based, or callable views."""
+    if callback is REMOVED_ROUTE:
+        return "<removed>"
     view_class = getattr(callback, "view_class", None)
     if view_class is not None:
         return view_class.__name__

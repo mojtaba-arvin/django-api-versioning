@@ -129,6 +129,25 @@ class VersionedRouter:
                 route_version=route_version,
             )
 
+    def remove(self, prefix: str, route_name: str, *, from_version: int) -> None:
+        """Remove one logical DRF route from a concrete version onward.
+
+        route_name is the URL name generated from the registration basename
+        and action (for example, "order-archive"), not a regex pattern.
+        """
+        if not isinstance(prefix, str):
+            raise TypeError("prefix must be a string.")
+        if not prefix or prefix.startswith("/") or prefix.endswith("/"):
+            raise VersioningError(
+                "prefix must be a non-empty relative path without leading "
+                "or trailing '/'."
+            )
+        if not isinstance(route_name, str):
+            raise TypeError("route_name must be a string.")
+        if not route_name:
+            raise VersioningError("route_name must be a non-empty string.")
+        registry.remove(f"{prefix}:{route_name}", from_version)
+
     @staticmethod
     def _validate_version(version: int) -> None:
         if isinstance(version, bool) or not isinstance(version, int):

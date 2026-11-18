@@ -12,6 +12,32 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["package"])
         self.assertTrue(result["website"])
+        self.assertTrue(result["openapi"])
+
+    def test_openapi_contract_runs_for_all_schema_affecting_runtime_modules(self):
+        for path in (
+            "django_api_versioning/routers.py",
+            "django_api_versioning/registry.py",
+            "django_api_versioning/decorators.py",
+            "django_api_versioning/settings.py",
+            "django_api_versioning/reverse.py",
+            "django_api_versioning/urls.py",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(classify_paths([path])["openapi"])
+
+    def test_openapi_example_and_design_changes_run_the_contract(self):
+        for path in (
+            "examples/openapi_contract/verify.py",
+            "examples/openapi_contract/schemas/v1/openapi.yaml",
+            "examples/consumer_migration/verify.py",
+            "examples/consumer_migration/schemas/v3/openapi.yaml",
+            "examples/consumer_migration/README.md",
+            "docs/design/versioned-openapi-contract.md",
+            ".github/workflows/openapi-contract.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(classify_paths([path])["openapi"])
 
     def test_integration_evidence_changes_run_website_verification(self):
         result = classify_paths(
@@ -48,6 +74,11 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["website"])
         self.assertTrue(result["dependency"])
 
+    def test_nested_example_requirements_run_dependency_review(self):
+        result = classify_paths(["examples/consumer_migration/requirements.txt"])
+        self.assertTrue(result["openapi"])
+        self.assertTrue(result["dependency"])
+
     def test_nested_website_agent_files_run_agent_validation(self):
         result = classify_paths(["website/.agents/skills/obsolete/SKILL.md"])
         self.assertTrue(result["website"])
@@ -67,6 +98,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["package"])
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
+        self.assertFalse(result["openapi"])
 
     def test_workflow_policy_updates_run_agent_validation(self):
         result = classify_paths([".github/dependabot.yml"])
@@ -108,6 +140,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ".github/workflows/publish.yml": "compatibility",
             ".github/workflows/package-artifacts.yml": "package",
             ".github/workflows/website-data-preflight.yml": "website",
+            ".github/workflows/openapi-contract.yml": "openapi",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):

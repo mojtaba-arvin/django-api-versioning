@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     "django_api_versioning",
     "contract_app",
 ]
-MIDDLEWARE = []
+MIDDLEWARE = ["django_api_versioning.lifecycle.LifecycleMiddleware"]
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
@@ -30,6 +30,14 @@ TEMPLATES = []
 API_BASE_PATH = "api/v{version}/"
 API_MIN_VERSION = 1
 API_MAX_VERSION = 2
+API_VERSION_LIFECYCLE = {
+    1: {
+        "status": "deprecated",
+        "deprecated_at": "2026-01-01T00:00:00+00:00",
+        "sunset": "2027-06-30",
+    },
+    2: {"status": "active"},
+}
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

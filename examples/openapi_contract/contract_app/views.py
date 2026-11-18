@@ -33,6 +33,15 @@ class ProductViewSetV1(viewsets.GenericViewSet):
         return Response(self.get_serializer(payload).data)
 
     @extend_schema(responses=AvailabilitySerializer)
+    @action(detail=False, methods=["get"], url_path="legacy/export")
+    def legacy_export(self, request):
+        payload = {
+            "available": True,
+            "checked_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+        }
+        return Response(AvailabilitySerializer(payload).data)
+
+    @extend_schema(responses=AvailabilitySerializer)
     @action(detail=False, methods=["get"])
     def availability(self, request):
         payload = {
