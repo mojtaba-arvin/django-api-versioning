@@ -1,5 +1,5 @@
 import pytest
-from django.urls import clear_url_caches, reverse
+from django.urls import clear_url_caches, path, re_path, reverse
 from django.views import View
 
 from django_api_versioning.registry import registry
@@ -462,3 +462,164 @@ class TestDRFViewSetRegistration:
         assert len(registry.urlpatterns) == 1
         assert str(registry.urlpatterns[0].pattern) == "api/v1/users"
         assert registry.urlpatterns[0].callback.view_class is UserAPIView
+
+
+def test_register_urlpattern_preserves_regex_pattern_and_callback_metadata(
+    clear_registry,
+):
+    """Router-generated regex patterns and callback metadata remain intact."""
+
+    def callback(request, pk):
+        return None
+
+    callback.actions = {"get": "retrieve"}
+    pattern = re_path(
+        r"^api/v1/orders/(?P<pk>[0-9]+)/$",
+        callback,
+        name="order-detail",
+    )
+    original_pattern = pattern.pattern
+
+    registry.register_urlpattern(
+        pattern,
+        source_version=1,
+        route_version=1,
+        logical_endpoint="orders:order-detail",
+    )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0] is pattern
+    assert pattern.pattern is original_pattern
+    assert pattern.callback is callback
+    assert pattern.callback.actions == {"get": "retrieve"}
+    assert pattern.name == "order-detail"
+    assert getattr(pattern, registry._SOURCE_VERSION_ATTR) == 1
+    assert getattr(pattern, registry._ROUTE_VERSION_ATTR) == 1
+    assert getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR) == (
+        "orders:order-detail"
+    )
+
+
+def test_register_urlpattern_preserves_path_converters_and_defaults(clear_registry):
+    """Path converter instances and URLPattern defaults are not reconstructed."""
+
+    def callback(request, order_id):
+        return None
+
+    pattern = path(
+        "api/v1/orders/<int:order_id>/",
+        callback,
+        {"source": "router"},
+        name="order-detail",
+    )
+    original_converter = pattern.pattern.converters["order_id"]
+
+    registry.register_urlpattern(
+        pattern,
+        source_version=1,
+        route_version=1,
+        logical_endpoint="orders:order-detail",
+    )
+
+    assert registry.urlpatterns[0] is pattern
+    assert pattern.pattern.converters["order_id"] is original_converter
+    assert pattern.default_args == {"source": "router"}
+
+
+def test_register_urlpattern_uses_source_version_precedence(clear_registry):
+    """Higher source versions win; lower versions cannot replace them."""
+
+    def v1_callback(request):
+        return None
+
+    def v2_callback(request):
+        return None
+
+    def stale_callback(request):
+        return None
+
+    first = re_path(r"^api/v2/orders/$", v1_callback, name="order-list")
+    second = re_path(r"^api/v2/orders/$", v2_callback, name="order-list")
+    stale = re_path(r"^api/v2/orders/$", stale_callback, name="order-list")
+
+    registry.register_urlpattern(first, source_version=1, route_version=2)
+    registry.register_urlpattern(second, source_version=2, route_version=2)
+    registry.register_urlpattern(stale, source_version=1, route_version=2)
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0] is second
+    assert registry.urlpatterns[0].callback is v2_callback
+
+
+def test_register_urlpattern_equal_source_version_is_last_registration_wins(
+    clear_registry,
+):
+    """Equal source versions retain the registry's existing tie-break rule."""
+
+    def first_callback(request):
+        return None
+
+    def second_callback(request):
+        return None
+
+    first = re_path(r"^api/v1/orders/$", first_callback, name="order-list")
+    second = re_path(r"^api/v1/orders/$", second_callback, name="order-list")
+
+    registry.register_urlpattern(first, source_version=1, route_version=1)
+    registry.register_urlpattern(second, source_version=1, route_version=1)
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0] is second
+
+
+def test_register_urlpattern_groups_logical_routes_across_versions(clear_registry):
+    """Different physical version paths share a logical endpoint identity."""
+
+    def v1_callback(request):
+        return None
+
+    def v2_callback(request):
+        return None
+
+    registry.register_urlpattern(
+        re_path(r"^api/v1/orders/$", v1_callback, name="order-list"),
+        source_version=1,
+        route_version=1,
+        logical_endpoint="orders:order-list",
+    )
+    registry.register_urlpattern(
+        re_path(r"^api/v2/orders/$", v2_callback, name="order-list"),
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+
+    assert registry.get_logical_version_matrix() == {
+        "orders:order-list": {
+            1: v1_callback,
+            2: v2_callback,
+        }
+    }
+
+
+def test_register_urlpattern_rejects_non_urlpattern(clear_registry):
+    """Invalid integration input fails with a clear type error."""
+
+    with pytest.raises(
+        TypeError,
+        match="pattern must be a django.urls.URLPattern instance",
+    ):
+        registry.register_urlpattern("api/v1/orders/")
+
+
+def test_get_route_version_returns_registered_urlpattern_version(clear_registry):
+    """Resolved route strings can recover their concrete API version."""
+
+    def callback(request):
+        return None
+
+    pattern = re_path(r"^api/v3/orders/$", callback, name="order-list")
+    registry.register_urlpattern(pattern, source_version=3, route_version=3)
+
+    assert registry.get_route_version(str(pattern.pattern)) == 3
+    assert registry.get_route_version("^api/v4/orders/$") is None

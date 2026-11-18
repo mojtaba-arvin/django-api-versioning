@@ -48,6 +48,55 @@ class UrlRegistry:
 
         self._sort_urlpatterns()
 
+    def register_urlpattern(
+        self,
+        pattern: URLPattern,
+        source_version: int | None = None,
+        route_version: int | None = None,
+        logical_endpoint: str | None = None,
+    ) -> None:
+        """Register an existing Django URLPattern without rebuilding it.
+
+        This is the lossless insertion path for integrations that generate
+        URLPatterns themselves (for example, DRF routers). The original
+        pattern, callback, converters, defaults, name, and callback metadata
+        are retained. Collision precedence is identical to ``register()``.
+        """
+        if not isinstance(pattern, URLPattern):
+            raise TypeError("pattern must be a django.urls.URLPattern instance.")
+
+        route_key = str(pattern.pattern)
+        route_index = self._find_route_index(route_key)
+
+        if route_index is not None:
+            existing_pattern = self.urlpatterns[route_index]
+            if not self._should_replace(existing_pattern, source_version):
+                return
+
+        setattr(pattern, self._SOURCE_VERSION_ATTR, source_version)
+        setattr(pattern, self._ROUTE_VERSION_ATTR, route_version)
+        if logical_endpoint is not None:
+            setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+
+        if route_index is None:
+            self.urlpatterns.append(pattern)
+        else:
+            self.urlpatterns[route_index] = pattern
+
+        self._sort_urlpatterns()
+
+    def get_route_version(self, route: str) -> int | None:
+        """Return the concrete version registered for a resolved route."""
+        route_index = self._find_route_index(route)
+        if route_index is None:
+            return None
+
+        return getattr(
+            self.urlpatterns[route_index],
+            self._ROUTE_VERSION_ATTR,
+            None,
+        )
+
     def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{route: {route_version: callback}}``.
