@@ -47,10 +47,7 @@ def _active_versions():
     return {
         getattr(pattern, registry._ROUTE_VERSION_ATTR)
         for pattern in registry.urlpatterns
-        if (
-            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
-            == "shop/orders/"
-        )
+        if (getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == "shop/orders/")
     }
 
 
@@ -175,9 +172,7 @@ def test_router_removal_is_action_specific():
     active = {
         pattern.name
         for pattern in registry.urlpatterns
-        if getattr(
-            pattern, registry._LOGICAL_ENDPOINT_ATTR, ""
-        ).startswith("orders:")
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, "").startswith("orders:")
     }
     assert "order-list" in active
     assert "order-archive" in active
