@@ -171,8 +171,24 @@ def _atomic_write(path: Path, content: bytes) -> None:
                 pass
 
 
-def _is_endpoint_call(func: ast.expr) -> bool:
-    return (isinstance(func, ast.Name) and func.id == "endpoint") or (
+def _endpoint_aliases(tree: ast.Module) -> set[str]:
+    """Find aliases imported from the package's public endpoint modules."""
+    aliases = {"endpoint"}
+    endpoint_modules = {
+        "django_api_versioning",
+        "django_api_versioning.decorators",
+    }
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom) or node.module not in endpoint_modules:
+            continue
+        for alias in node.names:
+            if alias.name == "endpoint":
+                aliases.add(alias.asname or alias.name)
+    return aliases
+
+
+def _is_endpoint_call(func: ast.expr, aliases: set[str]) -> bool:
+    return (isinstance(func, ast.Name) and func.id in aliases) or (
         isinstance(func, ast.Attribute) and func.attr == "endpoint"
     )
 
@@ -337,12 +353,13 @@ def _collect_analysis(
 
     rewrites = []
     skipped = []
+    endpoint_aliases = _endpoint_aliases(tree)
     for node in ast.walk(tree):
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             continue
         for decorator in node.decorator_list:
             if not isinstance(decorator, ast.Call) or not _is_endpoint_call(
-                decorator.func
+                decorator.func, endpoint_aliases
             ):
                 continue
             if not any(
