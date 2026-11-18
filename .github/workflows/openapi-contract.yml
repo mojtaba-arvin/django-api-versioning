@@ -36,6 +36,14 @@ jobs:
           python examples/openapi_contract/generate_schemas.py \
             --output-dir "$RUNNER_TEMP/openapi-contract-schemas"
 
+      - name: Upload generated OpenAPI schemas for review
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: versioned-openapi-contract-schemas
+          path: ${{ runner.temp }}/openapi-contract-schemas/
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Install pinned oasdiff
         run: |
           archive="$RUNNER_TEMP/oasdiff_1.38.0_linux_amd64.tar.gz"
@@ -65,10 +73,3 @@ jobs:
             examples/openapi_contract/schemas/v2/openapi.yaml \
             "$RUNNER_TEMP/openapi-contract-schemas/v2/openapi.yaml"
 
-      - name: Upload generated OpenAPI schemas for review
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        with:
-          name: versioned-openapi-contract-schemas
-          path: ${{ runner.temp }}/openapi-contract-schemas/
-          if-no-files-found: error
-          retention-days: 7
