@@ -236,19 +236,27 @@ Prints the registered logical route matrix and warns about gaps within an endpoi
 
 ### `migrate_endpoints`
 
-For projects upgrading from the 0.2.0 `forward`/`backward` decorator flags, the command previews supported source edits by default. Review the proposed changes and back up or commit your source before using `--write`.
+For projects upgrading from the 0.2.0 `forward`/`backward` decorator flags, the command previews supported source edits by default. Use `--diff` to inspect a deterministic unified diff with file-relative paths and line-level context; neither preview mode modifies files.
 
-~~~bash title="migrate_endpoints"
-$ python manage.py migrate_endpoints --dry-run
+~~~bash title="preview a unified diff"
+python manage.py migrate_endpoints --diff
 ~~~
 
-Only after reviewing the preview and confirming the proposed edits:
+The default summary preview is also available:
+
+~~~bash title="summary preview"
+python manage.py migrate_endpoints --dry-run
+~~~
+
+Only after reviewing the proposed changes and confirming the migration:
 
 ~~~bash title="apply reviewed migration"
 python manage.py migrate_endpoints --write
 ~~~
 
-The AST-based rewrite handles only supported literal forms; dynamic expressions, comments inside a decorator, and unsupported syntax are left for manual migration. A successful rewrite is not proof of equivalent routing behavior—verify the route matrix and request behavior.
+Writes replace each changed file atomically and preserve its permission bits. Keep a clean version-control state or backup before applying changes. If a replacement fails, the original file remains in place and the temporary file is cleaned up.
+
+The AST-based rewrite handles only supported literal forms; dynamic expressions, comments inside a decorator, and unsupported syntax are left for manual migration. This command rewrites Python decorator syntax only: it does not migrate database schemas or prove equivalent routing behavior. Verify the route matrix and representative request behavior after applying it.
 
 ## Development
 
