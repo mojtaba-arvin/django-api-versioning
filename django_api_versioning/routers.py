@@ -11,7 +11,8 @@ from django.urls import URLPattern, URLResolver, include, path
 
 try:
     from rest_framework.exceptions import NotFound
-    from rest_framework.versioning import NamespaceVersioning
+    from rest_framework.routers import SimpleRouter
+    from rest_framework.versioning import BaseVersioning
 except ImportError as exc:  # pragma: no cover - exercised without optional DRF
     raise ImportError(
         "VersionedRouter requires Django REST Framework. Install a DRF release "
@@ -129,6 +130,18 @@ class VersionedRouter:
                 route_version=route_version,
             )
 
+    def remove(self, prefix: str, route_name: str, *, from_version: int) -> None:
+        """Remove one logical DRF route from a concrete version onward.
+
+        route_name is the URL name generated from the registration basename
+        and action (for example, "order-archive"), not a regex pattern.
+        """
+        if not isinstance(prefix, str) or not prefix:
+            raise VersioningError("prefix must be a non-empty string.")
+        if not isinstance(route_name, str) or not route_name:
+            raise VersioningError("route_name must be a non-empty string.")
+        registry.remove(f"{prefix}:{route_name}", from_version)
+
     @staticmethod
     def _validate_version(version: int) -> None:
         if isinstance(version, bool) or not isinstance(version, int):
@@ -147,11 +160,6 @@ class VersionedRouter:
         source_version: int | None,
         route_version: int | None,
     ) -> None:
-        # Import lazily: DRF's SimpleRouter imports APIView, which resolves
-        # DEFAULT_VERSIONING_CLASS. Importing it at module load time would
-        # recurse while DRF is trying to import VersionedRouterVersioning.
-        from rest_framework.routers import SimpleRouter
-
         route_prefix = prefix
         if route_version is not None:
             route_prefix = (
@@ -227,7 +235,7 @@ class VersionedRouter:
         return urlpatterns
 
 
-class VersionedRouterVersioning(NamespaceVersioning):
+class VersionedRouterVersioning(BaseVersioning):
     """Expose the router-selected version through DRF's request.version.
 
     The router namespaces each concrete version as vN. This adapter reads
@@ -285,8 +293,8 @@ class VersionedRouterVersioning(NamespaceVersioning):
         format: str | None = None,
         **extra: Any,
     ) -> str:
-        # NamespaceVersioning.reverse() calls our get_versioned_viewname().
-        # Do not pre-qualify the name here or the namespace would be applied twice.
+        if request is not None:
+            viewname = self.get_versioned_viewname(viewname, request)
         return super().reverse(
             viewname,
             args=args,
