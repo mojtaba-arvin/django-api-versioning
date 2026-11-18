@@ -70,7 +70,9 @@ class UrlRegistry:
         if logical_endpoint is None or route_version is None:
             return None
         boundaries = self._removal_boundaries.get(logical_endpoint, set())
-        applicable = [boundary for boundary in boundaries if boundary <= route_version]
+        applicable = [
+            boundary for boundary in boundaries if boundary <= route_version
+        ]
         return max(applicable) if applicable else None
 
     def _is_suppressed(
@@ -119,7 +121,9 @@ class UrlRegistry:
                 existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
                 existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
                 existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
-                if self._is_suppressed(existing_logical, existing_version, existing_source):
+                if self._is_suppressed(
+                    existing_logical, existing_version, existing_source
+                ):
                     del self.urlpatterns[route_index]
             if logical_endpoint is not None:
                 self._record_removed(pattern, logical_endpoint)
@@ -212,8 +216,8 @@ class UrlRegistry:
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(route, {})[route_version] = pattern.callback
         for (_, route_version), pattern in self._removed_patterns.items():
-            route = str(pattern.pattern)
-            matrix.setdefault(route, {})[route_version] = REMOVED_ROUTE
+            removed_route = str(pattern.pattern)
+            matrix.setdefault(removed_route, {})[route_version] = REMOVED_ROUTE
         return matrix
 
     def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
