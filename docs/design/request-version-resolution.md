@@ -86,12 +86,14 @@ This section is the accepted direction for a future implementation. It is not a 
 Do not interpret the existing channels list as a fallback chain. A deployment selects exactly one transport:
 
 - `path`: current behavior and default; the URL contains the version.
-- `accept-version`: a dedicated `Accept-Version: 2` request header.
-- `query`: `?version=2`.
+- `accept-version`: a dedicated `Accept-Version: 2` request header (optionally `v2` if the parser contract explicitly permits one prefix).
+- `query`: `?version=2` (with the same integer parsing rules as the header).
 
 The dedicated `Accept-Version` field is deliberately distinct from DRF's `Accept: application/json; version=2` media-type negotiation. This avoids reimplementing media-type selection and prevents API-version negotiation from accidentally changing renderer/content-negotiation semantics. A future optional DRF adapter may compose with DRF's own Accept-header scheme, but the core package must not claim that behavior unless it is tested end to end.
 
 The selected transport is explicit and mutually exclusive. Conflicting path/header/query values are not silently reconciled because non-selected transports are ignored in that deployment. When path mode is active, the version in the URL is authoritative.
+
+Path mode continues to use the existing `API_BASE_PATH` template. The non-path modes need one stable, versionless route prefix; the implementation proposal should add a separately validated `API_UNVERSIONED_BASE_PATH` (default `"api/"`) rather than weaken or reinterpret the existing `API_BASE_PATH` contract. A new single-value `API_VERSIONING_SCHEME` would select the transport. The legacy `API_VERSIONING_CHANNELS` list remains reserved and must not become a fallback chain.
 
 ### 4.2 Integer version identifiers
 
@@ -115,9 +117,9 @@ A tenant policy may use the resolver to choose the tenant's pinned default when 
 
 The implementation must distinguish:
 
-- missing version with no configured default: a clear client error; never silently choose the maximum version;
-- malformed value: a clear client error;
-- syntactically valid but globally unsupported or policy-denied version: a clear negotiation error;
+- missing version with no configured default: `400 Bad Request`; never silently choose the maximum version;
+- malformed value: `400 Bad Request`;
+- syntactically valid but globally unsupported or policy-denied version: `406 Not Acceptable`;
 - valid version for which this endpoint has no registration: `404 Not Found`;
 - valid version with a matching registration: dispatch the mapped implementation.
 
