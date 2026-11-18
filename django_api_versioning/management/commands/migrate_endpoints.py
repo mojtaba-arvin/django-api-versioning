@@ -244,7 +244,9 @@ def _legacy_skip_reason(text: str, call: ast.Call) -> str:
     if _has_comments(call_source):
         return "contains comments inside the decorator; preserve and migrate manually"
     if any(keyword.arg is None for keyword in call.keywords):
-        return (\n            "contains a **kwargs expansion that may conflict with rewritten arguments"\n        )
+        return (
+            "contains a **kwargs expansion that may conflict with rewritten arguments"
+        )
     if any(keyword.arg == "versions" for keyword in call.keywords):
         return "combines legacy flags with an explicit versions argument"
 
@@ -257,7 +259,9 @@ def _legacy_skip_reason(text: str, call: ast.Call) -> str:
         keywords[keyword.arg] = keyword.value
 
     if len(call.args) > 1:
-        return (\n            "supplies the legacy version positionally; use a literal version= keyword"\n        )
+        return (
+            "supplies the legacy version positionally; use a literal version= keyword"
+        )
     if "version" not in keywords:
         return "is missing a literal version= keyword"
     if _literal_integer(keywords.get("version")) is None:
