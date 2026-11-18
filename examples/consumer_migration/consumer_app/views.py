@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -29,7 +29,10 @@ class OrderViewSetV1(viewsets.GenericViewSet):
         payload = [{"id": 101, "sku": "LAMP-01", "total": "19.95"}]
         return Response(self.get_serializer(payload, many=True).data)
 
-    @extend_schema(responses=OrderV1Serializer)
+    @extend_schema(
+        parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
+        responses=OrderV1Serializer,
+    )
     def retrieve(self, request, pk: int | None = None):
         payload = {"id": int(pk or 101), "sku": "LAMP-01", "total": "19.95"}
         return Response(self.get_serializer(payload).data)
@@ -67,7 +70,10 @@ class OrderViewSetV2(viewsets.GenericViewSet):
         ]
         return Response(self.get_serializer(payload, many=True).data)
 
-    @extend_schema(responses=OrderV2Serializer)
+    @extend_schema(
+        parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
+        responses=OrderV2Serializer,
+    )
     def retrieve(self, request, pk: int | None = None):
         payload = {
             "id": int(pk or 101),
@@ -97,7 +103,10 @@ class OrderViewSetV3(viewsets.GenericViewSet):
         ]
         return Response(self.get_serializer(payload, many=True).data)
 
-    @extend_schema(responses=OrderV3Serializer)
+    @extend_schema(
+        parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
+        responses=OrderV3Serializer,
+    )
     def retrieve(self, request, pk: int | None = None):
         payload = {
             "id": int(pk or 101),
