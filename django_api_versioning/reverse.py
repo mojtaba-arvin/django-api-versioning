@@ -1,7 +1,8 @@
 import re
 from typing import Any
 
-from django.urls import NoReverseMatch
+from django.urls import NoReverseMatch, get_script_prefix
+from django.urls.resolvers import RegexPattern, URLResolver
 
 from .exceptions import AmbiguousVersionError, VersionTypeError
 from .registry import registry
@@ -43,18 +44,24 @@ def api_reverse(
     if version is None and len(matches) > 1:
         versions = sorted(v for v, _ in matches if v is not None)
         raise AmbiguousVersionError(
-            f"View name {view_name!r} is registered for multiple versions "
-            f"{versions}. Pass an explicit ``version``."
+            f"View name {view_name!r} is registered more than once for "
+            f"versions {versions}. Pass an explicit version."
+        )
+    if version is not None and len(matches) > 1:
+        raise NoReverseMatch(
+            f"View name {view_name!r} is registered more than once "
+            f"for version {version!r}."
         )
 
     _, target_pattern = matches[0]
     route_pattern = target_pattern.pattern
 
     if not hasattr(route_pattern, "_route"):
-        raise NoReverseMatch(
-            f"Pattern {route_pattern!r} does not support reverse by route; "
-            f"only path()-based routes are supported."
-        )
+        # DRF's default SimpleRouter generates RegexPattern instances. Delegate
+        # their reversal to Django's URLResolver rather than parsing regex
+        # groups or interpolating user-provided values ourselves.
+        resolver = URLResolver(RegexPattern(r"^"), [target_pattern])
+        return get_script_prefix() + resolver.reverse(view_name, **kwargs)
 
     route = route_pattern._route
     parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
@@ -91,4 +98,4 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    return "/" + route.lstrip("/")
+    return get_script_prefix() + route.lstrip("/")

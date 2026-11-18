@@ -1,0 +1,293 @@
+"""Version-aware integration for Django REST Framework ViewSets.
+
+This module is optional: importing the core package does not require DRF.
+"""
+
+import logging
+from collections import defaultdict
+from typing import Any
+
+from django.urls import URLPattern, URLResolver, include, path
+
+try:
+    from rest_framework.exceptions import NotFound
+    from rest_framework.routers import SimpleRouter
+    from rest_framework.versioning import BaseVersioning
+except ImportError as exc:  # pragma: no cover - exercised without optional DRF
+    raise ImportError(
+        "VersionedRouter requires Django REST Framework. Install a DRF release "
+        "compatible with your Django version; see the package compatibility "
+        "matrix."
+    ) from exc
+
+from .exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
+from .registry import registry
+from .settings import api_settings
+
+logger = logging.getLogger(__name__)
+
+_ROUTE_VERSION_ATTR = registry._ROUTE_VERSION_ATTR
+
+
+class VersionedRouter:
+    """Register DRF ViewSets as versioned, independently inherited route sets.
+
+    Each declaration is expanded into the concrete versions it covers. The
+    package registry resolves collisions per generated URLPattern, so a custom
+    action that is absent from a newer ViewSet remains inherited from the
+    earlier declaration.
+    """
+
+    def __init__(
+        self,
+        trailing_slash: bool = True,
+        use_regex_path: bool = True,
+        app_name: str = "django_api_versioning",
+    ) -> None:
+        if not isinstance(app_name, str) or not app_name.strip():
+            raise VersioningError("app_name must be a non-empty string.")
+
+        self.trailing_slash = trailing_slash
+        self.use_regex_path = use_regex_path
+        self.app_name = app_name
+        self._route_keys: set[str] = set()
+        self._basenames: dict[str, str] = {}
+        self._basename_prefixes: dict[str, str] = {}
+
+    def register(
+        self,
+        prefix: str,
+        viewset: type,
+        basename: str | None = None,
+        *,
+        version: int | None = None,
+        versions: list[int] | None = None,
+    ) -> None:
+        """Register a ViewSet for a version segment or an explicit version set.
+
+        version=N registers the ViewSet from N through API_MAX_VERSION.
+        versions=[...] registers only the listed concrete versions.
+        Omitting both creates an unversioned route set.
+        """
+        if not isinstance(prefix, str):
+            raise TypeError("prefix must be a string.")
+        if not prefix or prefix.startswith("/") or prefix.endswith("/"):
+            raise VersioningError(
+                "prefix must be a non-empty relative path without leading "
+                "or trailing '/'."
+            )
+        if version is not None and versions is not None:
+            raise VersionRangeError("Use either 'version' or 'versions', not both.")
+        if versions is not None and not isinstance(versions, list):
+            raise VersionTypeError("'versions' must be a list of integers.")
+
+        if version is not None:
+            self._validate_version(version)
+            if version < api_settings.API_MIN_VERSION:
+                logger.warning(
+                    "ViewSet prefix %r starts at version %d, below "
+                    "API_MIN_VERSION %d. No routes will be registered.",
+                    prefix,
+                    version,
+                    api_settings.API_MIN_VERSION,
+                )
+                return
+            declarations: list[tuple[int | None, int | None]] = [
+                (concrete, version)
+                for concrete in range(version, api_settings.API_MAX_VERSION + 1)
+            ]
+        elif versions is not None:
+            for declared_version in versions:
+                self._validate_version(declared_version)
+            if len(set(versions)) != len(versions):
+                raise VersionRangeError("'versions' must not contain duplicates.")
+            declarations = []
+            for declared_version in versions:
+                if declared_version < api_settings.API_MIN_VERSION:
+                    logger.warning(
+                        "ViewSet prefix %r includes version %d, below "
+                        "API_MIN_VERSION %d. Skipping this version.",
+                        prefix,
+                        declared_version,
+                        api_settings.API_MIN_VERSION,
+                    )
+                    continue
+                declarations.append((declared_version, declared_version))
+        else:
+            declarations = [(None, None)]
+
+        for route_version, source_version in declarations:
+            self._register_version(
+                prefix=prefix,
+                viewset=viewset,
+                basename=basename,
+                source_version=source_version,
+                route_version=route_version,
+            )
+
+    @staticmethod
+    def _validate_version(version: int) -> None:
+        if isinstance(version, bool) or not isinstance(version, int):
+            raise VersionTypeError("Version must be an integer.")
+        if version > api_settings.API_MAX_VERSION:
+            raise InvalidVersionError(
+                f"Version {version} is above the maximum allowed version "
+                f"{api_settings.API_MAX_VERSION}."
+            )
+
+    def _register_version(
+        self,
+        prefix: str,
+        viewset: type,
+        basename: str | None,
+        source_version: int | None,
+        route_version: int | None,
+    ) -> None:
+        route_prefix = prefix
+        if route_version is not None:
+            route_prefix = (
+                f"{api_settings.API_BASE_PATH.format(version=route_version)}{prefix}"
+            )
+
+        router = SimpleRouter(
+            trailing_slash=self.trailing_slash,
+            use_regex_path=self.use_regex_path,
+        )
+        router.register(route_prefix, viewset, basename=basename)
+        registered_basename = router.registry[-1][2]
+
+        previous_basename = self._basenames.get(prefix)
+        if previous_basename is not None and previous_basename != registered_basename:
+            raise VersioningError(
+                f"ViewSets registered for prefix {prefix!r} must use the same "
+                f"basename across versions; got {previous_basename!r} and "
+                f"{registered_basename!r}. Pass an explicit basename."
+            )
+        previous_prefix = self._basename_prefixes.get(registered_basename)
+        if previous_prefix is not None and previous_prefix != prefix:
+            raise VersioningError(
+                f"Basename {registered_basename!r} is already registered for "
+                f"prefix {previous_prefix!r}; use a unique basename for "
+                f"prefix {prefix!r}."
+            )
+        self._basenames[prefix] = registered_basename
+        self._basename_prefixes[registered_basename] = prefix
+
+        for pattern in router.urls:
+            logical_endpoint = f"{prefix}:{pattern.name}"
+            route_key = str(pattern.pattern)
+            registry.register_urlpattern(
+                pattern,
+                source_version=source_version,
+                route_version=route_version,
+                logical_endpoint=logical_endpoint,
+            )
+            self._route_keys.add(route_key)
+
+    @property
+    def urls(self) -> list[URLPattern | URLResolver]:
+        """Return URL patterns grouped into per-version namespaces.
+
+        The URL path itself includes API_BASE_PATH. The namespace is used by
+        DRF's version-aware reverse implementation, including nested includes.
+        """
+        versioned: dict[int, list[URLPattern]] = defaultdict(list)
+        unversioned: list[URLPattern] = []
+
+        for pattern in registry.urlpatterns:
+            if str(pattern.pattern) not in self._route_keys:
+                continue
+
+            route_version = getattr(pattern, _ROUTE_VERSION_ATTR, None)
+            if route_version is None:
+                unversioned.append(pattern)
+            else:
+                versioned[route_version].append(pattern)
+
+        urlpatterns: list[URLPattern | URLResolver] = list(unversioned)
+        for route_version in sorted(versioned):
+            urlpatterns.append(
+                path(
+                    "",
+                    include(
+                        (versioned[route_version], self.app_name),
+                        namespace=f"v{route_version}",
+                    ),
+                )
+            )
+        return urlpatterns
+
+
+class VersionedRouterVersioning(BaseVersioning):
+    """Expose the router-selected version through DRF's request.version.
+
+    The router namespaces each concrete version as vN. This adapter reads
+    that namespace and uses the full resolver namespace for reverse(), so
+    nested application namespaces and DRF hyperlink fields remain versioned.
+    """
+
+    invalid_version_message = (
+        "The URL namespace does not identify an allowed API version."
+    )
+
+    def determine_version(self, request: Any, *args: Any, **kwargs: Any) -> str | None:
+        resolver_match = getattr(request, "resolver_match", None)
+        namespace = getattr(resolver_match, "namespace", "") or ""
+
+        for component in reversed(namespace.split(":")):
+            if component.startswith("v") and component[1:].isdigit():
+                version = component[1:]
+                if not self.is_allowed_version(version):
+                    raise NotFound(self.invalid_version_message)
+                return version
+
+        default_version = self.default_version
+        if default_version is not None:
+            default_version = str(default_version)
+        if not self.is_allowed_version(default_version):
+            raise NotFound(self.invalid_version_message)
+        return default_version
+
+    def is_allowed_version(self, version: str | None) -> bool:
+        if not self.allowed_versions:
+            return True
+        allowed = {str(value) for value in self.allowed_versions}
+        default = (
+            str(self.default_version) if self.default_version is not None else None
+        )
+        return (version is not None and version == default) or version in allowed
+
+    def get_versioned_viewname(self, viewname: str, request: Any) -> str:
+        """Return the URL name qualified by the full active namespace.
+
+        DRF's hyperlinked fields call this method when validating incoming
+        hyperlinks, so it must match the same namespace used by reverse().
+        """
+        resolver_match = getattr(request, "resolver_match", None)
+        namespace = getattr(resolver_match, "namespace", "") or ""
+        return f"{namespace}:{viewname}" if namespace else viewname
+
+    def reverse(
+        self,
+        viewname: str,
+        args: Any = None,
+        kwargs: Any = None,
+        request: Any = None,
+        format: str | None = None,
+        **extra: Any,
+    ) -> str:
+        if request is not None:
+            viewname = self.get_versioned_viewname(viewname, request)
+        return super().reverse(
+            viewname,
+            args=args,
+            kwargs=kwargs,
+            request=request,
+            format=format,
+            **extra,
+        )

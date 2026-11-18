@@ -72,11 +72,11 @@ This is inheritance of route registrations, not automatic backward compatibility
 
 ## Why use it with Django REST Framework?
 
-DRF already provides versioning schemes to identify the requested API version, for example through `request.version`. This package solves a related but different problem: **mapping versioned URL paths to specific view implementations and carrying unchanged registrations forward**.
+DRF already provides request-version identification and ViewSet route generation. Django API Versioning adds the missing connection between those capabilities: **mapping each concrete API version to the correct ViewSet implementation while inheriting unchanged routes independently**.
 
-Use DRF's built-in versioning when request-version identification is all you need. Use this package when you want declarative version-to-view routing and an inspectable route matrix. They can be used together; this package does not automatically populate `request.version`.
+For Django-native function-based and class-based views, use `@endpoint`. For DRF `ViewSet` and `ModelViewSet` classes, use the optional `VersionedRouter`. It delegates route generation to DRF's `SimpleRouter`, preserving standard actions, custom `@action` routes, lookup behavior, and action-level configuration.
 
-DRF is optional. The package also supports Django function-based and class-based views. For a Django-only project, install just:
+The optional `VersionedRouterVersioning` adapter exposes the selected version as DRF's `request.version` and keeps `reverse_action()` and hyperlinked serializers version-aware. DRF remains optional for projects that use only Django-native views. For those projects, install just:
 
 ```bash
 pip install django-api-versioning
@@ -130,11 +130,49 @@ For an inclusive range, use `ver_range(1, 3)`. Other APIs include `api_reverse()
 
 See the [versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for exact URL construction, import order, collision precedence, validation, and edge cases.
 
-## DRF ViewSet boundary
+## Versioned DRF ViewSets
 
-A DRF `ViewSet` or `ModelViewSet` cannot be passed directly to `@endpoint`, because `as_view()` requires an action mapping. You can register a configured callable for an individual route, but this does not create the full router-managed set of list, detail, and custom-action routes. Use DRF's `DefaultRouter` or `SimpleRouter` when you need standard ViewSet routing.
+Use `VersionedRouter` when you want DRF's normal ViewSet workflow with version-aware implementation dispatch:
 
-See [ViewSet support and limitations](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
+```python
+# settings.py — configure before importing ViewSet modules
+REST_FRAMEWORK = {
+    "DEFAULT_VERSIONING_CLASS": (
+        "django_api_versioning.routers.VersionedRouterVersioning"
+    ),
+}
+```
+
+```python
+# project/urls.py
+from django_api_versioning.routers import VersionedRouter
+from orders.views import OrderViewSetV1, OrderViewSetV2
+
+router = VersionedRouter()
+router.register("orders", OrderViewSetV1, version=1, basename="order")
+router.register("orders", OrderViewSetV2, version=2, basename="order")
+
+urlpatterns = router.urls
+```
+
+With `API_MAX_VERSION = 3`, the routes are served at `/api/v1/orders/`, `/api/v2/orders/`, and `/api/v3/orders/`. V2 replaces only the generated routes it declares. If a custom action exists in V1 but is not redeclared in V2, that action remains inherited in v2 and v3 while list/detail can use V2.
+
+For endpoints that should exist only in selected versions, pass `versions=[1, 3]`; v2 remains a 404. The router also supports `trailing_slash=False` and `use_regex_path=False` for Django path converters.
+
+The adapter is required when ViewSets need `request.version`, `reverse_action()`, or hyperlinked serializer support. You can configure it globally through `REST_FRAMEWORK` as shown above, or set `versioning_class = VersionedRouterVersioning` on selected ViewSets.
+
+**Scope:** the initial integration supports DRF `SimpleRouter`; it does not claim `DefaultRouter` API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; explicit route removal is tracked separately in [Issue #39](https://github.com/mojtaba-arvin/django-api-versioning/issues/39). Header/query/tenant negotiation is not enabled by the reserved settings and remains a separate design decision.
+
+For DRF installation, use a version compatible with your Django release:
+```bash
+# Django 4.2 compatibility
+pip install "djangorestframework>=3.17.2,<3.18"
+
+# Django 5.2, 6.0, or 6.1
+pip install "djangorestframework>=3.18.3,<3.19"
+```
+
+See the [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for route inheritance, reversal, namespaces, and the exact integration boundary.
 
 ## Requirements
 

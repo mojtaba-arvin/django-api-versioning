@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add the optional `VersionedRouter` integration for DRF `SimpleRouter` ViewSets, preserving standard routes, custom actions, callback metadata, and per-route version inheritance.
+- Add `VersionedRouterVersioning` to expose the concrete router namespace as DRF's `request.version` and keep `reverse_action()` and hyperlinked serializer URLs within the active version.
+- Preserve regex-backed and path-converter URLPatterns in the registry; extend `api_reverse()` to reverse DRF regex routes through Django's URL resolver and reject duplicate names within one concrete version.
+
+### Changed
+
+- Extend lifecycle version extraction to recognize the configured API base path below parent URL prefixes, so nested URL includes retain deprecation and sunset behavior.
+
 ### Testing
 
 - Pin Django REST Framework independently in tox for each Django compatibility line: DRF 3.17.2 for Django 4.2 and DRF 3.18.x for Django 5.2, 6.0, and 6.1. Keep the lockfile-backed generic development extra unchanged; the compatibility matrix now verifies upstream-supported DRF/Django combinations instead of resolving the latest DRF for every environment.

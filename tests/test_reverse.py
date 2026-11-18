@@ -1,10 +1,11 @@
 import pytest
 from django.http import JsonResponse
-from django.urls import NoReverseMatch, register_converter
+from django.urls import NoReverseMatch, re_path, register_converter
 
 from django_api_versioning import api_reverse
 from django_api_versioning.decorators import endpoint
 from django_api_versioning.exceptions import AmbiguousVersionError, VersionTypeError
+from django_api_versioning.registry import registry
 from django_api_versioning.settings import api_settings as settings
 
 
@@ -179,3 +180,47 @@ class TestApiReverse:
         for query, expected_url in test_cases:
             url = api_reverse("search-results", version=1, query=query)
             assert url == expected_url, f"Failed for query={query!r}"
+
+
+def test_regex_backed_urlpattern_uses_django_reverse():
+    """DRF-style RegexPattern routes can be reversed with named groups."""
+
+    def view(request, pk):
+        return JsonResponse({"pk": pk})
+
+    pattern = re_path(
+        r"^api/v2/orders/(?P<pk>[0-9]+)/$",
+        view,
+        name="regex-order-detail",
+    )
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:regex-order-detail",
+    )
+
+    assert api_reverse("regex-order-detail", version=2, pk=42) == ("/api/v2/orders/42/")
+    with pytest.raises(NoReverseMatch):
+        api_reverse("regex-order-detail", version=2, pk="not-an-integer")
+
+
+def test_explicit_version_rejects_duplicate_view_names():
+    """Exact-version reversal must not silently pick an arbitrary route."""
+
+    def view(request):
+        return JsonResponse({})
+
+    registry.register_urlpattern(
+        re_path(r"^api/v1/orders/$", view, name="duplicate-route"),
+        source_version=1,
+        route_version=1,
+    )
+    registry.register_urlpattern(
+        re_path(r"^api/v1/shipments/$", view, name="duplicate-route"),
+        source_version=1,
+        route_version=1,
+    )
+
+    with pytest.raises(NoReverseMatch, match="registered more than once"):
+        api_reverse("duplicate-route", version=1)
