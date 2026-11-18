@@ -1,6 +1,6 @@
 # Endpoint-level lifecycle metadata
 
-**Status:** Proposed — design review required; no runtime API is committed.
+**Status:** Product semantics decided; implementation contract remains gated on a code-level identity audit and executable consumer tests. No runtime API is committed.
 **Related:** [Issue #39](https://github.com/mojtaba-arvin/django-api-versioning/issues/39), [roadmap #36](https://github.com/mojtaba-arvin/django-api-versioning/issues/36)
 **Depends on:** the merged endpoint-removal/tombstone contract and version-wide `LifecycleMiddleware`.
 
@@ -125,13 +125,55 @@ Before implementation, prove the supported extension point with an executable co
 6. Update docs and examples only after public API and behavior are stable.
 7. Run the full PR gate, compatibility matrix, package install smoke, website checks, and CodeQL before marking the PR ready.
 
-## Decisions still required
+## Product decisions
 
-- Public declaration shape and whether one common API can cover decorator endpoints and DRF actions cleanly.
-- Whether lifecycle dates are per concrete API version, source declaration segment, or both.
-- Exact precedence when endpoint and version-wide dates conflict.
-- Whether a past endpoint sunset is headers-only (recommended default) or can opt into endpoint-specific 410.
-- Whether to expose a vendor OpenAPI extension for sunset dates and, if so, its stable name.
-- Whether endpoint lifecycle state belongs in route-matrix snapshots or should remain a separate lifecycle report.
+The following decisions are the default contract for the first implementation. They intentionally favor additive metadata and predictable compatibility over automatic enforcement.
 
-No implementation should begin until these decisions are captured in an accepted ADR and the acceptance tests make the intended semantics executable.
+### D1 — Scope is the concrete resolved API version
+
+Lifecycle metadata is attached to one logical operation in one concrete API version. A declaration for v2 does not implicitly affect v1 or v3, even when the route itself is inherited. If an application wants the same lifecycle policy in multiple versions, it must declare those versions explicitly (or use a future, separately specified shorthand that expands to the same explicit version set).
+
+This avoids coupling endpoint lifecycle to the mechanics of route inheritance and makes the generated schema for each version independently explainable.
+
+### D2 — Operation identity is resolved, never guessed
+
+The request-side key must come from Django's resolved route and the router/endpoint registry's canonical operation record. Path strings, regular expressions, URL substring matching, callback object identity, and an unqualified route name are not acceptable identity sources.
+
+For DRF, the identity must distinguish each HTTP-method/action pair on a ViewSet route, including custom actions. Namespaces and router identity are part of disambiguation. If the current registry cannot provide a stable canonical key for a request before or during DRF dispatch, extend the registry first; do not introduce a second, approximate identity algorithm in middleware.
+
+A request that cannot be mapped to exactly one operation receives no endpoint-level metadata. Version-wide middleware behavior remains independent.
+
+### D3 — Composition is monotonic and version-wide retirement wins
+
+- Version-wide deprecation/sunset headers continue to apply to all requests in their existing scope.
+- Endpoint-level metadata may add a header to a matching operation, but may never remove, delay, or weaken version-wide metadata.
+- When both scopes provide the same date-bearing header, emit the earlier instant (the more conservative boundary). Normalize and compare parsed instants; reject invalid values and ambiguous timezone handling at configuration time.
+- A version-wide retired/sunset policy that currently produces 410 remains authoritative. Endpoint metadata cannot downgrade it.
+- Endpoint metadata alone never changes the response status in v1 of this feature.
+
+### D4 — Past endpoint sunset remains headers-only
+
+Passing an endpoint's sunset instant does not automatically return 410, unregister a route, or change schema visibility. The route remains active until the application explicitly removes it through the existing route-removal contract. This prevents a date crossing from silently becoming a breaking runtime change and keeps schema truth aligned with actual routing.
+
+Any future endpoint-specific enforcement mode requires a separate opt-in design and compatibility review; it is not part of this feature.
+
+### D5 — OpenAPI uses the standard operation flag only
+
+For the first implementation, endpoint deprecation maps to the standard OpenAPI Operation Object field `deprecated: true`. Do not add a vendor extension for Sunset yet: there is no agreed cross-tool consumer contract, and a non-standard extension would create a long-lived public schema surface. Sunset remains available through the HTTP response header and documentation.
+
+The integration remains optional and must use the supported drf-spectacular extension points. It must not parse or rewrite arbitrary serialized YAML/JSON.
+
+### D6 — Route matrix remains about route existence
+
+Do not add lifecycle dates or deprecation state to the existing route-matrix snapshot format. The matrix answers whether an operation exists in a version; lifecycle is a separate concern. If lifecycle reporting is later needed, add a separately versioned report/manifest rather than changing existing snapshot semantics.
+
+### D7 — Public declaration API is adapter-specific over one registry contract
+
+Do not force decorator endpoints and DRF actions into a single public syntax if doing so obscures their native identity or ergonomics. The implementation must have one normalized internal lifecycle record and validation model, with thin public adapters that reference the canonical identities already exposed by each registration API.
+
+Before choosing exact names/signatures, audit the current decorator and router registration contracts and demonstrate that each adapter resolves to the same normalized record used by middleware and schema generation. No URL-based fallback is permitted. This is a deliberate API gate, not permission to ship two independent stores.
+
+### Implementation gate
+
+The product semantics above are decided. The remaining work is an implementation-level audit of the existing registry and schema extension points, followed by failing tests for those exact contracts. Keep this PR draft/design-only until that audit and tests are complete. A green documentation-only workflow is not evidence that runtime behavior is implemented or safe.
+
