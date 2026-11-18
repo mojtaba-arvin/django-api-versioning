@@ -1,0 +1,37 @@
+name: OpenAPI contract integration
+
+on:
+  pull_request:
+    paths:
+      - "django_api_versioning/routers.py"
+      - "examples/openapi_contract/**"
+      - "docs/design/versioned-openapi-contract.md"
+      - ".github/workflows/openapi-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  versioned-openapi:
+    name: Versioned OpenAPI consumer contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install package and pinned schema tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r examples/openapi_contract/requirements.txt
+
+      - name: Verify runtime routing and versioned OpenAPI schemas
+        run: python examples/openapi_contract/verify.py
