@@ -1,12 +1,7 @@
 name: OpenAPI contract integration
 
 on:
-  pull_request:
-    paths:
-      - "django_api_versioning/routers.py"
-      - "examples/openapi_contract/**"
-      - "docs/design/versioned-openapi-contract.md"
-      - ".github/workflows/openapi-contract.yml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -33,6 +28,9 @@ jobs:
           python -m pip install -e .
           python -m pip install -r examples/openapi_contract/requirements.txt
 
+      - name: Verify runtime routing and versioned OpenAPI schemas
+        run: python examples/openapi_contract/verify.py
+
       - name: Export versioned OpenAPI schemas
         run: |
           python examples/openapi_contract/generate_schemas.py \
@@ -45,9 +43,6 @@ jobs:
           path: ${{ runner.temp }}/openapi-contract-schemas/
           if-no-files-found: error
           retention-days: 7
-
-      - name: Verify runtime routing and versioned OpenAPI schemas
-        run: python examples/openapi_contract/verify.py
 
       - name: Install pinned oasdiff
         run: |
@@ -71,10 +66,10 @@ jobs:
 
       - name: Compare candidate schemas with committed version baselines
         run: |
-          oasdiff breaking --fail-on ERR \
+          oasdiff breaking --fail-on WARN \
             examples/openapi_contract/schemas/v1/openapi.yaml \
             "$RUNNER_TEMP/openapi-contract-schemas/v1/openapi.yaml"
-          oasdiff breaking --fail-on ERR \
+          oasdiff breaking --fail-on WARN \
             examples/openapi_contract/schemas/v2/openapi.yaml \
             "$RUNNER_TEMP/openapi-contract-schemas/v2/openapi.yaml"
 
