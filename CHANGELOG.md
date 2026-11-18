@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Testing
+
+- Pin Django REST Framework independently for each Django compatibility line: DRF 3.17.2 for Django 4.2 and DRF 3.18.x for Django 5.2, 6.0, and 6.1. Remove the unbounded DRF dependency from the generic development extra and provide explicit `drf` and `drf-legacy` extras so local development does not accidentally combine upstream-incompatible releases.
+
 ### Documentation
 
 - Add a request-version-resolution architecture decision that documents the current path-only contract, research findings, and implementation gates for any future negotiation support.
