@@ -16,7 +16,11 @@ class OrderV2Serializer(serializers.Serializer):
     currency = serializers.CharField()
 
 
-class OrderV3Serializer(OrderV2Serializer):
+class OrderV3Serializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    sku = serializers.CharField()
+    total = serializers.DecimalField(max_digits=8, decimal_places=2)
+    currency = serializers.CharField()
     fulfillment_state = serializers.ChoiceField(
         choices=("processing", "ready", "shipped")
     )
