@@ -47,6 +47,7 @@ COMPATIBILITY_PATHS = {
 OPENAPI_PATHS = (
     "django_api_versioning/",
     "examples/openapi_contract/",
+    "examples/consumer_migration/",
 )
 OPENAPI_EXPLICIT_PATHS = {
     "docs/design/versioned-openapi-contract.md",
