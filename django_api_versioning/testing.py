@@ -114,6 +114,7 @@ def assert_version_matrix(
             f"Run with update=True to accept the new matrix."
         )
 
+
 def _diff(expected: dict, current: dict) -> str:
     lines = []
     all_routes = sorted(set(expected) | set(current))
