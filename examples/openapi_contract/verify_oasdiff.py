@@ -136,39 +136,69 @@ def _nonnull_allof_30() -> dict[str, Any]:
 def verify_nullability(binary: Path, root: Path) -> None:
     # OpenAPI 3.0 nullable:true -> non-nullable.
     _assert_case(
-        binary, root, "oas30-request-became-nonnullable",
-        openapi="3.0.3", before={"type": "string", "nullable": True},
-        after={"type": "string"}, direction="request", expected_exit=1,
+        binary,
+        root,
+        "oas30-request-became-nonnullable",
+        openapi="3.0.3",
+        before={"type": "string", "nullable": True},
+        after={"type": "string"},
+        direction="request",
+        expected_exit=1,
         expected_check="request-property-became-not-nullable",
     )
     _assert_case(
-        binary, root, "oas30-response-became-nonnullable",
-        openapi="3.0.3", before={"type": "string", "nullable": True},
-        after={"type": "string"}, direction="response", expected_exit=0,
+        binary,
+        root,
+        "oas30-response-became-nonnullable",
+        openapi="3.0.3",
+        before={"type": "string", "nullable": True},
+        after={"type": "string"},
+        direction="response",
+        expected_exit=0,
     )
 
     # OpenAPI 3.1 type unions: narrowing requests is breaking; narrowing
     # responses is not. Widening responses is breaking; widening requests is not.
     _assert_case(
-        binary, root, "oas31-request-became-nonnullable",
-        openapi="3.1.0", before=_nullable_31(), after=_nonnull_31(),
-        direction="request", expected_exit=1,
+        binary,
+        root,
+        "oas31-request-became-nonnullable",
+        openapi="3.1.0",
+        before=_nullable_31(),
+        after=_nonnull_31(),
+        direction="request",
+        expected_exit=1,
         expected_check="request-property-became-not-nullable",
     )
     _assert_case(
-        binary, root, "oas31-response-became-nonnullable",
-        openapi="3.1.0", before=_nullable_31(), after=_nonnull_31(),
-        direction="response", expected_exit=0,
+        binary,
+        root,
+        "oas31-response-became-nonnullable",
+        openapi="3.1.0",
+        before=_nullable_31(),
+        after=_nonnull_31(),
+        direction="response",
+        expected_exit=0,
     )
     _assert_case(
-        binary, root, "oas31-request-became-nullable",
-        openapi="3.1.0", before=_nonnull_31(), after=_nullable_31(),
-        direction="request", expected_exit=0,
+        binary,
+        root,
+        "oas31-request-became-nullable",
+        openapi="3.1.0",
+        before=_nonnull_31(),
+        after=_nullable_31(),
+        direction="request",
+        expected_exit=0,
     )
     _assert_case(
-        binary, root, "oas31-response-became-nullable",
-        openapi="3.1.0", before=_nonnull_31(), after=_nullable_31(),
-        direction="response", expected_exit=1,
+        binary,
+        root,
+        "oas31-response-became-nullable",
+        openapi="3.1.0",
+        before=_nonnull_31(),
+        after=_nullable_31(),
+        direction="response",
+        expected_exit=1,
         expected_check="response-property-became-nullable",
     )
 
@@ -190,15 +220,25 @@ def verify_nullability(binary: Path, root: Path) -> None:
     )
     for name, nullable, request_check, response_check in composition_cases:
         _assert_case(
-            binary, root, f"{name}-request-became-nonnullable",
-            openapi="3.1.0", before=nullable, after=_nonnull_31(),
-            direction="request", expected_exit=1,
+            binary,
+            root,
+            f"{name}-request-became-nonnullable",
+            openapi="3.1.0",
+            before=nullable,
+            after=_nonnull_31(),
+            direction="request",
+            expected_exit=1,
             expected_check=request_check,
         )
         _assert_case(
-            binary, root, f"{name}-response-became-nullable",
-            openapi="3.1.0", before=_nonnull_31(), after=nullable,
-            direction="response", expected_exit=1,
+            binary,
+            root,
+            f"{name}-response-became-nullable",
+            openapi="3.1.0",
+            before=_nonnull_31(),
+            after=nullable,
+            direction="response",
+            expected_exit=1,
             expected_check=response_check,
         )
 
@@ -206,26 +246,37 @@ def verify_nullability(binary: Path, root: Path) -> None:
     # The pinned v1.38.0 binary is checked directly for this transition;
     # separate constraints below exercise --flatten-allof semantics.
     _assert_case(
-        binary, root, "allof-request-became-nonnullable",
-        openapi="3.0.3", before=_nullable_allof_30(),
-        after=_nonnull_allof_30(), direction="request", expected_exit=1,
+        binary,
+        root,
+        "allof-request-became-nonnullable",
+        openapi="3.0.3",
+        before=_nullable_allof_30(),
+        after=_nonnull_allof_30(),
+        direction="request",
+        expected_exit=1,
         expected_check="request-property-became-not-nullable",
     )
     _assert_case(
-        binary, root, "allof-flatten-request-min-length-increased",
+        binary,
+        root,
+        "allof-flatten-request-min-length-increased",
         openapi="3.0.3",
         before={"allOf": [{"type": "string"}, {"minLength": 3}]},
         after={"allOf": [{"type": "string"}, {"minLength": 5}]},
-        direction="request", expected_exit=1,
+        direction="request",
+        expected_exit=1,
         expected_check="request-property-min-length-increased",
         flatten_allof=True,
     )
     _assert_case(
-        binary, root, "allof-flatten-response-min-length-decreased",
+        binary,
+        root,
+        "allof-flatten-response-min-length-decreased",
         openapi="3.0.3",
         before={"allOf": [{"type": "string"}, {"minLength": 5}]},
         after={"allOf": [{"type": "string"}, {"minLength": 3}]},
-        direction="response", expected_exit=1,
+        direction="response",
+        expected_exit=1,
         expected_check="response-property-min-length-decreased",
         flatten_allof=True,
     )
@@ -255,8 +306,7 @@ def verify_warn_policy(binary: Path, root: Path) -> None:
     output = result.stdout + result.stderr
     if result.returncode != 1 or "request-property-became-nullable" not in output:
         raise SystemExit(
-            "WARN policy fixture did not fail as required by --fail-on WARN:\n"
-            + output
+            "WARN policy fixture did not fail as required by --fail-on WARN:\n" + output
         )
 
 
