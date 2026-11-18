@@ -63,10 +63,10 @@ jobs:
 
       - name: Compare candidate schemas with committed version baselines
         run: |
-          oasdiff breaking --fail-on ERR \
+          oasdiff breaking --fail-on WARN \
             examples/openapi_contract/schemas/v1/openapi.yaml \
             "$RUNNER_TEMP/openapi-contract-schemas/v1/openapi.yaml"
-          oasdiff breaking --fail-on ERR \
+          oasdiff breaking --fail-on WARN \
             examples/openapi_contract/schemas/v2/openapi.yaml \
             "$RUNNER_TEMP/openapi-contract-schemas/v2/openapi.yaml"
 
