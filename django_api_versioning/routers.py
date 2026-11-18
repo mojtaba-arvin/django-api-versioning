@@ -12,7 +12,7 @@ from django.urls import URLPattern, URLResolver, include, path
 try:
     from rest_framework.exceptions import NotFound
     from rest_framework.routers import SimpleRouter
-    from rest_framework.versioning import BaseVersioning
+    from rest_framework.versioning import NamespaceVersioning
 except ImportError as exc:  # pragma: no cover - exercised without optional DRF
     raise ImportError(
         "VersionedRouter requires Django REST Framework. Install a DRF release "
@@ -223,7 +223,7 @@ class VersionedRouter:
         return urlpatterns
 
 
-class VersionedRouterVersioning(BaseVersioning):
+class VersionedRouterVersioning(NamespaceVersioning):
     """Expose the router-selected version through DRF's request.version.
 
     The router namespaces each concrete version as vN. This adapter reads
