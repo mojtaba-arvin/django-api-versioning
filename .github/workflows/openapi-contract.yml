@@ -33,17 +33,6 @@ jobs:
           python -m pip install -e .
           python -m pip install -r examples/openapi_contract/requirements.txt
 
-      - name: Preview Black formatting for sample files
-        run: |
-          python -m pip install black==26.10.1
-          black --diff examples/openapi_contract/manage.py \
-            examples/openapi_contract/contract_project/settings.py \
-            examples/openapi_contract/contract_project/urls.py \
-            examples/openapi_contract/contract_app/views.py \
-            examples/openapi_contract/generate_schemas.py \
-            examples/openapi_contract/verify.py \
-            examples/openapi_contract/verify_oasdiff.py
-
       - name: Verify runtime routing and versioned OpenAPI schemas
         run: python examples/openapi_contract/verify.py
 
