@@ -139,9 +139,9 @@ def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
 
         if not skip_baseline:
             baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
-            assert baseline.is_file(), (
-                f"Missing committed V{version} baseline: {baseline}"
-            )
+            assert (
+                baseline.is_file()
+            ), f"Missing committed V{version} baseline: {baseline}"
             assert generated.read_bytes() == baseline.read_bytes(), (
                 f"Generated V{version} schema differs from the committed baseline. "
                 "Review the API contract change before updating the snapshot."
@@ -154,9 +154,7 @@ def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
 
             target = Path(d) / "openapi.yaml"
             env = os.environ.copy()
-            env["DJANGO_SETTINGS_MODULE"] = (
-                "consumer_migration_project.settings"
-            )
+            env["DJANGO_SETTINGS_MODULE"] = "consumer_migration_project.settings"
             subprocess.run(
                 [
                     sys.executable,
@@ -175,9 +173,9 @@ def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
                 capture_output=True,
                 text=True,
             )
-            assert generated.read_bytes() == target.read_bytes(), (
-                f"V{version} schema generation is not deterministic"
-            )
+            assert (
+                generated.read_bytes() == target.read_bytes()
+            ), f"V{version} schema generation is not deterministic"
 
 
 def main() -> None:
