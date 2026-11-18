@@ -43,7 +43,7 @@ jobs:
         with:
           name: versioned-openapi-contract-schemas
           path: ${{ runner.temp }}/openapi-contract-schemas/
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 7
 
       - name: Verify runtime routing and versioned OpenAPI schemas
