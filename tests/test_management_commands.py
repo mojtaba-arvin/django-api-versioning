@@ -875,10 +875,10 @@ class TestMigrateEndpointsCommand:
 
     def test_imported_endpoint_alias_is_rewritten(self, tmp_path):
         source = (
-            "from django_api_versioning import endpoint as api_endpoint\\n"
-            '@api_endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
+            "from django_api_versioning import endpoint as api_endpoint\n"
+            '@api_endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -892,10 +892,10 @@ class TestMigrateEndpointsCommand:
 
     def test_dynamic_imported_endpoint_alias_is_reported(self, tmp_path):
         source = (
-            "from django_api_versioning.decorators import endpoint as api_endpoint\\n"
-            '@api_endpoint("users", version=VERSION, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
+            "from django_api_versioning.decorators import endpoint as api_endpoint\n"
+            '@api_endpoint("users", version=VERSION, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
