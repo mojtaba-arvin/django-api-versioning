@@ -1,4 +1,5 @@
 """Exercise oasdiff with a safe additive change and a deliberate breaking change."""
+
 from __future__ import annotations
 
 import argparse
