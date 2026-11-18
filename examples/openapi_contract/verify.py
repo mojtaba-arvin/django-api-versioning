@@ -76,6 +76,13 @@ def verify_schema(version: str) -> dict:
         second_bytes = generate(version, second)
         assert first_bytes == second_bytes, f"v{version} schema is not deterministic"
 
+        baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
+        assert baseline.is_file(), f"Missing released contract baseline: {baseline}"
+        assert first_bytes == baseline.read_bytes(), (
+            f"Generated v{version} schema differs from its committed baseline. "
+            "Review the contract change and update the snapshot deliberately."
+        )
+
         document = yaml.safe_load(first_bytes)
         product_path = PRODUCT_PATHS[version]
         action_path = ACTION_PATHS[version]
