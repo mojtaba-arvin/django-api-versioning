@@ -122,7 +122,11 @@ class UrlRegistry:
                 matched_length = max(matched_length, len(candidate))
 
             version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            if matched_length and isinstance(version, int) and not isinstance(version, bool):
+            if (
+                matched_length
+                and isinstance(version, int)
+                and not isinstance(version, bool)
+            ):
                 matches.append((matched_length, version))
 
         if not matches:
