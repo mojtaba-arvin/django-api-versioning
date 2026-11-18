@@ -78,6 +78,8 @@ assert inherited.status_code == 200, inherited.content
 assert inherited.json()["available"] is True
 """
     subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, check=True)
+
+
 def verify_schema(version: str) -> dict:
     with tempfile.TemporaryDirectory(prefix=f"openapi-v{version}-") as directory:
         first = Path(directory) / "first.yaml"
