@@ -18,6 +18,7 @@ def test_matrix_snapshot_created(tmp_path):
     assert_version_matrix(snapshot=str(snapshot))
     assert snapshot.exists()
 
+
 def test_strict_matrix_requires_existing_snapshot(tmp_path):
     registry.urlpatterns.clear()
     registry.register("api/v1/x", lambda request: None, route_version=1)
