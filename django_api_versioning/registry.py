@@ -97,6 +97,46 @@ class UrlRegistry:
             None,
         )
 
+    def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
+        """
+        Return ``{route: {route_version: callback}}``.
+
+        ``route_version`` is ``None`` for unversioned routes.  This is the
+        source of truth for ``check_versions`` and ``assert_version_matrix``.
+        """
+        matrix: dict[str, dict[int | None, Callable]] = {}
+        for pattern in self.urlpatterns:
+            route = str(pattern.pattern)
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            matrix.setdefault(route, {})[route_version] = pattern.callback
+        return matrix
+
+    def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
+        """
+        Return ``{logical_endpoint: {route_version: callback}}``.
+
+        Groups physical URLs by their logical endpoint identity. This is used
+        by check_versions to correctly identify gaps within each logical
+        endpoint's version span, avoiding false warnings.
+        """
+        matrix: dict[str, dict[int | None, Callable]] = {}
+        for pattern in self.urlpatterns:
+            # Use logical endpoint if available, else fall back to route pattern
+            logical_id = getattr(
+                pattern, self._LOGICAL_ENDPOINT_ATTR, str(pattern.pattern)
+            )
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            matrix.setdefault(logical_id, {})[route_version] = pattern.callback
+        return matrix
+
+    def _find_route_index(self, route: str) -> int | None:
+        """Return the index of a registered route, or None if absent."""
+        for index, pattern in enumerate(self.urlpatterns):
+            if str(pattern.pattern) == route:
+                return index
+
+        return None
+
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
 
@@ -141,46 +181,6 @@ class UrlRegistry:
         longest = max(length for length, _ in matches)
         versions = {version for length, version in matches if length == longest}
         return next(iter(versions)) if len(versions) == 1 else None
-
-    def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
-        """
-        Return ``{route: {route_version: callback}}``.
-
-        ``route_version`` is ``None`` for unversioned routes.  This is the
-        source of truth for ``check_versions`` and ``assert_version_matrix``.
-        """
-        matrix: dict[str, dict[int | None, Callable]] = {}
-        for pattern in self.urlpatterns:
-            route = str(pattern.pattern)
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            matrix.setdefault(route, {})[route_version] = pattern.callback
-        return matrix
-
-    def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
-        """
-        Return ``{logical_endpoint: {route_version: callback}}``.
-
-        Groups physical URLs by their logical endpoint identity. This is used
-        by check_versions to correctly identify gaps within each logical
-        endpoint's version span, avoiding false warnings.
-        """
-        matrix: dict[str, dict[int | None, Callable]] = {}
-        for pattern in self.urlpatterns:
-            # Use logical endpoint if available, else fall back to route pattern
-            logical_id = getattr(
-                pattern, self._LOGICAL_ENDPOINT_ATTR, str(pattern.pattern)
-            )
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            matrix.setdefault(logical_id, {})[route_version] = pattern.callback
-        return matrix
-
-    def _find_route_index(self, route: str) -> int | None:
-        """Return the index of a registered route, or None if absent."""
-        for index, pattern in enumerate(self.urlpatterns):
-            if str(pattern.pattern) == route:
-                return index
-
-        return None
 
     def _should_replace(
         self,
