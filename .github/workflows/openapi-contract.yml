@@ -26,7 +26,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-          python -m pip install -r examples/openapi_contract/requirements.txt
+          python -m pip install -r examples/openapi_contract/requirements.txt \\
+  -r examples/consumer_migration/requirements.txt
 
       - name: Verify runtime routing and versioned OpenAPI schemas
         run: python examples/openapi_contract/verify.py
@@ -36,6 +37,11 @@ jobs:
           python examples/openapi_contract/generate_schemas.py \
             --output-dir "$RUNNER_TEMP/openapi-contract-schemas"
 
+      - name: Export V1/V2/V3 consumer migration schemas
+        run: |
+          python examples/consumer_migration/generate_schemas.py \
+            --output-dir "$RUNNER_TEMP/openapi-contract-schemas/consumer-migration"
+
       - name: Upload generated OpenAPI schemas for review
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -43,6 +49,12 @@ jobs:
           path: ${{ runner.temp }}/openapi-contract-schemas/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Verify consumer migration runtime and schema assertions
+        run: |
+          python examples/consumer_migration/verify.py \
+            --schema-dir "$RUNNER_TEMP/openapi-contract-schemas/consumer-migration" \
+            --skip-baseline
 
       - name: Install pinned oasdiff
         run: |
@@ -62,7 +74,9 @@ jobs:
         run: |
           python examples/openapi_contract/verify_oasdiff.py \
             --oasdiff /usr/local/bin/oasdiff \
-            --schema-dir "$RUNNER_TEMP/openapi-contract-schemas"
+            --schema-dir "$RUNNER_TEMP/openapi-contract-schemas" \
+            --migration-schema-dir "$RUNNER_TEMP/openapi-contract-schemas/consumer-migration" \
+            --skip-migration-baselines
 
       - name: Compare candidate schemas with committed version baselines
         run: |
