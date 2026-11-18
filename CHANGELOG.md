@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- Add a request-version-resolution architecture decision that documents the current path-only contract, research findings, and implementation gates for any future negotiation support.
+- Clarify that Django 4.2 remains in the 1.x compatibility matrix for existing installations but is no longer a supported Django security-release line; recommend a currently supported Django version for new deployments.
+
 ### Changed
 
 - Clarify that `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` are reserved settings with no runtime effect; log a warning when non-default values are configured.
