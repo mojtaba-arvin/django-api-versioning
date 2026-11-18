@@ -167,8 +167,8 @@ def test_router_removal_is_action_specific():
         def retrieve(self, request, pk=None):
             return Response({"route": "detail", "pk": pk})
 
-        @action(detail=False, methods=["get"], url_path="archive")
-        def archive(self, request):
+        @action(detail=True, methods=["get"], url_path="archive")
+        def archive(self, request, pk=None):
             return Response({"route": "archive"})
 
         @action(detail=False, methods=["get"])
@@ -194,14 +194,14 @@ def test_router_removal_is_action_specific():
 
     with override_settings(ROOT_URLCONF=urlconf):
         client = APIClient()
-        assert client.get("/api/v2/orders/archive/").status_code == 200
+        assert client.get("/api/v2/orders/42/archive/").status_code == 200
         assert client.get("/api/v3/orders/").status_code == 200
         assert client.get("/api/v3/orders/42/").json() == {
             "route": "detail",
             "pk": "42",
         }
         assert client.get("/api/v3/orders/availability/").status_code == 200
-        assert client.get("/api/v3/orders/archive/").status_code == 404
+        assert client.get("/api/v3/orders/42/archive/").status_code == 404
 
     assert all(
         getattr(pattern, registry._ROUTE_VERSION_ATTR) < 3
