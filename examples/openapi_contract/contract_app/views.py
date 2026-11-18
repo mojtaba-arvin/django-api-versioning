@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,7 +19,10 @@ class ProductViewSetV1(viewsets.GenericViewSet):
         payload = [{"id": 1, "name": "Desk lamp", "price": "12.50"}]
         return Response(self.get_serializer(payload, many=True).data)
 
-    @extend_schema(responses=ProductV1Serializer)
+    @extend_schema(
+        parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
+        responses=ProductV1Serializer,
+    )
     def retrieve(self, request, pk: int | None = None):
         payload = {"id": int(pk or 1), "name": "Desk lamp", "price": "12.50"}
         return Response(self.get_serializer(payload).data)
@@ -49,7 +52,10 @@ class ProductViewSetV2(viewsets.GenericViewSet):
         }]
         return Response(self.get_serializer(payload, many=True).data)
 
-    @extend_schema(responses=ProductV2Serializer)
+    @extend_schema(
+        parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
+        responses=ProductV2Serializer,
+    )
     def retrieve(self, request, pk=None):
         payload = {
             "id": int(pk or 1),
