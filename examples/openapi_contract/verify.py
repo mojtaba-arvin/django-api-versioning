@@ -1,4 +1,5 @@
 """Verify runtime behavior and deterministic, version-filtered OpenAPI output."""
+
 from __future__ import annotations
 
 import json
@@ -23,9 +24,20 @@ def generate(version: str, output: Path) -> bytes:
     env = os.environ.copy()
     env["DJANGO_SETTINGS_MODULE"] = "contract_project.settings"
     subprocess.run(
-        [sys.executable, str(MANAGE), "spectacular", "--api-version", version,
-         "--validate", "--fail-on-warn", "--file", str(output)],
-        cwd=ROOT, env=env, check=True,
+        [
+            sys.executable,
+            str(MANAGE),
+            "spectacular",
+            "--api-version",
+            version,
+            "--validate",
+            "--fail-on-warn",
+            "--file",
+            str(output),
+        ],
+        cwd=ROOT,
+        env=env,
+        check=True,
     )
     return output.read_bytes()
 
@@ -46,7 +58,7 @@ def component(document: dict, schema: dict) -> dict:
 def verify_runtime() -> None:
     env = os.environ.copy()
     env["DJANGO_SETTINGS_MODULE"] = "contract_project.settings"
-    code = '''
+    code = """
 import django
 django.setup()
 from rest_framework.test import APIClient
@@ -65,7 +77,7 @@ inherited = client.get("/api/v2/products/availability/")
 assert inherited.status_code == 200, inherited.content
 assert inherited.json()["available"] is True
 '''
-    subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, check=True)
+    subprocess.run(\n        [sys.executable, "-c", code], cwd=ROOT, env=env, check=True\n    )
 
 
 def verify_schema(version: str) -> dict:
@@ -102,9 +114,7 @@ def verify_schema(version: str) -> dict:
             assert "currency" in fields
             assert "currency" in product.get("required", [])
 
-        inherited_action = component(
-            document, response_schema(document, action_path)
-        )
+        inherited_action = component(document, response_schema(document, action_path))
         assert set(inherited_action["properties"]) == {"available", "checked_at"}
         return document
 
@@ -112,13 +122,18 @@ def verify_schema(version: str) -> dict:
 def main() -> None:
     verify_runtime()
     documents = {v: verify_schema(v) for v in ("1", "2")}
-    print(json.dumps({
-        "runtime": "passed",
-        "schema_versions": sorted(documents),
-        "deterministic": True,
-        "version_specific_serializers": True,
-        "inherited_custom_action": True,
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "runtime": "passed",
+                "schema_versions": sorted(documents),
+                "deterministic": True,
+                "version_specific_serializers": True,
+                "inherited_custom_action": True,
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":
