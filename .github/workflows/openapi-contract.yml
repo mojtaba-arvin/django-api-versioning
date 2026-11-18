@@ -61,6 +61,15 @@ jobs:
             --oasdiff /usr/local/bin/oasdiff \
             --schema-dir "$RUNNER_TEMP/openapi-contract-schemas"
 
+      - name: Compare candidate schemas with committed version baselines
+        run: |
+          oasdiff breaking --fail-on ERR \
+            examples/openapi_contract/schemas/v1/openapi.yaml \
+            "$RUNNER_TEMP/openapi-contract-schemas/v1/openapi.yaml"
+          oasdiff breaking --fail-on ERR \
+            examples/openapi_contract/schemas/v2/openapi.yaml \
+            "$RUNNER_TEMP/openapi-contract-schemas/v2/openapi.yaml"
+
       - name: Upload generated OpenAPI schemas for review
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
