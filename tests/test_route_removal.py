@@ -264,7 +264,6 @@ def test_check_versions_displays_explicit_removed_state():
     assert "<removed>" in output.getvalue()
 
 
-
 @pytest.mark.parametrize("prefix", ["/orders", "orders/"])
 def test_router_remove_rejects_non_normalized_prefix(prefix):
     from django_api_versioning.routers import VersionedRouter
