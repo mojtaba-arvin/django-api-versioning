@@ -18,11 +18,16 @@ def _document(
         "type": "object",
         "properties": {"value": property_schema},
     }
+    response_payload = (
+        payload
+        if direction == "response"
+        else {"type": "object", "properties": {"value": {"type": "string"}}}
+    )
     operation: dict[str, Any] = {
         "responses": {
             "200": {
                 "description": "OK",
-                "content": {"application/json": {"schema": payload}},
+                "content": {"application/json": {"schema": response_payload}},
             }
         }
     }
