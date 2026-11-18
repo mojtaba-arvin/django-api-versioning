@@ -1,6 +1,8 @@
+from io import StringIO
 from types import ModuleType
 
 import pytest
+from django.core.management import call_command
 from django.http import JsonResponse
 from django.test import override_settings
 from django.urls import NoReverseMatch, clear_url_caches
@@ -232,3 +234,16 @@ def test_reused_physical_path_keeps_the_new_active_route_in_snapshot():
 
     matrix = build_version_matrix()
     assert matrix["api/v3/orders/"] == {"3": "orders_v3_replacement"}
+
+
+def test_check_versions_displays_explicit_removed_state():
+    original = _view("orders_v1")
+    _register_segment(original)
+    registry.remove("shop/orders/", from_version=3)
+
+    output = StringIO()
+    call_command("check_versions", stdout=output)
+
+    assert "shop/orders/" in output.getvalue()
+    assert "v3" in output.getvalue()
+    assert "<removed>" in output.getvalue()
