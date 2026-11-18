@@ -121,7 +121,7 @@ This registers only the configured route. It does not create the full list/detai
 | `InvalidVersionError` | A declared version exceeds `API_MAX_VERSION`. |
 | `VersionTypeError` | A version value is not an integer; booleans are rejected. |
 | `AmbiguousVersionError` | `api_reverse()` has multiple matches and no version was supplied. |
-| `VersionMatrixError` | `assert_version_matrix()` detects a difference from the saved route snapshot. |
+| `VersionMatrixError` | `assert_version_matrix()` detects a route-matrix difference or, with `strict=True`, a missing snapshot path, empty registry, or missing baseline. |
 
 ## Route-matrix tools
 
@@ -157,10 +157,21 @@ from django_api_versioning.testing import assert_version_matrix
 
 
 def test_version_matrix():
-    assert_version_matrix(snapshot=".version_matrix.json")
+    assert_version_matrix(snapshot=".version_matrix.json", strict=True)
 ~~~
 
 For backward compatibility, omitting the snapshot keeps the historical no-op behavior, and a missing snapshot is created by default. In CI, use `strict=True` to require a non-empty route matrix and an existing committed snapshot. Create or intentionally refresh the snapshot once with `update=True`, review and commit the generated JSON file, then keep `update=True` out of the committed test. With `strict=True`, an empty registry or missing snapshot fails, preventing accidental loss of imports or the baseline from silently passing CI.
+
+To create the initial snapshot, import the modules that contain your `@endpoint` declarations in the same Django process, then call:
+
+~~~python
+from myproject.api import views  # Import the module(s) that register endpoints.
+from django_api_versioning.testing import assert_version_matrix
+
+assert_version_matrix(snapshot=".version_matrix.json", update=True)
+~~~
+
+Replace `myproject.api.views` with the actual module(s) in your project. Commit the generated JSON file and use the strict assertion shown above in regular CI runs.
 
 ## API lifecycle
 
