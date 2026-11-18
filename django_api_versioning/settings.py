@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from string import Formatter
 from typing import Any, Callable
 
@@ -168,6 +168,7 @@ class APISettings:
                     f"Retired API version {version} requires a 'sunset' date."
                 )
 
+            parsed_dates: dict[str, datetime] = {}
             for field_name in ("deprecated_at", "sunset"):
                 if field_name not in meta:
                     continue
@@ -178,12 +179,35 @@ class APISettings:
                         "must be an ISO 8601 string."
                     )
                 try:
-                    datetime.fromisoformat(value)
+                    # Normalize UTC's Z suffix for Python 3.10 compatibility.
+                    normalized_value = (
+                        value[:-1] + "+00:00" if value.endswith("Z") else value
+                    )
+                    parsed = datetime.fromisoformat(normalized_value)
                 except ValueError as exc:
                     raise VersioningError(
                         f"Lifecycle {field_name} for version {version} "
                         "must be a valid ISO 8601 date or datetime."
                     ) from exc
+
+                # Match LifecycleMiddleware: timezone-naive values are UTC.
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                else:
+                    parsed = parsed.astimezone(timezone.utc)
+                parsed_dates[field_name] = parsed
+
+            deprecation_date = parsed_dates.get("deprecated_at")
+            sunset_date = parsed_dates.get("sunset")
+            if (
+                deprecation_date is not None
+                and sunset_date is not None
+                and sunset_date < deprecation_date
+            ):
+                raise VersioningError(
+                    f"Lifecycle sunset for version {version} must not be "
+                    "earlier than deprecated_at."
+                )
 
     def _validate_channels(self) -> None:
         allowed = {"path", "header", "query"}
