@@ -74,6 +74,11 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["website"])
         self.assertTrue(result["dependency"])
 
+    def test_nested_example_requirements_run_dependency_review(self):
+        result = classify_paths(["examples/consumer_migration/requirements.txt"])
+        self.assertTrue(result["openapi"])
+        self.assertTrue(result["dependency"])
+
     def test_nested_website_agent_files_run_agent_validation(self):
         result = classify_paths(["website/.agents/skills/obsolete/SKILL.md"])
         self.assertTrue(result["website"])
