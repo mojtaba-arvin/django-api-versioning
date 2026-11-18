@@ -1,6 +1,6 @@
 import pytest
 from django.http import JsonResponse
-from django.urls import NoReverseMatch, path
+from django.urls import NoReverseMatch
 
 from django_api_versioning import api_reverse, endpoint, remove_endpoint
 from django_api_versioning.registry import registry
