@@ -17,6 +17,15 @@ urlconf = ModuleType("lifecycle_route_test_urls")
 urlconf.urlpatterns = []
 
 
+class RequestURLConfOverrideMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request.urlconf = urlconf
+        return self.get_response(request)
+
+
 def _lifecycle(version_one, version_two):
     return {
         1: version_one,
@@ -202,3 +211,34 @@ def test_async_request_uses_resolved_route_lifecycle_policy():
 
     assert response.status_code == 410
     assert calls == []
+
+def test_request_urlconf_override_controls_resolved_lifecycle_version():
+    def orders(request):
+        return HttpResponse("custom urlconf")
+
+    registry.register_urlpattern(
+        path("api/v2/orders/", orders),
+        route_version=2,
+    )
+    urlconf.urlpatterns = list(registry.urlpatterns)
+
+    root_urlconf = ModuleType("lifecycle_root_urls")
+    root_urlconf.urlpatterns = [
+        path("api/v2/orders/", orders, kwargs={"version": 1}),
+    ]
+    middleware = [
+        f"{__name__}.RequestURLConfOverrideMiddleware",
+        "django_api_versioning.lifecycle.LifecycleMiddleware",
+    ]
+    context = override_settings(
+        ROOT_URLCONF=root_urlconf,
+        MIDDLEWARE=middleware,
+        API_VERSION_LIFECYCLE=_lifecycle(_retired(), _deprecated()),
+    )
+
+    with context:
+        response = Client().get("/api/v2/orders/")
+
+    assert response.status_code == 200
+    assert response.content == b"custom urlconf"
+    assert response["Deprecation"] == "@1577836800"
