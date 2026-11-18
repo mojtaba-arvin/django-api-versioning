@@ -5,7 +5,7 @@ from types import ModuleType
 from asgiref.sync import async_to_sync
 from django.http import HttpResponse, HttpResponseNotFound
 from django.test import AsyncClient, Client, override_settings
-from django.urls import clear_url_caches, include, path
+from django.urls import clear_url_caches, include, path, resolve
 from rest_framework import viewsets
 from rest_framework.response import Response
 
@@ -169,6 +169,8 @@ def test_versioned_router_route_metadata_survives_nested_include(monkeypatch):
     )
 
     with context:
+        match = resolve("/api/v1/proxy/api/v2/orders/", urlconf=urlconf)
+        assert registry.get_resolved_route_version(match.route) == 2, match.route
         response = Client().get("/api/v1/proxy/api/v2/orders/")
 
     assert response.status_code == 200
