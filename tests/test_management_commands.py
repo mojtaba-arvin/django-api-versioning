@@ -831,3 +831,44 @@ class TestMigrateEndpointsCommand:
         assert "versions=list(range(1, 3))" in first_file.read_text()
         assert second_file.read_text() == source
         assert list(tmp_path.glob(".*.tmp")) == []
+
+    @pytest.mark.parametrize(
+        ("decorator", "expected_reason"),
+        [
+            (
+                '@endpoint("users", version=2, backward=True, backward=False)',
+                "duplicate backward= arguments",
+            ),
+            (
+                '@endpoint("users", version=2, backward=True, versions=[1])',
+                "explicit versions argument",
+            ),
+            (
+                '@endpoint("users", version=2, backward=True, forward=False, **options)',
+                "**kwargs expansion",
+            ),
+            (
+                '@endpoint("users", version=2, backward=FLAG, forward=False)',
+                "backward must be a literal boolean",
+            ),
+            (
+                '@endpoint("users", version=2, backward=True, forward=FLAG)',
+                "forward must be a literal boolean or None",
+            ),
+        ],
+    )
+    def test_unsupported_legacy_forms_are_reported(
+        self, tmp_path, decorator, expected_reason
+    ):
+        source = decorator + "\n" + "def view(request):\n    return None\n"
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        output = out.getvalue()
+        assert "views.py:1:" in output
+        assert expected_reason in output
+        assert "1 skipped for manual review" in output
+        assert view_file.read_text() == source
