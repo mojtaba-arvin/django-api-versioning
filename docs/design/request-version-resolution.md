@@ -95,7 +95,7 @@ The selected transport is explicit and mutually exclusive. Conflicting path/head
 
 ### 4.2 Integer version identifiers
 
-The existing integer version model is retained. Values must be positive integers; booleans, floats, repeated prefixes, empty strings, and partial numeric strings are invalid. The package must never truncate or loosely coerce values such as `2.5` into version `2`.
+The existing integer version model is retained. Wire values must be unambiguous decimal integers; booleans, floats, repeated prefixes, empty strings, and partial numeric strings are invalid. The package must never truncate or loosely coerce values such as `2.5` into version `2`. The configured `API_MIN_VERSION` and `API_MAX_VERSION` remain the bounds; this proposal does not add a new positivity constraint.
 
 ### 4.3 Resolution stages
 
@@ -184,3 +184,44 @@ References:
 ## 8. Release decision
 
 This ADR and clearer compatibility guidance are documentation-only and do not justify a package release by themselves. Do not publish a new version until an actual runtime improvement has passed the implementation gates and the existing compatibility, packaging, security, and documentation checks.
+
+
+## 9. Higher-priority adoption opportunity: DRF ViewSet router integration
+
+The current `@endpoint` API cannot accept a DRF `ViewSet` class directly because `ViewSet.as_view()` requires an action mapping. Registering one manually configured callable covers one route, but it does not provide the router-generated list, detail, and extra-action routes. The README currently documents this boundary.
+
+This matters because DRF presents ViewSets and routers as the conventional way to combine resource actions and generate consistent URL configuration; routers also include custom `@action` routes and derive route names. For router-heavy projects, the current limitation can be a concrete adoption blocker.
+
+References:
+
+- [DRF ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/)
+- [DRF Routers](https://www.django-rest-framework.org/api-guide/routers/)
+- [Current package ViewSet boundary](https://github.com/mojtaba-arvin/django-api-versioning#drf-viewset-boundary)
+
+### Recommended direction
+
+Prioritize a separate optional-DRF `VersionedRouter` design over generic Header/Query negotiation. It should preserve DRF's router semantics and add only the version mapping:
+
+```python
+router = VersionedRouter()
+router.register("orders", OrdersV1, version=1, basename="order")
+router.register("orders", OrdersV2, version=2, basename="order")
+```
+
+This is an illustrative target API, not an existing API. The router must generate the complete route set for each registered ViewSet implementation, then apply the package's forward-inheritance and explicit-version rules. It must not be implemented as a thin `as_view()` wrapper that loses router-generated extra actions or action-level configuration.
+
+The initial implementation proposal must account for:
+
+- list/detail routes, custom `@action` routes, HTTP-method-to-action maps, lookup converters/regexes, trailing-slash configuration, basename generation, and URL names;
+- collision/precedence rules when two ViewSet implementations register the same logical resource;
+- inclusion under Django URLconfs and namespacing;
+- `api_reverse()`, route-matrix snapshots, `check_versions`, lifecycle version extraction, and schema generation;
+- preserving optional dependency behavior: importing the core package must not require DRF.
+
+A small companion DRF versioning class should expose the matched package version through `request.version` for APIViews and generic views registered by the package. It must use the version associated with the resolved route, not guess from arbitrary path substrings. Its reverse behavior must be consistent with `api_reverse()`.
+
+### Why this is prioritized over negotiation
+
+DRF already supplies the common request-version schemes and a custom versioning-class extension point. Reimplementing those schemes provides little differentiation unless the package also solves view selection and tenant policy. By contrast, first-class ViewSet router support removes an explicitly documented limitation in a common DRF routing workflow while reinforcing the package's existing core advantage: one declarative registry, inherited route implementations, and a testable version matrix.
+
+This feature also has a more bounded trust model than a tenant resolver: the requested version remains explicit in the URL, so it does not require an authentication-dependent decision before DRF's `perform_authentication()`.
