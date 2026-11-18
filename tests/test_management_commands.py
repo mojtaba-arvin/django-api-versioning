@@ -11,7 +11,9 @@ from django.core.management.base import CommandError
 from django.http import JsonResponse
 
 from django_api_versioning.decorators import endpoint
-from django_api_versioning.management.commands import migrate_endpoints as migrate_module
+from django_api_versioning.management.commands import (
+    migrate_endpoints as migrate_module,
+)
 from django_api_versioning.management.commands.migrate_endpoints import (
     _has_comments,
     _rewrite_args,
@@ -647,7 +649,8 @@ class TestMigrateEndpointsCommand:
         assert view_file.read_text() == source
 
     @pytest.mark.skipif(
-        os.name == "nt", reason="POSIX permission bits are not fully supported on Windows"
+        os.name == "nt",
+        reason="POSIX permission bits are not fully supported on Windows",
     )
     def test_atomic_write_preserves_file_permissions(self, tmp_path):
         source = (
