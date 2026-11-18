@@ -2,7 +2,7 @@ name: Compatibility matrix
 
 on:
   # Standard GitHub-hosted runners are free for public repositories.
-  # Run the complete compatibility matrix for package/test changes and on PR review.
+  # Run the complete matrix on main and for releases; PRs use a bounded smoke matrix.
   push:
     branches:
       - main
@@ -18,7 +18,22 @@ on:
       - ".github/workflows/compatibility.yml"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
+    inputs:
+      scope:
+        description: "Select the full matrix or the bounded pull-request smoke matrix."
+        required: false
+        type: choice
+        options:
+          - full
+          - pull-request
+        default: full
   workflow_call:
+    inputs:
+      scope:
+        description: "Full matrix by default; pull-request selects boundary environments only."
+        required: false
+        type: string
+        default: full
 
 permissions:
   contents: read
@@ -88,6 +103,9 @@ jobs:
     needs: validate-matrix
     name: ${{ matrix.env }}
     runs-on: ubuntu-latest
+    if: >-
+      inputs.scope != 'pull-request' ||
+      contains(fromJSON('["py310-django42","py315-django61","lint"]'), matrix.env)
     timeout-minutes: 30
     strategy:
       fail-fast: false
