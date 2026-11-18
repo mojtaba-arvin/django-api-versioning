@@ -139,8 +139,10 @@ See [ViewSet support and limitations](https://mojtaba-arvin.github.io/django-api
 ## Requirements
 
 - Python 3.10+
-- Django 4.2+
+- Django 4.2+ (retained for compatibility with existing 1.x installations)
 - Django REST Framework is optional.
+
+**For new deployments, use a currently supported Django release, preferably Django 5.2 LTS or later.** Django 4.2 reached the end of extended support on 7 April 2026. It remains in this package's compatibility matrix for existing projects, but no longer receives Django security fixes. See [Django's supported versions](https://www.djangoproject.com/download/#supported-versions).
 
 The configured CI matrix covers selected combinations of Python 3.10–3.15 and Django 4.2, 5.2, 6.0, and 6.1. See [tox.ini](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tox.ini) for configured environments and [GitHub Actions](https://github.com/mojtaba-arvin/django-api-versioning/actions) for results tied to a specific commit.
 
@@ -163,6 +165,7 @@ For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/
 - [DRF integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/013-drf-version-negotiation-vs-endpoint-registration/).
 - [Python and Django compatibility guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/024-django-api-versioning-supported-django-python-versions/).
 - [Documentation source map](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
+- [Request version resolution decision](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-resolution.md) — why path-based handler selection remains the current contract and what a safe future negotiation design requires.
 
 ## Contributing
 
