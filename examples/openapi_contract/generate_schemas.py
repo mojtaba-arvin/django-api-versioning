@@ -1,4 +1,5 @@
 """Write versioned candidate schemas to a caller-selected directory."""
+
 from __future__ import annotations
 
 import argparse
