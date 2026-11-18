@@ -59,8 +59,13 @@ dev = [
     "pre-commit>=4.7.0; python_version >= '3.11'",
     "twine>=7.0.0",
     "build>=1.6.1",
-    "djangorestframework>=3.18",
     "tomli>=2.0.1; python_version < '3.11'",
+]
+drf = [
+    "djangorestframework>=3.18,<3.19",
+]
+drf-legacy = [
+    "djangorestframework>=3.17.2,<3.18",
 ]
 
 [project.urls]
