@@ -200,7 +200,8 @@ class APISettings:
             deprecation_date = parsed_dates.get("deprecated_at")
             sunset_date = parsed_dates.get("sunset")
             if (
-                deprecation_date is not None
+                status in {"deprecated", "retired"}
+                and deprecation_date is not None
                 and sunset_date is not None
                 and sunset_date < deprecation_date
             ):
