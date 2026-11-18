@@ -185,7 +185,10 @@ SYMBOLS = {
         "Command._warn_gaps",
     ),
     "LifecycleMiddleware.__call__": ("lifecycle.py", "LifecycleMiddleware.__call__"),
-    "LifecycleMiddleware.process_view": ("lifecycle.py", "LifecycleMiddleware.process_view"),
+    "LifecycleMiddleware.process_view": (
+        "lifecycle.py",
+        "LifecycleMiddleware.process_view",
+    ),
     "_extract_version_from_path": ("lifecycle.py", "_extract_version_from_path"),
     "_parse_sunset": ("lifecycle.py", "_parse_sunset"),
     "build_version_matrix": ("testing.py", "build_version_matrix"),
