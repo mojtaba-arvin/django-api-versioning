@@ -706,9 +706,9 @@ class TestMigrateEndpointsCommand:
         self, tmp_path
     ):
         source = (
-            '@endpoint("users", version=VERSION, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=VERSION, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -724,13 +724,13 @@ class TestMigrateEndpointsCommand:
 
     def test_positional_version_and_comments_are_reported_separately(self, tmp_path):
         source = (
-            '@endpoint("users", 2, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
-            '@endpoint("posts", version=2, backward=True, # preserve this note\\n'
-            "          forward=False)\\n"
-            "def posts(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", 2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+            '@endpoint("posts", version=2, backward=True, # preserve this note\n'
+            "          forward=False)\n"
+            "def posts(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -747,12 +747,12 @@ class TestMigrateEndpointsCommand:
 
     def test_diff_reports_skipped_occurrences_in_a_separate_section(self, tmp_path):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
-            '@endpoint("posts", version=VERSION, backward=True, forward=False)\\n'
-            "def posts(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
+            '@endpoint("posts", version=VERSION, backward=True, forward=False)\n'
+            "def posts(request):\n"
+            "    return None\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -761,15 +761,15 @@ class TestMigrateEndpointsCommand:
         call_command("migrate_endpoints", path=str(tmp_path), diff=True, stdout=out)
 
         output = out.getvalue()
-        assert output.startswith("--- views.py\\n+++ views.py\\n")
+        assert output.startswith("--- views.py\n+++ views.py\n")
         assert "Skipped legacy decorators (manual review required):" in output
         assert "views.py:4: version must be a literal integer" in output
         assert view_file.read_text() == source
 
     def test_syntax_error_with_legacy_markers_is_reported(self, tmp_path):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def broken(\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def broken(\n"
         )
         view_file = tmp_path / "views.py"
         view_file.write_text(source)
@@ -784,9 +784,9 @@ class TestMigrateEndpointsCommand:
 
     def test_file_processing_order_is_deterministic(self, tmp_path):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
         )
         z_file = tmp_path / "z.py"
         a_file = tmp_path / "a.py"
@@ -801,9 +801,9 @@ class TestMigrateEndpointsCommand:
 
     def test_write_failure_reports_files_already_updated(self, tmp_path, monkeypatch):
         source = (
-            '@endpoint("users", version=2, backward=True, forward=False)\\n'
-            "def users(request):\\n"
-            "    return None\\n"
+            '@endpoint("users", version=2, backward=True, forward=False)\n'
+            "def users(request):\n"
+            "    return None\n"
         )
         first_file = tmp_path / "a.py"
         second_file = tmp_path / "b.py"
