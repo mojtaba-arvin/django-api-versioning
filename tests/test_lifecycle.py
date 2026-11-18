@@ -401,26 +401,28 @@ class TestVersionExtraction:
         assert version == 1
 
     def test_extract_version_precedence_order(self):
-        """Verifies version extraction precedence: request.version > kwargs > path."""
+        """Verifies resolver metadata > request.version > path fallback precedence."""
         from unittest.mock import Mock
 
         from django_api_versioning.lifecycle import _extract_version
 
-        # When all three are set, request.version wins
+        # A version captured by the actual resolver wins over an unrelated
+        # request.version value; the route selected by Django is authoritative.
         request = RequestFactory().get("/api/v1/users/")
         request.version = "5"
         request.resolver_match = Mock()
         request.resolver_match.kwargs = {"version": "3"}
         version = _extract_version(request)
-        assert version == 5
-
-        # When request.version is None, kwargs wins
-        request.version = None
-        version = _extract_version(request)
         assert version == 3
 
-        # When both are None, path wins
+        # Without resolver version metadata, request.version remains a fallback.
         request.resolver_match.kwargs = {}
+        version = _extract_version(request)
+        assert version == 5
+
+        # When resolver metadata and request.version are both absent, path wins.
+        request.resolver_match.kwargs = {}
+        request.version = None
         version = _extract_version(request)
         assert version == 1
 
