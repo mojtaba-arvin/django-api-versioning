@@ -647,6 +647,9 @@ class TestMigrateEndpointsCommand:
         assert '+@endpoint("users", versions=list(range(1, 3)))' in output
         assert view_file.read_text() == source
 
+    @pytest.mark.skipif(
+        os.name == "nt", reason="POSIX permission bits are not fully supported on Windows"
+    )
     def test_atomic_write_preserves_file_permissions(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\\n'
