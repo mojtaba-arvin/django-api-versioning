@@ -139,3 +139,21 @@ def _validate_version(version: int, max_version: int) -> None:
         raise InvalidVersionError(
             f"Version {version} is above the maximum allowed version {max_version}."
         )
+
+
+def remove_endpoint(
+    postfix: str,
+    *,
+    from_version: int,
+    app_name: str | None = None,
+) -> None:
+    """Remove a logical endpoint from a version onward.
+
+    A later declaration with a higher source version can reintroduce it.
+    """
+    if not isinstance(postfix, str):
+        raise TypeError("postfix must be a string.")
+    if postfix.startswith("/"):
+        raise VersioningError("postfix must be relative and must not start with '/'.")
+    app_name_part = f"{app_name}/" if app_name else ""
+    registry.remove(f"{app_name_part}{postfix}", from_version)
