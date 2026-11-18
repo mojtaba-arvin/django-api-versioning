@@ -1,7 +1,7 @@
 """Minimal settings for the executable OpenAPI contract example."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 EXAMPLE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = EXAMPLE_ROOT.parents[1]
