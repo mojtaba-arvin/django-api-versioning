@@ -41,6 +41,24 @@ jobs:
           python examples/openapi_contract/generate_schemas.py \
             --output-dir "$RUNNER_TEMP/openapi-contract-schemas"
 
+      - name: Install pinned oasdiff
+        run: |
+          archive="$RUNNER_TEMP/oasdiff_1.38.0_linux_amd64.tar.gz"
+          curl -fsSL \
+            https://github.com/oasdiff/oasdiff/releases/download/v1.38.0/oasdiff_1.38.0_linux_amd64.tar.gz \
+            -o "$archive"
+          echo "613037fd6a1d3362a1b742d6d86c338c0eb5ab3511f4942ce3948e78720ea2da  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/oasdiff"
+          sudo install "$RUNNER_TEMP/oasdiff/oasdiff" /usr/local/bin/oasdiff
+          oasdiff version
+
+      - name: Verify semantic breaking-change detection
+        run: |
+          python examples/openapi_contract/verify_oasdiff.py \
+            --oasdiff /usr/local/bin/oasdiff \
+            --schema-dir "$RUNNER_TEMP/openapi-contract-schemas"
+
       - name: Upload generated OpenAPI schemas for review
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
