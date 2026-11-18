@@ -209,6 +209,23 @@ def verify_nullability(binary: Path, root: Path) -> None:
         openapi="3.0.3", before=_nullable_allof_30(),
         after=_nonnull_allof_30(), direction="request", expected_exit=1,
         expected_check="request-property-became-not-nullable",
+    )
+    _assert_case(
+        binary, root, "allof-flatten-request-min-length-increased",
+        openapi="3.0.3",
+        before={"allOf": [{"type": "string"}, {"minLength": 3}]},
+        after={"allOf": [{"type": "string"}, {"minLength": 5}]},
+        direction="request", expected_exit=1,
+        expected_check="request-property-min-length-increased",
+        flatten_allof=True,
+    )
+    _assert_case(
+        binary, root, "allof-flatten-response-min-length-decreased",
+        openapi="3.0.3",
+        before={"allOf": [{"type": "string"}, {"minLength": 5}]},
+        after={"allOf": [{"type": "string"}, {"minLength": 3}]},
+        direction="response", expected_exit=1,
+        expected_check="response-property-min-length-decreased",
         flatten_allof=True,
     )
 
