@@ -4,6 +4,11 @@ from django.http import HttpResponse
 from django.urls import URLPattern, path
 from django.views import View
 
+from .exceptions import InvalidVersionError, VersionRangeError, VersionTypeError
+from .settings import api_settings
+
+REMOVED_ROUTE = object()
+
 ViewType = Callable[..., HttpResponse] | type[View]
 
 
@@ -16,6 +21,73 @@ class UrlRegistry:
 
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
+        self._removal_boundaries: dict[str, set[int]] = {}
+        self._removed_patterns: dict[tuple[str, int], URLPattern] = {}
+
+    def clear(self) -> None:
+        """Clear active routes and removal declarations."""
+        self.urlpatterns.clear()
+        self._removal_boundaries.clear()
+        self._removed_patterns.clear()
+
+    def remove(self, logical_endpoint: str, from_version: int) -> None:
+        """Suppress an endpoint from a concrete version until reintroduced."""
+        if not isinstance(logical_endpoint, str) or not logical_endpoint:
+            raise TypeError("logical_endpoint must be a non-empty string.")
+        if isinstance(from_version, bool) or not isinstance(from_version, int):
+            raise VersionTypeError("Removal version must be an integer.")
+        if from_version > api_settings.API_MAX_VERSION:
+            raise InvalidVersionError(
+                f"Removal version {from_version} is above the maximum allowed "
+                f"version {api_settings.API_MAX_VERSION}."
+            )
+        if from_version < api_settings.API_MIN_VERSION:
+            raise VersionRangeError(
+                f"Removal version {from_version} is below the minimum allowed "
+                f"version {api_settings.API_MIN_VERSION}."
+            )
+
+        self._removal_boundaries.setdefault(logical_endpoint, set()).add(from_version)
+
+        for index in range(len(self.urlpatterns) - 1, -1, -1):
+            pattern = self.urlpatterns[index]
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
+                continue
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
+            if route_version is None or route_version < from_version:
+                continue
+            if source_version is not None and source_version > from_version:
+                continue
+            self._removed_patterns[(logical_endpoint, route_version)] = pattern
+            del self.urlpatterns[index]
+
+    def _removal_boundary(
+        self,
+        logical_endpoint: str | None,
+        route_version: int | None,
+    ) -> int | None:
+        if logical_endpoint is None or route_version is None:
+            return None
+        boundaries = self._removal_boundaries.get(logical_endpoint, set())
+        applicable = [boundary for boundary in boundaries if boundary <= route_version]
+        return max(applicable) if applicable else None
+
+    def _is_suppressed(
+        self,
+        logical_endpoint: str | None,
+        route_version: int | None,
+        source_version: int | None,
+    ) -> bool:
+        boundary = self._removal_boundary(logical_endpoint, route_version)
+        return boundary is not None and (
+            source_version is None or source_version <= boundary
+        )
+
+    def _record_removed(self, pattern: URLPattern, logical_endpoint: str) -> None:
+        route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+        if route_version is not None:
+            self._removed_patterns[(logical_endpoint, route_version)] = pattern
 
     def register(
         self,
@@ -40,6 +112,23 @@ class UrlRegistry:
         setattr(pattern, self._ROUTE_VERSION_ATTR, route_version)
         if logical_endpoint is not None:
             setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+
+        if self._is_suppressed(logical_endpoint, route_version, source_version):
+            if route_index is not None:
+                existing = self.urlpatterns[route_index]
+                existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
+                existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
+                existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
+                if self._is_suppressed(
+                    existing_logical, existing_version, existing_source
+                ):
+                    del self.urlpatterns[route_index]
+            if logical_endpoint is not None:
+                self._record_removed(pattern, logical_endpoint)
+            return
+
+        if logical_endpoint is not None and route_version is not None:
+            self._removed_patterns.pop((logical_endpoint, route_version), None)
 
         if route_index is None:
             self.urlpatterns.append(pattern)
@@ -78,6 +167,21 @@ class UrlRegistry:
         if logical_endpoint is not None:
             setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
 
+        if self._is_suppressed(logical_endpoint, route_version, source_version):
+            if route_index is not None:
+                existing = self.urlpatterns[route_index]
+                existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
+                existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
+                existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
+                if self._is_suppressed(existing_logical, existing_version, existing_source):
+                    del self.urlpatterns[route_index]
+            if logical_endpoint is not None:
+                self._record_removed(pattern, logical_endpoint)
+            return
+
+        if logical_endpoint is not None and route_version is not None:
+            self._removed_patterns.pop((logical_endpoint, route_version), None)
+
         if route_index is None:
             self.urlpatterns.append(pattern)
         else:
@@ -109,6 +213,11 @@ class UrlRegistry:
             route = str(pattern.pattern)
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(route, {})[route_version] = pattern.callback
+        for (_, route_version), pattern in self._removed_patterns.items():
+            tombstone_path = str(pattern.pattern)
+            matrix.setdefault(tombstone_path, {}).setdefault(
+                route_version, REMOVED_ROUTE
+            )
         return matrix
 
     def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
@@ -127,6 +236,8 @@ class UrlRegistry:
             )
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(logical_id, {})[route_version] = pattern.callback
+        for (logical_id, route_version), _pattern in self._removed_patterns.items():
+            matrix.setdefault(logical_id, {})[route_version] = REMOVED_ROUTE
         return matrix
 
     def _find_route_index(self, route: str) -> int | None:
