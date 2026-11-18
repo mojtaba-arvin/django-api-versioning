@@ -162,11 +162,18 @@ def test_router_removal_is_action_specific():
 
     class OrderViewSetV1(viewsets.ViewSet):
         def list(self, request):
-            return Response({})
+            return Response({"route": "list"})
+
+        def retrieve(self, request, pk=None):
+            return Response({"route": "detail", "pk": pk})
 
         @action(detail=False, methods=["get"], url_path="archive")
         def archive(self, request):
-            return Response({})
+            return Response({"route": "archive"})
+
+        @action(detail=False, methods=["get"])
+        def availability(self, request):
+            return Response({"route": "availability"})
 
     router = VersionedRouter()
     router.register("orders", OrderViewSetV1, version=1, basename="order")
@@ -178,7 +185,9 @@ def test_router_removal_is_action_specific():
         if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, "").startswith("orders:")
     }
     assert "order-list" in active
+    assert "order-detail" in active
     assert "order-archive" in active
+    assert "order-availability" in active
     urlconf = ModuleType("route_removal_test_urls")
     urlconf.urlpatterns = router.urls
     clear_url_caches()
@@ -187,6 +196,11 @@ def test_router_removal_is_action_specific():
         client = APIClient()
         assert client.get("/api/v2/orders/archive/").status_code == 200
         assert client.get("/api/v3/orders/").status_code == 200
+        assert client.get("/api/v3/orders/42/").json() == {
+            "route": "detail",
+            "pk": "42",
+        }
+        assert client.get("/api/v3/orders/availability/").status_code == 200
         assert client.get("/api/v3/orders/archive/").status_code == 404
 
     assert all(
