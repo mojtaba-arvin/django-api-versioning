@@ -281,7 +281,7 @@ def _legacy_version_argument(version: int, backward: bool, forward: bool) -> str
 
 def _rewrite_call(text: str, call: ast.Call) -> str | None:
     legacy = _legacy_options(call)
-    if legacy is None:
+    if legacy is None or any(keyword.arg is None for keyword in call.keywords):
         return None
 
     call_source = ast.get_source_segment(text, call)
