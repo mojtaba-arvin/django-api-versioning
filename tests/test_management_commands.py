@@ -872,3 +872,36 @@ class TestMigrateEndpointsCommand:
         assert expected_reason in output
         assert "1 skipped for manual review" in output
         assert view_file.read_text() == source
+
+    def test_imported_endpoint_alias_is_rewritten(self, tmp_path):
+        source = (
+            "from django_api_versioning import endpoint as api_endpoint\\n"
+            '@api_endpoint("users", version=2, backward=True, forward=False)\\n'
+            "def users(request):\\n"
+            "    return None\\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        assert "@api_endpoint(" in out.getvalue()
+        assert "versions=[2]" in out.getvalue()
+        assert view_file.read_text() == source
+
+    def test_dynamic_imported_endpoint_alias_is_reported(self, tmp_path):
+        source = (
+            "from django_api_versioning.decorators import endpoint as api_endpoint\\n"
+            '@api_endpoint("users", version=VERSION, backward=True, forward=False)\\n'
+            "def users(request):\\n"
+            "    return None\\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        out = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), stdout=out)
+
+        assert "views.py:2:" in out.getvalue()
+        assert "version must be a literal integer" in out.getvalue()
