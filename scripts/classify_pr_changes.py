@@ -44,6 +44,14 @@ COMPATIBILITY_PATHS = {
     ".github/workflows/publish.yml",
     "scripts/check_tox_workflow_matrix.py",
 }
+OPENAPI_PATHS = (
+    "django_api_versioning/",
+    "examples/openapi_contract/",
+)
+OPENAPI_EXPLICIT_PATHS = {
+    "docs/design/versioned-openapi-contract.md",
+    ".github/workflows/openapi-contract.yml",
+}
 
 
 def classify_paths(paths: list[str]) -> dict[str, bool]:
@@ -124,6 +132,10 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         or path.startswith("requirements")
         for path in normalized
     )
+    is_openapi = any(
+        path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
+        for path in normalized
+    )
 
     return {
         "python": is_python,
@@ -132,6 +144,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         "website": is_website,
         "agent": is_agent,
         "dependency": needs_dependency_review,
+        "openapi": is_openapi,
     }
 
 
