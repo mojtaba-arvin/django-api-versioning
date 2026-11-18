@@ -6,11 +6,16 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .serializers import AvailabilitySerializer, ProductV1Serializer, ProductV2Serializer
+from .serializers import (
+    AvailabilitySerializer,
+    ProductV1Serializer,
+    ProductV2Serializer,
+)
 
 
 class ProductViewSetV1(viewsets.GenericViewSet):
     """V1 implementation and custom action inherited by V2."""
+
     queryset = []
     serializer_class = ProductV1Serializer
 
@@ -39,17 +44,20 @@ class ProductViewSetV1(viewsets.GenericViewSet):
 
 class ProductViewSetV2(viewsets.GenericViewSet):
     """V2 replaces list/detail but intentionally omits availability."""
+
     queryset = []
     serializer_class = ProductV2Serializer
 
     @extend_schema(responses=ProductV2Serializer(many=True))
     def list(self, request):
-        payload = [{
-            "id": 1,
-            "name": "Desk lamp",
-            "price": Decimal("12.50"),
-            "currency": "USD",
-        }]
+        payload = [
+            {
+                "id": 1,
+                "name": "Desk lamp",
+                "price": Decimal("12.50"),
+                "currency": "USD",
+            }
+        ]
         return Response(self.get_serializer(payload, many=True).data)
 
     @extend_schema(
