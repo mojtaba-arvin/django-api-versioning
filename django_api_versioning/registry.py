@@ -106,20 +106,26 @@ class UrlRegistry:
         child endpoint's version.
         """
         matches: list[tuple[int, int]] = []
+        route_variants = {
+            route,
+            route.removeprefix("^").removesuffix("$"),
+        }
         for pattern in self.urlpatterns:
             registered_pattern = str(pattern.pattern)
-            pattern_variants = {registered_pattern}
-            normalized_pattern = registered_pattern.removeprefix("^").removesuffix("$")
-            pattern_variants.add(normalized_pattern)
+            pattern_variants = {
+                registered_pattern,
+                registered_pattern.removeprefix("^").removesuffix("$"),
+            }
 
             matched_length = 0
-            for candidate in pattern_variants:
-                start = len(route) - len(candidate)
-                if start < 0 or route[start:] != candidate:
-                    continue
-                if start and route[start - 1] != "/":
-                    continue
-                matched_length = max(matched_length, len(candidate))
+            for route_candidate in route_variants:
+                for pattern_candidate in pattern_variants:
+                    start = len(route_candidate) - len(pattern_candidate)
+                    if start < 0 or route_candidate[start:] != pattern_candidate:
+                        continue
+                    if start and route_candidate[start - 1] != "/":
+                        continue
+                    matched_length = max(matched_length, len(pattern_candidate))
 
             version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             if (
