@@ -154,6 +154,7 @@ def test_public_remove_endpoint_uses_decorator_logical_identity():
 
 def test_router_removal_is_action_specific():
     from django_api_versioning.routers import VersionedRouter
+
     from rest_framework import viewsets
     from rest_framework.decorators import action
     from rest_framework.response import Response
