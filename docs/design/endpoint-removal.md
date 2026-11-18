@@ -48,7 +48,7 @@ Examples:
 | v4 | inherited | removed | new implementation |
 | v5 | inherited | removed | new implementation inherited |
 
-A same-version registration and removal is a conflicting declaration and must fail clearly. Import order must not change the result: a late-imported v1 declaration cannot resurrect a route removed from v3.
+A registration whose source version is equal to or lower than the removal boundary remains suppressed. Only a declaration with a strictly higher source version reintroduces the route. Import order must not change the result: a late-imported v1 declaration cannot resurrect a route removed from v3.
 
 For explicit registrations, only declared versions are candidates. A tombstone suppresses a matching explicit route at or after its boundary until a later source declaration reintroduces it.
 
