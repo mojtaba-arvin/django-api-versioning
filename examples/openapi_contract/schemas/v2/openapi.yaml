@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: Versioned Router Contract Example
+  version: 1.0.0 (2)
+  description: Per-version ViewSet and serializer selection with django-api-versioning.
+paths:
+  /api/v2/products/:
+    get:
+      operationId: v2_products_list
+      description: V2 replaces list/detail but intentionally omits availability.
+      tags:
+      - v2
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductV2'
+          description: ''
+  /api/v2/products/{id}/:
+    get:
+      operationId: v2_products_retrieve
+      description: V2 replaces list/detail but intentionally omits availability.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v2
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductV2'
+          description: ''
+  /api/v2/products/availability/:
+    get:
+      operationId: v2_products_availability_retrieve
+      description: V1 implementation and custom action inherited by V2.
+      tags:
+      - v2
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+          description: ''
+components:
+  schemas:
+    Availability:
+      type: object
+      properties:
+        available:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+      required:
+      - available
+      - checked_at
+    ProductV2:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        currency:
+          type: string
+      required:
+      - currency
+      - id
+      - name
+      - price
