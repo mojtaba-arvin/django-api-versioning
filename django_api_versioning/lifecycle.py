@@ -197,10 +197,7 @@ def _extract_version_from_value(value: str) -> int | None:
     pattern = f"(?:^|/){prefix}(\\d+){suffix}"
 
     try:
-        versions = {
-            int(match.group(1))
-            for match in re.finditer(pattern, value)
-        }
+        versions = {int(match.group(1)) for match in re.finditer(pattern, value)}
     except (IndexError, ValueError, re.error):
         return None
 
