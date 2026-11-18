@@ -50,7 +50,7 @@ The CI sequence is:
 2. Generate one schema for each supported API version.
 3. Validate schemas and fail on unresolved introspection warnings.
 4. Compare each candidate only with the matching released version baseline.
-5. Run oasdiff breaking and fail on breaking changes to a stable contract.
+5. Run oasdiff breaking with `--fail-on WARN`; both definite breaking changes (`ERR`) and potential breaking changes (`WARN`) block the contract gate. Review and justify any exception with a narrowly scoped severity override.
 6. Review additive changes and update migration/release notes deliberately.
 
 A new API version starts with its own baseline. A breaking change to an existing
