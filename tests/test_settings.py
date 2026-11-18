@@ -175,6 +175,17 @@ class TestLifecycleValidation:
                 }
             )
 
+    def test_active_lifecycle_dates_do_not_apply_deprecation_ordering(self):
+        APISettings(
+            API_VERSION_LIFECYCLE={
+                1: {
+                    "status": "active",
+                    "deprecated_at": "2027-06-30",
+                    "sunset": "2027-06-29",
+                }
+            }
+        )
+
 
 class TestChannelsValidation:
     def test_unknown_channel_raises(self):
