@@ -1,5 +1,9 @@
 import ast
+import difflib
 import io
+import os
+import stat
+import tempfile
 import tokenize
 from pathlib import Path
 
@@ -38,6 +42,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Preview changes without modifying source files (the default).",
         )
+        mode.add_argument(
+            "--diff",
+            action="store_true",
+            help="Print a unified source diff without modifying files.",
+        )
         parser.add_argument("--path", default=".")
 
     def handle(self, *args, **options):
@@ -64,15 +73,57 @@ class Command(BaseCommand):
             if not rewrites:
                 continue
 
+            updated = _apply_rewrites(text, rewrites)
+            if updated == text:
+                continue
+
+            if options["diff"]:
+                relative_path = py_file.relative_to(root).as_posix()
+                self.stdout.writelines(
+                    difflib.unified_diff(
+                        text.splitlines(keepends=True),
+                        updated.splitlines(keepends=True),
+                        fromfile=relative_path,
+                        tofile=relative_path,
+                    )
+                )
+                continue
+
             self.stdout.write(f"\n{py_file}:")
             for _, _, old, new in rewrites:
                 self.stdout.write(f"  - @{old}")
                 self.stdout.write(f"  + @{new}")
 
             if options["write"]:
-                updated = _apply_rewrites(text, rewrites)
-                if updated != text:
-                    py_file.write_bytes(updated.encode(encoding))
+                _atomic_write(py_file, updated.encode(encoding))
+
+
+def _atomic_write(path: Path, content: bytes) -> None:
+    """Replace one source file atomically while preserving its permission bits."""
+    original_mode = stat.S_IMODE(path.stat().st_mode)
+    temporary_path: Path | None = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary_file:
+            temporary_path = Path(temporary_file.name)
+            temporary_file.write(content)
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+
+        os.chmod(temporary_path, original_mode)
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path is not None:
+            try:
+                temporary_path.unlink()
+            except FileNotFoundError:
+                pass
 
 
 def _is_endpoint_call(func: ast.expr) -> bool:
