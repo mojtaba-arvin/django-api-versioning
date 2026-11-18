@@ -1,7 +1,7 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Applies to:** main after PR #37; the next minor release is planned as `1.1.0` and has not yet been published.
+> **Applies to:** the `1.1.0` release candidate on `main`; the `v1.1.0` tag is created only after the release PR is merged and verified.
 > **Current stable release:** `1.0.1`, published from the annotated `v1.0.1` tag. The tag-based publish workflow verifies the tag target, runs the compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.

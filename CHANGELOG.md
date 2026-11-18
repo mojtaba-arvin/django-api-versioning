@@ -1,4 +1,3 @@
-
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -7,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.0] - 2026-11-18
 
 ### Added
 
@@ -17,18 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Extend lifecycle version extraction to recognize the configured API base path below parent URL prefixes, so nested URL includes retain deprecation and sunset behavior.
-
-### Testing
-
-- Pin Django REST Framework independently in tox for each Django compatibility line: DRF 3.17.2 for Django 4.2 and DRF 3.18.x for Django 5.2, 6.0, and 6.1. Keep the lockfile-backed generic development extra unchanged; the compatibility matrix now verifies upstream-supported DRF/Django combinations instead of resolving the latest DRF for every environment.
-
-### Documentation
-
-- Add a request-version-resolution architecture decision that documents the current path-only contract, research findings, and implementation gates for any future negotiation support.
-- Clarify that Django 4.2 remains in the 1.x compatibility matrix for existing installations but is no longer a supported Django security-release line; recommend a currently supported Django version for new deployments.
-
-### Changed
-
 - Clarify that `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` are reserved settings with no runtime effect; log a warning when non-default values are configured.
 
 ### Fixed
@@ -36,6 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add opt-in strict route-matrix assertions that reject empty registries and missing committed snapshots while preserving existing default behavior; add `check_versions --fail-on-empty` and resolve root and included URLconfs before inspecting registered endpoints.
 - Reject deprecated or retired lifecycle configurations where `sunset` is earlier than `deprecated_at`, comparing dates as UTC instants and interpreting timezone-naive ISO 8601 values as UTC.
 - `LifecycleMiddleware` now sends the `Sunset` header (and `Deprecation`, when `deprecated_at` is configured) for `retired` versions whose `sunset` date is still in the future. Previously these responses carried no lifecycle headers even though the version was about to be removed. Retired versions with a past `sunset` still return `410 Gone`, and `active` and unknown versions are unchanged.
+
+### Testing
+
+- Pin Django REST Framework independently in tox for each Django compatibility line: DRF 3.17.2 for Django 4.2 and DRF 3.18.x for Django 5.2, 6.0, and 6.1. The compatibility matrix verifies these tested Django/DRF combinations.
+- Verify the built wheel in isolation, distribution contents, and website artifacts as part of the release workflow.
+
+### Documentation
+
+- Add a request-version-resolution architecture decision that documents the current path-only contract, research findings, and implementation gates for any future negotiation support.
+- Clarify that Django 4.2 remains in the 1.x compatibility matrix for existing installations but is no longer a supported Django security-release line; recommend a currently supported Django version for new deployments.
+- Document the VersionedRouter setup, per-route inheritance, namespace-aware reversal, and the explicit boundaries of the initial SimpleRouter integration.
 
 ## [1.0.1] - 2026-11-17
 
