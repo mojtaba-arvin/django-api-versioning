@@ -33,7 +33,7 @@ class ProductViewSetV1(viewsets.GenericViewSet):
         return Response(self.get_serializer(payload).data)
 
     @extend_schema(responses=AvailabilitySerializer)
-    @action(detail=False, methods=["get"], url_path="legacy-export")
+    @action(detail=False, methods=["get"], url_path="legacy/export")
     def legacy_export(self, request):
         payload = {
             "available": True,
