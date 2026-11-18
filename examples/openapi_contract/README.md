@@ -3,6 +3,8 @@
 This executable consumer project uses the public VersionedRouter API and the
 same URLconf for runtime requests and drf-spectacular schema generation.
 
+The V1-only `legacy/export/` action is explicitly removed from V2. The verifier checks that it remains available and present in the V1 schema, while returning 404 and disappearing from the V2 schema.
+
 It deliberately tests:
 - V1 and V2 implementations for the same list/detail routes.
 - Different serializer contracts for the two versions.
