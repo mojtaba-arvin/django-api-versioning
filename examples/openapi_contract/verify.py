@@ -72,10 +72,14 @@ v1 = client.get("/api/v1/products/")
 assert v1.status_code == 200, v1.content
 assert v1.json()[0]["price"] == "12.50"
 assert "currency" not in v1.json()[0]
+assert v1.headers["Deprecation"] == "@1767225600"
+assert v1.headers["Sunset"] == "Wed, 30 Jun 2027 00:00:00 GMT"
 
 v2 = client.get("/api/v2/products/")
 assert v2.status_code == 200, v2.content
 assert v2.json()[0]["currency"] == "USD"
+assert "Deprecation" not in v2.headers
+assert "Sunset" not in v2.headers
 
 inherited = client.get("/api/v2/products/availability/")
 assert inherited.status_code == 200, inherited.content
