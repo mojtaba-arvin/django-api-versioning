@@ -51,6 +51,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Availability'
           description: ''
+  /api/v1/products/legacy/export/:
+    get:
+      operationId: v1_products_legacy_export_retrieve
+      description: V1 implementation and custom action inherited by V2.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+          description: ''
 components:
   schemas:
     Availability:
