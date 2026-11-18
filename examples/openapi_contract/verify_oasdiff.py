@@ -178,21 +178,32 @@ def verify_nullability(binary: Path, root: Path) -> None:
 
     # Composition forms. The pure oneOf wrapper is intentionally kept to
     # oasdiff's documented two-branch recognition contract.
-    for name, nullable in (
-        ("oneof", _nullable_oneof()),
-        ("anyof", _nullable_anyof()),
-    ):
+    composition_cases = (
+        (
+            "oneof",
+            _nullable_oneof(),
+            "request-property-became-not-nullable",
+            "response-property-became-nullable",
+        ),
+        (
+            "anyof",
+            _nullable_anyof(),
+            "request-property-list-of-types-narrowed",
+            "response-property-list-of-types-widened",
+        ),
+    )
+    for name, nullable, request_check, response_check in composition_cases:
         _assert_case(
             binary, root, f"{name}-request-became-nonnullable",
             openapi="3.1.0", before=nullable, after=_nonnull_31(),
             direction="request", expected_exit=1,
-            expected_check="request-property-became-not-nullable",
+            expected_check=request_check,
         )
         _assert_case(
             binary, root, f"{name}-response-became-nullable",
             openapi="3.1.0", before=_nonnull_31(), after=nullable,
             direction="response", expected_exit=1,
-            expected_check="response-property-became-nullable",
+            expected_check=response_check,
         )
 
     # v1.38.0 specifically fixed nullable:true next to an allOf/$ref when
