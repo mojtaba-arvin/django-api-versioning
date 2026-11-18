@@ -329,17 +329,21 @@ class TestVersionExtraction:
         version = _extract_version_from_path(request)
         assert version is None
 
-    def test_extract_version_anchored_pattern(self):
-        """Version is only extracted from start of path, not middle."""
+    def test_extract_version_from_nested_include_prefix(self):
+        """Version extraction supports APIs mounted below a parent URL prefix."""
         from django_api_versioning.lifecycle import _extract_version_from_path
 
-        # A path where "api/v2" appears but not at the start
-        # This should not match (returns None)
         request = RequestFactory().get("/prefix/api/v2/users/")
         request.version = None
-        version = _extract_version_from_path(request)
-        # Should be None because pattern is anchored at ^
-        assert version is None
+        assert _extract_version_from_path(request) == 2
+
+    def test_extract_version_requires_api_base_path_segment_boundary(self):
+        """A matching API base path must start at a path-segment boundary."""
+        from django_api_versioning.lifecycle import _extract_version_from_path
+
+        request = RequestFactory().get("/prefixnotapi/v2/users/")
+        request.version = None
+        assert _extract_version_from_path(request) is None
 
     def test_extract_version_with_request_version_invalid(self):
         """Invalid request.version falls back to path extraction."""
@@ -643,3 +647,21 @@ class TestOverrideSettingsCompatibility:
             # Check lifecycle with extracted version
             response = middleware(request)
             assert response.status_code == 410
+
+
+def test_lifecycle_headers_are_applied_when_api_is_mounted_under_prefix(monkeypatch):
+    """Nested URL includes still receive lifecycle headers before DRF dispatch."""
+
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {"status": "deprecated", "deprecated_at": DEPRECATED_AT, "sunset": FUTURE},
+    )
+    request = RequestFactory().get("/prefix/api/v2/users/")
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+
+    response = middleware(request)
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "@1735689600"
+    assert "Sunset" in response

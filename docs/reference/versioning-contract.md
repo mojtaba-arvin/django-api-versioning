@@ -1,8 +1,8 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Applies to:** django-api-versioning 1.0.0
-> **Release source:** the annotated `v1.0.0` tag. The tag-based publish workflow verifies the tag target, runs the compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
+> **Applies to:** main after PR #37; the next minor release is planned as `1.1.0` and has not yet been published.
+> **Current stable release:** `1.0.1`, published from the annotated `v1.0.1` tag. The tag-based publish workflow verifies the tag target, runs the compatibility matrix, builds and verifies the wheel and sdist, smoke-tests the installed wheel, and publishes the verified artifacts to PyPI through Trusted Publishing. The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
@@ -27,7 +27,7 @@ Do not copy DRF examples using string identifiers such as `"v1"` or `"1.0"` into
 
 ## 2. Canonical imports and public API
 
-The package exposes `endpoint`, `ver_range`, and `api_reverse` from its top-level namespace.
+The package exposes `endpoint`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
 
 Use these public imports:
 
@@ -43,13 +43,19 @@ from django_api_versioning.decorators import endpoint, ver_range
 
 For application code and documentation examples, prefer the top-level import path. It is the package's public API and avoids coupling consumers to the internal module structure.
 
+The optional DRF integration is deliberately imported from its own module so Django-only installations do not need DRF:
+
+```python
+from django_api_versioning.routers import VersionedRouter, VersionedRouterVersioning
+```
+
 Import the generated URL patterns from:
 
 ```python
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 ```
 
-The public decorator signature in 1.0.0 is:
+The public decorator signature is:
 
 ```python
 endpoint(
@@ -330,38 +336,37 @@ Avoid mounting the package under a prefix that unintentionally duplicates the pr
 
 ## 7. Supported view types and the ViewSet/router boundary
 
-The registry supports:
+The package supports:
 
 - Django function-based views.
 - Django class-based view classes whose `as_view()` method returns a Django view callable.
 - Django REST Framework `APIView` classes.
 - DRF generic-view classes.
+- DRF `ViewSet` and `ModelViewSet` classes through the optional `VersionedRouter` integration.
 
-For a class-based view, the registry calls `as_view()` when it receives the class.
-
-Do not pass an instantiated view object.
-
-A generic view must implement the HTTP handlers required by its registered route.
+For a class-based view, the registry calls `as_view()` when it receives the class. Do not pass an instantiated view object. A generic view must implement the HTTP handlers required by its registered route.
 
 ### ViewSets
 
-A DRF `ViewSet` class cannot be decorated directly with `@endpoint`.
-
-The registry calls `as_view()` without an actions mapping, while DRF ViewSets require an action map.
-
-Use DRF's `DefaultRouter` or `SimpleRouter` for standard ViewSet resource routing.
-
-The package does not automatically generate router-style ViewSet routes or integrate with DRF routers.
-
-A manually configured callable such as:
+A DRF `ViewSet` class still cannot be decorated directly with `@endpoint`: the decorator receives a Django view class or callable, while DRF ViewSets require an action map. Use `VersionedRouter` for full router-managed versioned routing:
 
 ```python
-MyViewSet.as_view({"get": "list"})
+from django_api_versioning.routers import VersionedRouter
+from orders.views import OrderViewSetV1, OrderViewSetV2
+
+router = VersionedRouter()
+router.register("orders", OrderViewSetV1, version=1, basename="order")
+router.register("orders", OrderViewSetV2, version=2, basename="order")
+urlpatterns = router.urls
 ```
 
-can be registered as a specific callable route. It is not a replacement for router-generated list, detail, and custom-action routes.
+The router delegates route generation to DRF's `SimpleRouter`, preserves the generated URLPattern objects, and registers each concrete route version in the package registry. It supports standard list/detail routes, custom `@action` routes, path converters, regex routes, and trailing-slash configuration. `DefaultRouter` API-root and format-suffix parity are not part of this integration.
 
-Router setup and mounting remain the application's responsibility.
+Configure `VersionedRouterVersioning` as DRF's `DEFAULT_VERSIONING_CLASS` or on the relevant ViewSet when you need `request.version`, `reverse_action()`, or version-aware hyperlinked fields. The adapter returns the numeric version as a string (for example, `"2"`) and preserves nested URL namespaces during reversal.
+
+A manually configured callable such as `MyViewSet.as_view({"get": "list"})` remains valid for a single route, but it does not provide the complete router-generated route set.
+
+The router uses per-route inheritance: a later ViewSet replaces matching routes while earlier custom actions that are not redeclared remain inherited. There is not yet an explicit route-removal/tombstone API; see Issue #39.
 
 ## 8. Routing inheritance is not Python inheritance or contract compatibility
 
@@ -480,27 +485,21 @@ url = api_reverse(
 )
 ```
 
-The helper substitutes the parameter values into the registered route and returns a root-relative path:
+The helper substitutes the parameter values into the registered route and returns a path under Django's configured script prefix:
 
 ```text
 /api/v2/orders/42/
 ```
 
-The helper requires all named parameters used by the route.
-
-It does not accept positional `args`. For each named path parameter, `api_reverse()` calls the registered Django path converter's `to_url()` method when available, converts the result to a string, and checks the completed route against the compiled route-pattern regular expression. This preserves converter-specific formatting and rejects values whose generated path does not match the route pattern. The helper still does not implement Django's full URL resolver or arbitrary reverse options.
+The helper requires all named parameters used by the route and does not accept positional `args`. For path-converter routes, it calls the registered converter's `to_url()` method and validates the completed path against the compiled route pattern. For regex-backed routes (including DRF's default `SimpleRouter` patterns), it delegates reversal to Django's `URLResolver`. Both forms use Django's configured script prefix.
 
 ### Supported route patterns and limitations
 
-`api_reverse()` supports the package's Django `path()`-based routes.
+`api_reverse()` supports package-registered Django `RoutePattern` and `RegexPattern` objects, including DRF router-generated patterns. It is not a general replacement for Django's `reverse()` and does not accept arbitrary URLconf names or positional `args`.
 
-It does not implement Django's general URL resolver or reverse arbitrary URL patterns.
+If no matching pattern exists, it raises Django's `NoReverseMatch`. If the requested name is registered more than once for an explicit version, it also raises `NoReverseMatch` rather than selecting an arbitrary route. If a name is shared across multiple versions and no version is supplied, it raises `AmbiguousVersionError`.
 
-If no matching pattern exists, it raises Django's `NoReverseMatch`.
-
-If a name is reused for multiple distinct paths at the same version, an explicit version alone does not disambiguate those paths. Avoid reusing the same `view_name` for different routes when calling `api_reverse()`.
-
-If multiple versioned patterns share a name, use an explicit version rather than assuming Django's plain `reverse()` will select the intended route.
+The helper returns the package route path under the script prefix; it does not add an outer Django URL namespace. DRF `reverse_action()` and hyperlinked serializer fields should use `VersionedRouterVersioning` for namespace-aware reversal.
 
 ## 11. DRF version identification versus package routing
 
@@ -512,17 +511,11 @@ Django REST Framework provides versioning schemes such as:
 - `QueryParameterVersioning`
 - `HostNameVersioning`
 
-These mechanisms identify the requested API version according to a configured strategy.
+The package does not reimplement these general parsers. Its path-based `VersionedRouter` uses `VersionedRouterVersioning`, which reads the concrete `vN` namespace emitted by the router and exposes that numeric version as `request.version`. The adapter also preserves the full resolver namespace for `reverse_action()` and hyperlinked serializers.
 
-`django-api-versioning` solves a different problem: it registers version-specific URL patterns and maps them to the declared view implementations.
+This does not activate header, query-parameter, host, or tenant-based route negotiation. Those channels require a separate runtime-dispatch contract, cache behavior, and reversal semantics; the reserved `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` settings still have no runtime effect. See the product roadmap in Issue #36.
 
-The package does **not** automatically set `request.version`.
-
-If an application needs DRF's `request.version`, it must configure and integrate the appropriate DRF versioning scheme separately.
-
-In particular, do not assume that DRF's `URLPathVersioning` automatically works with the package's generated routes. That DRF scheme expects a version value in a URL resolver keyword argument, while this package generates literal version segments such as `api/v2/orders/`.
-
-The package's route registration and DRF's request-version identification are separate mechanisms.
+Do not configure DRF's `URLPathVersioning` as a substitute for `VersionedRouterVersioning`: the former expects a version value in a URL resolver keyword argument, while this package's router uses literal version path segments and version namespaces.
 
 ## 12. Version lifecycle headers
 
@@ -544,7 +537,7 @@ Settings validation requires `deprecated_at` for deprecated versions and rejects
 
 A `retired` version whose sunset date is still in the future is still served. Its responses carry the `Sunset` header, and also the `Deprecation` header when `deprecated_at` is configured; unlike for `deprecated` versions, a missing `deprecated_at` is not logged as a problem. `active` and unknown versions never receive lifecycle headers.
 
-This is a version-wide policy. The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
+This is a version-wide policy. The middleware also recognizes the configured API base path below parent URL prefixes, so lifecycle headers continue to work when a versioned router is mounted through nested URL includes. It does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
 
 ## 13. Scope and known limitations
 
@@ -552,16 +545,14 @@ This is a version-wide policy. The middleware does not generate migration links 
 
 It does not:
 
-- Automatically make response schemas backward-compatible.
+- Automatically make response schemas backward-compatible or transform serializers and response payloads.
 - Select serializers based on a request version.
-- Replace DRF authentication or permission classes.
-- Replace DRF routers for standard ViewSet resource routing.
-- Automatically set `request.version`.
-- Automatically integrate with DRF's version-identification schemes.
-- Select routes using `API_VERSIONING_CHANNELS`; this is a reserved compatibility setting and has no runtime effect.
-- Apply tenant-specific route selection through `API_EFFECTIVE_VERSION_RESOLVER`; this is a reserved compatibility setting and is not invoked.
+- Replace DRF authentication, permission, throttle, filter, pagination, or renderer behavior.
+- Provide `DefaultRouter` API-root or format-suffix behavior; the current integration targets `SimpleRouter`.
+- Remove an inherited route when a later ViewSet omits its action; explicit route tombstones are tracked separately in Issue #39.
+- Enable header, query-parameter, host, or tenant-based route negotiation. `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` remain reserved settings with no runtime effect.
 - Validate response payload compatibility through route-matrix checks.
-- Automatically version OpenAPI schemas.
+- Automatically generate versioned OpenAPI schemas or diff their compatibility; the optional drf-spectacular/oasdiff workflow is tracked in Issue #38.
 
 Your application remains responsible for API contract design, serializer selection, authentication, permissions, business logic, and request-level compatibility tests.
 
@@ -569,13 +560,15 @@ Your application remains responsible for API contract design, serializer selecti
 
 The contract above is based on the following implementation and project files:
 
-- [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/decorators.py)
-- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/registry.py)
-- [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/reverse.py)
-- [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/urls.py)
-- [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/django_api_versioning/settings.py)
-- [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py)
-- [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/README.md)
+- [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py)
+- [routers.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/routers.py)
+- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/registry.py)
+- [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/reverse.py)
+- [lifecycle.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py)
+- [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/urls.py)
+- [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/settings.py)
+- [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py)
+- [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/README.md)
 - [DRF ViewSets documentation](https://www.django-rest-framework.org/api-guide/viewsets/)
 - [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/)
 - [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/)

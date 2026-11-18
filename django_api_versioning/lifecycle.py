@@ -150,13 +150,14 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
     prefix = re.escape(parts[0])
     suffix = re.escape(parts[1])
 
-    # Create anchored pattern to match only at the beginning of the relevant path.
-    # The pattern may have a leading slash (from request.path_info), but API_BASE_PATH
-    # typically doesn't, so we allow an optional leading slash.
-    pattern = f"^/?{prefix}(\\d+){suffix}"
+    # The API may be mounted below a parent URL prefix via include(). Match
+    # API_BASE_PATH at a path-segment boundary rather than only at path start.
+    # This still avoids false positives such as "notapi/v2/".
+    prefix = prefix.lstrip("/")
+    pattern = f"(?:^|/){prefix}(\\d+){suffix}"
 
     try:
-        regex_match = re.match(pattern, path)
+        regex_match = re.search(pattern, path)
         if regex_match:
             version_str = regex_match.group(1)
             return int(version_str)

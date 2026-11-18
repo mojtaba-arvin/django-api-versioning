@@ -1,0 +1,303 @@
+from types import ModuleType, SimpleNamespace
+
+import pytest
+from django.test import override_settings
+from django.urls import clear_url_caches, include, path, resolve
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
+from rest_framework.serializers import HyperlinkedIdentityField, Serializer
+from rest_framework.test import APIClient
+
+from django_api_versioning.exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
+from django_api_versioning.reverse import api_reverse
+from django_api_versioning.routers import VersionedRouter, VersionedRouterVersioning
+
+urlconf = ModuleType("versioned_router_test_urls")
+urlconf.urlpatterns = []
+
+
+@pytest.fixture(autouse=True)
+def reset_urlconf():
+    urlconf.urlpatterns = []
+    clear_url_caches()
+    yield
+    urlconf.urlpatterns = []
+    clear_url_caches()
+
+
+class PostHyperlinkedSerializer(Serializer):
+    url = HyperlinkedIdentityField(view_name="post-detail")
+
+
+class PostViewSetV1(viewsets.ViewSet):
+    versioning_class = VersionedRouterVersioning
+
+    def list(self, request):
+        return Response({"implementation": "v1", "version": request.version})
+
+    def retrieve(self, request, pk=None):
+        return Response({"implementation": "v1", "version": request.version, "pk": pk})
+
+    @action(detail=True, methods=["post"])
+    def publish(self, request, pk=None):
+        return Response(
+            {"implementation": "v1-publish", "version": request.version, "pk": pk}
+        )
+
+    @action(detail=False, methods=["get"], url_path="reverse-list")
+    def reverse_list(self, request):
+        return Response(
+            {"implementation": "v1-reverse", "url": self.reverse_action("list")}
+        )
+
+    @action(detail=False, methods=["get"], url_path="status")
+    def status(self, request):
+        return Response({"method": "get", "version": request.version})
+
+    @status.mapping.post
+    def status_post(self, request):
+        return Response({"method": "post", "version": request.version})
+
+    @action(detail=False, methods=["get"])
+    def hyperlink(self, request):
+        serializer = PostHyperlinkedSerializer(
+            instance=SimpleNamespace(pk=1),
+            context={"request": request},
+        )
+        return Response(serializer.data)
+
+
+class PostViewSetV2(viewsets.ViewSet):
+    versioning_class = VersionedRouterVersioning
+
+    def list(self, request):
+        return Response({"implementation": "v2", "version": request.version})
+
+    def retrieve(self, request, pk=None):
+        return Response({"implementation": "v2", "version": request.version, "pk": pk})
+
+
+@pytest.fixture
+def versioned_router():
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+    router.register("posts", PostViewSetV2, version=2, basename="post")
+    urlconf.urlpatterns = router.urls
+    clear_url_caches()
+    yield router
+    urlconf.urlpatterns = []
+    clear_url_caches()
+
+
+class TestVersionedRouter:
+    def test_viewset_dispatch_and_per_route_inheritance(self, versioned_router):
+        with override_settings(ROOT_URLCONF=urlconf):
+            client = APIClient()
+
+            v1 = client.get("/api/v1/posts/")
+            v2 = client.get("/api/v2/posts/")
+            v3 = client.get("/api/v3/posts/")
+
+            assert v1.status_code == 200
+            assert v1.json() == {"implementation": "v1", "version": "1"}
+            assert v2.status_code == 200
+            assert v2.json() == {"implementation": "v2", "version": "2"}
+            assert v3.status_code == 200
+            assert v3.json() == {"implementation": "v2", "version": "3"}
+
+            # This custom action exists only in V1. It must remain inherited
+            # when V2 replaces list/detail, and request.version must be V2.
+            inherited = client.post("/api/v2/posts/1/publish/")
+            assert inherited.status_code == 200
+            assert inherited.json() == {
+                "implementation": "v1-publish",
+                "version": "2",
+                "pk": "1",
+            }
+
+    def test_reverse_action_uses_the_current_version_namespace(self, versioned_router):
+        with override_settings(ROOT_URLCONF=urlconf):
+            response = APIClient().get("/api/v2/posts/reverse-list/")
+
+        assert response.status_code == 200
+        assert response.json()["url"].endswith("/api/v2/posts/")
+
+    def test_nested_namespace_is_preserved_for_version_and_reverse(
+        self, versioned_router
+    ):
+        urlconf.urlpatterns = [
+            path(
+                "root/",
+                include((versioned_router.urls, "outer"), namespace="outer"),
+            )
+        ]
+        clear_url_caches()
+
+        with override_settings(ROOT_URLCONF=urlconf):
+            response = APIClient().get("/root/api/v2/posts/reverse-list/")
+
+        assert response.status_code == 200
+        assert response.json()["url"].endswith("/root/api/v2/posts/")
+
+    def test_explicit_versions_leave_gaps_unregistered(self):
+        router = VersionedRouter()
+        router.register(
+            "premium",
+            PostViewSetV1,
+            versions=[2, 4],
+            basename="premium",
+        )
+        urlconf.urlpatterns = router.urls
+        clear_url_caches()
+
+        with override_settings(ROOT_URLCONF=urlconf):
+            client = APIClient()
+            assert client.get("/api/v2/premium/").status_code == 200
+            assert client.get("/api/v3/premium/").status_code == 404
+            assert client.get("/api/v4/premium/").status_code == 200
+
+    def test_inconsistent_basenames_for_same_prefix_are_rejected(self):
+        router = VersionedRouter()
+        router.register("posts", PostViewSetV1, version=1, basename="post")
+
+        with pytest.raises(VersioningError, match="same basename across versions"):
+            router.register("posts", PostViewSetV2, version=2, basename="posts")
+
+    def test_unversioned_registration_is_not_wrapped_in_a_version_namespace(self):
+        class HealthViewSet(viewsets.ViewSet):
+            def list(self, request):
+                return Response({"status": "ok"})
+
+        router = VersionedRouter()
+        router.register("health", HealthViewSet, basename="health")
+        urlconf.urlpatterns = router.urls
+        clear_url_caches()
+
+        assert len(router.urls) == 1
+        assert resolve("/health/", urlconf=urlconf).namespace == ""
+
+        with override_settings(ROOT_URLCONF=urlconf):
+            response = APIClient().get("/health/")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+    def test_custom_action_method_mapping_is_preserved_on_inherited_route(
+        self, versioned_router
+    ):
+        with override_settings(ROOT_URLCONF=urlconf):
+            response = APIClient().post("/api/v2/posts/status/")
+
+        assert response.status_code == 200
+        assert response.json() == {"method": "post", "version": "2"}
+
+    def test_hyperlinked_field_reverses_with_the_active_api_version(
+        self, versioned_router
+    ):
+        with override_settings(ROOT_URLCONF=urlconf):
+            response = APIClient().get("/api/v2/posts/hyperlink/")
+
+        assert response.status_code == 200
+        assert response.json()["url"].endswith("/api/v2/posts/1/")
+
+
+@pytest.mark.parametrize("invalid_version", [True, 1.0, "1"])
+def test_router_rejects_non_integer_version_values(invalid_version):
+    router = VersionedRouter()
+    with pytest.raises(VersionTypeError, match="Version must be an integer"):
+        router.register(
+            "posts",
+            PostViewSetV1,
+            version=invalid_version,
+            basename="post",
+        )
+
+
+def test_router_rejects_versions_above_the_configured_maximum():
+    router = VersionedRouter()
+    with pytest.raises(InvalidVersionError):
+        router.register(
+            "posts",
+            PostViewSetV1,
+            version=6,
+            basename="post",
+        )
+
+
+def test_router_rejects_duplicate_explicit_versions():
+    router = VersionedRouter()
+    with pytest.raises(VersionRangeError, match="must not contain duplicates"):
+        router.register(
+            "posts",
+            PostViewSetV1,
+            versions=[1, 2, 2],
+            basename="post",
+        )
+
+
+def test_path_converter_router_patterns_are_preserved_and_reversible():
+    class IntegerPostViewSet(viewsets.ViewSet):
+        lookup_value_converter = "int"
+
+        def retrieve(self, request, pk=None):
+            return Response({"pk": pk})
+
+    router = VersionedRouter(use_regex_path=False, trailing_slash=False)
+    router.register(
+        "integer-posts",
+        IntegerPostViewSet,
+        version=1,
+        basename="integer-post",
+    )
+    urlconf.urlpatterns = router.urls
+    clear_url_caches()
+
+    match = resolve("/api/v1/integer-posts/42", urlconf=urlconf)
+    assert match.kwargs["pk"] == 42
+    assert api_reverse("integer-post-detail", version=1, pk=42) == (
+        "/api/v1/integer-posts/42"
+    )
+
+
+def test_router_rejects_duplicate_basenames_across_prefixes():
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="resource")
+
+    with pytest.raises(VersioningError, match="already registered for prefix"):
+        router.register("comments", PostViewSetV2, version=1, basename="resource")
+
+
+def test_versioning_adapter_uses_nested_version_namespace():
+    versioning = VersionedRouterVersioning()
+    request = SimpleNamespace(resolver_match=SimpleNamespace(namespace="outer:v3"))
+
+    assert versioning.determine_version(request) == "3"
+    assert versioning.get_versioned_viewname("post-list", request) == (
+        "outer:v3:post-list"
+    )
+
+
+def test_versioning_adapter_rejects_disallowed_namespace_version():
+    versioning = VersionedRouterVersioning()
+    versioning.allowed_versions = ["1", "2"]
+    request = SimpleNamespace(resolver_match=SimpleNamespace(namespace="v3"))
+
+    with pytest.raises(NotFound, match="allowed API version"):
+        versioning.determine_version(request)
+
+
+def test_versioning_adapter_does_not_allow_missing_version_when_allowlist_is_set():
+    versioning = VersionedRouterVersioning()
+    versioning.default_version = None
+    versioning.allowed_versions = ["1"]
+    request = SimpleNamespace(resolver_match=SimpleNamespace(namespace="outer"))
+
+    with pytest.raises(NotFound, match="allowed API version"):
+        versioning.determine_version(request)
