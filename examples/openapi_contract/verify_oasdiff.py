@@ -315,7 +315,6 @@ def main() -> None:
     parser.add_argument("--oasdiff", type=Path, default=Path("oasdiff"))
     parser.add_argument("--schema-dir", type=Path, required=True)
     parser.add_argument("--migration-schema-dir", type=Path)
-    parser.add_argument("--skip-migration-baselines", action="store_true")
     args = parser.parse_args()
 
     base_path = args.schema_dir / "v1" / "openapi.yaml"
@@ -355,7 +354,7 @@ def main() -> None:
                 + breaking_result.stderr
             )
 
-        if args.migration_schema_dir is not None and not args.skip_migration_baselines:
+        if args.migration_schema_dir is not None:
             for version in ("1", "2", "3"):
                 migration_baseline = (
                     Path(__file__).resolve().parents[1]
