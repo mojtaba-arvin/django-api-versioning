@@ -86,8 +86,10 @@ This section is the accepted direction for a future implementation. It is not a 
 Do not interpret the existing channels list as a fallback chain. A deployment selects exactly one transport:
 
 - `path`: current behavior and default; the URL contains the version.
-- `accept-version`: a dedicated `Accept-Version: 2` request header (optionally `v2` if the parser contract explicitly permits one prefix).
-- `query`: `?version=2` (with the same integer parsing rules as the header).
+- `accept-version`: a dedicated `Accept-Version: 2` request header.
+- `query`: `?version=2`.
+
+For the two non-path transports, trim surrounding HTTP/query whitespace, then accept only ASCII decimal digits with no sign, decimal point, or repeated prefix. Do not accept `v2` in the header or query string; the `v` prefix belongs to the existing URL-path representation.
 
 The dedicated `Accept-Version` field is deliberately distinct from DRF's `Accept: application/json; version=2` media-type negotiation. This avoids reimplementing media-type selection and prevents API-version negotiation from accidentally changing renderer/content-negotiation semantics. A future optional DRF adapter may compose with DRF's own Accept-header scheme, but the core package must not claim that behavior unless it is tested end to end.
 
@@ -97,7 +99,7 @@ Path mode continues to use the existing `API_BASE_PATH` template. The non-path m
 
 ### 4.2 Integer version identifiers
 
-The existing integer version model is retained. Wire values must be unambiguous decimal integers; booleans, floats, repeated prefixes, empty strings, and partial numeric strings are invalid. The package must never truncate or loosely coerce values such as `2.5` into version `2`. The configured `API_MIN_VERSION` and `API_MAX_VERSION` remain the bounds; this proposal does not add a new positivity constraint.
+The existing integer version model is retained. Wire values in Header/Query mode must be unambiguous ASCII decimal integers; signs, `v` prefixes, floats, empty strings, and partial numeric strings are invalid. The package must never truncate or loosely coerce values such as `2.5` into version `2`. The configured `API_MIN_VERSION` and `API_MAX_VERSION` remain the bounds; this proposal does not add a new positivity constraint.
 
 ### 4.3 Resolution stages
 
