@@ -625,7 +625,6 @@ class TestMigrateEndpointsCommand:
         assert "versions=[3]" in updated
         ast.parse(updated)
 
-
     def test_diff_mode_is_deterministic_and_does_not_modify_files(self, tmp_path):
         source = (
             '@endpoint("users", version=2, backward=True, forward=False)\n'
