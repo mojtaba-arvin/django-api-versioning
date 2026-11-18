@@ -401,7 +401,7 @@ class TestVersionExtraction:
         assert version == 1
 
     def test_extract_version_precedence_order(self):
-        """Verifies version extraction precedence: request.version > kwargs > path."""
+        """Verifies resolver metadata > request.version > path fallback precedence."""
         from unittest.mock import Mock
 
         from django_api_versioning.lifecycle import _extract_version
