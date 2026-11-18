@@ -138,9 +138,7 @@ def verify_schemas(schema_dir: Path) -> None:
         assert set(inherited["properties"]) == {"available", "checked_at"}
 
         baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
-        assert (
-            baseline.is_file()
-        ), f"Missing committed V{version} baseline: {baseline}"
+        assert baseline.is_file(), f"Missing committed V{version} baseline: {baseline}"
         assert generated.read_bytes() == baseline.read_bytes(), (
             f"Generated V{version} schema differs from the committed baseline. "
             "Review the API contract change before updating the snapshot."
