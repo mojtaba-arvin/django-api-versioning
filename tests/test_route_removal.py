@@ -213,3 +213,23 @@ def test_strict_snapshot_distinguishes_removed_from_missing(tmp_path):
     expected = json.loads(snapshot.read_text())
     assert expected["api/v3/orders/"] == {"3": "<removed>"}
     assert_version_matrix(snapshot=str(snapshot), strict=True)
+
+
+
+def test_reused_physical_path_keeps_the_new_active_route_in_snapshot():
+    original = _view("orders_v1")
+    replacement = _view("orders_v3_replacement")
+    _register_segment(original)
+    registry.remove("shop/orders/", from_version=3)
+
+    registry.register(
+        "api/v3/orders/",
+        replacement,
+        name="orders",
+        source_version=3,
+        route_version=3,
+        logical_endpoint="shop/replacement-orders/",
+    )
+
+    matrix = build_version_matrix()
+    assert matrix["api/v3/orders/"] == {"3": "orders_v3_replacement"}
