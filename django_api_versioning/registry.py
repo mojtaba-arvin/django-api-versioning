@@ -119,7 +119,9 @@ class UrlRegistry:
                 existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
                 existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
                 existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
-                if self._is_suppressed(existing_logical, existing_version, existing_source):
+                if self._is_suppressed(
+                    existing_logical, existing_version, existing_source
+                ):
                     del self.urlpatterns[route_index]
             if logical_endpoint is not None:
                 self._record_removed(pattern, logical_endpoint)
