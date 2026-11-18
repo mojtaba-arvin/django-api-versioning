@@ -23,9 +23,7 @@ _EXCLUDED_DIRS = {
     "dist",
 }
 _LEGACY_FLAGS = {"backward", "forward", "version"}
-_LEGACY_MARKER = re.compile(
-    r"@(?:[A-Za-z_]\w*\.)*endpoint\s*\("
-)
+_LEGACY_MARKER = re.compile(r"@(?:[A-Za-z_]\w*\.)*endpoint\s*\(")
 _LEGACY_FLAG_MARKER = re.compile(r"\b(?:backward|forward)\s*=")
 
 
@@ -87,8 +85,7 @@ class Command(BaseCommand):
             text = raw.decode(encoding)
             rewrites, file_skips = _collect_analysis(text)
             skipped.extend(
-                (relative_path, line, reason)
-                for line, _, _, reason in file_skips
+                (relative_path, line, reason) for line, _, _, reason in file_skips
             )
 
             updated = _apply_rewrites(text, rewrites)
@@ -111,9 +108,7 @@ class Command(BaseCommand):
                     self.stdout.write(f"  - @{old}")
                     self.stdout.write(f"  + @{new}")
                 for line, _, _, reason in file_skips:
-                    self.stdout.write(
-                        f"  ! {relative_path}:{line}: {reason}"
-                    )
+                    self.stdout.write(f"  ! {relative_path}:{line}: {reason}")
 
             if updated != text:
                 rewrite_count += len(rewrites)
@@ -363,8 +358,7 @@ def _collect_analysis(
             ):
                 continue
             if not any(
-                keyword.arg in {"backward", "forward"}
-                for keyword in decorator.keywords
+                keyword.arg in {"backward", "forward"} for keyword in decorator.keywords
             ):
                 continue
 
@@ -394,9 +388,7 @@ def _collect_analysis(
                 continue
 
             start = _absolute_offset(text, decorator.lineno, decorator.col_offset)
-            end = _absolute_offset(
-                text, decorator.end_lineno, decorator.end_col_offset
-            )
+            end = _absolute_offset(text, decorator.end_lineno, decorator.end_col_offset)
             if replacement != old:
                 rewrites.append((start, end, old, replacement))
 
