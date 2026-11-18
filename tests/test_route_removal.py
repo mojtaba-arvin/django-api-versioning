@@ -1,10 +1,14 @@
+from types import ModuleType
+
 import pytest
 from django.http import JsonResponse
-from django.urls import NoReverseMatch
+from django.test import override_settings
+from django.urls import NoReverseMatch, clear_url_caches
 
 from django_api_versioning import api_reverse, endpoint, remove_endpoint
+from django_api_versioning.exceptions import VersionMatrixError
 from django_api_versioning.registry import registry
-from django_api_versioning.testing import build_version_matrix
+from django_api_versioning.testing import assert_version_matrix, build_version_matrix
 
 
 def _view(name):
@@ -150,10 +154,11 @@ def test_public_remove_endpoint_uses_decorator_logical_identity():
 
 
 def test_router_removal_is_action_specific():
+    from django_api_versioning.routers import VersionedRouter
     from rest_framework import viewsets
     from rest_framework.decorators import action
     from rest_framework.response import Response
-    from django_api_versioning.routers import VersionedRouter
+    from rest_framework.test import APIClient
 
     class OrderViewSetV1(viewsets.ViewSet):
         def list(self, request):
@@ -176,6 +181,16 @@ def test_router_removal_is_action_specific():
     }
     assert "order-list" in active
     assert "order-archive" in active
+    urlconf = ModuleType("route_removal_test_urls")
+    urlconf.urlpatterns = router.urls
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        client = APIClient()
+        assert client.get("/api/v2/orders/archive/").status_code == 200
+        assert client.get("/api/v3/orders/").status_code == 200
+        assert client.get("/api/v3/orders/archive/").status_code == 404
+
     assert all(
         getattr(pattern, registry._ROUTE_VERSION_ATTR) < 3
         for pattern in registry.urlpatterns
@@ -184,3 +199,23 @@ def test_router_removal_is_action_specific():
             == "orders:order-archive"
         )
     )
+
+
+
+def test_strict_snapshot_distinguishes_removed_from_missing(tmp_path):
+    original = _view("orders_v1")
+    _register_segment(original)
+    snapshot = tmp_path / "version-matrix.json"
+
+    assert_version_matrix(snapshot=str(snapshot), update=True, strict=True)
+    registry.remove("shop/orders/", from_version=3)
+
+    with pytest.raises(VersionMatrixError, match="<removed>"):
+        assert_version_matrix(snapshot=str(snapshot), strict=True)
+
+    assert_version_matrix(snapshot=str(snapshot), update=True, strict=True)
+    import json
+
+    expected = json.loads(snapshot.read_text())
+    assert expected["api/v3/orders/"] == {"3": "<removed>"}
+    assert_version_matrix(snapshot=str(snapshot), strict=True)
