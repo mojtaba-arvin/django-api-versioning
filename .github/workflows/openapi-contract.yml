@@ -1,12 +1,7 @@
 name: OpenAPI contract integration
 
 on:
-  pull_request:
-    paths:
-      - "django_api_versioning/routers.py"
-      - "examples/openapi_contract/**"
-      - "docs/design/versioned-openapi-contract.md"
-      - ".github/workflows/openapi-contract.yml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
