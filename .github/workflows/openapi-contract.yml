@@ -35,3 +35,16 @@ jobs:
 
       - name: Verify runtime routing and versioned OpenAPI schemas
         run: python examples/openapi_contract/verify.py
+
+      - name: Export versioned OpenAPI schemas
+        run: |
+          python examples/openapi_contract/generate_schemas.py \
+            --output-dir "$RUNNER_TEMP/openapi-contract-schemas"
+
+      - name: Upload generated OpenAPI schemas for review
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: versioned-openapi-contract-schemas
+          path: ${{ runner.temp }}/openapi-contract-schemas/
+          if-no-files-found: error
+          retention-days: 7
