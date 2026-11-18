@@ -213,7 +213,9 @@ class UrlRegistry:
             matrix.setdefault(route, {})[route_version] = pattern.callback
         for (_, route_version), pattern in self._removed_patterns.items():
             tombstone_path = str(pattern.pattern)
-            matrix.setdefault(tombstone_path, {})[route_version] = REMOVED_ROUTE
+            matrix.setdefault(tombstone_path, {}).setdefault(
+                route_version, REMOVED_ROUTE
+            )
         return matrix
 
     def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
