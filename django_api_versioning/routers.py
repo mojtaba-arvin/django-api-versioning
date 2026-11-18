@@ -11,7 +11,6 @@ from django.urls import URLPattern, URLResolver, include, path
 
 try:
     from rest_framework.exceptions import NotFound
-    from rest_framework.routers import SimpleRouter
     from rest_framework.versioning import NamespaceVersioning
 except ImportError as exc:  # pragma: no cover - exercised without optional DRF
     raise ImportError(
@@ -148,6 +147,11 @@ class VersionedRouter:
         source_version: int | None,
         route_version: int | None,
     ) -> None:
+        # Import lazily: DRF's SimpleRouter imports APIView, which resolves
+        # DEFAULT_VERSIONING_CLASS. Importing it at module load time would
+        # recurse while DRF is trying to import VersionedRouterVersioning.
+        from rest_framework.routers import SimpleRouter
+
         route_prefix = prefix
         if route_version is not None:
             route_prefix = (
