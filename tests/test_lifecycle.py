@@ -208,6 +208,24 @@ def test_timezone_aware_sunset_is_converted_to_utc(monkeypatch):
     assert response["Sunset"] == "Tue, 01 Jan 2030 09:00:00 GMT"
 
 
+def test_utc_z_suffix_is_supported_on_python_310(monkeypatch):
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {
+            "status": "deprecated",
+            "deprecated_at": "2030-01-01T12:00:00Z",
+            "sunset": "2030-01-02T12:00:00Z",
+        },
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("2"))
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "@1893499200"
+    assert response["Sunset"] == "Wed, 02 Jan 2030 12:00:00 GMT"
+
+
 # Tests for _extract_version() and _extract_version_from_path()
 class TestVersionExtraction:
     """Focused unit tests for version extraction logic."""
