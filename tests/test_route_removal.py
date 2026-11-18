@@ -201,7 +201,6 @@ def test_router_removal_is_action_specific():
     )
 
 
-
 def test_strict_snapshot_distinguishes_removed_from_missing(tmp_path):
     original = _view("orders_v1")
     _register_segment(original)
