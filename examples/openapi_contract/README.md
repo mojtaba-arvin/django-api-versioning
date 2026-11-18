@@ -5,6 +5,8 @@ same URLconf for runtime requests and drf-spectacular schema generation.
 
 The V1-only `legacy/export/` action is explicitly removed from V2. The verifier checks that it remains available and present in the V1 schema, while returning 404 and disappearing from the V2 schema.
 
+Version lifecycle is separate from route removal: V1 is marked deprecated and emits RFC 9745 `Deprecation` plus RFC 8594 `Sunset` headers, while V2 remains active. To roll back the V2 endpoint removal before release, revert the `router.remove()` declaration; the V1 registration remains unchanged.
+
 It deliberately tests:
 - V1 and V2 implementations for the same list/detail routes.
 - Different serializer contracts for the two versions.
