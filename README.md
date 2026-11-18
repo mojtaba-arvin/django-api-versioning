@@ -70,6 +70,13 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 
 This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
 
+When an endpoint must stop existing in a later version, declare that explicitly
+with `remove_endpoint("orders/", from_version=3)`. The route remains available
+in earlier versions, disappears from the removed version onward, and can be
+reintroduced by a later version declaration. For DRF, use
+`VersionedRouter.remove(prefix, route_name, from_version=...)` to remove one
+generated action without removing the rest of its ViewSet.
+
 ## Why use it with Django REST Framework?
 
 DRF already provides request-version identification and ViewSet route generation. Django API Versioning adds the missing connection between those capabilities: **mapping each concrete API version to the correct ViewSet implementation while inheriting unchanged routes independently**.
@@ -173,8 +180,6 @@ pip install "djangorestframework>=3.18.3,<3.19"
 ```
 
 See the [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for route inheritance, reversal, namespaces, and the exact integration boundary.
-
-For an optional, executable OpenAPI workflow, see the [versioned OpenAPI contract example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract). It demonstrates per-version drf-spectacular generation and serializer introspection; it does not make drf-spectacular or oasdiff runtime dependencies.
 
 ## Requirements
 
