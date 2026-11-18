@@ -20,11 +20,11 @@ except ImportError:
 @pytest.fixture
 def clear_registry():
     """Clear registered routes and URL resolver caches."""
-    registry.urlpatterns.clear()
+    registry.clear()
     clear_url_caches()
 
     yield
-    registry.urlpatterns.clear()
+    registry.clear()
     clear_url_caches()
 
 
