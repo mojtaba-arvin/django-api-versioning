@@ -14,6 +14,22 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "compatibility.yml"
 
 
+def matrix_entries_for_job(workflow_text: str, job_id: str) -> list[str]:
+    """Return environment names from one job's matrix include list."""
+    match = re.search(
+        rf"(?ms)^  {re.escape(job_id)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+        workflow_text,
+    )
+    if match is None:
+        raise ValueError(f"Could not find the {job_id!r} job in compatibility.yml.")
+
+    return re.findall(
+        r"^\s+- env:\s*([A-Za-z0-9_.-]+)\s*$",
+        match.group(1),
+        flags=re.MULTILINE,
+    )
+
+
 def main() -> int:
     tox_executable = shutil.which("tox")
     command = (
@@ -43,25 +59,35 @@ def main() -> int:
         return 2
 
     workflow_text = WORKFLOW.read_text(encoding="utf-8")
-    matrix_entries = re.findall(
-        r"^\s+- env:\s*([A-Za-z0-9_.-]+)\s*$",
-        workflow_text,
-        flags=re.MULTILINE,
-    )
-    workflow_environments = set(matrix_entries)
+    try:
+        full_entries = matrix_entries_for_job(workflow_text, "tox")
+        smoke_entries = matrix_entries_for_job(workflow_text, "tox-pr-smoke")
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
 
-    if len(matrix_entries) != len(workflow_environments):
+    full_environments = set(full_entries)
+    smoke_environments = set(smoke_entries)
+    if len(full_entries) != len(full_environments):
+        print("Duplicate environment names found in the full tox matrix.", file=sys.stderr)
+        return 1
+    if len(smoke_entries) != len(smoke_environments):
+        print("Duplicate environment names found in the PR smoke matrix.", file=sys.stderr)
+        return 1
+
+    smoke_only = sorted(smoke_environments - full_environments)
+    if smoke_only:
         print(
-            "Duplicate environment names found in compatibility.yml.",
+            f"PR smoke environments are absent from the full matrix: {', '.join(smoke_only)}",
             file=sys.stderr,
         )
         return 1
 
-    missing_from_workflow = sorted(tox_environments - workflow_environments)
-    missing_from_tox = sorted(workflow_environments - tox_environments)
+    missing_from_workflow = sorted(tox_environments - full_environments)
+    missing_from_tox = sorted(full_environments - tox_environments)
     if missing_from_workflow or missing_from_tox:
         print(
-            "tox.ini and compatibility.yml define different environments.",
+            "tox.ini and the full compatibility matrix define different environments.",
             file=sys.stderr,
         )
         if missing_from_workflow:
@@ -76,7 +102,10 @@ def main() -> int:
             )
         return 1
 
-    print(f"Verified {len(tox_environments)} tox environments.")
+    print(
+        f"Verified {len(tox_environments)} full tox environments and "
+        f"{len(smoke_environments)} PR smoke environments."
+    )
     return 0
 
 
