@@ -30,6 +30,9 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         for path in (
             "examples/openapi_contract/verify.py",
             "examples/openapi_contract/schemas/v1/openapi.yaml",
+            "examples/consumer_migration/verify.py",
+            "examples/consumer_migration/schemas/v3/openapi.yaml",
+            "examples/consumer_migration/README.md",
             "docs/design/versioned-openapi-contract.md",
             ".github/workflows/openapi-contract.yml",
         ):
