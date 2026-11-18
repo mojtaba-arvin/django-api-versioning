@@ -117,7 +117,10 @@ class OrderViewSetV3(viewsets.GenericViewSet):
         }
         return Response(self.get_serializer(payload).data)
 
-    @extend_schema(responses=RiskSummarySerializer)
-    @action(detail=False, methods=["get"], url_path="risk-summary")
-    def risk_summary(self, request):
+    @extend_schema(
+        parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
+        responses=RiskSummarySerializer,
+    )
+    @action(detail=True, methods=["get"], url_path="risk-summary")
+    def risk_summary(self, request, pk: int | None = None):
         return Response({"risk_level": "low", "delayed_orders": 0})
