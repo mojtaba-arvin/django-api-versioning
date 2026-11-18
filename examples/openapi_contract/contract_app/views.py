@@ -20,7 +20,7 @@ class ProductViewSetV1(viewsets.GenericViewSet):
         return Response(self.get_serializer(payload, many=True).data)
 
     @extend_schema(responses=ProductV1Serializer)
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk: int | None = None):
         payload = {"id": int(pk or 1), "name": "Desk lamp", "price": "12.50"}
         return Response(self.get_serializer(payload).data)
 
