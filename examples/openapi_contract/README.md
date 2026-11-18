@@ -29,7 +29,10 @@ python verify.py
 
 The verifier makes real API requests, generates each schema in a fresh Django
 process, validates OpenAPI, fails on schema warnings, checks version isolation,
-checks the serializer fields, and compares two generations byte-for-byte.
+checks serializer fields, compares two generations byte-for-byte, and requires
+the output to match the committed per-version snapshots. CI then runs oasdiff
+against each matching baseline. A deliberate fixture check confirms that an
+optional response field is accepted while removing an operation is rejected.
 
 You can also generate a schema directly:
 
@@ -52,11 +55,10 @@ dependency on drf-spectacular.
 
 ## Released contract and breaking-change CI
 
-This verifier proves schema generation and determinism; it does not silently
-create or update released baselines. After reviewing the generated output,
-commit immutable snapshots per stable API version. Pull requests should generate
-candidate schemas without overwriting those baselines and compare each version
-with its matching baseline using oasdiff breaking.
+The committed schemas under schemas/v1/ and schemas/v2/ are the example's
+reviewed contract baselines. The verifier refuses unreviewed drift. Pull
+requests generate candidate schemas in a temporary directory and compare each
+version with its matching baseline using oasdiff breaking.
 
 Schema diffs, route-matrix checks, and request-level behavior tests are separate
 gates. Neither drf-spectacular nor oasdiff is a runtime dependency.
