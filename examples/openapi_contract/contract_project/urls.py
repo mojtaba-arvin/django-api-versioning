@@ -1,4 +1,5 @@
 """The public VersionedRouter instance drives runtime and schema generation."""
+
 from django_api_versioning.routers import VersionedRouter
 from contract_app.views import ProductViewSetV1, ProductViewSetV2
 
