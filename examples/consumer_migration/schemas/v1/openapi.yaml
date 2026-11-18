@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Consumer API Migration Walkthrough
+  version: 1.0.0 (1)
+  description: A runnable V1 to V2 to V3 migration showing coexistence, route inheritance,
+    explicit removal, and version lifecycle headers.
+paths:
+  /api/v1/orders/:
+    get:
+      operationId: v1_orders_list
+      description: Original V1 contract, including the legacy export action.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrderV1'
+          description: ''
+  /api/v1/orders/{id}/:
+    get:
+      operationId: v1_orders_retrieve
+      description: Original V1 contract, including the legacy export action.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderV1'
+          description: ''
+  /api/v1/orders/availability/:
+    get:
+      operationId: v1_orders_availability_retrieve
+      description: Original V1 contract, including the legacy export action.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Availability'
+          description: ''
+  /api/v1/orders/legacy/export/:
+    get:
+      operationId: v1_orders_legacy_export_retrieve
+      description: Original V1 contract, including the legacy export action.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyExport'
+          description: ''
+components:
+  schemas:
+    Availability:
+      type: object
+      properties:
+        available:
+          type: boolean
+        checked_at:
+          type: string
+          format: date-time
+      required:
+      - available
+      - checked_at
+    FormatEnum:
+      enum:
+      - csv
+      - json
+      type: string
+      description: |-
+        * `csv` - csv
+        * `json` - json
+    LegacyExport:
+      type: object
+      properties:
+        export_id:
+          type: string
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+      required:
+      - export_id
+      - format
+    OrderV1:
+      type: object
+      properties:
+        id:
+          type: integer
+        sku:
+          type: string
+        total:
+          type: string
+      required:
+      - id
+      - sku
+      - total
