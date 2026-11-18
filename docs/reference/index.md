@@ -239,13 +239,13 @@ Prints the registered logical route matrix and warns about gaps within an endpoi
 For projects upgrading from the 0.2.0 `forward`/`backward` decorator flags, the command previews supported source edits by default. Use `--diff` to inspect a deterministic unified diff with file-relative paths and line-level context; neither preview mode modifies files.
 
 ~~~bash title="migrate_endpoints"
-python manage.py migrate_endpoints --diff
+python manage.py migrate_endpoints --dry-run
 ~~~
 
-The default summary preview is also available:
+For a line-level unified diff, use:
 
-~~~bash title="summary preview"
-python manage.py migrate_endpoints --dry-run
+~~~bash title="unified diff preview"
+python manage.py migrate_endpoints --diff
 ~~~
 
 Only after reviewing the proposed changes and confirming the migration:
