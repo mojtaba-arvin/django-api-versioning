@@ -250,6 +250,51 @@ class UrlRegistry:
 
         return None
 
+    def get_resolved_route_version(self, route: str) -> int | None:
+        """Resolve a version from the longest registered route suffix.
+
+        Django's ResolverMatch.route includes every parent URLResolver prefix.
+        Matching a registered route as a complete suffix therefore supports
+        nested includes without confusing a parent API-like prefix for the
+        child endpoint's version.
+        """
+        matches: list[tuple[int, int]] = []
+        route_variants = {
+            route,
+            route.removeprefix("^").removesuffix("$"),
+        }
+        for pattern in self.urlpatterns:
+            registered_pattern = str(pattern.pattern)
+            pattern_variants = {
+                registered_pattern,
+                registered_pattern.removeprefix("^").removesuffix("$"),
+            }
+
+            matched_length = 0
+            for route_candidate in route_variants:
+                for pattern_candidate in pattern_variants:
+                    start = len(route_candidate) - len(pattern_candidate)
+                    if start < 0 or route_candidate[start:] != pattern_candidate:
+                        continue
+                    if start and route_candidate[start - 1] != "/":
+                        continue
+                    matched_length = max(matched_length, len(pattern_candidate))
+
+            version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            if (
+                matched_length
+                and isinstance(version, int)
+                and not isinstance(version, bool)
+            ):
+                matches.append((matched_length, version))
+
+        if not matches:
+            return None
+
+        longest = max(length for length, _ in matches)
+        versions = {version for length, version in matches if length == longest}
+        return next(iter(versions)) if len(versions) == 1 else None
+
     def _should_replace(
         self,
         existing_pattern: URLPattern,
