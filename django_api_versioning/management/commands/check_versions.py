@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
 
-from ...registry import registry
+from ...registry import REMOVED_ROUTE, registry
 from ...testing import _load_root_urlconf
 
 
@@ -52,6 +52,8 @@ class Command(BaseCommand):
     @staticmethod
     def _get_callback_name(callback):
         """Resolve callback name, handling both functions and class-based views."""
+        if callback is REMOVED_ROUTE:
+            return "<removed>"
         # Try to get from class-based view metadata first
         if hasattr(callback, "view_class"):
             return callback.view_class.__name__
