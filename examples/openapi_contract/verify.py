@@ -19,8 +19,8 @@ ACTION_PATHS = {
     "2": "/api/v2/products/availability/",
 }
 LEGACY_EXPORT_PATHS = {
-    "1": "/api/v1/products/legacy-export/",
-    "2": "/api/v2/products/legacy-export/",
+    "1": "/api/v1/products/legacy/export/",
+    "2": "/api/v2/products/legacy/export/",
 }
 
 
@@ -81,9 +81,9 @@ inherited = client.get("/api/v2/products/availability/")
 assert inherited.status_code == 200, inherited.content
 assert inherited.json()["available"] is True
 
-legacy_v1 = client.get("/api/v1/products/legacy-export/")
+legacy_v1 = client.get("/api/v1/products/legacy/export/")
 assert legacy_v1.status_code == 200, legacy_v1.content
-legacy_v2 = client.get("/api/v2/products/legacy-export/")
+legacy_v2 = client.get("/api/v2/products/legacy/export/")
 assert legacy_v2.status_code == 404, legacy_v2.content
 """
     subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, check=True)
