@@ -8,7 +8,7 @@ from django.test import override_settings
 from django.urls import NoReverseMatch, clear_url_caches
 
 from django_api_versioning import api_reverse, endpoint, remove_endpoint
-from django_api_versioning.exceptions import VersionMatrixError
+from django_api_versioning.exceptions import VersionMatrixError, VersioningError
 from django_api_versioning.registry import registry
 from django_api_versioning.testing import assert_version_matrix, build_version_matrix
 
@@ -248,3 +248,21 @@ def test_check_versions_displays_explicit_removed_state():
     assert "shop/orders/" in output.getvalue()
     assert "v3" in output.getvalue()
     assert "<removed>" in output.getvalue()
+
+
+
+@pytest.mark.parametrize("prefix", ["/orders", "orders/"])
+def test_router_remove_rejects_non_normalized_prefix(prefix):
+    from django_api_versioning.routers import VersionedRouter
+
+    router = VersionedRouter()
+    with pytest.raises(VersioningError, match="relative path"):
+        router.remove(prefix, "order-archive", from_version=3)
+
+
+def test_router_remove_rejects_empty_route_name():
+    from django_api_versioning.routers import VersionedRouter
+
+    router = VersionedRouter()
+    with pytest.raises(VersioningError, match="route_name"):
+        router.remove("orders", "", from_version=3)
