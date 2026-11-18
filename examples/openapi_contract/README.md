@@ -41,6 +41,19 @@ python manage.py spectacular --api-version 1 --validate --file /tmp/openapi-v1.y
 python manage.py spectacular --api-version 2 --validate --file /tmp/openapi-v2.yaml
 ~~~
 
+To deliberately propose a new contract baseline after reviewing the generated
+diff, run this from the example directory:
+
+~~~bash
+python generate_schemas.py --output-dir schemas
+git diff -- schemas/
+python verify.py
+~~~
+
+Do not refresh a baseline merely to make CI green. Review the API change,
+classify it as additive or breaking, and update the migration/release notes
+before committing the snapshot.
+
 ## Why VersionedRouterVersioning subclasses NamespaceVersioning
 
 drf-spectacular explicitly recognizes DRF URLPathVersioning, NamespaceVersioning,
