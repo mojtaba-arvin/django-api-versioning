@@ -1,6 +1,6 @@
 # Endpoint-level lifecycle metadata
 
-**Status:** Product semantics decided; implementation contract remains gated on a code-level identity audit and executable consumer tests. No runtime API is committed.
+**Status:** Product semantics decided; registry identity audit completed; schema integration proof and executable consumer tests remain before runtime implementation. No runtime API is committed.
 **Related:** [Issue #39](https://github.com/mojtaba-arvin/django-api-versioning/issues/39), [roadmap #36](https://github.com/mojtaba-arvin/django-api-versioning/issues/36)
 **Depends on:** the merged endpoint-removal/tombstone contract and version-wide `LifecycleMiddleware`.
 
@@ -173,7 +173,28 @@ Do not force decorator endpoints and DRF actions into a single public syntax if 
 
 Before choosing exact names/signatures, audit the current decorator and router registration contracts and demonstrate that each adapter resolves to the same normalized record used by middleware and schema generation. No URL-based fallback is permitted. This is a deliberate API gate, not permission to ship two independent stores.
 
-### Implementation gate
+### Code-level audit (main, 2026-11-19)
+
+The current implementation provides a useful foundation, but not yet the complete endpoint-operation identity required by this feature:
+
+- Decorator registrations already attach `_django_api_versioning_logical_endpoint` and the concrete route version to each registered `URLPattern`. The logical key is derived from `app_name + postfix`.
+- DRF registrations retain the original router-generated `URLPattern` and attach the same metadata. Their logical key is `prefix:pattern.name`; `pattern.name` is generated from the router basename and action route.
+- `LifecycleMiddleware.process_view()` runs after Django URL resolution and before the selected view. This is the correct phase for endpoint-specific enforcement because `request.resolver_match` is available and the view has not executed.
+- `ResolverMatch.route` contains the resolved route including parent include prefixes. The current registry helper `get_resolved_route_version()` matches registered route-pattern suffixes and returns only a version; it does not return a canonical logical operation record.
+- One DRF URLPattern may map multiple HTTP methods to different ViewSet actions (for example, GET/list and POST/create). Therefore `prefix:pattern.name` alone is not enough to distinguish every OpenAPI operation. The normalized DRF identity must include the HTTP method and the router callback's method-to-action mapping.
+- A resolved route string alone must not be treated as a globally unique key when namespace or router context can disambiguate it. The resolver's URL name/namespace and the registered pattern metadata must participate in the lookup. Ambiguous matches must fail closed for endpoint-level metadata.
+
+### Required implementation shape
+
+1. Add a registry lookup that returns a normalized immutable operation record (logical endpoint, concrete route version, source version, route name/namespace context, and optional DRF method/action), rather than returning only a version.
+2. Resolve that record from `request.resolver_match` plus `request.method` and the selected callback's router action map. Do not parse raw request paths or use callback object identity.
+3. Keep decorator endpoint metadata scoped to its existing logical endpoint key; for DRF, bind lifecycle declarations to a specific method/action when the generated route shares a URLPattern with sibling methods.
+4. Prove the schema adapter independently. The schema fixture must demonstrate an exact path+method-to-registry mapping for decorator views and DRF actions before any hook is accepted. If drf-spectacular cannot expose enough stable route metadata at the chosen extension point, keep the integration blocked rather than falling back to operationId/path heuristics.
+5. Keep registry reset, import-order determinism, and repeated declaration conflict handling consistent with the existing route registry.
+
+This audit confirms that actual Django resolution is available at the correct middleware phase, but also identifies the missing method/action dimension and the need for an explicit schema proof. It is not a claim that endpoint-level metadata is implemented.
+
+## Implementation gate
 
 The product semantics above are decided. The remaining work is an implementation-level audit of the existing registry and schema extension points, followed by failing tests for those exact contracts. Keep this PR draft/design-only until that audit and tests are complete. A green documentation-only workflow is not evidence that runtime behavior is implemented or safe.
 
