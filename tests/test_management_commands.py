@@ -410,10 +410,10 @@ class TestMigrateEndpointsRewriting:
     def test_invalid_syntax_is_not_rewritten(self):
         args = '"users", version=2, backward=True, forward='
         assert _rewrite_args(args) == args
-        assert _suggest("@endpoint(\n") == []
+        assert _suggest("@endpoint(\\n") == []
 
     def test_tokenizer_errors_are_treated_as_unsafe_comments(self):
-        assert _has_comments("endpoint(\n")
+        assert _has_comments("endpoint(\\n")
 
     @pytest.mark.parametrize(
         "args",
