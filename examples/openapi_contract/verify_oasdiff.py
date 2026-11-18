@@ -314,6 +314,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--oasdiff", type=Path, default=Path("oasdiff"))
     parser.add_argument("--schema-dir", type=Path, required=True)
+    parser.add_argument("--migration-schema-dir", type=Path)
+    parser.add_argument("--skip-migration-baselines", action="store_true")
     args = parser.parse_args()
 
     base_path = args.schema_dir / "v1" / "openapi.yaml"
@@ -353,6 +355,31 @@ def main() -> None:
                 + breaking_result.stderr
             )
 
+        if args.migration_schema_dir is not None and not args.skip_migration_baselines:
+            for version in ("1", "2", "3"):
+                migration_baseline = (
+                    Path(__file__).resolve().parents[1]
+                    / "consumer_migration"
+                    / "schemas"
+                    / f"v{version}"
+                    / "openapi.yaml"
+                )
+                migration_candidate = (
+                    args.migration_schema_dir / f"v{version}" / "openapi.yaml"
+                )
+                if not migration_baseline.is_file():
+                    raise SystemExit(
+                        f"Missing committed consumer migration V{version} baseline: "
+                        f"{migration_baseline}"
+                    )
+                result = _run(args.oasdiff, migration_baseline, migration_candidate)
+                if result.returncode != 0:
+                    raise SystemExit(
+                        f"Consumer migration V{version} baseline comparison failed:\n"
+                        + result.stdout
+                        + result.stderr
+                    )
+
         verify_nullability(args.oasdiff, root)
         verify_warn_policy(args.oasdiff, root)
 
@@ -360,6 +387,8 @@ def main() -> None:
     print("oasdiff rejected a deliberately removed API operation.")
     print("oasdiff nullability direction and composition fixtures passed.")
     print("oasdiff WARN findings are enforced by the CI failure policy.")
+    if args.migration_schema_dir is not None:
+        print("consumer migration V1/V2/V3 schema candidates were generated.")
 
 
 if __name__ == "__main__":
