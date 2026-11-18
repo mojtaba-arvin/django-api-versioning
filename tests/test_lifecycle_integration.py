@@ -212,6 +212,7 @@ def test_async_request_uses_resolved_route_lifecycle_policy():
     assert response.status_code == 410
     assert calls == []
 
+
 def test_request_urlconf_override_controls_resolved_lifecycle_version():
     def orders(request):
         return HttpResponse("custom urlconf")
