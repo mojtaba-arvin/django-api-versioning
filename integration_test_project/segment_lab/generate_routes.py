@@ -185,6 +185,7 @@ SYMBOLS = {
         "Command._warn_gaps",
     ),
     "LifecycleMiddleware.__call__": ("lifecycle.py", "LifecycleMiddleware.__call__"),
+    "LifecycleMiddleware.process_view": ("lifecycle.py", "LifecycleMiddleware.process_view"),
     "_extract_version_from_path": ("lifecycle.py", "_extract_version_from_path"),
     "_parse_sunset": ("lifecycle.py", "_parse_sunset"),
     "build_version_matrix": ("testing.py", "build_version_matrix"),
@@ -232,7 +233,10 @@ LINES = {
         "management/commands/check_versions.py",
         "callback_name = self._get_callback_name(versions[version])",
     ),
-    "sunset_410": ("lifecycle.py", "if sunset_date and _is_past(sunset_date):"),
+    "sunset_410": (
+        "lifecycle.py",
+        "request._django_api_version_lifecycle_sunset_enforced = True",
+    ),
     "deprecated_header": ("lifecycle.py", 'if status in ("deprecated", "retired"):'),
     "reverse_ambiguous": ("reverse.py", "if version is None and len(matches) > 1:"),
 }
