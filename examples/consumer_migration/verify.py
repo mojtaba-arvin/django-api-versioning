@@ -138,7 +138,9 @@ def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
 
         if not skip_baseline:
             baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
-            assert baseline.is_file(), f"Missing committed V{version} baseline: {baseline}"
+            assert baseline.is_file(), (
+                f"Missing committed V{version} baseline: {baseline}"
+            )
             assert generated.read_bytes() == baseline.read_bytes(), (
                 f"Generated V{version} schema differs from the committed baseline. "
                 "Review the API contract change before updating the snapshot."
@@ -187,7 +189,8 @@ def main() -> None:
     verify_schemas(args.schema_dir, skip_baseline=args.skip_baseline)
     print(
         "Consumer migration contract passed: V1/V2/V3 runtime, lifecycle, "
-        "inheritance, explicit V3 removal, schema assertions, and deterministic generation."
+        "inheritance, explicit V3 removal, schema assertions, and "
+        "deterministic generation."
     )
 
 
