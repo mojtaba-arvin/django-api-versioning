@@ -1,6 +1,6 @@
 # Versioned OpenAPI contract integration
 
-**Status:** Implementation validation in progress  
+**Status:** Executable integration and CI validation complete  
 **Runtime dependencies:** None added
 
 ## Decision
