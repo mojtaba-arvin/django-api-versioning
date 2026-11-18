@@ -33,14 +33,16 @@ serializers, while a V1-only custom action remains inherited into V2.
 
 Its verifier exercises real API requests and generates each schema in a fresh
 process. It checks route isolation, serializer fields, custom-action visibility,
-schema validation, and byte-for-byte determinism.
+schema validation, byte-for-byte determinism, and equality with committed
+per-version baselines. CI runs oasdiff against each matching baseline.
 
 ## Released contract workflow
 
 After reviewing generated output, consumers should keep immutable snapshots per
 stable API version (for example, schemas/v1/openapi.yaml and
 schemas/v2/openapi.yaml). Candidate generation must never overwrite a released
-baseline during pull-request validation.
+baseline during pull-request validation. The executable sample commits its
+reviewed V1 and V2 baselines under examples/openapi_contract/schemas/.
 
 The CI sequence is:
 
