@@ -254,9 +254,9 @@ Only after reviewing the proposed changes and confirming the migration:
 python manage.py migrate_endpoints --write
 ~~~
 
-Writes replace each changed file atomically and preserve its permission bits. Keep a clean version-control state or backup before applying changes. If a replacement fails, the original file remains in place and the temporary file is cleaned up.
+Writes replace each changed file atomically and preserve its permission bits. Atomicity is per file, not transactional across the directory: if a later replacement fails, earlier files that were successfully replaced remain changed. The command reports the failed file and every earlier file already updated; the failing file remains intact and its temporary file is cleaned up. Preview with `--diff` first, and use a clean version-control state or backup before applying changes.
 
-The AST-based rewrite handles only supported literal forms; dynamic expressions, comments inside a decorator, and unsupported syntax are left for manual migration. This command rewrites Python decorator syntax only: it does not migrate database schemas or prove equivalent routing behavior. Verify the route matrix and representative request behavior after applying it.
+The command reports unsupported legacy-looking decorator occurrences with their relative path, line number, and reason instead of silently treating them as if no migration were needed. Dynamic expressions, positional legacy versions, duplicate or conflicting flags, keyword expansions, comments inside a decorator, and files that cannot be parsed are not rewritten and require manual migration. This command rewrites Python decorator syntax only: it does not migrate database schemas or prove equivalent routing behavior. Verify the route matrix and representative request behavior after applying it.
 
 ## Development
 
