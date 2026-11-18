@@ -215,7 +215,6 @@ def test_strict_snapshot_distinguishes_removed_from_missing(tmp_path):
     assert_version_matrix(snapshot=str(snapshot), strict=True)
 
 
-
 def test_reused_physical_path_keeps_the_new_active_route_in_snapshot():
     original = _view("orders_v1")
     replacement = _view("orders_v3_replacement")
