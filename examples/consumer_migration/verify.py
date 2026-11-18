@@ -101,7 +101,7 @@ def _response_schema(document: dict, path: str) -> dict:
     return schema["items"] if schema.get("type") == "array" else schema
 
 
-def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
+def verify_schemas(schema_dir: Path) -> None:
     for version in ("1", "2", "3"):
         generated = schema_dir / f"v{version}" / "openapi.yaml"
         assert generated.is_file(), f"Missing generated V{version} schema: {generated}"
@@ -137,15 +137,14 @@ def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
         inherited = _component(document, _response_schema(document, availability_path))
         assert set(inherited["properties"]) == {"available", "checked_at"}
 
-        if not skip_baseline:
-            baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
-            assert (
-                baseline.is_file()
-            ), f"Missing committed V{version} baseline: {baseline}"
-            assert generated.read_bytes() == baseline.read_bytes(), (
-                f"Generated V{version} schema differs from the committed baseline. "
-                "Review the API contract change before updating the snapshot."
-            )
+        baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
+        assert (
+            baseline.is_file()
+        ), f"Missing committed V{version} baseline: {baseline}"
+        assert generated.read_bytes() == baseline.read_bytes(), (
+            f"Generated V{version} schema differs from the committed baseline. "
+            "Review the API contract change before updating the snapshot."
+        )
 
         # A second generation must be byte-for-byte stable.
         with tempfile.TemporaryDirectory(prefix=f"consumer-migration-v{version}-") as d:
@@ -181,11 +180,10 @@ def verify_schemas(schema_dir: Path, *, skip_baseline: bool) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--schema-dir", type=Path, required=True)
-    parser.add_argument("--skip-baseline", action="store_true")
     args = parser.parse_args()
 
     verify_runtime()
-    verify_schemas(args.schema_dir, skip_baseline=args.skip_baseline)
+    verify_schemas(args.schema_dir)
     print(
         "Consumer migration contract passed: V1/V2/V3 runtime, lifecycle, "
         "inheritance, explicit V3 removal, schema assertions, and "
