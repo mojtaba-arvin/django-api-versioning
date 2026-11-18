@@ -285,8 +285,8 @@ class VersionedRouterVersioning(NamespaceVersioning):
         format: str | None = None,
         **extra: Any,
     ) -> str:
-        if request is not None:
-            viewname = self.get_versioned_viewname(viewname, request)
+        # NamespaceVersioning.reverse() calls our get_versioned_viewname().
+        # Do not pre-qualify the name here or the namespace would be applied twice.
         return super().reverse(
             viewname,
             args=args,
