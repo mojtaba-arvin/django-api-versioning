@@ -1,4 +1,5 @@
 """Minimal settings for the executable OpenAPI contract example."""
+
 from pathlib import Path
 import sys
 
