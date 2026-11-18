@@ -150,9 +150,23 @@ class TestResolverValidation:
         with pytest.raises(VersioningError):
             APISettings(API_EFFECTIVE_VERSION_RESOLVER="not-callable")
 
-    def test_callable_ok(self):
+    def test_callable_ok(self, caplog):
         def resolver(request):
             return None
 
         settings = APISettings(API_EFFECTIVE_VERSION_RESOLVER=resolver)
         assert settings.API_EFFECTIVE_VERSION_RESOLVER is resolver
+        assert "is reserved and is not invoked" in caplog.text
+
+
+def test_non_default_versioning_channels_warn_that_they_are_ignored(caplog):
+    settings = APISettings(API_VERSIONING_CHANNELS=["header", "query"])
+
+    assert settings.API_VERSIONING_CHANNELS == ["header", "query"]
+    assert "non-default channel values are ignored" in caplog.text
+
+
+def test_path_only_versioning_channels_do_not_warn(caplog):
+    APISettings(API_VERSIONING_CHANNELS=["path"])
+
+    assert "API_VERSIONING_CHANNELS is reserved" not in caplog.text

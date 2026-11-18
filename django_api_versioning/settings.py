@@ -196,11 +196,23 @@ class APISettings:
                     f"Allowed: {sorted(allowed)}."
                 )
 
+        if self.API_VERSIONING_CHANNELS != ["path"]:
+            logger.warning(
+                "API_VERSIONING_CHANNELS is reserved and does not affect route "
+                "selection. django-api-versioning currently generates URL-path "
+                "routes only; non-default channel values are ignored."
+            )
+
     def _validate_resolver(self) -> None:
         resolver = self.API_EFFECTIVE_VERSION_RESOLVER
         if resolver is not None and not callable(resolver):
             raise VersioningError(
                 "API_EFFECTIVE_VERSION_RESOLVER must be callable or None."
+            )
+        if resolver is not None:
+            logger.warning(
+                "API_EFFECTIVE_VERSION_RESOLVER is reserved and is not invoked "
+                "by the current route-registration or request lifecycle."
             )
 
 

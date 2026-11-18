@@ -558,8 +558,8 @@ It does not:
 - Replace DRF routers for standard ViewSet resource routing.
 - Automatically set `request.version`.
 - Automatically integrate with DRF's version-identification schemes.
-- Use `API_VERSIONING_CHANNELS` to select routes.
-- Use `API_EFFECTIVE_VERSION_RESOLVER` for tenant-specific route selection.
+- Select routes using `API_VERSIONING_CHANNELS`; this is a reserved compatibility setting and has no runtime effect.
+- Apply tenant-specific route selection through `API_EFFECTIVE_VERSION_RESOLVER`; this is a reserved compatibility setting and is not invoked.
 - Validate response payload compatibility through route-matrix checks.
 - Automatically version OpenAPI schemas.
 

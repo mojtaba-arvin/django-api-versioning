@@ -18,8 +18,8 @@ Requires Python `>=3.10` and Django `>=4.2`. Django REST Framework is optional. 
 | `API_MIN_VERSION` | `1` | Lowest version that can be registered. Segment declarations below it register no routes; lower explicit versions are skipped with a warning. |
 | `API_MAX_VERSION` | `1` | Highest route version. A declaration above it raises `InvalidVersionError`. |
 | `API_VERSION_LIFECYCLE` | `{}` | Per-version lifecycle metadata consumed by `LifecycleMiddleware`. |
-| `API_VERSIONING_CHANNELS` | `["path"]` | Accepts `path`, `header`, and `query` values but currently does not select routes. |
-| `API_EFFECTIVE_VERSION_RESOLVER` | `None` | Validates a callable or `None`; currently does not participate in route selection. |
+| `API_VERSIONING_CHANNELS` | `["path"]` | Reserved compatibility setting. Values are validated but do not select routes; only URL-path routing is implemented. Non-default values are ignored and produce a warning. |
+| `API_EFFECTIVE_VERSION_RESOLVER` | `None` | Reserved compatibility setting. A callable is validated but is not invoked by the current routing or lifecycle implementation; configuring one produces a warning. |
 
 Route-registration settings are read when the package settings and endpoint declarations are imported. Configure them before importing modules decorated with `@endpoint`; changing them later does not rebuild the registered URL patterns.
 
@@ -86,7 +86,7 @@ When a name is registered for multiple versions, pass `version`. If multiple rou
 - A segment declaration below `API_MIN_VERSION` registers no routes after a warning. Explicit versions below the minimum are skipped individually.
 - On a route collision, the higher integer `source_version` wins. If source versions are equal, or either is `None`, the last registration wins.
 - The package does not set DRF's `request.version`. DRF ViewSet classes cannot be decorated directly; pass a configured `as_view(actions)` callable for an individual route or use a DRF router for standard ViewSet routing.
-- The package's route selection is URL-path based. `API_VERSIONING_CHANNELS` values such as `header` and `query` are accepted by settings validation but are not implemented as request-routing mechanisms.
+- The package's route selection is URL-path based. `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` are reserved compatibility settings only; they are validated but do not alter route selection or request handling. Non-default values are logged so they are not mistaken for active features.
 
 ### Register a configured ViewSet callable
 
