@@ -35,7 +35,16 @@ def main() -> int:
     command = (
         [tox_executable, "config", "-k", "type", "--format", "json"]
         if tox_executable
-        else [sys.executable, "-m", "tox", "config", "-k", "type", "--format", "json"]
+        else [
+            sys.executable,
+            "-m",
+            "tox",
+            "config",
+            "-k",
+            "type",
+            "--format",
+            "json",
+        ]
     )
     result = subprocess.run(
         command,
@@ -69,16 +78,23 @@ def main() -> int:
     full_environments = set(full_entries)
     smoke_environments = set(smoke_entries)
     if len(full_entries) != len(full_environments):
-        print("Duplicate environment names found in the full tox matrix.", file=sys.stderr)
+        print(
+            "Duplicate environment names found in the full tox matrix.",
+            file=sys.stderr,
+        )
         return 1
     if len(smoke_entries) != len(smoke_environments):
-        print("Duplicate environment names found in the PR smoke matrix.", file=sys.stderr)
+        print(
+            "Duplicate environment names found in the PR smoke matrix.",
+            file=sys.stderr,
+        )
         return 1
 
     smoke_only = sorted(smoke_environments - full_environments)
     if smoke_only:
         print(
-            f"PR smoke environments are absent from the full matrix: {', '.join(smoke_only)}",
+            "PR smoke environments are absent from the full matrix: "
+            f"{', '.join(smoke_only)}",
             file=sys.stderr,
         )
         return 1
