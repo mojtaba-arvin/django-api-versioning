@@ -30,7 +30,7 @@ class OrderViewSetV1(viewsets.GenericViewSet):
         return Response(self.get_serializer(payload, many=True).data)
 
     @extend_schema(responses=OrderV1Serializer)
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk: int | None = None):
         payload = {"id": int(pk or 101), "sku": "LAMP-01", "total": "19.95"}
         return Response(self.get_serializer(payload).data)
 
@@ -68,7 +68,7 @@ class OrderViewSetV2(viewsets.GenericViewSet):
         return Response(self.get_serializer(payload, many=True).data)
 
     @extend_schema(responses=OrderV2Serializer)
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk: int | None = None):
         payload = {
             "id": int(pk or 101),
             "sku": "LAMP-01",
@@ -98,7 +98,7 @@ class OrderViewSetV3(viewsets.GenericViewSet):
         return Response(self.get_serializer(payload, many=True).data)
 
     @extend_schema(responses=OrderV3Serializer)
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk: int | None = None):
         payload = {
             "id": int(pk or 101),
             "sku": "LAMP-01",
