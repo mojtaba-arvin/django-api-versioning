@@ -43,7 +43,10 @@ def _active_versions():
     return {
         getattr(pattern, registry._ROUTE_VERSION_ATTR)
         for pattern in registry.urlpatterns
-        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == "shop/orders/"
+        if (
+            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == "shop/orders/"
+        )
     }
 
 
@@ -137,7 +140,10 @@ def test_public_remove_endpoint_uses_decorator_logical_identity():
     assert {
         getattr(pattern, registry._ROUTE_VERSION_ATTR)
         for pattern in registry.urlpatterns
-        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == "billing/invoices/"
+        if (
+            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == "billing/invoices/"
+        )
     } == {1, 2, 3}
     with pytest.raises(NoReverseMatch):
         api_reverse("invoices", version=4)
@@ -164,12 +170,17 @@ def test_router_removal_is_action_specific():
     active = {
         pattern.name
         for pattern in registry.urlpatterns
-        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, "").startswith("orders:")
+        if getattr(
+            pattern, registry._LOGICAL_ENDPOINT_ATTR, ""
+        ).startswith("orders:")
     }
     assert "order-list" in active
     assert "order-archive" in active
     assert all(
         getattr(pattern, registry._ROUTE_VERSION_ATTR) < 3
         for pattern in registry.urlpatterns
-        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == "orders:order-archive"
+        if (
+            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == "orders:order-archive"
+        )
     )
