@@ -17,8 +17,9 @@ python -m pip install -e ".[dev]"
 python -m pip install -r examples/openapi_contract/requirements.txt
 ~~~
 
-The example pins drf-spectacular 0.30.0. Its upstream project recommends
-pinning the generator and reviewing schema diffs when upgrading.
+The consumer example pins Django 5.2.19 (the current 5.2 LTS patch),
+Django REST framework 3.18.3, and drf-spectacular 0.30.0. Upgrade these
+versions deliberately and review regenerated schemas before changing the pins.
 
 ## Verify
 
