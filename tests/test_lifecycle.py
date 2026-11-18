@@ -84,6 +84,50 @@ def test_future_sunset_with_retired_status_still_serves(monkeypatch):
     assert response.status_code == 200
 
 
+def test_retired_with_future_sunset_sends_sunset_header(monkeypatch):
+    """A retired version still being served must warn clients via ``Sunset``."""
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        1,
+        {"status": "retired", "sunset": FUTURE},
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("1"))
+
+    assert response.status_code == 200
+    assert "Sunset" in response
+    assert "Deprecation" not in response
+
+
+def test_retired_with_future_sunset_and_deprecated_at_sends_both(monkeypatch):
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        1,
+        {"status": "retired", "deprecated_at": DEPRECATED_AT, "sunset": FUTURE},
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("1"))
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "@1735689600"
+    assert "Sunset" in response
+
+
+def test_retired_with_future_sunset_does_not_warn_about_missing_deprecated_at(
+    monkeypatch, caplog
+):
+    """The missing-``deprecated_at`` warning is specific to deprecated versions."""
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        1,
+        {"status": "retired", "sunset": FUTURE},
+    )
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    middleware(_request("1"))
+
+    assert "no valid deprecated_at date" not in caplog.text
+
+
 def test_active_version_has_no_headers(monkeypatch):
     monkeypatch.setitem(settings.API_VERSION_LIFECYCLE, 3, {"status": "active"})
     middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))

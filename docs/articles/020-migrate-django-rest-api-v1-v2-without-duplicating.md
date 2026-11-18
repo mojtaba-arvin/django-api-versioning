@@ -530,7 +530,7 @@ The middleware also enforces the configured sunset date:
 
 - A sunset date in the past triggers `410 Gone`.
 - A `retired` status without a past sunset date does not, by itself, trigger `410 Gone`.
-- A future sunset date with `retired` status does not produce the same deprecation headers as `deprecated` status.
+- A `retired` version with a future sunset date is still served and carries the `Sunset` header, plus `Deprecation` when `deprecated_at` is configured.
 - The middleware does not generate a `Link` header pointing to migration documentation.
 
 If the application emits an RFC 9745 deprecation date separately, ensure that the `Sunset` date is not earlier than the deprecation date.

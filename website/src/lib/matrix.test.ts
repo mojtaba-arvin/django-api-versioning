@@ -60,4 +60,29 @@ describe('lifecycleResponse', () => {
     expect(r.status).toBe(200)
     expect(r.headers.map(([k]) => k)).toEqual(['Deprecation', 'Sunset'])
   })
+  it('announces a retired version that is still before its sunset', () => {
+    const r = lifecycleResponse(
+      { status: 'retired', sunset: '2027-06-01' },
+      now,
+    )
+    expect(r.status).toBe(200)
+    expect(r.headers.map(([k]) => k)).toEqual(['Sunset'])
+  })
+  it('adds Deprecation for a retired version with deprecated_at', () => {
+    const r = lifecycleResponse(
+      {
+        status: 'retired',
+        deprecated_at: '2026-01-01T00:00:00+00:00',
+        sunset: '2027-06-01',
+      },
+      now,
+    )
+    expect(r.status).toBe(200)
+    expect(r.headers.map(([k]) => k)).toEqual(['Deprecation', 'Sunset'])
+  })
+  it('adds no headers for an active version', () => {
+    const r = lifecycleResponse({ status: 'active', sunset: '2027-06-01' }, now)
+    expect(r.status).toBe(200)
+    expect(r.headers).toEqual([])
+  })
 })

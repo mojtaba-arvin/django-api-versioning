@@ -150,10 +150,14 @@ export function lifecycleResponse(
     headers.push(['Sunset', sunset.toUTCString()])
     return { status: 410, statusText: 'Gone', headers }
   }
-  if (entry?.status === 'deprecated' && entry.deprecated_at) {
-    const epoch = Math.floor(new Date(entry.deprecated_at).getTime() / 1000)
-    headers.push(['Deprecation', `@${epoch}`])
+  // Mirrors LifecycleMiddleware: only deprecated and retired versions are
+  // announced; a retired version with a future sunset is still served.
+  if (entry && (entry.status === 'deprecated' || entry.status === 'retired')) {
+    if (entry.deprecated_at) {
+      const epoch = Math.floor(new Date(entry.deprecated_at).getTime() / 1000)
+      headers.push(['Deprecation', `@${epoch}`])
+    }
+    if (sunset) headers.push(['Sunset', sunset.toUTCString()])
   }
-  if (sunset) headers.push(['Sunset', sunset.toUTCString()])
   return { status: 200, statusText: 'OK', headers }
 }

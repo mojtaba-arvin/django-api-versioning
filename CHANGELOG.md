@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `LifecycleMiddleware` now sends the `Sunset` header (and `Deprecation`, when `deprecated_at` is configured) for `retired` versions whose `sunset` date is still in the future. Previously these responses carried no lifecycle headers even though the version was about to be removed. Retired versions with a past `sunset` still return `410 Gone`, and `active` and unknown versions are unchanged.
+
 ## [1.0.1] - 2026-11-17
 
 ### Documentation

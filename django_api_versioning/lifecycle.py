@@ -78,10 +78,14 @@ class LifecycleMiddleware:
             )
 
         response = self.get_response(request)
-        if meta.get("status") == "deprecated":
+        status = meta.get("status")
+        # A retired version whose sunset is still in the future is still served
+        # (past sunsets returned 410 above), so clients must be warned about the
+        # upcoming removal exactly like for a deprecated version.
+        if status in ("deprecated", "retired"):
             if deprecation_date is not None:
                 response["Deprecation"] = _to_structured_field_date(deprecation_date)
-            else:
+            elif status == "deprecated":
                 logger.warning(
                     "Deprecated API version %s has no valid deprecated_at date; "
                     "omitting the Deprecation header.",

@@ -742,7 +742,7 @@ For a version configured as `deprecated` with a valid `deprecated_at` date, the 
 There are important distinctions:
 
 - A `retired` status by itself does not trigger `410 Gone`; the middleware uses the sunset date to determine when to return 410.
-- A future sunset date with `retired` status does not produce the deprecation headers; those are associated with the `deprecated` status.
+- A `retired` version whose sunset date is still in the future is still served, and its responses carry the `Sunset` header (plus `Deprecation` when `deprecated_at` is configured), so clients are warned before the version disappears.
 - A deprecated lifecycle entry must include `deprecated_at` as an ISO 8601 date or datetime. The middleware emits the RFC 9745 date-valued Structured Field (for example, `Deprecation: @1796083200`), not the legacy `Deprecation: true` value.
 - The middleware does not automatically generate a `Link` header with `rel="deprecation"`.
 
