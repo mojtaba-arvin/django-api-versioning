@@ -1,6 +1,8 @@
 """Tests for management commands."""
 
 import ast
+import os
+import stat
 from io import StringIO
 
 import pytest
@@ -9,6 +11,7 @@ from django.core.management.base import CommandError
 from django.http import JsonResponse
 
 from django_api_versioning.decorators import endpoint
+from django_api_versioning.management.commands import migrate_endpoints as migrate_module
 from django_api_versioning.management.commands.migrate_endpoints import (
     _has_comments,
     _rewrite_args,
@@ -621,3 +624,73 @@ class TestMigrateEndpointsCommand:
         assert "versions=list(range(1, 3))" in updated
         assert "versions=[3]" in updated
         ast.parse(updated)
+
+
+    def test_diff_mode_is_deterministic_and_does_not_modify_files(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            "def view(request):\\n"
+            "    return None\\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        first = StringIO()
+        second = StringIO()
+        call_command("migrate_endpoints", path=str(tmp_path), diff=True, stdout=first)
+        call_command("migrate_endpoints", path=str(tmp_path), diff=True, stdout=second)
+
+        output = first.getvalue()
+        assert output == second.getvalue()
+        assert output.startswith("--- views.py\\n+++ views.py\\n")
+        assert '-@endpoint("users", version=2, backward=True, forward=False)' in output
+        assert '+@endpoint("users", versions=list(range(1, 3)))' in output
+        assert view_file.read_text() == source
+
+    def test_atomic_write_preserves_file_permissions(self, tmp_path):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            "def view(request):\\n"
+            "    return None\\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+        view_file.chmod(0o640)
+
+        call_command(
+            "migrate_endpoints",
+            path=str(tmp_path),
+            write=True,
+            stdout=StringIO(),
+        )
+
+        assert "versions=list(range(1, 3))" in view_file.read_text()
+        assert stat.S_IMODE(view_file.stat().st_mode) == 0o640
+        assert list(tmp_path.glob(".views.py.*.tmp")) == []
+
+    def test_failed_atomic_replace_keeps_original_and_cleans_temp_file(
+        self, tmp_path, monkeypatch
+    ):
+        source = (
+            '@endpoint("users", version=2, backward=True, forward=False)\\n'
+            "def view(request):\\n"
+            "    return None\\n"
+        )
+        view_file = tmp_path / "views.py"
+        view_file.write_text(source)
+
+        def fail_replace(source_path, target_path):
+            raise OSError("simulated atomic replace failure")
+
+        monkeypatch.setattr(migrate_module.os, "replace", fail_replace)
+
+        with pytest.raises(OSError, match="simulated atomic replace failure"):
+            call_command(
+                "migrate_endpoints",
+                path=str(tmp_path),
+                write=True,
+                stdout=StringIO(),
+            )
+
+        assert view_file.read_text() == source
+        assert list(tmp_path.glob(".views.py.*.tmp")) == []
