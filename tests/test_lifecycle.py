@@ -420,8 +420,9 @@ class TestVersionExtraction:
         version = _extract_version(request)
         assert version == 5
 
-        # When both are None, path wins
+        # When resolver metadata and request.version are both absent, path wins.
         request.resolver_match.kwargs = {}
+        request.version = None
         version = _extract_version(request)
         assert version == 1
 
