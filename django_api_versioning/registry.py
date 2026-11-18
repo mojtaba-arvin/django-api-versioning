@@ -107,16 +107,23 @@ class UrlRegistry:
         """
         matches: list[tuple[int, int]] = []
         for pattern in self.urlpatterns:
-            registered_route = str(pattern.pattern)
-            start = len(route) - len(registered_route)
-            if start < 0 or route[start:] != registered_route:
-                continue
-            if start and route[start - 1] != "/":
-                continue
+            registered_pattern = str(pattern.pattern)
+            pattern_variants = {registered_pattern}
+            normalized_pattern = registered_pattern.removeprefix("^").removesuffix("$")
+            pattern_variants.add(normalized_pattern)
+
+            matched_length = 0
+            for candidate in pattern_variants:
+                start = len(route) - len(candidate)
+                if start < 0 or route[start:] != candidate:
+                    continue
+                if start and route[start - 1] != "/":
+                    continue
+                matched_length = max(matched_length, len(candidate))
 
             version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            if isinstance(version, int) and not isinstance(version, bool):
-                matches.append((len(registered_route), version))
+            if matched_length and isinstance(version, int) and not isinstance(version, bool):
+                matches.append((matched_length, version))
 
         if not matches:
             return None
