@@ -1,6 +1,6 @@
 # django-api-versioning website
 
-The canonical project website for [django-api-versioning](https://github.com/mojtaba-arvin/django-api-versioning) ([PyPI](https://pypi.org/project/django-api-versioning/)), a decorator-based API versioning package for Django and Django REST Framework.
+The canonical project website for [django-api-versioning](https://github.com/mojtaba-arvin/django-api-versioning) ([PyPI](https://pypi.org/project/django-api-versioning/)), a declarative URL-path API versioning package for Django and Django REST Framework, with `@endpoint` registration and an optional `VersionedRouter` integration for DRF ViewSets.
 
 ## What's on the site
 

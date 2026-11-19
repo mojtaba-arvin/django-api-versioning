@@ -25,14 +25,14 @@ This article evaluates those requirements through **django-api-versioning**. Rat
 
 The package provides:
 
-- Declarative endpoint registration for function-based and supported class-based views.
+- Declarative endpoint registration for function-based and supported class-based views, plus the optional `VersionedRouter` integration for DRF ViewSets.
 - Version-range registration and explicit version selection.
 - Route inheritance when a new API version is introduced.
 - Version-aware reverse lookup.
 - Routing inspection and snapshot-based regression protection.
 - Configurable lifecycle middleware for deprecation headers and sunset enforcement.
 
-**Scope: routing and its supporting lifecycle behavior.** The package does not configure a DRF versioning class or automatically populate DRF's `request.version`. It also does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
+**Scope: routing, ViewSet version selection, and lifecycle metadata.** The decorator-based `@endpoint` API does not configure a DRF versioning class or automatically populate DRF's `request.version`; the optional `VersionedRouterVersioning` adapter does so for ViewSets registered through `VersionedRouter`. The package does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
 
 Package-specific behavior described in this article is documented in the project's canonical routing contract and source code.
 
@@ -286,7 +286,7 @@ Use an explicit version when the application needs a deterministic version-speci
 
 ### Do not assume that `request.version` is populated
 
-The package registers version-specific URL patterns. Its `@endpoint` decorator does not itself populate DRF's `request.version`.
+The package registers version-specific URL patterns. Its `@endpoint` decorator does not itself populate DRF's `request.version`; this section describes decorator-registered views, not the separate `VersionedRouterVersioning` adapter for ViewSets.
 
 A request to `/api/v1/users/` can resolve to the v1 view without `request.version` being set.
 
@@ -296,8 +296,9 @@ If application code needs `request.version`, configure a compatible extraction m
 
 The distinction is:
 
-- `django-api-versioning` selects the registered view through its generated URL patterns.
-- DRF's versioning scheme determines how a request version is extracted and exposed through `request.version`.
+- The decorator-based `@endpoint` API selects the registered view through its generated URL patterns.
+- DRF's versioning scheme determines how a request version is extracted and exposed through `request.version` for decorator-registered views.
+- For ViewSets, `VersionedRouterVersioning` is the package-provided adapter that reads the concrete `VersionedRouter` namespace and exposes it through `request.version`.
 
 ## 6. Inspect and protect the routing matrix
 
@@ -489,9 +490,8 @@ A newer implementation does not retroactively fix older overrides. If v2 has its
 The package also does not:
 
 - Enforce backward compatibility between serializers, views, or database schemas.
-- Populate DRF's `request.version` by itself.
-- Decorate DRF ViewSet classes directly.
-- Automatically register `@action` methods or integrate with DRF routers.
+- Populate DRF's `request.version` for decorator-based `@endpoint` views without a separately configured DRF versioning class; use `VersionedRouterVersioning` for ViewSets.
+- Decorate DRF ViewSet classes directly with `@endpoint`; use `VersionedRouter` for DRF `SimpleRouter` route generation and `@action` integration. Arbitrary `SimpleRouter` and `DefaultRouter` instances are not auto-discovered.
 - Generate separate OpenAPI schemas for every API version.
 - Provide a built-in version-discovery endpoint.
 - Decide deprecation policy or coordinate client migration.

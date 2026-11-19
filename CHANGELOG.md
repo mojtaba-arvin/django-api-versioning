@@ -7,15 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-19
+
 ### Added
 
 - Add explicit endpoint removal through `remove_endpoint()` and `VersionedRouter.remove()`. Removed routes remain available in earlier API versions, disappear from runtime routing and URL reversal at the removal boundary, and may be explicitly reintroduced by a later version declaration.
-- Add endpoint-level lifecycle declarations for decorator endpoints and `VersionedRouter` operations. Matching requests receive version-scoped `Deprecation`/`Sunset` headers; optional drf-spectacular integration marks deprecated operations with the standard OpenAPI `deprecated: true` field. Endpoint Sunset remains headers-only, while version-wide retirement keeps its existing 410 behavior.
+- Add endpoint-level lifecycle declarations through `set_endpoint_lifecycle()` and `VersionedRouter.set_lifecycle()`. Matching requests receive version-scoped RFC 9745 `Deprecation` and RFC 8594 `Sunset` headers. The optional drf-spectacular adapter marks deprecated operations with OpenAPI `deprecated: true`. Endpoint-level past-Sunset metadata remains headers-only; version-wide retirement keeps its existing 410 behavior.
+- Add the optional `EndpointLifecycleAutoSchema` integration for decorator-backed DRF endpoints and VersionedRouter operations. drf-spectacular remains an optional integration dependency and is not imported by the package core.
 
 ### Fixed
 
 - Reject duplicate generated route patterns registered by different `VersionedRouter` instances instead of silently allowing the later router to replace the earlier ViewSet in the shared registry.
 - Validate non-string and unhashable `API_VERSION_LIFECYCLE` status values as `VersioningError` instead of leaking a raw `TypeError`.
+
+### Compatibility
+
+- No migration is required for existing 1.1.0 users. The existing URL-path routing contract and the optional nature of Django REST Framework are unchanged.
+- Applications that registered colliding generated route patterns across independent `VersionedRouter` instances will now receive `VersioningError` instead of relying on last-writer replacement. Use distinct route prefixes and outer namespaces; duplicate generated patterns are not a supported dispatch contract.
+- Header/query/tenant-based version negotiation remains unsupported; reserved settings do not activate additional negotiation channels.
+
+### Verification
+
+- Release verification is tied to the annotated `v1.2.0` tag and its GitHub Actions run. The full Python/Django/DRF matrix, executable versioned OpenAPI consumer contract, wheel/sdist validation, isolated installed-wheel smoke test, and distribution-content checks are required before publication.
+
+### Documentation
+
+- Update the canonical routing contract, public API reference, README, website, and ViewSet/lifecycle/OpenAPI design records for the 1.2.0 release boundary.
 
 ## [1.1.0] - 2026-11-18
 

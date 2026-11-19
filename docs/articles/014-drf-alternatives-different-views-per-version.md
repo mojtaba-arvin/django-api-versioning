@@ -21,7 +21,7 @@ When an API evolves, some endpoints need different implementations in different 
 
 For projects using `APIView` or DRF generic views, [django-api-versioning on PyPI](https://pypi.org/project/django-api-versioning/) provides declarative registration of version-specific implementations. Each view declares the version from which it should serve, and the package generates the corresponding URL patterns.
 
-The package manages endpoint-to-version registration, not DRF's request handling, serializers, or ViewSet routers. Its generated routes do not configure a DRF versioning class or automatically populate DRF's `request.version`; configure DRF version identification separately if application code needs that attribute.
+The decorator-based `@endpoint` API manages endpoint-to-version registration for individual views; it does not configure DRF request handling, serializers, or automatically populate DRF's `request.version`. For resource-oriented ViewSets, the separate `VersionedRouter` integration delegates route generation to DRF's `SimpleRouter`, and `VersionedRouterVersioning` exposes the matched namespace through `request.version`.
 
 ## Register different views for different API versions
 

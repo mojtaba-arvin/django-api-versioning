@@ -3,7 +3,7 @@
 
 > **Stable-release baseline:** `django-api-versioning` `1.1.0`, published from the annotated `v1.1.0` tag. The release workflow completed successfully on commit `66bb4da557b9df4081be3ee65b9ad01db5030f2a`, verified the tag, ran the compatibility matrix, built and verified the wheel and sdist, smoke-tested the installed wheel, and published both artifacts to PyPI through Trusted Publishing.
 >
-> **Current-main additions:** This living reference also documents work added after that release. Explicit endpoint removal (`remove_endpoint()` / `VersionedRouter.remove()`) and endpoint-level lifecycle metadata (`set_endpoint_lifecycle()` / `VersionedRouter.set_lifecycle()`, including `EndpointLifecycleAutoSchema`) are marked below as **unreleased** and are not included in the published PyPI artifact. The executable OpenAPI consumer example and its `oasdiff` CI gate were also added after `v1.1.0`; they are repository-level validation tooling, not part of the published wheel. The current mainline tag-based publish workflow requires that contract gate for future releases.
+> **Upcoming 1.2.0 release candidate (publication pending):** This living reference documents the complete 1.2.0 candidate. Explicit endpoint removal (`remove_endpoint()` / `VersionedRouter.remove()`) and endpoint-level lifecycle metadata (`set_endpoint_lifecycle()` / `VersionedRouter.set_lifecycle()`, including `EndpointLifecycleAutoSchema`) are included in the candidate but are not in the currently published 1.1.0 PyPI artifact. The executable OpenAPI consumer example and its `oasdiff` CI gate are repository-level validation tooling, not part of the package wheel. The tag-based publish workflow requires that contract gate before publishing 1.2.0.
 >
 > The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
@@ -247,7 +247,7 @@ def legacy(request):
 [1, 2, 3]
 ```
 
-### Explicit endpoint removal (unreleased on main)
+### Explicit endpoint removal (included in 1.2.0 release candidate; publication pending)
 
 Forward inheritance can be stopped deliberately without deleting the route
 from earlier API versions. Use the top-level remove_endpoint() function:
@@ -586,7 +586,7 @@ For a request that does not resolve to a view, the middleware retains path-based
 
 The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
 
-## 13. Endpoint-level lifecycle and OpenAPI (unreleased on main)
+## 13. Endpoint-level lifecycle and OpenAPI (included in 1.2.0 release candidate; publication pending)
 
 Version-wide lifecycle policy and endpoint lifecycle metadata are separate
 contracts. Keep `API_VERSION_LIFECYCLE` for version-wide deprecation,

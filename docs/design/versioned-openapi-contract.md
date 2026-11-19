@@ -1,6 +1,6 @@
 # Versioned OpenAPI contract integration
 
-**Status:** Executable repository integration and CI validation complete on `main` after the `v1.1.0` release; not included in the published `1.1.0` wheel. The current mainline tag-based publish workflow requires this contract gate for future releases.  
+**Status:** Executable repository integration and CI validation are included in the 1.2.0 release candidate. The consumer fixture and `oasdiff` gate are repository-level validation tooling, not part of the published wheel; the tag-based release workflow requires this gate before 1.2.0 publication.  
 **Runtime dependencies:** None added
 
 ## Decision

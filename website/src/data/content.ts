@@ -104,7 +104,7 @@ export const features = [
   },
   {
     title: 'Deprecation & Sunset',
-    body: 'LifecycleMiddleware handles version-wide deprecation and retirement. Current main (not yet in the published 1.1.0 artifact) also supports route-level lifecycle headers and optional OpenAPI deprecation metadata.',
+    body: 'LifecycleMiddleware handles version-wide deprecation and retirement. The upcoming 1.2.0 release adds route-level lifecycle headers and optional OpenAPI deprecation metadata; publication is pending.',
     icon: '◐',
   },
   {
@@ -114,7 +114,7 @@ export const features = [
   },
   {
     title: 'Explicit route removal',
-    body: 'Current main (not yet in the published 1.1.0 artifact) adds remove_endpoint() and VersionedRouter.remove() so inherited routes can be removed from a chosen version onward.',
+    body: 'The upcoming 1.2.0 release adds remove_endpoint() and VersionedRouter.remove() so inherited routes can be removed from a chosen version onward; publication is pending.',
     icon: '−',
   },
 ]

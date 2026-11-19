@@ -1,6 +1,6 @@
 # Endpoint-level lifecycle metadata
 
-**Status:** Implemented and merged to `main` in PR #71 (merge commit `1db0358c1600f97eaabb03c2436551c030dc93af`, 2026-11-19). The exact-head PR gate and CodeQL passed before merge. The feature is in the repository mainline; it is not yet represented by a newer PyPI release.
+**Status:** Implemented and merged to `main` in PR #71 (merge commit `1db0358c1600f97eaabb03c2436551c030dc93af`, 2026-11-19). The exact-head PR gate and CodeQL passed before merge. The feature is included in the 1.2.0 release candidate; publication to PyPI is pending.
 **Related:** [Issue #39](https://github.com/mojtaba-arvin/django-api-versioning/issues/39), [roadmap #36](https://github.com/mojtaba-arvin/django-api-versioning/issues/36)
 **Depends on:** the merged endpoint-removal/tombstone contract and version-wide `LifecycleMiddleware`.
 
@@ -242,4 +242,4 @@ The public API and runtime behavior are implemented in main by PR #71. The mainl
 
 The design decisions are resolved and the implementation is merged to main in PR #71 at `1db0358c1600f97eaabb03c2436551c030dc93af`. The exact-head PR gate and CodeQL checks passed, including the executable consumer contract.
 
-The feature is implemented in the repository mainline but is not yet a separately published PyPI release. Before the next release, run the full release compatibility matrix, rebuild and install both wheel and sdist in isolation, verify the changelog and docs, and publish only from the verified mainline tag.
+The feature is included in the 1.2.0 release candidate. Publication remains blocked on the full release compatibility matrix, executable OpenAPI consumer contract, isolated wheel/sdist verification, and a verified annotated mainline tag.

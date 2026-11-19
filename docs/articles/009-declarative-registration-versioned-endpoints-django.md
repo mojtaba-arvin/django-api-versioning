@@ -118,7 +118,7 @@ Now:
 - Requests to `/api/v2/users/` resolve to `UserListViewV2`.
 - Requests to either version of the detail route resolve to `UserDetailView`.
 
-This is registration-time route inheritance. It does not create a Python subclass, copy methods, merge serializers, configure a DRF versioning class, or establish that the API contracts are backward compatible. The package selects the callable by matching generated URL patterns; it does not automatically populate DRF's `request.version`. If view logic needs that attribute, configure DRF version identification separately and ensure its required URL keyword argument or namespace is present.
+This is registration-time route inheritance. It does not create a Python subclass, copy methods, merge serializers, or establish that the API contracts are backward compatible. For decorator-registered `@endpoint` views, the package selects the callable by matching generated URL patterns but does not automatically populate DRF's `request.version`; configure DRF version identification separately if that attribute is needed. For ViewSets, the optional `VersionedRouter` integration uses `VersionedRouterVersioning` to expose the matched router namespace as `request.version`.
 
 For the exact version-range, collision, and URL construction rules, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 

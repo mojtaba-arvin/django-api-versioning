@@ -32,7 +32,7 @@ The examples also assume that `ArticleSerializerV1` and `ArticleSerializerV2` ar
 
 ## Routing inheritance with django-api-versioning
 
-The package's `@endpoint` decorator registers a view for a version range. A declaration using `version=N` applies from version N through `API_MAX_VERSION`, inclusive. It selects the callable by matching generated URL patterns; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present.
+The package's `@endpoint` decorator registers a view for a version range. A declaration using `version=N` applies from version N through `API_MAX_VERSION`, inclusive. It selects the callable by matching generated URL patterns; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If an `@endpoint` view needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present. For DRF ViewSets, use `VersionedRouterVersioning` with `VersionedRouter` to expose the matched namespace as `request.version`.
 
 For example, with `API_MIN_VERSION = 1` and `API_MAX_VERSION = 2`, a view registered at version 1 is available in both v1 and v2. If another view is registered for the same path at version 2, that registration replaces the v2 route without changing the v1 route.
 

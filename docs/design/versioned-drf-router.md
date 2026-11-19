@@ -1,6 +1,6 @@
 # Version-aware DRF ViewSet router
 
-**Status:** Initial `VersionedRouter` integration was merged in PR #37 and shipped in v1.1.0. Mainline follow-ups added explicit route removal (PR #58), endpoint lifecycle metadata (PR #71), and fail-closed cross-router collision handling (PR #83). The latter follow-ups remain under `Unreleased` until a future package release.  
+**Status:** Initial `VersionedRouter` integration was merged in PR #37 and shipped in v1.1.0. Mainline follow-ups added explicit route removal (PR #58), endpoint lifecycle metadata (PR #71), and fail-closed cross-router collision handling (PR #83). These follow-ups are included in the 1.2.0 release candidate; publication is pending.  
 **Target API:** `VersionedRouter` and `VersionedRouterVersioning`  
 **Runtime dependency:** Django REST Framework remains optional.  
 **Initial scope:** DRF `SimpleRouter` integration; no serializer or response transformation.
@@ -188,4 +188,4 @@ The implementation is not considered complete unless all of the following remain
 10. Core package imports remain independent of DRF.
 11. Full package and integration tests, lint, distribution build, website verification, and the supported Python/Django/DRF matrix pass.
 
-The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal and endpoint-level lifecycle were added to `main` afterward and are recorded under `Unreleased`; do not infer that those follow-ups are present in the currently published PyPI artifact. Current compatibility evidence is commit-specific and belongs to the corresponding GitHub Actions run, not this design note.
+The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal, endpoint-level lifecycle, and cross-router collision protection are included in the 1.2.0 release candidate. Do not treat the candidate as published until the tag-triggered workflow and PyPI artifact verification succeed. Compatibility evidence remains commit-specific and belongs to the corresponding GitHub Actions run.

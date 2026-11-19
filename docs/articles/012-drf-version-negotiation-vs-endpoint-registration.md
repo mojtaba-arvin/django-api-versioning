@@ -356,7 +356,7 @@ The main difference is where the version is represented and how that affects rou
 | Version source | `Accept` header | URL keyword argument | Endpoint declaration |
 | Version visible in URL | No | Yes | Yes, in generated routes |
 | Separate URL per version | No | Yes | Yes |
-| DRF populates `request.version` | Yes | Yes | Not by itself |
+| DRF populates `request.version` | Yes | Yes | Not for `@endpoint`; `VersionedRouterVersioning` does so for ViewSets |
 | Cache separation by URL | No | Yes | Yes |
 | Header-based cache variation | `Vary: Accept` when representations differ | Not for version separation | Not for version separation |
 | Version-specific view registration | Application-managed | Application-managed | Declarative |
@@ -364,9 +364,9 @@ The main difference is where the version is represented and how that affects rou
 
 The important distinction is that `django-api-versioning` is not another DRF version-negotiation scheme.
 
-It generates routes from declarations. It does not determine the request version for DRF, and it does not automatically populate `request.version`.
+The decorator-based `@endpoint` API generates routes from declarations. It does not determine the request version for DRF or automatically populate `request.version`; configure DRF version identification separately if an `@endpoint` view needs that attribute. For ViewSets registered through `VersionedRouter`, `VersionedRouterVersioning` exposes the matched namespace through `request.version`.
 
-If a view registered through the package needs DRF's `request.version`, configure a compatible DRF versioning scheme separately. Do not assume that a generated literal version path automatically provides the URL keyword argument expected by `URLPathVersioning`.
+If a view registered through `@endpoint` needs DRF's `request.version`, configure a compatible DRF versioning scheme separately. Do not assume that a generated literal version path automatically provides the URL keyword argument expected by `URLPathVersioning`. For ViewSets, use the package's `VersionedRouterVersioning` adapter.
 
 ## 5. Adding an endpoint that changes between versions
 

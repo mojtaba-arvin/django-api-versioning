@@ -2,7 +2,7 @@ export const site = {
   name: 'django-api-versioning',
   title: 'django-api-versioning — URL-path API versioning for Django and DRF',
   description:
-    'Declare Django endpoints with @endpoint or register DRF ViewSets with VersionedRouter. Later API versions inherit unchanged route implementations and replace only the routes you redeclare.',
+    'Declare Django endpoints with @endpoint or register DRF ViewSets with VersionedRouter. Later API versions inherit unchanged routes, replace changed implementations, and support explicit route removal and operation-level lifecycle metadata.',
   github: 'https://github.com/mojtaba-arvin/django-api-versioning',
   pypi: 'https://pypi.org/project/django-api-versioning/',
   author: 'Mojtaba Arvin',

@@ -33,7 +33,7 @@ integration_test_project/
     └── scenarios/
 ```
 
-The Segment Lab contains 18 executable scenarios. Its detailed operating instructions, provenance rules, and evidence-generation commands are documented in [`segment_lab/README.md`](segment_lab/README.md).
+The Segment Lab contains 20 executable scenarios. Its detailed operating instructions, provenance rules, and evidence-generation commands are documented in [`segment_lab/README.md`](segment_lab/README.md).
 
 ## Run the integration tests
 

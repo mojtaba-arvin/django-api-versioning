@@ -21,6 +21,7 @@ describe('canonical Reference content', () => {
       '@endpoint arguments',
       'URL reversal',
       'Validation and collisions',
+      'Explicit endpoint removal (included in 1.2.0; publication pending)',
       'Exceptions',
       'Route-matrix tools',
       'API lifecycle',
