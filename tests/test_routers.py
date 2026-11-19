@@ -489,3 +489,26 @@ def test_router_lifecycle_rejects_method_action_mismatch():
             methods=["POST"],
             deprecated_at="2027-01-01T00:00:00Z",
         )
+
+
+def test_failed_registration_does_not_reserve_prefix_or_basename():
+    """A collision must not poison a router's future valid registrations."""
+    existing_router = VersionedRouter()
+    existing_router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    retryable_router = VersionedRouter()
+    with pytest.raises(VersioningError, match="another VersionedRouter"):
+        retryable_router.register(
+            "posts", PostViewSetV2, version=1, basename="post"
+        )
+
+    # The failed declaration did not become a registration. Reusing its
+    # basename for a different prefix on the same router must remain valid.
+    retryable_router.register(
+        "comments", PostViewSetV2, version=1, basename="post"
+    )
+    assert any(
+        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "comments:post-list"
+        for pattern in registry.urlpatterns
+    )
