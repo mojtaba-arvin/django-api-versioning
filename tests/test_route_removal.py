@@ -1,4 +1,5 @@
 from io import StringIO
+from itertools import permutations
 from types import ModuleType
 
 import pytest
@@ -10,6 +11,7 @@ from django.urls import NoReverseMatch, clear_url_caches
 from django_api_versioning import api_reverse, endpoint, remove_endpoint
 from django_api_versioning.exceptions import VersioningError, VersionMatrixError
 from django_api_versioning.registry import registry
+from django_api_versioning.settings import api_settings
 from django_api_versioning.testing import assert_version_matrix, build_version_matrix
 
 
@@ -179,6 +181,12 @@ def test_router_removal_is_action_specific():
     router.register("orders", OrderViewSetV1, version=1, basename="order")
     router.remove("orders", "order-archive", from_version=3)
 
+    assert api_reverse("order-archive", version=2, pk=42) == (
+        "/api/v2/orders/42/archive/"
+    )
+    with pytest.raises(NoReverseMatch):
+        api_reverse("order-archive", version=3, pk=42)
+
     active = {
         pattern.name
         for pattern in registry.urlpatterns
@@ -279,3 +287,72 @@ def test_router_remove_rejects_empty_route_name():
     router = VersionedRouter()
     with pytest.raises(VersioningError, match="route_name"):
         router.remove("orders", "", from_version=3)
+
+
+def test_removal_and_reintroduction_sequences_match_segment_reference_model(
+    monkeypatch,
+):
+    """Exhaustively permute registrations and removals against a simple model."""
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 6)
+    operations = [
+        ("register", 1),
+        ("register", 3),
+        ("register", 5),
+        ("remove", 2),
+        ("remove", 4),
+    ]
+
+    for sequence in permutations(operations):
+        registry.clear()
+        registered_sources = []
+        removal_boundaries = []
+
+        for operation, version in sequence:
+            if operation == "register":
+                registered_sources.append(version)
+                view = _view(f"orders_v{version}")
+                for route_version in range(version, 7):
+                    registry.register(
+                        f"api/v{route_version}/orders/",
+                        view,
+                        name="orders",
+                        source_version=version,
+                        route_version=route_version,
+                        logical_endpoint="shop/orders/",
+                    )
+            else:
+                removal_boundaries.append(version)
+                registry.remove("shop/orders/", from_version=version)
+
+            expected = {}
+            for route_version in range(1, 7):
+                applicable_boundaries = [
+                    boundary
+                    for boundary in removal_boundaries
+                    if boundary <= route_version
+                ]
+                boundary = max(applicable_boundaries, default=None)
+                candidates = [
+                    source
+                    for source in registered_sources
+                    if source <= route_version
+                    and (boundary is None or source > boundary)
+                ]
+                if candidates:
+                    expected[route_version] = max(candidates)
+
+            actual = {
+                getattr(pattern, registry._ROUTE_VERSION_ATTR): getattr(
+                    pattern, registry._SOURCE_VERSION_ATTR
+                )
+                for pattern in registry.urlpatterns
+                if (
+                    getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+                    == "shop/orders/"
+                )
+            }
+            assert (
+                actual == expected
+            ), f"sequence={sequence!r}, after={(operation, version)!r}"
+
+    registry.clear()

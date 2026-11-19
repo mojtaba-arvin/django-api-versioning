@@ -667,3 +667,40 @@ def test_lifecycle_headers_are_applied_when_api_is_mounted_under_prefix(monkeypa
     assert response.status_code == 200
     assert response["Deprecation"] == "@1735689600"
     assert "Sunset" in response
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected_header", "log_message"),
+    [
+        (
+            "deprecated_at",
+            "0001-01-01T00:00:00+23:59",
+            "Deprecation",
+            "Invalid deprecation date",
+        ),
+        (
+            "sunset",
+            "9999-12-31T23:59:59-23:59",
+            "Sunset",
+            "Invalid sunset date",
+        ),
+    ],
+)
+def test_timezone_normalization_overflow_is_ignored(
+    monkeypatch, caplog, field, value, expected_header, log_message
+):
+    """Valid ISO offsets can overflow when normalized at datetime boundaries."""
+    lifecycle = {
+        "status": "deprecated",
+        "deprecated_at": DEPRECATED_AT,
+        "sunset": FUTURE,
+    }
+    lifecycle[field] = value
+    monkeypatch.setitem(settings.API_VERSION_LIFECYCLE, 2, lifecycle)
+
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+    response = middleware(_request("2"))
+
+    assert response.status_code == 200
+    assert expected_header not in response
+    assert log_message in caplog.text

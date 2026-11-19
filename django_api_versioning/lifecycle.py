@@ -277,13 +277,14 @@ def _parse_lifecycle_date(value: Any, field_name: str) -> datetime | None:
     try:
         normalized_value = value[:-1] + "+00:00" if value.endswith("Z") else value
         parsed = datetime.fromisoformat(normalized_value)
-    except ValueError:
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except (OverflowError, ValueError):
+        # A valid ISO offset can still move year 1/9999 outside datetime's
+        # representable UTC range during normalization.
         logger.warning("Invalid %s date %r; ignoring.", field_name, value)
         return None
-
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
 
 
 def _is_past(date: datetime) -> bool:
