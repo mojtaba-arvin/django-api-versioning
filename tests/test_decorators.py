@@ -595,3 +595,33 @@ def test_set_endpoint_lifecycle_rejects_non_string_app_name(versions_1_to_5):
             app_name=1,
             deprecated_at="2027-01-01T00:00:00Z",
         )
+
+
+def test_set_endpoint_lifecycle_multi_method_registration_is_atomic(
+    versions_1_to_5,
+):
+    set_endpoint_lifecycle(
+        "atomic-users",
+        version=2,
+        methods=["POST"],
+        deprecated_at="2028-01-01T00:00:00Z",
+    )
+    previous = dict(registry._endpoint_lifecycle)
+
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        set_endpoint_lifecycle(
+            "atomic-users",
+            version=2,
+            methods=["GET", "POST"],
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
+
+    assert registry._endpoint_lifecycle == previous
+
+
+@pytest.mark.parametrize("versions", [(1, 2), iter([1, 2]), "12"])
+def test_endpoint_rejects_non_list_version_collections(versions):
+    """The public versions argument is a list; one-shot iterables must not vanish."""
+
+    with pytest.raises(VersionTypeError, match="'versions' must be a list"):
+        endpoint("users", versions=versions)
