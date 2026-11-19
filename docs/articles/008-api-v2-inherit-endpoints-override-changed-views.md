@@ -331,7 +331,7 @@ Python inheritance and routing inheritance solve different parts of version main
 | 5 resources change in v2 | 20 | 15 | 15 |
 | All 10 resources change in v2 | 20 | 20 | 20 |
 
-The counts are registration calls, not generated URL counts. They assume one ViewSet registration per resource in each manual version router; for `@endpoint` and `VersionedRouter`, one initial declaration/registration per resource plus a v2 declaration/registration only when that resource changes.
+The counts are registration calls, not generated URL counts. They assume one ViewSet registration per resource in each manual version router; for `@endpoint` and `VersionedRouter`, one initial declaration/registration per resource plus a v2 declaration/registration only when that resource changes. This is not a route-count or feature-parity comparison: one `VersionedRouter` registration expands to the applicable list, detail, and custom-action patterns, while one `@endpoint` declaration registers one configured view callable. Actual declaration counts depend on how many operations each resource exposes.
 
 The comparison shows the actual registration savings:
 
