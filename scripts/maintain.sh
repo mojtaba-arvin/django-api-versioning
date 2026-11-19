@@ -9,6 +9,12 @@ auth() {
   need gh
   gh auth status >/dev/null 2>&1 || die "Run gh auth login first."
   [[ "$(gh repo view "$REPO" --json nameWithOwner --jq .nameWithOwner)" == "$REPO" ]] || die "Wrong GitHub repository context."
+  local origin_url
+  origin_url="$(git remote get-url origin)"
+  case "$origin_url" in
+    "https://github.com/$REPO"|"https://github.com/$REPO.git"|"git@github.com:$REPO"|"git@github.com:$REPO.git"|"ssh://git@github.com/$REPO"|"ssh://git@github.com/$REPO.git") ;;
+    *) die "origin remote '$origin_url' is not the canonical repository $REPO." ;;
+  esac
 }
 version_check() {
   [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || die "Expected a SemVer version such as 1.3.0."
@@ -27,6 +33,46 @@ preflight() {
   ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1 || die "Remote tag $tag already exists."
   echo "PASS: clean main, package version, changelog entry, and unused tag."
 }
+create_github_release() {
+  local v="$1" tag="v$1" tag_type published run_json notes_file
+  version_check "$v"; auth; need curl; need jq; need python3
+  tag_type="$(gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object.type')" || die "Remote tag $tag does not exist."
+  [[ "$tag_type" == tag ]] || die "$tag is not an annotated tag."
+  run_json="$(gh run list --repo "$REPO" --workflow publish.yml --branch "$tag" --limit 10 --json status,conclusion)"
+  echo "$run_json" | jq -e 'any(.[]; .status == "completed" and .conclusion == "success")' >/dev/null ||
+    die "No successful Publish to PyPI workflow run found for $tag."
+  published="$(curl --fail --silent --show-error "https://pypi.org/pypi/django-api-versioning/$v/json" | jq -r '.info.version')"
+  [[ "$published" == "$v" ]] || die "PyPI does not report the requested version $v."
+  if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+    echo "GitHub Release $tag already exists; leaving it unchanged."
+    return
+  fi
+  notes_file="$(mktemp)"
+  trap 'rm -f "$notes_file"' RETURN
+  RELEASE_VERSION="$v" NOTES_FILE="$notes_file" python3 - <<'PY'
+import os
+import re
+from pathlib import Path
+
+version = os.environ["RELEASE_VERSION"]
+lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+heading = re.compile(rf"^## \[{re.escape(version)}\](?: - .*)?$")
+start = next((i for i, line in enumerate(lines) if heading.match(line)), None)
+if start is None:
+    raise SystemExit(f"No dated CHANGELOG.md section found for {version}.")
+end = next(
+    (i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
+    len(lines),
+)
+notes = "\n".join(lines[start + 1:end]).strip()
+if not notes:
+    raise SystemExit(f"CHANGELOG.md section for {version} is empty.")
+Path(os.environ["NOTES_FILE"]).write_text(notes + "\n", encoding="utf-8")
+PY
+  gh release create "$tag" --repo "$REPO" --verify-tag \
+    --title "django-api-versioning $v" --notes-file "$notes_file"
+}
+
 release() {
   local action="$1" v="$2" tag="v$2"
   case "$action" in
@@ -37,6 +83,7 @@ release() {
       git push origin "refs/tags/$tag"
       echo "Pushed $tag. GitHub Actions will publish to PyPI and create the GitHub Release."
       ;;
+    create) create_github_release "$v" ;;
     status)
       version_check "$v"; auth; need curl; need jq
       echo "== Tag =="; gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object | {type,sha}' || true
@@ -80,8 +127,8 @@ branches() {
   else printf 'Dry run: %s candidate(s), %s retained. Use --apply to delete only merged branches.\n' "$safe" "$kept"; fi
 }
 case "${1:-}" in
-  release) [[ "$#" -eq 3 ]] || die "Usage: scripts/maintain.sh release {preflight|tag|status} VERSION"; release "$2" "$3" ;;
+  release) [[ "$#" -eq 3 ]] || die "Usage: scripts/maintain.sh release {preflight|tag|create|status} VERSION"; release "$2" "$3" ;;
   branches) [[ "$#" -le 2 ]] || die "Usage: scripts/maintain.sh branches [--apply]"; if [[ "${2:-}" == --apply ]]; then branches --apply; else branches; fi ;;
-  -h|--help|help) echo "Usage: scripts/maintain.sh release {preflight|tag|status} VERSION | branches [--apply]" ;;
+  -h|--help|help) echo "Usage: scripts/maintain.sh release {preflight|tag|create|status} VERSION | branches [--apply]" ;;
   *) die "Unknown command. Use --help." ;;
 esac
