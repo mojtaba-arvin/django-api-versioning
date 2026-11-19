@@ -292,3 +292,55 @@ def test_router_urls_exclude_reintroduced_routes_owned_by_another_router(monkeyp
             version=3,
             deprecated_at="2030-01-01T00:00:00Z",
         )
+
+
+
+def test_router_remove_cannot_delete_another_routers_versioned_route():
+    from django_api_versioning.registry import registry
+
+    class OriginalViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"owner": "original"})
+
+    class ReplacementViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"owner": "replacement"})
+
+    original_router = VersionedRouter()
+    original_router.register("shared", OriginalViewSet, version=1, basename="shared")
+
+    replacement_router = VersionedRouter()
+    replacement_router.register(
+        "shared", ReplacementViewSet, version=2, basename="shared"
+    )
+
+    replacement_patterns = [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is replacement_router._registry_owner
+    ]
+    assert replacement_patterns
+
+    with pytest.raises(VersioningError, match="owned by another VersionedRouter"):
+        original_router.remove("shared", "shared-list", from_version=2)
+
+    assert all(pattern in registry.urlpatterns for pattern in replacement_patterns)
+    assert any(
+        getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is replacement_router._registry_owner
+        for pattern in replacement_router.urls
+    )
+
+
+def test_router_remove_rejects_a_router_that_does_not_own_the_endpoint():
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    owner = VersionedRouter()
+    owner.register("orders", OrdersViewSet, version=1, basename="order")
+    unrelated = VersionedRouter()
+
+    with pytest.raises(VersioningError, match="does not own an active route"):
+        unrelated.remove("orders", "order-list", from_version=2)
