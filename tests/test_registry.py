@@ -5,7 +5,12 @@ import pytest
 from django.urls import clear_url_caches, include, path, re_path, resolve, reverse
 from django.views import View
 
-from django_api_versioning.exceptions import (\n    InvalidVersionError,\n    VersionRangeError,\n    VersionTypeError,\n    VersioningError,\n)
+from django_api_versioning.exceptions import (
+    InvalidVersionError,
+    VersionRangeError,
+    VersionTypeError,
+    VersioningError,
+)
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
 from django_api_versioning.registry import ResolvedOperation, registry
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
