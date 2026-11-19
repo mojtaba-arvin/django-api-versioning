@@ -101,30 +101,22 @@ def _has_root_contents_read(root_section: str) -> bool:
     return False
 
 
-def _validate_workflow_permissions(errors: list[str]) -> None:
-    for workflow in sorted(WORKFLOWS.glob("*.yml")):
-        content = workflow.read_text(encoding="utf-8")
-        if "pull_request_target:" in content:
-            errors.append(f"{workflow} must not use pull_request_target")
-        root_section = content.split("\njobs:", maxsplit=1)[0]
-        if not _has_root_contents_read(root_section):
-            errors.append(f"{workflow} must default to contents: read")
+def _workflow_job_block(content: str, name: str) -> str:
+    match = re.search(
+        rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+        content,
+    )
+    return match.group(1) if match else ""
 
+
+def _validate_evidence_permissions(errors: list[str]) -> None:
     evidence = WORKFLOWS / "generate-evidence.yml"
     if not evidence.exists():
         errors.append("Missing .github/workflows/generate-evidence.yml")
         return
     content = evidence.read_text(encoding="utf-8")
-
-    def job_block(name: str) -> str:
-        match = re.search(
-            rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
-            content,
-        )
-        return match.group(1) if match else ""
-
-    generator = job_block("generate-and-verify")
-    committer = job_block("commit-evidence")
+    generator = _workflow_job_block(content, "generate-and-verify")
+    committer = _workflow_job_block(content, "commit-evidence")
     if not re.search(r"(?m)^    permissions:\n      contents: read$", generator):
         errors.append("Evidence generation must run with contents: read")
     if "persist-credentials: false" not in generator:
@@ -148,13 +140,55 @@ def _validate_workflow_permissions(errors: list[str]) -> None:
     if "--force" in committer or "git reset" in committer:
         errors.append("Evidence commit job must not rewrite or reset Git history")
 
+
+def _validate_github_release_permissions(errors: list[str]) -> None:
+    publish = WORKFLOWS / "publish.yml"
+    if not publish.exists():
+        errors.append("Missing .github/workflows/publish.yml")
+        return
+    release_job = _workflow_job_block(
+        publish.read_text(encoding="utf-8"), "github-release"
+    )
+    if not re.search(r"(?m)^    permissions:\n      contents: write$", release_job):
+        errors.append(
+            "GitHub Release creation must use a job-scoped contents: write grant"
+        )
+    if not re.search(r"(?m)^    needs: publish$", release_job):
+        errors.append(
+            "GitHub Release creation must depend on successful PyPI publication"
+        )
+    if "gh release create" not in release_job:
+        errors.append("The isolated GitHub Release job must create the tagged release")
+    if "id-token: write" in release_job:
+        errors.append("GitHub Release creation must not receive PyPI OIDC permissions")
+
+
+def _validate_contents_write_grants(errors: list[str]) -> None:
     write_grants = []
     for workflow in sorted(WORKFLOWS.glob("*.yml")):
         for line in workflow.read_text(encoding="utf-8").splitlines():
             if re.match(r"^\s*contents:\s*write\s*$", line):
                 write_grants.append((workflow.name, len(line) - len(line.lstrip())))
-    if write_grants != [("generate-evidence.yml", 6)]:
-        errors.append("Only generate-evidence's commit job may grant contents: write")
+    expected = [("generate-evidence.yml", 6), ("publish.yml", 6)]
+    if write_grants != expected:
+        errors.append(
+            "Only the isolated evidence commit and post-publication GitHub Release "
+            "jobs may grant contents: write"
+        )
+
+
+def _validate_workflow_permissions(errors: list[str]) -> None:
+    for workflow in sorted(WORKFLOWS.glob("*.yml")):
+        content = workflow.read_text(encoding="utf-8")
+        if "pull_request_target:" in content:
+            errors.append(f"{workflow} must not use pull_request_target")
+        root_section = content.split("\njobs:", maxsplit=1)[0]
+        if not _has_root_contents_read(root_section):
+            errors.append(f"{workflow} must default to contents: read")
+
+    _validate_evidence_permissions(errors)
+    _validate_github_release_permissions(errors)
+    _validate_contents_write_grants(errors)
 
 
 def _validate_reusable_workflows(errors: list[str]) -> None:

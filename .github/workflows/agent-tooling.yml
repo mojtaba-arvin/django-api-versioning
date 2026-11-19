@@ -22,6 +22,7 @@ on:
       - "scripts/agent.py"
       - "scripts/verify_repository_policy.py"
       - "scripts/configure_github_repository.sh"
+      - "scripts/maintain.sh"
       - "scripts/classify_pr_changes.py"
       - "scripts/test_classify_pr_changes.py"
       - "scripts/agent_tests/**"
