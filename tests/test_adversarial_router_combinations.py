@@ -249,6 +249,7 @@ def test_regex_detail_route_uses_its_versioned_namespace_at_runtime():
     assert response.status_code == 200
     assert response.json() == {"pk": "42", "version": "2"}
 
+
 def test_router_urls_exclude_reintroduced_routes_owned_by_another_router(monkeypatch):
     from django_api_versioning.registry import registry
     from django_api_versioning.settings import api_settings
