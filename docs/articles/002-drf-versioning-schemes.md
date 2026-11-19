@@ -324,7 +324,7 @@ With `API_MAX_VERSION = 3`, the example covers versions 1, 2, and 3:
 
 **How it differs from the three DRF schemes:**
 
-- **Route version:** The URL path contains a literal version segment generated from `API_BASE_PATH` (`"api/v{version}/"` by default). The package uses that route to select the registered callable; it does not negotiate a request version or populate DRF's `request.version`. This is different from `URLPathVersioning`, which reads a resolver keyword argument.
+- **Route version:** The URL path contains a literal version segment generated from `API_BASE_PATH` (`"api/v{version}/"` by default). The decorator-based `@endpoint` API uses that route to select the registered callable; it does not negotiate a request version or populate DRF's `request.version`. This is different from `URLPathVersioning`, which reads a resolver keyword argument. For ViewSets registered through the optional `VersionedRouter`, `VersionedRouterVersioning` exposes the concrete router namespace as `request.version` and keeps reversal version-aware.
 - **View organization:** Separate per-version views, without URLconf duplication. Each changed endpoint gets its own view class; unchanged endpoints have a single class active across the version range.
 - **Registration model:** Each endpoint implementation is declared at the version it becomes active. Versions where the endpoint doesn't change inherit the previous registration. This is different from `NamespaceVersioning` (where each namespace gets its own URLconf) and from `URLPathVersioning` with shared views (where one class branches on `request.version`).
 

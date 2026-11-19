@@ -36,7 +36,7 @@ Consider an API with two user endpoints:
 
 The posts endpoint does not change between versions.
 
-The package lets you register the two user implementations at their respective starting versions and register the unchanged posts endpoint only once. It selects the view by matching its generated URL patterns; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If view logic needs that attribute, configure DRF version identification separately and verify that the chosen scheme's URL keyword argument or namespace is present.
+The decorator-based `@endpoint` API lets you register the two user implementations at their respective starting versions and register the unchanged posts endpoint only once. It selects the view by matching generated URL patterns; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If an `@endpoint` view needs that attribute, configure DRF version identification separately and verify that the chosen scheme's URL keyword argument or namespace is present. For ViewSets, `VersionedRouterVersioning` provides the separate namespace-to-`request.version` adapter.
 
 ### Define the serializers
 

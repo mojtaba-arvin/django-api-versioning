@@ -126,7 +126,7 @@ The declarations above produce the following routes:
 - A v2 list request is handled by `BookListV2View`.
 - Both v1 and v2 detail requests are handled by `BookDetailView`.
 
-The package generates standard Django URL patterns from the endpoint declarations. It does not change the view's business logic, configure a DRF versioning scheme, or automatically populate DRF's `request.version`. If view code needs that attribute, configure DRF version identification separately and verify that its URL keyword argument or namespace is present. The package does not automatically derive `request.version` from its literal version path segments. It also does not determine whether two API contracts are compatible.
+The decorator-based `@endpoint` API generates standard Django URL patterns from endpoint declarations. It does not change view business logic, configure a DRF versioning scheme, or automatically populate DRF's `request.version`; its literal version path segments do not automatically satisfy DRF `URLPathVersioning`. If an `@endpoint` view needs that attribute, configure DRF version identification separately and verify that its URL keyword argument or namespace is present. For ViewSets, the separate `VersionedRouterVersioning` adapter exposes the matched `VersionedRouter` namespace as `request.version`. Neither routing approach determines whether two API contracts are compatible.
 
 For the complete behavior of `version`, `versions`, URL construction, registration precedence, and import behavior, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 

@@ -246,7 +246,7 @@ class PostList(ListAPIView):
 
 The package registers this implementation for v1 and v2. You do not need to add another declaration just to expose the unchanged endpoint under the newer versioned URL.
 
-The runtime URL patterns are still generated for each supported version. What changes is where the registration logic lives: each implementation is declared at its starting version, and the registry generates the corresponding routes. The package uses URL matching to select the registered callable; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure its URL keyword argument or namespace is present.
+The runtime URL patterns are still generated for each supported version. What changes is where the registration logic lives: each implementation is declared at its starting version, and the registry generates the corresponding routes. The decorator-based `@endpoint` API uses URL matching to select the registered callable; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If an `@endpoint` view needs that attribute, configure DRF version identification separately and ensure its URL keyword argument or namespace is present. For ViewSets registered through `VersionedRouter`, use `VersionedRouterVersioning` to expose the matched namespace as `request.version`.
 
 ### Understanding segment registration
 

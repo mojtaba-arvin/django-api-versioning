@@ -207,6 +207,7 @@ There is also a material trade-off: if an endpoint contract changes and the team
 | Concern | Explicit URL patterns | DRF versioning classes | Version-range registration |
 | --- | --- | --- | --- |
 | Identifies request version | Through URL layout or application logic | Yes; sets `request.version` | URL version is generated from the registered route |
+| Populates DRF `request.version` | Only if configured separately | Yes, through the selected scheme | Not for `@endpoint`; the optional `VersionedRouterVersioning` adapter does so for `VersionedRouter` ViewSets |
 | Shares one view across versions | Yes, by reusing the callable | Yes, often with `request.version` | Yes, by carrying the registration across a version segment |
 | Separate implementation per version | Yes | Yes, with URLconf or dispatch design | Yes, by registering an override |
 | Generates versioned routes | You write URL patterns | You configure URL patterns or routers | Decorator registration creates package-managed patterns |
