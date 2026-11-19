@@ -481,7 +481,7 @@ def test_router_lifecycle_rejects_method_action_mismatch():
             "posts",
             "post-list",
             version=1,
-            action="retrieve",
+            action="create",
             methods=["GET"],
             deprecated_at="2027-01-01T00:00:00Z",
         )
