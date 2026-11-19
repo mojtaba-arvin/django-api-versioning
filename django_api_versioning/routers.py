@@ -453,10 +453,9 @@ class VersionedRouterVersioning(NamespaceVersioning):
             route_version = registry.get_resolved_route_version(route)
             namespace_matches_route = False
             if namespace_version is not None:
-                configured_prefix = (
-                    api_settings.API_BASE_PATH.format(version=namespace_version)
-                    .strip("/")
-                )
+                configured_prefix = api_settings.API_BASE_PATH.format(
+                    version=namespace_version
+                ).strip("/")
                 route_path = route.strip("^$").strip("/")
                 namespace_matches_route = (
                     f"/{configured_prefix}/" in f"/{route_path}/"
