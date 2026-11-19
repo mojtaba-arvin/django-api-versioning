@@ -420,6 +420,8 @@ class UrlRegistry:
             # The route identity is still unambiguous, so retain it for
             # route-wide lifecycle metadata; action-scoped metadata naturally
             # remains inapplicable when no action was selected.
+            if action is None and normalized_method != "OPTIONS":
+                return None
             if action is not None and (not isinstance(action, str) or not action):
                 return None
 
