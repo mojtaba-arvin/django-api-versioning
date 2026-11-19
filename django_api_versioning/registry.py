@@ -95,17 +95,22 @@ class UrlRegistry:
         # A tombstone must not let metadata from the removed implementation leak
         # into a later reintroduction at the same concrete API version. Preserve
         # metadata only for versions that already have a newer active source.
-        preserved_versions = {
-            route_version
-            for pattern in self.urlpatterns
-            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
-            == logical_endpoint
-            and (route_version := getattr(pattern, self._ROUTE_VERSION_ATTR, None))
-            is not None
-            and route_version >= from_version
-            and getattr(pattern, self._SOURCE_VERSION_ATTR, None) is not None
-            and getattr(pattern, self._SOURCE_VERSION_ATTR) > from_version
-        }
+        preserved_versions = set()
+        for pattern in self.urlpatterns:
+            if (
+                getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
+                != logical_endpoint
+            ):
+                continue
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
+            if (
+                route_version is not None
+                and route_version >= from_version
+                and source_version is not None
+                and source_version > from_version
+            ):
+                preserved_versions.add(route_version)
         for key in list(self._endpoint_lifecycle):
             endpoint, version, _, _ = key
             if (
