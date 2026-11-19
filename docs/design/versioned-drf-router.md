@@ -1,6 +1,6 @@
 # Version-aware DRF ViewSet router
 
-**Status:** Implemented on PR #37; documentation and release validation in progress.  
+**Status:** Initial `VersionedRouter` integration was merged in PR #37 and shipped in v1.1.0. Mainline follow-ups added explicit route removal (PR #58), endpoint lifecycle metadata (PR #71), and fail-closed cross-router collision handling (PR #83). The latter follow-ups remain under `Unreleased` until a future package release.  
 **Target API:** `VersionedRouter` and `VersionedRouterVersioning`  
 **Runtime dependency:** Django REST Framework remains optional.  
 **Initial scope:** DRF `SimpleRouter` integration; no serializer or response transformation.
@@ -85,7 +85,7 @@ For example, if V1 defines `list`, `retrieve`, and a `publish` custom action, wh
 
 This preserves DRF-generated callback metadata, action method maps, action-level kwargs, basename, detail/suffix metadata, lookup behavior, and custom URL paths/names.
 
-The current contract has no explicit route-removal/tombstone API. Omitting an earlier action from a later ViewSet does not remove that route; it remains inherited. See Issue #39 for the planned route-removal and endpoint-level lifecycle design.
+Omitting an earlier action from a later ViewSet still leaves that action inherited. To remove it, declare the operation explicitly with `VersionedRouter.remove()`; the tombstone applies from the selected version boundary, keeps earlier versions available, and permits deliberate reintroduction by a later source declaration. See [Explicit endpoint removal and reintroduction](endpoint-removal.md). Endpoint lifecycle metadata is a separate capability; see [Endpoint-level lifecycle metadata](endpoint-lifecycle.md).
 
 ## 4. Architecture
 
@@ -125,7 +125,7 @@ The adapter exposes the integer API version as a string through `request.version
 - `HyperlinkedIdentityField` and `HyperlinkedRelatedField`;
 - nested application namespaces around the router.
 
-If multiple router instances are mounted in the same URLconf, include each under a distinct outer namespace to avoid namespace collisions.
+Mount independent router instances under distinct outer namespaces and give them distinct route prefixes. Identical generated internal route patterns owned by different router instances are rejected with `VersioningError` rather than allowing one router to replace another router's callback (PR #83).
 
 ### 4.4 Lifecycle middleware
 
@@ -165,12 +165,12 @@ Not included in this integration:
 - header, query-parameter, host, or tenant-based negotiation;
 - serializer or response-payload transformation;
 - automatic backward-compatibility inference;
-- explicit route removal/tombstones;
+- implicit removal by omission (removal must be declared explicitly; see [endpoint-removal.md](endpoint-removal.md));
 - a replacement OpenAPI generator or schema-diff engine.
 
 Header/query/tenant negotiation remains a separate design decision. DRF already provides version parsers for those channels; a safe implementation would still need a runtime dispatcher, correct cache variation, reverse semantics, and trusted tenant identity. See parent roadmap Issue #36.
 
-OpenAPI generation and semantic compatibility checks are tracked separately in Issue #38. The intended approach is to reuse drf-spectacular and oasdiff rather than add competing runtime systems.
+The optional versioned OpenAPI integration is implemented separately: drf-spectacular generates each version's schema, the package adapter marks matching deprecated operations, and the consumer contract validates per-version snapshots with oasdiff. The package does not own a competing schema generator or semantic diff engine; see [Versioned OpenAPI contract integration](versioned-openapi-contract.md).
 
 ## 7. Verification gates
 
@@ -188,4 +188,4 @@ The implementation is not considered complete unless all of the following remain
 10. Core package imports remain independent of DRF.
 11. Full package and integration tests, lint, distribution build, website verification, and the supported Python/Django/DRF matrix pass.
 
-No release should be made from a partially passing matrix. The initial public release of these APIs is planned as a minor version because they add new integration functionality.
+The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal and endpoint-level lifecycle were added to `main` afterward and are recorded under `Unreleased`; do not infer that those follow-ups are present in the currently published PyPI artifact. Current compatibility evidence is commit-specific and belongs to the corresponding GitHub Actions run, not this design note.
