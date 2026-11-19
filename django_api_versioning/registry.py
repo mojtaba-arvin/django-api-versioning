@@ -231,7 +231,9 @@ class UrlRegistry:
 
         route_key = str(pattern.pattern)
         route_index = self._find_route_index(
-            route_key, regex_route=isinstance(pattern.pattern, RegexPattern)
+            route_key,
+            regex_route=isinstance(pattern.pattern, RegexPattern),
+            new_owner=getattr(pattern, self._ROUTER_OWNER_ATTR, None),
         )
 
         if route_index is None:
@@ -265,6 +267,25 @@ class UrlRegistry:
                 and new_router is not None
                 and existing_router is not new_router
             ):
+                existing_prefix = getattr(
+                    existing_pattern, self._ROUTER_PREFIX_ATTR, None
+                )
+                new_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
+                same_router_prefix = (
+                    existing_prefix is not None
+                    and existing_prefix == new_prefix
+                    and getattr(
+                        existing_pattern, self._ROUTER_TRAILING_SLASH_ATTR, None
+                    )
+                    == getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
+                    and getattr(existing_pattern, self._ROUTE_VERSION_ATTR, None)
+                    == route_version
+                )
+                if same_router_prefix:
+                    raise VersioningError(
+                        f"Router prefix {new_prefix!r} in version {route_version} "
+                        "is already registered by another VersionedRouter instance."
+                    )
                 raise VersioningError(
                     f"Route pattern {route_key!r} is already registered by another "
                     "VersionedRouter instance. Use a distinct route prefix for each router."
@@ -384,14 +405,23 @@ class UrlRegistry:
         return literal
 
     def _find_route_index(
-        self, route: str, *, regex_route: bool = False
+        self,
+        route: str,
+        *,
+        regex_route: bool = False,
+        new_owner: object | None = None,
     ) -> int | None:
         """Return the index of a registered route, or None if absent."""
-        route_key = self._canonical_route_key(route) if regex_route else route
         for index, pattern in enumerate(self.urlpatterns):
             existing_pattern_text = str(pattern.pattern)
-            if regex_route and existing_pattern_text == route:
+            if existing_pattern_text == route:
                 return index
+
+            existing_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if new_owner is None and existing_owner is None:
+                continue
+
+            route_key = self._canonical_route_key(route) if regex_route else route
             existing_key = (
                 self._canonical_route_key(existing_pattern_text)
                 if isinstance(pattern.pattern, RegexPattern)
