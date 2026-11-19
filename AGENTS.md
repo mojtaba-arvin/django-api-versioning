@@ -1,13 +1,13 @@
 
 # Repository instructions
 
-Shared policy for all coding agents. Procedures belong in skills; domain constraints belong in canonical project documents.
+Shared policy lives here; task procedures belong in skills and domain contracts in canonical docs.
 
 ## Repository boundaries
 
 - `django_api_versioning/` is the only runtime package distributed on PyPI.
 - `tests/` contains package unit and regression tests.
-- `integration_test_project/` is the existing Django integration and executable-evidence project. Extend it; do not create a parallel project or overwrite its tests.
+- `integration_test_project/` is the single Django integration/evidence project; extend it rather than duplicating it.
 - `docs/articles/` is the only editable article corpus.
 - `docs/reference/index.md` owns website Reference copy; `versioning-contract.md` defines routing behavior.
 - `website/AGENTS.md` owns website-specific architecture and implementation constraints; it supplements, and cannot override, this shared contract.
@@ -15,8 +15,8 @@ Shared policy for all coding agents. Procedures belong in skills; domain constra
 ## Non-negotiable invariants
 
 - Verify behavior against current source and executable tests, not article wording, old logs, generated data, or an agent's prior answer.
-- Distinguish route registration/import-time behavior from per-request version selection. Do not claim version channels participate in endpoint dispatch unless source and tests prove it.
-- The decorator-based `@endpoint` API selects a callable from the URL path but does not automatically populate DRF `request.version`. The optional `VersionedRouter` integration delegates route generation to DRF `SimpleRouter`; `VersionedRouterVersioning` exposes the matched namespace through `request.version` and provides namespace-aware reversal. `@endpoint` does not decorate ViewSet classes directly because they require an action map.
+- Separate import-time registration from per-request selection; reserved version channels are not dispatch.
+- `@endpoint` does not set DRF `request.version` or decorate ViewSet classes. Use `VersionedRouter` for DRF `SimpleRouter` routing and `VersionedRouterVersioning` for namespace-based `request.version` and reversal.
 - For website tasks, read `website/AGENTS.md` for site-specific constraints. Shared repository and Git policy in this file always takes precedence.
 - Do not add model SDKs, agent frameworks, MCP servers, telemetry exporters, or LLM evaluation services to package runtime dependencies for repository automation.
 
