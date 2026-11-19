@@ -40,3 +40,10 @@ repos:
         language: system
         pass_filenames: false
         files: ^(AGENTS\.md|CLAUDE\.md|\.agents/|\.claude/skills/|\.github/copilot-instructions\.md|\.github/skills/|scripts/agent\.py|scripts/agent_tests/)
+      - id: tox-lint-before-push
+        name: Run repository lint before pushing Python changes
+        entry: tox run -e lint
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        files: ^(django_api_versioning|tests|integration_test_project|scripts)/.*\.py$|^(pyproject\.toml|tox\.ini)$
