@@ -281,6 +281,30 @@ def test_past_endpoint_sunset_emits_headers_without_returning_410():
     assert response["Sunset"] == "Fri, 01 Jan 2021 00:00:00 GMT"
 
 
+
+def test_endpoint_sunset_without_deprecation_emits_only_sunset_header():
+    @endpoint("sunset-only", versions=[2])
+    def sunset_only(request):
+        return HttpResponse("sunset only")
+
+    set_endpoint_lifecycle(
+        "sunset-only",
+        version=2,
+        sunset="2031-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().get("/api/v2/sunset-only")
+
+    assert response.status_code == 200
+    assert "Deprecation" not in response
+    assert response["Sunset"] == "Wed, 01 Jan 2031 00:00:00 GMT"
+
+
 def test_version_wide_sunset_410_takes_precedence_over_endpoint_lifecycle():
     calls = []
 
