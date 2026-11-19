@@ -360,6 +360,32 @@ def test_endpoint_and_version_lifecycle_headers_choose_earliest_date():
     assert response["Sunset"] == "Tue, 01 Jan 2030 00:00:00 GMT"
 
 
+def test_async_endpoint_lifecycle_headers_use_resolved_operation():
+    @endpoint("async-endpoint-lifecycle", versions=[2])
+    async def async_endpoint(request):
+        return HttpResponse("async endpoint")
+
+    set_endpoint_lifecycle(
+        "async-endpoint-lifecycle",
+        version=2,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    async def make_request():
+        with context:
+            return await AsyncClient().get("/api/v2/async-endpoint-lifecycle")
+
+    response = async_to_sync(make_request)()
+
+    assert response.status_code == 200
+    assert response.content == b"async endpoint"
+    assert response["Deprecation"] == "@1893456000"
+
+
 def test_async_request_uses_resolved_route_lifecycle_policy():
     calls = []
 
