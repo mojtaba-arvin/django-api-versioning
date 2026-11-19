@@ -80,3 +80,34 @@ version with its matching baseline using oasdiff breaking.
 
 Schema diffs, route-matrix checks, and request-level behavior tests are separate
 gates. Neither drf-spectacular nor oasdiff is a runtime dependency.
+
+## Endpoint-level OpenAPI deprecation
+
+Configure the optional schema adapter in your DRF settings:
+
+```python
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": (
+        "django_api_versioning.spectacular.EndpointLifecycleAutoSchema"
+    ),
+}
+```
+
+The adapter requires drf-spectacular, which is already pinned by this consumer
+example. It is not imported by the package root and is not a runtime dependency.
+For a `VersionedRouter` operation, it uses Django's actual `ResolverMatch`,
+the concrete HTTP method, and the router action map to locate the declaration.
+If route identity is missing or ambiguous, the schema operation is left
+unchanged.
+
+For example, `router.set_lifecycle("products", "product-list", version=1,
+action="list", deprecated_at="2030-01-01T00:00:00Z")` marks only the V1 list
+operation as deprecated. Sibling actions and other API versions remain
+unchanged. The executable verifier runs this isolated scenario in addition
+to the unchanged committed baseline checks.
+
+This first adapter covers `VersionedRouter` with `NamespaceVersioning`.
+Decorator endpoints using `URLPathVersioning` need a separate adapter based
+on their registered logical endpoint metadata and remain a follow-up. The
+integration intentionally does not infer operation identity from generated
+paths or operation IDs.
