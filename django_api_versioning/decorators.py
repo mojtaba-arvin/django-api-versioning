@@ -231,6 +231,7 @@ def endpoint(
 
     return decorator
 
+
 def set_endpoint_lifecycle(
     postfix: str,
     *,
