@@ -11,4 +11,4 @@ mypy>=2.4.0
 twine>=7.0.0
 build>=1.6.1
 djangorestframework>=3.18.3
-tomli>=2.0.1; python_version < "3.11"
+tomli>=2.5.0; python_version < "3.11"
