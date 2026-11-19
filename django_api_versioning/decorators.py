@@ -84,6 +84,14 @@ def endpoint(
         # Calculate logical endpoint ID from unversioned path
         logical_endpoint = f"{app_name_part}{postfix}"
 
+        # The schema adapter for URLPathVersioning has no ResolverMatch. Carry
+        # the stable decorator identity on the view class, not on callback
+        # identity, so schema introspection can resolve it through the registry.
+        setattr(view, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+        view_class = getattr(view, "cls", None)
+        if isinstance(view_class, type):
+            setattr(view_class, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+
         def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
             if ver is None:
