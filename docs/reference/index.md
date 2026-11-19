@@ -228,6 +228,25 @@ For a deprecated version with valid lifecycle dates, the middleware emits the da
 
 See [API lifecycle behavior in the routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#12-version-lifecycle-headers) and the [deprecation guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/018-deprecate-django-api-versioning-routes-sunset-headers/).
 
+### Endpoint-level lifecycle and OpenAPI
+
+Use `set_endpoint_lifecycle()` for a concrete endpoint version, or
+`VersionedRouter.set_lifecycle()` for a generated ViewSet route. These
+declarations can scope headers to an HTTP method or DRF action without
+retiring the whole API version. Endpoint-level past-Sunset metadata is
+headers-only; version-wide past-Sunset policy retains its existing 410
+behavior.
+
+Projects that use drf-spectacular can opt into
+`django_api_versioning.spectacular.EndpointLifecycleAutoSchema` through
+`REST_FRAMEWORK["DEFAULT_SCHEMA_CLASS"]`. It maps the exact registered
+operation to OpenAPI `deprecated: true` and supports both VersionedRouter
+and DRF decorator endpoints. drf-spectacular remains an optional dependency;
+the adapter fails closed when operation identity is unavailable or ambiguous.
+
+See [endpoint-level lifecycle and OpenAPI](versioning-contract.md#13-endpoint-level-lifecycle-and-openapi)
+and the [executable consumer contract](../../examples/openapi_contract/README.md).
+
 ## Management commands
 
 ### `check_versions`
