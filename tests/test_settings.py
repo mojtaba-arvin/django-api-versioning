@@ -231,3 +231,20 @@ def test_path_only_versioning_channels_do_not_warn(caplog):
     APISettings(API_VERSIONING_CHANNELS=["path"])
 
     assert "API_VERSIONING_CHANNELS is reserved" not in caplog.text
+
+    @pytest.mark.parametrize(
+        "field_name,value",
+        [
+            ("deprecated_at", "0001-01-01T00:00:00+23:59"),
+            ("deprecated_at", "9999-12-31T23:59:59-23:59"),
+            ("sunset", "0001-01-01T00:00:00+23:59"),
+            ("sunset", "9999-12-31T23:59:59-23:59"),
+        ],
+    )
+    def test_timezone_normalization_overflow_raises_versioning_error(
+        self, field_name, value
+    ):
+        metadata = {"status": "active", field_name: value}
+
+        with pytest.raises(VersioningError, match=field_name):
+            APISettings(API_VERSION_LIFECYCLE={1: metadata})
