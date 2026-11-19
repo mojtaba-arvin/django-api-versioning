@@ -403,6 +403,48 @@ class UrlRegistry:
                 matched_length = max(matched_length, len(pattern_candidate))
         return matched_length
 
+    def get_resolved_route_version_for_match(
+        self, resolver_match: object
+    ) -> tuple[bool, int | None]:
+        """Resolve version metadata for the exact URLPattern Django matched.
+
+        The boolean distinguishes an explicitly registered unversioned route
+        from a route that is absent from this registry. This matters for nested
+        includes: a parent URL prefix may contain an API-looking version even
+        when the matched child route is unversioned.
+        """
+        route = getattr(resolver_match, "route", None)
+        callback = getattr(resolver_match, "func", None)
+        if not isinstance(route, str) or callback is None:
+            return False, None
+
+        url_name = getattr(resolver_match, "url_name", None)
+        matches = []
+        for pattern in self.urlpatterns:
+            if pattern.callback is not callback:
+                continue
+            if url_name is not None and pattern.name != url_name:
+                continue
+            matched_length = self._resolved_route_match_length(
+                route, str(pattern.pattern)
+            )
+            if matched_length:
+                matches.append(
+                    (
+                        matched_length,
+                        getattr(pattern, self._ROUTE_VERSION_ATTR, None),
+                    )
+                )
+
+        if not matches:
+            return False, None
+
+        longest = max(length for length, _ in matches)
+        versions = {version for length, version in matches if length == longest}
+        if len(versions) != 1:
+            return True, None
+        return True, next(iter(versions))
+
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
 
