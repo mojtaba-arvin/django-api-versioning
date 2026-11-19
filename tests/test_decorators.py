@@ -596,6 +596,7 @@ def test_set_endpoint_lifecycle_rejects_non_string_app_name(versions_1_to_5):
             deprecated_at="2027-01-01T00:00:00Z",
         )
 
+
 def test_set_endpoint_lifecycle_multi_method_registration_is_atomic(
     versions_1_to_5,
 ):
