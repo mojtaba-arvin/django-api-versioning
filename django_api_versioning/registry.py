@@ -456,7 +456,7 @@ class UrlRegistry:
             if not isinstance(action, str) or not action:
                 return None
 
-        route = str(pattern.pattern)
+        registered_route = str(pattern.pattern)
         return ResolvedOperation(
             logical_endpoint=logical_endpoint,
             route_version=route_version,
@@ -465,8 +465,8 @@ class UrlRegistry:
             action=action,
             route_name=pattern.name,
             namespace="",
-            route=route,
-            registered_route=route,
+            route=registered_route,
+            registered_route=registered_route,
         )
 
     def register_endpoint_lifecycle(
