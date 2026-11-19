@@ -457,9 +457,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
                     version=namespace_version
                 ).strip("/")
                 route_path = route.strip("^$").strip("/")
-                namespace_matches_route = (
-                    f"/{configured_prefix}/" in f"/{route_path}/"
-                )
+                namespace_matches_route = f"/{configured_prefix}/" in f"/{route_path}/"
 
             # Namespaces are application-controlled, so a parent namespace
             # named "v9" must not version an unversioned child route. Accept
