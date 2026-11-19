@@ -244,8 +244,8 @@ operation to OpenAPI `deprecated: true` and supports both VersionedRouter
 and DRF decorator endpoints. drf-spectacular remains an optional dependency;
 the adapter fails closed when operation identity is unavailable or ambiguous.
 
-See [endpoint-level lifecycle and OpenAPI](versioning-contract.md#13-endpoint-level-lifecycle-and-openapi)
-and the [executable consumer contract](../../examples/openapi_contract/README.md).
+See [endpoint-level lifecycle and OpenAPI](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#13-endpoint-level-lifecycle-and-openapi)
+and the [executable consumer contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/examples/openapi_contract/README.md).
 
 ## Management commands
 
