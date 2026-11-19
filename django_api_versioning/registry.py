@@ -97,10 +97,7 @@ class UrlRegistry:
         # metadata only for versions that already have a newer active source.
         preserved_versions = set()
         for pattern in self.urlpatterns:
-            if (
-                getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
-                != logical_endpoint
-            ):
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
                 continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
