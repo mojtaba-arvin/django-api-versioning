@@ -539,9 +539,7 @@ def test_separate_default_routers_keep_reverse_namespaces_isolated():
     posts_router.register("posts", PostViewSetV1, version=1, basename="post")
 
     comments_router = VersionedRouter()
-    comments_router.register(
-        "comments", PostViewSetV1, version=1, basename="comment"
-    )
+    comments_router.register("comments", PostViewSetV1, version=1, basename="comment")
 
     urlconf.urlpatterns = posts_router.urls + comments_router.urls
     clear_url_caches()
