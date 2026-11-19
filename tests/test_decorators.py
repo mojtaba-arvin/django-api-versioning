@@ -625,3 +625,65 @@ def test_endpoint_rejects_non_list_version_collections(versions):
 
     with pytest.raises(VersionTypeError, match="'versions' must be a list"):
         endpoint("users", versions=versions)
+
+
+class TestDecoratorInputHardening:
+    def test_ver_range_rejects_negative_start_before_allocation(self):
+        with pytest.raises(VersionRangeError, match="non-negative API version"):
+            ver_range(-(10**12), 3)
+
+    def test_zero_is_a_valid_api_version(self):
+        assert ver_range(0, 0) == [0]
+
+    def test_ver_range_rejects_end_above_api_max_before_allocation(
+        self, versions_1_to_5
+    ):
+        with pytest.raises(InvalidVersionError, match="above the maximum allowed"):
+            ver_range(1, 10**12)
+
+    def test_ver_range_rejects_one_above_api_max(self, versions_1_to_5):
+        with pytest.raises(InvalidVersionError):
+            ver_range(1, 6)
+
+    @pytest.mark.parametrize("app_name", [123, [], object()])
+    def test_endpoint_rejects_non_string_app_name(self, app_name):
+        with pytest.raises(TypeError, match="app_name must be a string"):
+            endpoint("users", version=2, app_name=app_name)
+
+    @pytest.mark.parametrize(
+        "app_name",
+        [
+            "/billing",
+            "billing/",
+            "billing//reports",
+            "billing/../reports",
+            "billing/./reports",
+            " ",
+        ],
+    )
+    def test_endpoint_rejects_malformed_relative_app_name(self, app_name):
+        with pytest.raises(VersioningError, match="app_name"):
+            endpoint("users", version=2, app_name=app_name)
+
+    def test_nested_relative_app_name_is_supported(self, versions_1_to_5):
+        @endpoint("users", version=3, app_name="billing/invoices")
+        def users(request):
+            return JsonResponse({})
+
+        assert "api/v3/billing/invoices/users" in _routes()
+
+    def test_remove_endpoint_rejects_non_string_app_name(self):
+        with pytest.raises(TypeError, match="app_name must be a string"):
+            remove_endpoint("users", from_version=2, app_name=123)
+
+    def test_set_endpoint_lifecycle_rejects_non_string_app_name(self):
+        with pytest.raises(TypeError, match="app_name must be a string"):
+            set_endpoint_lifecycle("users", version=2, app_name=123)
+
+    def test_remove_endpoint_rejects_malformed_app_name(self):
+        with pytest.raises(VersioningError, match="app_name"):
+            remove_endpoint("users", from_version=2, app_name="billing/")
+
+    def test_set_endpoint_lifecycle_rejects_malformed_app_name(self):
+        with pytest.raises(VersioningError, match="app_name"):
+            set_endpoint_lifecycle("users", version=2, app_name="billing/")

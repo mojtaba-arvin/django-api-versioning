@@ -128,6 +128,11 @@ class APISettings:
                     f"{name} must be an integer, got {type(value).__name__}."
                 )
 
+        if self.API_MIN_VERSION < 0 or self.API_MAX_VERSION < 0:
+            raise VersionRangeError(
+                "API_MIN_VERSION and API_MAX_VERSION must be non-negative integers."
+            )
+
         if self.API_MIN_VERSION > self.API_MAX_VERSION:
             raise VersionRangeError(
                 "API_MIN_VERSION cannot be greater than API_MAX_VERSION."

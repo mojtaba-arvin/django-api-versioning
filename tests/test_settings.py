@@ -90,6 +90,22 @@ class TestVersionSettings:
         with pytest.raises(VersionRangeError):
             APISettings(API_MIN_VERSION=5, API_MAX_VERSION=2)
 
+    @pytest.mark.parametrize(
+        ("min_version", "max_version"),
+        [(-1, 3), (1, -1), (-1, -1)],
+    )
+    def test_negative_version_bounds_raise(self, min_version, max_version):
+        with pytest.raises(VersionRangeError, match="non-negative"):
+            APISettings(
+                API_MIN_VERSION=min_version,
+                API_MAX_VERSION=max_version,
+            )
+
+    def test_zero_version_bounds_are_allowed(self):
+        settings = APISettings(API_MIN_VERSION=0, API_MAX_VERSION=0)
+        assert settings.API_MIN_VERSION == 0
+        assert settings.API_MAX_VERSION == 0
+
 
 class TestLifecycleValidation:
     def test_non_dict_raises(self):
