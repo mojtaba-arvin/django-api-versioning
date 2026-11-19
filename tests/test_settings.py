@@ -232,7 +232,6 @@ def test_path_only_versioning_channels_do_not_warn(caplog):
 
     assert "API_VERSIONING_CHANNELS is reserved" not in caplog.text
 
-
     @pytest.mark.parametrize(
         "field_name,value",
         [
