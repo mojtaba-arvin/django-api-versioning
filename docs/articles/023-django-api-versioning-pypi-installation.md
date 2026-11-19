@@ -530,7 +530,7 @@ Use a documentation tool such as [drf-spectacular](https://drf-spectacular.readt
 
 A `ModelViewSet` requires an action mapping when it is converted into a view. The package's class-based view registration calls `.as_view()` without such a mapping.
 
-For resource-oriented ViewSets, keep a DRF router per version and mount the generated router URLs under the desired versioned prefixes:
+For package-managed version-aware ViewSet routes, use `VersionedRouter`. It delegates route generation to DRF's `SimpleRouter`, registers generated patterns in the package registry, and supports per-route inheritance. To keep routing entirely in DRF, a plain `SimpleRouter` can be mounted under a version prefix; maintain one router per version when you want to manage those prefixes yourself:
 
 ```python
 from rest_framework.routers import SimpleRouter
@@ -539,15 +539,28 @@ router = SimpleRouter()
 router.register("users", UserViewSet, basename="user")
 ```
 
-See the DRF documentation for [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/).
+For example, package-managed registration looks like this:
+
+```python
+from django_api_versioning.routers import VersionedRouter
+from .views import UserViewSetV1, UserViewSetV2
+
+router = VersionedRouter()
+router.register("users", UserViewSetV1, version=1, basename="user")
+router.register("users", UserViewSetV2, version=2, basename="user")
+
+urlpatterns = router.urls
+```
+
+Configure `VersionedRouterVersioning` as DRF's `DEFAULT_VERSIONING_CLASS` when the ViewSets need `request.version`, `reverse_action()`, or version-aware hyperlinked serializer URLs. See the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/), plus the DRF documentation for [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/).
 
 A manually configured callable such as `UserViewSet.as_view({"get": "list"})` can be registered as an individual endpoint, but this does not replace router-based generation of the ViewSet's full set of routes and actions.
 
-Use `APIView` or generic views with `@endpoint` when you want to register individual endpoint views. Keep router-managed ViewSets when their generated routes and action mappings are central to the resource.
+Use `APIView` or generic views with `@endpoint` when you want to register individual endpoint views. Keep ViewSets with `VersionedRouter` when you want package-managed inheritance, or use plain DRF routers when you prefer manual per-version routing.
 
 ### DRF request version configuration
 
-The decorator registers URL patterns. It does not configure DRF's versioning class or automatically populate `request.version`.
+`@endpoint` registers URL patterns but does not configure DRF's versioning class or automatically populate `request.version`. For ViewSets registered through `VersionedRouter`, configure `VersionedRouterVersioning` to expose the selected namespace through `request.version` and keep reversal version-aware.
 
 In a standard DRF `APIView` without a configured versioning class, `request.version` is `None`.
 
@@ -555,7 +568,7 @@ If your views depend on `request.version`, configure DRF versioning separately a
 
 ## Migrate from manual per-version routers
 
-If your project currently uses one `SimpleRouter` per API version, migration to `@endpoint` is a per-endpoint decision. The package is useful when you want to register individual endpoint views and carry unchanged routes forward without repeating their declarations.
+If your project currently uses one `SimpleRouter` per API version, you can migrate ViewSet routing to `VersionedRouter` without converting the ViewSets into generic views. Moving selected endpoints to `@endpoint` is a separate per-endpoint decision. Both approaches provide package-managed route carry-forward for their respective view types.
 
 ### Before: one router per version
 
@@ -654,9 +667,9 @@ The example preserves the list and detail URL paths, but it does not preserve th
 
 Before migrating, check two things.
 
-**ViewSets and custom actions need a different registration strategy.**
+**ViewSets and custom actions need the router integration.**
 
-`@endpoint` cannot decorate a `ModelViewSet` class directly. If your project relies heavily on ViewSets and `@action` methods, keeping a router per version may be simpler.
+`@endpoint` cannot decorate a `ModelViewSet` class directly. Use `VersionedRouter` when you want package-managed version registration and inheritance for ViewSets and `@action` methods. Keep plain per-version routers when you intentionally manage URL prefixes yourself or depend on `DefaultRouter` behavior.
 
 You can convert selected resources to generic views, but that means representing each route as an individual view. A configured `ModelViewSet.as_view({...})` callable can also be registered for one route, but it does not replace the router's full route generation.
 
@@ -781,7 +794,7 @@ Check your imports against the [package exports](https://github.com/mojtaba-arvi
 
 **What it does not reduce:** the number of runtime URL patterns. For the same API surface, the application still needs the corresponding versioned routes.
 
-**When the benefit is smaller:** a single-version API with no plans for additional versions may be simpler with a hand-written URLconf. A project built primarily around `ModelViewSet` classes may also be better served by DRF routers.
+**When the benefit is smaller:** a single-version API with no plans for additional versions may be simpler with a hand-written URLconf. A project built primarily around `ModelViewSet` classes can use `VersionedRouter` for package-managed inheritance or plain DRF routers for fully manual routing.
 
 The package is most useful when you want to manage individual endpoint implementations across multiple URL-based API versions without repeating declarations for unchanged endpoints. Its route carry-forward behavior should be paired with explicit version-matrix and response-contract tests.
 
