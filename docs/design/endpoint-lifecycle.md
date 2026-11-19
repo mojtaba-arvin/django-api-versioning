@@ -215,6 +215,35 @@ This is a genuine resolver-based mapping, not a path-regex or operationId heuris
 4. Add the decorator adapter using its logical endpoint metadata and URLPathVersioning's version kwarg.
 5. Only then expose the public lifecycle declaration API and middleware headers. No automatic endpoint-level 410 behavior is introduced.
 
+## Declaration API proposal
+
+The first implementation slice in PR #68 proposes adapter-specific public declarations over the same normalized registry:
+
+```python
+set_endpoint_lifecycle(
+    "orders",
+    version=2,
+    methods=["GET"],
+    deprecated_at="2027-01-01T00:00:00Z",
+)
+
+router.set_lifecycle(
+    "orders",
+    "order-list",
+    version=2,
+    action="list",
+    deprecated_at="2027-01-01T00:00:00Z",
+)
+```
+
+- The decorator helper identifies the logical endpoint using the same `app_name/postfix` identity as `@endpoint`; `version` is one concrete route version, never a lower-bound inheritance declaration.
+- Omitting `methods` applies to all methods for that logical endpoint/version. Supplying methods creates method-scoped declarations.
+- The router adapter identifies a registered route by prefix + generated route name + concrete version, then validates optional action/method scopes against the actual DRF action map.
+- Route-wide, action-wide, method-wide, and exact method/action declarations compose monotonically. For each header, the earliest instant wins.
+- Repeating an identical declaration is idempotent; conflicting values for the same exact scope fail at registration time.
+- Dates are strict ISO 8601 strings normalized to UTC; timezone-naive values are interpreted as UTC. Sunset cannot precede deprecated_at. Sunset may be declared without a Deprecation date; that still marks the operation deprecated in OpenAPI while emitting only the Sunset header.
+
+This API remains provisional until PR #68's full test, lint, compatibility, and consumer gates pass. No runtime headers or schema behavior are implemented in that PR.
 ## Implementation gate
 
 The product semantics above are decided. The remaining work is an implementation-level audit of the existing registry and schema extension points, followed by failing tests for those exact contracts. Keep this PR draft/design-only until that audit and tests are complete. A green documentation-only workflow is not evidence that runtime behavior is implemented or safe.
