@@ -679,3 +679,11 @@ class TestDecoratorInputHardening:
     def test_set_endpoint_lifecycle_rejects_non_string_app_name(self):
         with pytest.raises(TypeError, match="app_name must be a string"):
             set_endpoint_lifecycle("users", version=2, app_name=123)
+
+def test_remove_endpoint_rejects_malformed_app_name(self):
+        with pytest.raises(VersioningError, match="app_name"):
+            remove_endpoint("users", from_version=2, app_name="billing/")
+
+    def test_set_endpoint_lifecycle_rejects_malformed_app_name(self):
+        with pytest.raises(VersioningError, match="app_name"):
+            set_endpoint_lifecycle("users", version=2, app_name="billing/")
