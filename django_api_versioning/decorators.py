@@ -157,7 +157,8 @@ def endpoint(
             registry._removed_patterns.update(previous_removed_patterns)
             for target, previous_value in previous_attributes:
                 if previous_value is missing:
-                    target.__dict__.pop(attribute_name, None)
+                    if attribute_name in target.__dict__:
+                        delattr(target, attribute_name)
                 else:
                     setattr(target, attribute_name, previous_value)
             raise
