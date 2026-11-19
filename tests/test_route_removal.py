@@ -340,8 +340,10 @@ def test_removal_and_reintroduction_sequences_match_segment_reference_model(
                     pattern, registry._SOURCE_VERSION_ATTR
                 )
                 for pattern in registry.urlpatterns
-                if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
-                == "shop/orders/"
+                if (
+                    getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+                    == "shop/orders/"
+                )
             }
             assert actual == expected, (
                 f"sequence={sequence!r}, after={(operation, version)!r}"
