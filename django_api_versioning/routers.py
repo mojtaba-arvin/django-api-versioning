@@ -169,6 +169,10 @@ class VersionedRouter:
             raise TypeError("route_name must be a string.")
         if not route_name:
             raise VersioningError("route_name must be a non-empty string.")
+        # Validate before comparing against registered route versions. Otherwise
+        # malformed values can raise incidental TypeError or mask the intended
+        # VersionTypeError with an ownership error.
+        self._validate_version(from_version)
         logical_endpoint = f"{prefix}:{route_name}"
         affected_foreign_routes = [
             pattern
