@@ -498,9 +498,7 @@ def test_failed_registration_does_not_reserve_prefix_or_basename():
 
     retryable_router = VersionedRouter()
     with pytest.raises(VersioningError, match="another VersionedRouter"):
-        retryable_router.register(
-            "posts", PostViewSetV2, version=1, basename="post"
-        )
+        retryable_router.register("posts", PostViewSetV2, version=1, basename="post")
 
     # The failed declaration did not become a registration. Reusing its
     # basename for a different prefix on the same router must remain valid.
