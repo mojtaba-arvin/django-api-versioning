@@ -688,3 +688,34 @@ def test_decorator_registration_cannot_replace_existing_router_route(use_regex_p
         for wrapper in router.urls
         for pattern in getattr(wrapper, "url_patterns", [wrapper])
     ]
+
+
+def test_router_lifecycle_preserves_case_sensitive_action_names():
+    class ExportViewSet(viewsets.ViewSet):
+        @action(detail=False, methods=["get"], url_path="export")
+        def exportCSV(self, request):
+            return Response({"ok": True})
+
+    router = VersionedRouter()
+    router.register("exports", ExportViewSet, versions=[2], basename="export")
+    export_pattern = next(
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "exports:export-exportCSV"
+    )
+
+    router.set_lifecycle(
+        "exports",
+        export_pattern.name,
+        version=2,
+        action="exportCSV",
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    urlconf.urlpatterns = router.urls
+    match = resolve("/api/v2/exports/export/", urlconf=urlconf)
+    operation = registry.resolve_operation(match, "GET")
+
+    assert operation is not None
+    assert operation.action == "exportCSV"
+    assert registry.get_endpoint_lifecycle(operation) is not None
