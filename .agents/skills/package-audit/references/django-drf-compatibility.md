@@ -14,7 +14,11 @@
    - Function-based views decorated with `@endpoint`.
    - Django class-based view classes decorated with `@endpoint` at the class level.
    - DRF `APIView` and `GenericAPIView` classes registered through the package.
-   - DRF ViewSets and routers tested as separate routing mechanisms to verify coexistence only; do not imply that the package automatically registers ViewSets or creates router routes.
+   - DRF `APIView` and `GenericAPIView` classes registered through `@endpoint`.
+   - DRF ViewSets registered through the optional `VersionedRouter`, which delegates route generation to `SimpleRouter` and registers each generated pattern in the package registry.
+   - Verify `VersionedRouterVersioning` request-version identification, namespace-aware `reverse_action()` and hyperlinked fields, per-route inheritance, regex/path-converter routes, and coexistence with decorator endpoints.
+   - Verify explicit route removal and endpoint lifecycle metadata on current main separately from the published PyPI artifact until those APIs are released.
+   - Keep the boundary explicit: direct `@endpoint(ViewSetClass)` decoration is unsupported, and `DefaultRouter` API-root/format-suffix parity is not implemented. Plain DRF routers remain a valid separate alternative.
 
 3. **Execute Compatibility Tests**
    - Run unit tests with each Django version
