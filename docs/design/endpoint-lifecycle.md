@@ -30,11 +30,11 @@ Neither capability expresses that one still-active operation is deprecated while
 - Replacing Django/DRF view dispatch, versioning, or schema generation.
 - Tracking per-consumer usage or automatically deciding when an endpoint is safe to remove.
 
-## Proposed conceptual model
+## Conceptual model
 
 Treat endpoint lifecycle as metadata attached to a stable logical operation identity and a concrete API version, not as a URL regex or callback identity.
 
-Candidate identity components:
+Identity components:
 
 - Decorator endpoint: the existing logical endpoint key (`app_name + postfix`).
 - DRF operation: router prefix plus the stable generated route name/action identity already used by endpoint removal.
@@ -42,17 +42,16 @@ Candidate identity components:
 
 The declaration should be metadata-only and must not register, delete, or mutate URL patterns. The public API uses adapter-specific declarations over one normalized registry record: set_endpoint_lifecycle() for decorator endpoints and VersionedRouter.set_lifecycle() for DRF routes. Their concrete signatures are recorded in D7 and the canonical reference.
 
-Candidate lifecycle fields:
+Lifecycle fields:
 
 - `deprecated_at`: optional ISO-8601 timestamp/date, consistent with the current version-wide setting.
 - `sunset`: optional HTTP-date-compatible timestamp/date, consistent with the current version-wide setting.
-- `status`: derived or validated state; avoid allowing contradictory free-form combinations.
 
 Do not duplicate version-wide configuration wholesale. Prefer a narrow per-operation declaration that can be validated and normalized by the registry.
 
 ## Precedence and composition
 
-The following rules are proposed for acceptance testing:
+The following rules define the accepted first-iteration contract:
 
 1. A matching endpoint-level policy applies only to the actual resolved logical operation and concrete version.
 2. Version-wide policy remains authoritative for retiring an entire API version. Endpoint-level metadata must never cancel a version-wide sunset/410.
@@ -67,7 +66,7 @@ For an active, resolved operation:
 
 - Emit RFC 9745 `Deprecation` when a valid deprecation instant is configured.
 - Emit RFC 8594 `Sunset` when a valid sunset instant is configured.
-- Do not synthesize a 410 merely because the endpoint's sunset date has passed in the first iteration. The route remains registered and the existing route contract remains in effect until the application explicitly removes it in a later version.
+- Do not synthesize a 410 merely because the endpoint's sunset date has passed. The route remains registered and the existing route contract remains in effect until the application explicitly removes it in a later version.
 - Invalid metadata should fail configuration validation where possible; do not silently turn malformed dates into a different policy.
 
 The past-endpoint-Sunset behavior is decided: headers only. It does not automatically return 410, unregister a route, or change schema visibility. Version-wide past-Sunset enforcement remains authoritative.
@@ -80,9 +79,11 @@ The past-endpoint-Sunset behavior is decided: headers only. It does not automati
 - Version-wide lifecycle and endpoint-level lifecycle must not cause duplicate or conflicting schema metadata.
 - Schema integration must remain optional: core package imports and runtime must not import drf-spectacular.
 
-Before implementation, prove the supported extension point with an executable consumer fixture. Do not post-process arbitrary generated YAML based on regex/path guesses.
+The supported extension points are proven by the executable consumer fixture and the optional AutoSchema adapter described below. Do not post-process arbitrary generated YAML based on regex/path guesses.
 
-## Acceptance tests implemented in the Draft stack
+## Acceptance criteria and implementation coverage
+
+The list below defines the acceptance surface. The Draft stack includes executable coverage for resolver identity, action/method isolation, version isolation, headers, version-wide 410 precedence, and both OpenAPI adapter paths. Any criterion not yet represented by a dedicated test remains a pre-merge review item rather than an assumed pass.
 
 ### Registry and identity
 - Decorator endpoint metadata is scoped by logical endpoint and concrete version.
@@ -171,9 +172,14 @@ Do not add lifecycle dates or deprecation state to the existing route-matrix sna
 
 ### D7 — Public declaration API is adapter-specific over one registry contract
 
-Do not force decorator endpoints and DRF actions into a single public syntax if doing so obscures their native identity or ergonomics. The implementation must have one normalized internal lifecycle record and validation model, with thin public adapters that reference the canonical identities already exposed by each registration API.
+Use thin public adapters over one normalized lifecycle record. Preserve each registration API's native identity rather than forcing decorator endpoints and DRF actions into one ambiguous syntax.
 
-Before choosing exact names/signatures, audit the current decorator and router registration contracts and demonstrate that each adapter resolves to the same normalized record used by middleware and schema generation. No URL-based fallback is permitted. This is a deliberate API gate, not permission to ship two independent stores.
+The implemented public API is:
+
+- Decorator endpoint: set_endpoint_lifecycle(postfix, *, version, app_name=None, methods=None, deprecated_at=None, sunset=None). Its logical identity is app_name + postfix, matching @endpoint.
+- DRF router operation: router.set_lifecycle(prefix, route_name, *, version, action=None, methods=None, deprecated_at=None, sunset=None). Its identity is router prefix + generated route name + concrete version; action/method scopes are validated against the actual callback action map.
+
+Both adapters write to the same registry and validation model. Repeating an identical declaration is idempotent; conflicting values for an exact scope fail. No URL-based fallback or second lifecycle store is permitted.
 
 ### Implementation audit (Draft stack, 2026-11-19)
 
@@ -187,27 +193,6 @@ The runtime implementation is now present in the stacked Draft PRs:
 - Tests cover method/action separation, version isolation, route ambiguity, actual Django request resolution, headers, past-Sunset precedence, and generated OpenAPI operation flags.
 
 These PRs are still Draft and not merged. Passing CI on their exact heads is evidence for those branch commits only; it is not evidence that main already contains the implementation.
-
-## Schema-generation audit (drf-spectacular 0.30.0)
-
-The repository's OpenAPI consumer fixture pins drf-spectacular 0.30.0. Inspection of that exact upstream release establishes a supported resolver-aware integration path for `VersionedRouter`:
-
-1. `SchemaGenerator.parse()` creates each schema view and assigns its mock request before calling `modify_for_versioning()`.
-2. For `NamespaceVersioning`, `modify_for_versioning()` resolves the version-adjusted path with Django's `get_resolver(...).resolve(path)` and assigns the resulting `ResolverMatch` to `view.request.resolver_match`.
-3. `VersionedRouterVersioning` subclasses DRF `NamespaceVersioning`; the schema view therefore has the actual resolved route, URL name, and namespace during operation generation.
-4. The schema generator also creates the ViewSet instance with its selected `view.action`, and calls `AutoSchema.get_operation()` with the concrete HTTP method. A supported `AutoSchema` subclass/mixin can therefore resolve the registry operation using `request.resolver_match`, method, and action, then set only the standard operation field `deprecated: true`.
-
-This is a genuine resolver-based mapping, not a path-regex or operationId heuristic. The pinned source path is `drf_spectacular/generators.py` (`SchemaGenerator.parse` / `create_view`), `drf_spectacular/plumbing.py` (`modify_for_versioning`), and `drf_spectacular/openapi.py` (`AutoSchema.get_operation`).
-
-**Remaining schema gap:** the decorator-based adapter may use DRF `URLPathVersioning`. In drf-spectacular 0.30.0 that branch substitutes the version into `view.kwargs` but does not populate `request.resolver_match`. Its schema adapter must therefore use logical endpoint metadata attached by the decorator plus the version kwarg, and resolve that pair against the registry. It must not fall back to matching generated path strings or regexes.
-
-### Updated implementation sequence
-
-1. Add an immutable normalized operation record and a registry resolver that consumes Django's `ResolverMatch`, HTTP method, and DRF action mapping; ambiguity fails closed.
-2. Add consumer tests for nested namespaces, route converters, duplicate route names, DRF multi-method actions, and decorator endpoints.
-3. Add an optional drf-spectacular `AutoSchema` mixin/class that marks the exact operation deprecated and leaves other operations untouched.
-4. Add the decorator adapter using its logical endpoint metadata and URLPathVersioning's version kwarg.
-5. Only then expose the public lifecycle declaration API and middleware headers. No automatic endpoint-level 410 behavior is introduced.
 
 ## Schema-generation implementation (drf-spectacular 0.30.0)
 
