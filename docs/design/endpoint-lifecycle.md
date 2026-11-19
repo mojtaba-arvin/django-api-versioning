@@ -194,6 +194,27 @@ The current implementation provides a useful foundation, but not yet the complet
 
 This audit confirms that actual Django resolution is available at the correct middleware phase, but also identifies the missing method/action dimension and the need for an explicit schema proof. It is not a claim that endpoint-level metadata is implemented.
 
+## Schema-generation audit (drf-spectacular 0.30.0)
+
+The repository's OpenAPI consumer fixture pins drf-spectacular 0.30.0. Inspection of that exact upstream release establishes a supported resolver-aware integration path for `VersionedRouter`:
+
+1. `SchemaGenerator.parse()` creates each schema view and assigns its mock request before calling `modify_for_versioning()`.
+2. For `NamespaceVersioning`, `modify_for_versioning()` resolves the version-adjusted path with Django's `get_resolver(...).resolve(path)` and assigns the resulting `ResolverMatch` to `view.request.resolver_match`.
+3. `VersionedRouterVersioning` subclasses DRF `NamespaceVersioning`; the schema view therefore has the actual resolved route, URL name, and namespace during operation generation.
+4. The schema generator also creates the ViewSet instance with its selected `view.action`, and calls `AutoSchema.get_operation()` with the concrete HTTP method. A supported `AutoSchema` subclass/mixin can therefore resolve the registry operation using `request.resolver_match`, method, and action, then set only the standard operation field `deprecated: true`.
+
+This is a genuine resolver-based mapping, not a path-regex or operationId heuristic. The pinned source path is `drf_spectacular/generators.py` (`SchemaGenerator.parse` / `create_view`), `drf_spectacular/plumbing.py` (`modify_for_versioning`), and `drf_spectacular/openapi.py` (`AutoSchema.get_operation`).
+
+**Remaining schema gap:** the decorator-based adapter may use DRF `URLPathVersioning`. In drf-spectacular 0.30.0 that branch substitutes the version into `view.kwargs` but does not populate `request.resolver_match`. Its schema adapter must therefore use logical endpoint metadata attached by the decorator plus the version kwarg, and resolve that pair against the registry. It must not fall back to matching generated path strings or regexes.
+
+### Updated implementation sequence
+
+1. Add an immutable normalized operation record and a registry resolver that consumes Django's `ResolverMatch`, HTTP method, and DRF action mapping; ambiguity fails closed.
+2. Add consumer tests for nested namespaces, route converters, duplicate route names, DRF multi-method actions, and decorator endpoints.
+3. Add an optional drf-spectacular `AutoSchema` mixin/class that marks the exact operation deprecated and leaves other operations untouched.
+4. Add the decorator adapter using its logical endpoint metadata and URLPathVersioning's version kwarg.
+5. Only then expose the public lifecycle declaration API and middleware headers. No automatic endpoint-level 410 behavior is introduced.
+
 ## Implementation gate
 
 The product semantics above are decided. The remaining work is an implementation-level audit of the existing registry and schema extension points, followed by failing tests for those exact contracts. Keep this PR draft/design-only until that audit and tests are complete. A green documentation-only workflow is not evidence that runtime behavior is implemented or safe.
