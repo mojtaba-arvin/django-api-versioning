@@ -719,3 +719,35 @@ def test_router_lifecycle_preserves_case_sensitive_action_names():
     assert operation is not None
     assert operation.action == "exportCSV"
     assert registry.get_endpoint_lifecycle(operation) is not None
+
+
+def test_router_registration_rolls_back_earlier_versions_after_late_owner_collision():
+    class CollisionViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    existing = VersionedRouter()
+    existing.register(
+        "atomic-owner-collision",
+        CollisionViewSet,
+        versions=[2],
+        basename="atomic-owner-collision",
+    )
+    existing_patterns = list(registry.urlpatterns)
+
+    candidate = VersionedRouter()
+    with pytest.raises(VersioningError, match="already registered by another VersionedRouter"):
+        candidate.register(
+            "atomic-owner-collision",
+            CollisionViewSet,
+            versions=[1, 2],
+            basename="atomic-owner-collision",
+        )
+
+    assert candidate._route_keys == set()
+    assert registry.urlpatterns == existing_patterns
+    assert all(
+        getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is existing._registry_owner
+        for pattern in registry.urlpatterns
+    )
