@@ -546,12 +546,23 @@ class UrlRegistry:
         compose monotonically: the earliest configured instant wins for each
         header. A narrower declaration can add metadata but cannot delay it.
         """
-        scopes = (
-            (None, None),
-            (None, operation.action),
-            (operation.method, None),
-            (operation.method, operation.action),
+        # HTTP HEAD is the body-less form of GET. DRF maps it to the
+        # GET action, and GET-scoped lifecycle declarations must therefore
+        # apply to HEAD as well. Explicit HEAD declarations still compose.
+        methods = (
+            (operation.method, "GET")
+            if operation.method == "HEAD"
+            else (operation.method,)
         )
+        scopes = [(None, None), (None, operation.action)]
+        for method in methods:
+            scopes.extend(
+                (
+                    (method, None),
+                    (method, operation.action),
+                )
+            )
+
         records = []
         for method, action in dict.fromkeys(scopes):
             record = self._endpoint_lifecycle.get(
