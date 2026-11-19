@@ -676,6 +676,7 @@ def test_get_scoped_lifecycle_metadata_also_applies_to_head_requests():
     assert get_response["Deprecation"] == "@1893456000"
     assert head_response["Deprecation"] == get_response["Deprecation"]
 
+
 def test_reintroduced_endpoint_does_not_reuse_lifecycle_for_removed_concrete_version(
     monkeypatch,
 ):
