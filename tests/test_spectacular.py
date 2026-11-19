@@ -108,11 +108,9 @@ def test_url_path_versioning_resolves_decimal_string_version(monkeypatch):
     view = SimpleNamespace(
         request=SimpleNamespace(resolver_match=None),
         versioning_class=URLPathVersioning,
-        kwargs={
-            registry._LOGICAL_ENDPOINT_ATTR: "orders",
-            "version": "02",
-        },
+        kwargs={"version": "02"},
     )
+    setattr(view, registry._LOGICAL_ENDPOINT_ATTR, "orders")
 
     result = _schema(monkeypatch, view)
 
