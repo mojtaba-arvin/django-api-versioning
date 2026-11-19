@@ -226,3 +226,25 @@ def test_registered_namespace_resolves_regex_route_when_route_text_is_not_matcha
     )()
 
     assert VersionedRouterVersioning().determine_version(request) == "2"
+
+
+def test_regex_detail_route_uses_its_versioned_namespace_at_runtime():
+    """A detail route's regex representation must not fall back to default version."""
+
+    class DetailViewSet(viewsets.ViewSet):
+        versioning_class = VersionedRouterVersioning
+
+        def retrieve(self, request, pk=None):
+            return Response({"pk": pk, "version": request.version})
+
+    router = VersionedRouter()
+    router.register("orders", DetailViewSet, version=1, basename="order")
+    urlconf = ModuleType("adversarial_regex_detail_route_urls")
+    urlconf.urlpatterns = router.urls
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        response = APIClient().get("/api/v2/orders/42/")
+
+    assert response.status_code == 200
+    assert response.json() == {"pk": "42", "version": "2"}
