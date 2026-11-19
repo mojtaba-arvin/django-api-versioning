@@ -91,6 +91,32 @@ class UrlRegistry:
             self._removed_patterns[(logical_endpoint, route_version)] = pattern
             del self.urlpatterns[index]
 
+        # Lifecycle metadata belongs to a concrete active declaration segment.
+        # A tombstone must not let metadata from the removed implementation leak
+        # into a later reintroduction at the same concrete API version. Preserve
+        # metadata only for versions that already have a newer active source.
+        preserved_versions = set()
+        for pattern in self.urlpatterns:
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
+                continue
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
+            if (
+                route_version is not None
+                and route_version >= from_version
+                and source_version is not None
+                and source_version > from_version
+            ):
+                preserved_versions.add(route_version)
+        for key in list(self._endpoint_lifecycle):
+            endpoint, version, _, _ = key
+            if (
+                endpoint == logical_endpoint
+                and version >= from_version
+                and version not in preserved_versions
+            ):
+                del self._endpoint_lifecycle[key]
+
     def _removal_boundary(
         self,
         logical_endpoint: str | None,
@@ -115,8 +141,20 @@ class UrlRegistry:
 
     def _record_removed(self, pattern: URLPattern, logical_endpoint: str) -> None:
         route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-        if route_version is not None:
-            self._removed_patterns[(logical_endpoint, route_version)] = pattern
+        if route_version is None:
+            return
+
+        key = (logical_endpoint, route_version)
+        existing = self._removed_patterns.get(key)
+        if existing is not None:
+            existing_owner = getattr(existing, self._ROUTER_OWNER_ATTR, None)
+            new_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if existing_owner is not new_owner:
+                # A suppressed re-registration must not transfer a tombstone
+                # to a different router (or from an unowned endpoint).
+                return
+
+        self._removed_patterns[key] = pattern
 
     def register(
         self,
