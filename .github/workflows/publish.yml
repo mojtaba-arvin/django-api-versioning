@@ -38,11 +38,43 @@ jobs:
             exit 1
           }
 
-  compatibility:
-    name: Full Python and Django compatibility matrix
-    uses: ./.github/workflows/compatibility.yml
+  verify-main-compatibility:
+    name: Verify full matrix passed on the tagged main commit
+    runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
+    steps:
+      - name: Require a successful main-branch matrix for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow compatibility.yml --commit "$COMMIT_SHA" --json databaseId,status,conclusion,event,headSha --limit 20)"
+          RUNS="$runs" python - <<'PY'
+          import json
+          import os
+
+          runs = json.loads(os.environ["RUNS"])
+          successful = [
+              run for run in runs
+              if run["headSha"] == os.environ["COMMIT_SHA"]
+              and run["event"] == "push"
+              and run["status"] == "completed"
+              and run["conclusion"] == "success"
+          ]
+          if not successful:
+              raise SystemExit(
+                  "No successful full compatibility.yml push run exists for "
+                  f"{os.environ['COMMIT_SHA']}. Wait for the main-branch matrix "
+                  "to finish successfully before creating the release tag."
+              )
+          print(
+              "Reusing successful full compatibility matrix run "
+              f"#{successful[0]['databaseId']} for {os.environ['COMMIT_SHA']}."
+          )
+          PY
 
   openapi-contract:
     name: Versioned OpenAPI consumer contract
@@ -52,7 +84,7 @@ jobs:
 
   build:
     name: Build and verify distributions
-    needs: [verify-release-ref, compatibility, openapi-contract]
+    needs: [verify-release-ref, verify-main-compatibility, openapi-contract]
     runs-on: ubuntu-latest
     permissions:
       contents: read

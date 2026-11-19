@@ -148,7 +148,7 @@ test -n "$REMOTE_TAG_SHA" && test "$LOCAL_TAG_SHA" = "$REMOTE_TAG_SHA" || {
 
 ## 7. Verify publication and create the GitHub release
 
-The `v*` tag triggers `.github/workflows/publish.yml`. That workflow independently reruns the complete compatibility matrix, builds and validates wheel/sdist, smoke-tests the installed wheel, verifies distribution boundaries, and publishes the verified artifact to PyPI using trusted publishing. The publish job alone receives `id-token: write`.
+The v* tag triggers .github/workflows/publish.yml. The main-branch push must already have completed the full compatibility matrix successfully for the exact tagged commit. The tag workflow verifies and reuses that run instead of running the full matrix a second time, then runs the OpenAPI contract, builds and validates wheel/sdist, smoke-tests the installed wheel, verifies distribution boundaries, and publishes the verified artifact to PyPI using trusted publishing. Create the tag only after the exact main-branch compatibility run is successful. The publish job alone receives `id-token: write`.
 
 Do not announce success while the workflow is pending or failed. Verify the exact version endpoint:
 

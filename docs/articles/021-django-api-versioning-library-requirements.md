@@ -32,7 +32,7 @@ The package provides:
 - Routing inspection and strict snapshot-based regression protection.
 - Optional `VersionedRouter` integration for DRF `SimpleRouter` ViewSets, including per-generated-route inheritance and version-aware reversal.
 - Configurable version-wide lifecycle middleware for deprecation headers and sunset enforcement.
-- Explicit endpoint removal and endpoint-level lifecycle declarations in the 1.2.0 release candidate; PyPI publication is pending.
+- Explicit endpoint removal and endpoint-level lifecycle declarations, available since 1.2.0.
 
 **Scope: routing, ViewSet version selection, and lifecycle metadata.** The decorator-based `@endpoint` API does not configure a DRF versioning class or automatically populate DRF's `request.version`; the optional `VersionedRouterVersioning` adapter does so for ViewSets registered through `VersionedRouter`. The package does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
 
@@ -436,11 +436,11 @@ The lifecycle behavior has important details:
 
 The middleware implements technical lifecycle behavior. The application team still owns the retirement policy, date selection, client communication, usage monitoring, and migration plan.
 
-### Endpoint-level lifecycle (1.2.0 release candidate; publication pending)
+### Endpoint-level lifecycle (available since 1.2.0)
 
-The 1.2.0 release candidate extends lifecycle metadata from whole API versions to individual registered endpoint versions. Use `set_endpoint_lifecycle()` with decorator-registered endpoints or `VersionedRouter.set_lifecycle()` for generated ViewSet operations. Declarations can be scoped to an HTTP method or DRF action. Matching responses receive the applicable RFC 9745 `Deprecation` and RFC 8594 `Sunset` headers; when an endpoint's sunset date passes, this endpoint-level policy remains headers-only and does not itself remove the route or return 410. Version-wide past-Sunset enforcement remains separate and continues to return 410 for the version.
+Version 1.2.0 extends lifecycle metadata from whole API versions to individual registered endpoint versions. Use `set_endpoint_lifecycle()` with decorator-registered endpoints or `VersionedRouter.set_lifecycle()` for generated ViewSet operations. Declarations can be scoped to an HTTP method or DRF action. Matching responses receive the applicable RFC 9745 `Deprecation` and RFC 8594 `Sunset` headers; when an endpoint's sunset date passes, this endpoint-level policy remains headers-only and does not itself remove the route or return 410. Version-wide past-Sunset enforcement remains separate and continues to return 410 for the version.
 
-Projects using drf-spectacular can opt into `EndpointLifecycleAutoSchema` to mark the corresponding OpenAPI operation as deprecated. drf-spectacular is optional; neither it nor the repository's OpenAPI consumer example is a core runtime dependency. These 1.2.0 APIs are present on repository `main` but are not part of the published 1.1.0 wheel until the 1.2.0 release is published.
+Projects using drf-spectacular can opt into `EndpointLifecycleAutoSchema` to mark the corresponding OpenAPI operation as deprecated. drf-spectacular is optional; neither it nor the repository's OpenAPI consumer example is a core runtime dependency. These APIs are included in the published 1.2.0 package.
 
 ## 8. Version discovery and API documentation
 
