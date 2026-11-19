@@ -1,5 +1,7 @@
 import pytest
-from django.urls import clear_url_caches, path, re_path, reverse
+from types import ModuleType
+
+from django.urls import clear_url_caches, include, path, re_path, resolve, reverse
 from django.views import View
 
 from django_api_versioning.registry import registry
@@ -608,6 +610,165 @@ def test_register_urlpattern_rejects_non_urlpattern(clear_registry):
         match="pattern must be a django.urls.URLPattern instance",
     ):
         registry.register_urlpattern("api/v1/orders/")
+
+
+
+def test_resolve_operation_uses_resolver_route_and_nested_namespace(clear_registry):
+    """Nested includes and path converters resolve through the actual URL match."""
+
+    def callback(request, order_id):
+        return None
+
+    pattern = path(
+        "api/v2/orders/<int:order_id>/",
+        callback,
+        name="order-detail",
+    )
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-detail",
+    )
+
+    urlconf = ModuleType("resolved_operation_nested_urls")
+    urlconf.urlpatterns = [
+        path(
+            "proxy/",
+            include((registry.urlpatterns, "orders"), namespace="outer"),
+        )
+    ]
+    match = resolve("/proxy/api/v2/orders/42/", urlconf=urlconf)
+
+    operation = registry.resolve_operation(match, "get")
+
+    assert operation is not None
+    assert operation.logical_endpoint == "orders:order-detail"
+    assert operation.route_version == 2
+    assert operation.source_version == 2
+    assert operation.method == "GET"
+    assert operation.action is None
+    assert operation.route_name == "order-detail"
+    assert operation.namespace == "outer"
+    assert operation.registered_route == "api/v2/orders/<int:order_id>/"
+
+
+def test_resolve_operation_fails_closed_for_unregistered_or_mismatched_route(
+    clear_registry,
+):
+    """A route-name mismatch cannot borrow another endpoint's lifecycle identity."""
+
+    def callback(request):
+        return None
+
+    registered = path("api/v2/orders/", callback, name="registered-order-list")
+    registry.register_urlpattern(
+        registered,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:registered-order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_mismatch_urls")
+    urlconf.urlpatterns = [path("api/v2/orders/", callback, name="other-order-list")]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    assert registry.resolve_operation(match, "GET") is None
+
+
+def test_resolve_operation_fails_closed_when_registered_routes_are_ambiguous(
+    clear_registry,
+):
+    """Equivalent route suffixes with the same URL name are not guessed."""
+
+    def callback(request):
+        return None
+
+    registry.register_urlpattern(
+        path("api/v2/orders/", callback, name="order-list"),
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+    registry.register_urlpattern(
+        re_path(r"^api/v2/orders/$", callback, name="order-list"),
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:legacy-order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_ambiguous_urls")
+    urlconf.urlpatterns = [path("api/v2/orders/", callback, name="order-list")]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    assert registry.resolve_operation(match, "GET") is None
+
+
+@pytest.mark.skipif(not HAS_DRF, reason="DRF not installed")
+def test_resolve_operation_distinguishes_drf_methods_and_actions(clear_registry):
+    """A shared DRF URLPattern resolves each HTTP method to its own action."""
+
+    class OrderViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+        def create(self, request):
+            return None
+
+    callback = OrderViewSet.as_view({"get": "list", "post": "create"})
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_drf_urls")
+    urlconf.urlpatterns = [
+        path(
+            "",
+            include((registry.urlpatterns, "orders"), namespace="v2"),
+        )
+    ]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    get_operation = registry.resolve_operation(match, "GET")
+    post_operation = registry.resolve_operation(match, "POST")
+
+    assert get_operation is not None
+    assert get_operation.action == "list"
+    assert get_operation.method == "GET"
+    assert post_operation is not None
+    assert post_operation.action == "create"
+    assert post_operation.method == "POST"
+    assert registry.resolve_operation(match, "DELETE") is None
+
+
+def test_resolve_operation_rejects_conflicting_version_namespace(clear_registry):
+    """A vN namespace must agree with the registered concrete route version."""
+
+    def callback(request):
+        return None
+
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_wrong_namespace_urls")
+    urlconf.urlpatterns = [
+        path(
+            "",
+            include((registry.urlpatterns, "orders"), namespace="v3"),
+        )
+    ]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    assert registry.resolve_operation(match, "GET") is None
 
 
 def test_get_route_version_returns_registered_urlpattern_version(clear_registry):
