@@ -364,7 +364,7 @@ The main difference is where the version is represented and how that affects rou
 
 The important distinction is that `django-api-versioning` is not another DRF version-negotiation scheme.
 
-It generates routes from declarations. It does not determine the request version for DRF, and it does not automatically populate `request.version`.
+The decorator-based `@endpoint` API generates routes from declarations. It does not determine the request version for DRF or automatically populate `request.version`; configure DRF version identification separately if an `@endpoint` view needs that attribute. For ViewSets registered through `VersionedRouter`, `VersionedRouterVersioning` exposes the matched namespace through `request.version`.
 
 If a view registered through the package needs DRF's `request.version`, configure a compatible DRF versioning scheme separately. Do not assume that a generated literal version path automatically provides the URL keyword argument expected by `URLPathVersioning`.
 

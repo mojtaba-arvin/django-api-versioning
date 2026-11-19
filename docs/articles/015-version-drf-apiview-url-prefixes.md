@@ -218,7 +218,7 @@ With `API_MIN_VERSION = 1` and `API_MAX_VERSION = 2`, the registrations produce 
 - Detail requests under v1 use `ArticleDetailV1`.
 - Detail requests under v2 use `ArticleDetailV2`, including comments and statistics.
 
-**Scope: routing only.** The package chooses which view callable is attached to each URL. It does not configure a DRF versioning class or automatically populate DRF's `request.version`. If application code needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present. The package also does not decide whether a response change is backward-compatible or generate version-specific serializers and schemas.
+**Scope: routing and ViewSet version selection.** The decorator-based `@endpoint` API chooses which view callable is attached to each URL; it does not configure a DRF versioning class or automatically populate DRF's `request.version`. If an `@endpoint` view needs that attribute, configure DRF version identification separately and ensure the required URL keyword argument or namespace is present. For ViewSets registered through `VersionedRouter`, `VersionedRouterVersioning` exposes the matched namespace as `request.version`. The package does not decide whether a response change is backward-compatible or generate version-specific serializers and schemas.
 
 ### How route carry-forward works
 
