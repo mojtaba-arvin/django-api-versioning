@@ -1,5 +1,6 @@
 """Focused coverage for the optional drf-spectacular adapter."""
 
+import importlib
 from datetime import datetime, timezone
 from pathlib import Path
 from subprocess import run
@@ -11,9 +12,10 @@ from rest_framework.versioning import URLPathVersioning
 
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
 from django_api_versioning.registry import registry
-from django_api_versioning.spectacular import EndpointLifecycleAutoSchema
-
 AutoSchema = pytest.importorskip("drf_spectacular.openapi").AutoSchema
+EndpointLifecycleAutoSchema = importlib.import_module(
+    "django_api_versioning.spectacular"
+).EndpointLifecycleAutoSchema
 
 
 def _schema(monkeypatch, view, operation=None):
