@@ -196,7 +196,14 @@ class VersionedRouter:
             and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
             is self._registry_owner
         ]
-        if not owned_routes:
+        owned_tombstones = [
+            pattern
+            for (endpoint, _version), pattern in registry._removed_patterns.items()
+            if endpoint == logical_endpoint
+            and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+            is self._registry_owner
+        ]
+        if not owned_routes and not owned_tombstones:
             raise VersioningError(
                 f"Router does not own an active route for {logical_endpoint!r}."
             )
