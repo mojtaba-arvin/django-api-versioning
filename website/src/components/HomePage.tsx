@@ -257,7 +257,9 @@ function Lifecycle() {
           <LifecycleDemo />
           <p className="mt-4 text-xs text-mute">
             Deprecated entries require a valid <code className="inline-code">deprecated_at</code>. The middleware reads
-            its settings on every request.
+            its settings on every request. The 1.2.0 release candidate also adds operation-scoped lifecycle declarations
+            for decorator endpoints and VersionedRouter actions, with optional OpenAPI deprecation metadata. Endpoint-level
+            Sunset remains headers-only; it does not retire the route or return 410.
           </p>
         </div>
       </div>
