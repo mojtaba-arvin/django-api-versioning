@@ -342,7 +342,11 @@ class UrlRegistry:
         return next(iter(versions)) if len(versions) == 1 else None
 
     def resolve_operation(
-        self, resolver_match: object, method: str
+        self,
+        resolver_match: object,
+        method: str,
+        *,
+        allow_unmapped_method: bool = False,
     ) -> ResolvedOperation | None:
         """Resolve one registered logical operation from Django's ResolverMatch.
 
@@ -415,10 +419,11 @@ class UrlRegistry:
             action = actions.get(normalized_method.lower())
             if action is None and normalized_method == "HEAD":
                 action = actions.get("get")
-            # DRF handles OPTIONS outside the ViewSet action map, and
-            # unsupported methods can still resolve to this route and return
-            # 405. Preserve route identity for route-wide lifecycle metadata;
-            # action-scoped metadata remains inapplicable without an action.
+            # DRF handles OPTIONS outside the ViewSet action map. For a
+            # real 405 response, the middleware may also request route-only
+            # resolution; action-scoped metadata remains inapplicable.
+            if action is None and normalized_method != "OPTIONS" and not allow_unmapped_method:
+                return None
             if action is not None and (not isinstance(action, str) or not action):
                 return None
 
