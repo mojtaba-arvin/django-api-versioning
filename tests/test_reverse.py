@@ -144,7 +144,6 @@ class TestApiReverse:
         def doc_detail(request, slug):
             return JsonResponse({"slug": slug})
 
-        # Parameter containing backslash should be literal, not regex escape sequence
         url = api_reverse("doc-detail", version=1, slug=r"path\to\file")
         assert url == "/api/v1/docs/path%5Cto%5Cfile/"
 
@@ -169,13 +168,14 @@ class TestApiReverse:
         # Test various regex metacharacters
         test_cases = [
             ("(pattern)", "/api/v1/search/(pattern)/"),
-            ("[abc]", "/api/v1/search/[abc]/"),
+            ("[abc]", "/api/v1/search/%5Babc%5D/"),
             ("a.b", "/api/v1/search/a.b/"),
             ("a*b", "/api/v1/search/a*b/"),
             ("a+b", "/api/v1/search/a+b/"),
-            ("a?b", "/api/v1/search/a?b/"),
-            ("a|b", "/api/v1/search/a|b/"),
-            ("a{2}", "/api/v1/search/a{2}/"),
+            ("a?b", "/api/v1/search/a%3Fb/"),
+            ("a|b", "/api/v1/search/a%7Cb/"),
+            ("a{2}", "/api/v1/search/a%7B2%7D/"),
+            ("a#b", "/api/v1/search/a%23b/"),
         ]
         for query, expected_url in test_cases:
             url = api_reverse("search-results", version=1, query=query)
@@ -191,7 +191,6 @@ class TestApiReverse:
             version=1,
             resource="reports/annual?draft=true#section",
         ) == "/api/v1/files/reports/annual%3Fdraft=true%23section/"
-
 
 
 def test_regex_backed_urlpattern_uses_django_reverse():
