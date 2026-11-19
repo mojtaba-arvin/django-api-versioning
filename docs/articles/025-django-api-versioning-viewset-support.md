@@ -46,11 +46,61 @@ REST_FRAMEWORK = {
 
 You can instead set `versioning_class = VersionedRouterVersioning` on an individual ViewSet when you do not want to change the project-wide DRF default.
 
-`VersionedRouterVersioning` reads the concrete version namespace created by the router and exposes the version as a string through `request.version`, for example `"2"`. The `v` prefix belongs to the URL namespace; it is not included in the value of `request.version`.
+`VersionedRouterVersioning` reads the concrete version namespace created by the router and exposes the version as a string through `request.version`, for example `"2"`. The `v` prefix belongs to the URL namespace; it is not included in the value of `request.version`. If you configure it on an individual ViewSet instead of using the project-wide setting, import it with `from django_api_versioning.routers import VersionedRouterVersioning` and assign `versioning_class = VersionedRouterVersioning` on that ViewSet.
 
 ## 2. Register ViewSets
 
 Use the familiar DRF registration style, adding either `version` or `versions`:
+
+```python
+# orders/views.py
+
+from rest_framework import serializers, viewsets
+from rest_framework.decorators import action
+from rest_framework.filters import SearchFilter
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+
+from orders.models import Order
+
+
+class OrderPagination(PageNumberPagination):
+    page_size = 20
+
+
+class OrderV1Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["id", "status"]
+
+
+class OrderV2Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["id", "status", "total"]
+
+
+class OrderViewSetV1(viewsets.ReadOnlyModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderV1Serializer
+    pagination_class = OrderPagination
+    filter_backends = [SearchFilter]
+    search_fields = ["status"]
+
+    @action(detail=True, methods=["post"])
+    def archive(self, request, pk=None):
+        return Response({"detail": "Archive requested"})
+
+
+class OrderViewSetV2(viewsets.ReadOnlyModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderV2Serializer
+    pagination_class = OrderPagination
+    filter_backends = [SearchFilter]
+    search_fields = ["status"]
+```
+
+Register the two implementations in the root URLconf:
 
 ```python
 # project/urls.py
@@ -59,30 +109,21 @@ from django_api_versioning.routers import VersionedRouter
 from orders.views import OrderViewSetV1, OrderViewSetV2
 
 router = VersionedRouter()
-
-router.register(
-    "orders",
-    OrderViewSetV1,
-    version=1,
-    basename="order",
-)
-router.register(
-    "orders",
-    OrderViewSetV2,
-    version=2,
-    basename="order",
-)
+router.register("orders", OrderViewSetV1, version=1, basename="order")
+router.register("orders", OrderViewSetV2, version=2, basename="order")
 
 urlpatterns = router.urls
 ```
 
-With `API_MAX_VERSION = 3`, the resulting versioned routes include:
+With `API_BASE_PATH = "api/v{version}/"`, `API_MAX_VERSION = 3`, and these patterns mounted at the project root, the generated route mapping is:
 
-| Route | Implementation |
+| Request | Implementation |
 | --- | --- |
-| `/api/v1/orders/` | V1 ViewSet |
-| `/api/v2/orders/` | V2 ViewSet |
-| `/api/v3/orders/` | Latest applicable declarations |
+| `GET /api/v1/orders/` | `OrderViewSetV1.list()` |
+| `GET /api/v2/orders/` | `OrderViewSetV2.list()` |
+| `GET /api/v3/orders/` | `OrderViewSetV2.list()` |
+
+The same route-by-route mapping applies to detail routes. The V1 `archive` action remains inherited in v2 and v3 because V2 does not redeclare it. Pagination and filtering remain configured on each ViewSet; the router does not move or infer those policies.
 
 Use the same explicit `basename` for registrations of the same prefix across versions. This keeps generated URL names stable. The router rejects basename changes for one prefix and duplicate basenames across different prefixes within the same router.
 
@@ -231,6 +272,8 @@ The repository's [executable OpenAPI consumer example](https://github.com/mojtab
 
 ## 9. Boundaries and non-goals
 
+**Scope: routing only.** `VersionedRouter` registers DRF-generated routes, selects the applicable callback for each API version, and preserves version-aware reversal. The application remains responsible for serializer design, response compatibility, authentication, permissions, filtering, and pagination configuration on its ViewSets.
+
 The initial integration supports DRF `SimpleRouter`, not `DefaultRouter`; it does not claim API-root or format-suffix parity.
 
 The integration also does not:
@@ -254,4 +297,4 @@ The executable OpenAPI consumer example separately exercises real API requests, 
 
 Use `VersionedRouter` for DRF ViewSets and `@endpoint` for Django-native views, including DRF `APIView` and `GenericAPIView` endpoints. The router delegates route generation to DRF, while the package manages version-specific implementation selection, per-route inheritance, namespace-aware reversal, and the route matrix. DRF remains responsible for ViewSet behavior and serializer contracts.
 
-For the complete public behavior, start with the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) and the [DRF router integration guide](https://www.django-rest-framework.org/api-guide/routers/).
+To use this routing model in a Django project, install [django-api-versioning from PyPI](https://pypi.org/project/django-api-versioning/) and follow the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for the complete package behavior.
