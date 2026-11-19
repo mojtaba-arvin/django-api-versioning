@@ -356,3 +356,24 @@ def test_router_remove_remains_idempotent_for_its_own_tombstoned_route():
 
     router.remove("orders", "order-list", from_version=2)
     router.remove("orders", "order-list", from_version=2)
+
+def test_suppressed_re_registration_cannot_steal_router_tombstone_ownership():
+    """A suppressed registration must not let another router claim a tombstone."""
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    owner = VersionedRouter()
+    owner.register("orders", OrdersViewSet, versions=[1, 2], basename="order")
+    owner.remove("orders", "order-list", from_version=2)
+
+    unrelated = VersionedRouter()
+    unrelated.register("orders", OrdersViewSet, versions=[2], basename="order")
+
+    with pytest.raises(VersioningError, match="does not own an active route"):
+        unrelated.remove("orders", "order-list", from_version=2)
+
+    # The original owner retains its tombstone and can repeat removal safely.
+    owner.remove("orders", "order-list", from_version=2)
+
