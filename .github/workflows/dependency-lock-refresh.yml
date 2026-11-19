@@ -1,0 +1,65 @@
+name: Refresh dependency lockfiles
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+# This workflow only updates lockfiles on same-repository deps/* branches.
+# It never executes scripts or tests from the pull-request branch.
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-lock-refresh-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'deps/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out dependency branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Node for the pinned pnpm toolchain
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.23.4"
+
+      - name: Regenerate lockfiles from changed manifests
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD)"
+
+          if printf '%s\n' "$changed" | grep -Fxq 'pyproject.toml'; then
+            uv lock
+          fi
+
+          if printf '%s\n' "$changed" | grep -Fxq 'website/package.json'; then
+            corepack enable
+            corepack prepare pnpm@10.12.1 --activate
+            pnpm --dir website install --lockfile-only --ignore-scripts
+          fi
+
+          git add -- uv.lock website/pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "Dependency lockfiles are already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(deps): refresh dependency lockfiles"
+          git push origin "HEAD:$HEAD_REF"
