@@ -773,7 +773,6 @@ def test_resolve_operation_rejects_conflicting_version_namespace(clear_registry)
     assert registry.resolve_operation(match, "GET") is None
 
 
-
 def _lifecycle_test_operation(
     method="GET",
     action="list",
