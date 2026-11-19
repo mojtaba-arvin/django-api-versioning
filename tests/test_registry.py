@@ -612,7 +612,6 @@ def test_register_urlpattern_rejects_non_urlpattern(clear_registry):
         registry.register_urlpattern("api/v1/orders/")
 
 
-
 def test_resolve_operation_uses_resolver_route_and_nested_namespace(clear_registry):
     """Nested includes and path converters resolve through the actual URL match."""
 
