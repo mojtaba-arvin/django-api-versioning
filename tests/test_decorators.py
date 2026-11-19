@@ -3,14 +3,14 @@ import logging
 import pytest
 from django.http import JsonResponse
 
-from django_api_versioning.decorators import endpoint, ver_range
+from django_api_versioning.decorators import endpoint, set_endpoint_lifecycle, ver_range
 from django_api_versioning.exceptions import (
     InvalidVersionError,
     VersioningError,
     VersionRangeError,
     VersionTypeError,
 )
-from django_api_versioning.registry import registry
+from django_api_versioning.registry import ResolvedOperation, registry
 from django_api_versioning.settings import api_settings as settings
 
 
@@ -25,6 +25,74 @@ def versions_1_to_5():
 def _routes():
     return {str(p.pattern) for p in registry.urlpatterns}
 
+
+
+def test_endpoint_lifecycle_applies_only_to_the_declared_concrete_version(
+    versions_1_to_5,
+):
+    @endpoint("users", version=2)
+    def users(request):
+        return JsonResponse({})
+
+    set_endpoint_lifecycle(
+        "users",
+        version=2,
+        methods=["get"],
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+
+    version_two = ResolvedOperation(
+        logical_endpoint="users",
+        route_version=2,
+        source_version=2,
+        method="GET",
+        action=None,
+        route_name=None,
+        namespace="",
+        route="api/v2/users",
+        registered_route="api/v2/users",
+    )
+    version_three = ResolvedOperation(
+        logical_endpoint="users",
+        route_version=3,
+        source_version=2,
+        method="GET",
+        action=None,
+        route_name=None,
+        namespace="",
+        route="api/v3/users",
+        registered_route="api/v3/users",
+    )
+
+    assert registry.get_endpoint_lifecycle(version_two) is not None
+    assert registry.get_endpoint_lifecycle(version_three) is None
+
+
+def test_endpoint_lifecycle_supports_app_name_and_all_methods(versions_1_to_5):
+    set_endpoint_lifecycle(
+        "users",
+        version=3,
+        app_name="billing",
+        sunset="2028-01-01T00:00:00Z",
+    )
+
+    operation = ResolvedOperation(
+        logical_endpoint="billing/users",
+        route_version=3,
+        source_version=3,
+        method="POST",
+        action=None,
+        route_name=None,
+        namespace="",
+        route="api/v3/billing/users",
+        registered_route="api/v3/billing/users",
+    )
+
+    lifecycle = registry.get_endpoint_lifecycle(operation)
+
+    assert lifecycle is not None
+    assert lifecycle.deprecated_at is None
+    assert lifecycle.sunset is not None
 
 class TestVerRange:
     def test_inclusive(self):
