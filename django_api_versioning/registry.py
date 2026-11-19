@@ -6,7 +6,13 @@ from django.http import HttpResponse
 from django.urls import URLPattern, path
 from django.views import View
 
-from .exceptions import InvalidVersionError, VersionRangeError, VersionTypeError
+from .exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
+from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from .settings import api_settings
 
 REMOVED_ROUTE = object()
@@ -41,12 +47,16 @@ class UrlRegistry:
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
         self._removed_patterns: dict[tuple[str, int], URLPattern] = {}
+        self._endpoint_lifecycle: dict[
+            tuple[str, int, str | None, str | None], EndpointLifecycle
+        ] = {}
 
     def clear(self) -> None:
         """Clear active routes and removal declarations."""
         self.urlpatterns.clear()
         self._removal_boundaries.clear()
         self._removed_patterns.clear()
+        self._endpoint_lifecycle.clear()
 
     def remove(self, logical_endpoint: str, from_version: int) -> None:
         """Suppress an endpoint from a concrete version until reintroduced."""
@@ -406,6 +416,103 @@ class UrlRegistry:
             namespace=namespace,
             route=route,
             registered_route=str(pattern.pattern),
+        )
+
+    def register_endpoint_lifecycle(
+        self,
+        logical_endpoint: str,
+        route_version: int,
+        *,
+        method: str | None = None,
+        action: str | None = None,
+        deprecated_at: str | None = None,
+        sunset: str | None = None,
+    ) -> None:
+        """Register lifecycle dates for a route, HTTP method, or DRF action."""
+        if not isinstance(logical_endpoint, str) or not logical_endpoint:
+            raise VersioningError("logical_endpoint must be a non-empty string.")
+        if isinstance(route_version, bool) or not isinstance(route_version, int):
+            raise VersionTypeError("Endpoint lifecycle version must be an integer.")
+        if route_version < api_settings.API_MIN_VERSION:
+            raise VersionRangeError(
+                f"Endpoint lifecycle version {route_version} is below "
+                f"API_MIN_VERSION {api_settings.API_MIN_VERSION}."
+            )
+        if route_version > api_settings.API_MAX_VERSION:
+            raise InvalidVersionError(
+                f"Endpoint lifecycle version {route_version} is above "
+                f"API_MAX_VERSION {api_settings.API_MAX_VERSION}."
+            )
+
+        normalized_method = None
+        if method is not None:
+            if not isinstance(method, str) or not method.strip():
+                raise VersioningError("Endpoint lifecycle method must be a string.")
+            normalized_method = method.strip().upper()
+
+        normalized_action = None
+        if action is not None:
+            if not isinstance(action, str) or not action.strip():
+                raise VersioningError("Endpoint lifecycle action must be a string.")
+            normalized_action = action.strip().lower()
+
+        lifecycle = parse_endpoint_lifecycle(deprecated_at, sunset)
+        key = (
+            logical_endpoint,
+            route_version,
+            normalized_method,
+            normalized_action,
+        )
+        existing = self._endpoint_lifecycle.get(key)
+        if existing is not None and existing != lifecycle:
+            raise VersioningError(
+                "Conflicting endpoint lifecycle declarations for "
+                f"{logical_endpoint!r} version {route_version}."
+            )
+        self._endpoint_lifecycle[key] = lifecycle
+
+    def get_endpoint_lifecycle(
+        self, operation: ResolvedOperation
+    ) -> EndpointLifecycle | None:
+        """Return the most conservative metadata applicable to an operation.
+
+        Route-wide, action-wide, method-wide, and exact method/action scopes
+        compose monotonically: the earliest configured instant wins for each
+        header. A narrower declaration can add metadata but cannot delay it.
+        """
+        scopes = (
+            (None, None),
+            (None, operation.action),
+            (operation.method, None),
+            (operation.method, operation.action),
+        )
+        records = []
+        for method, action in dict.fromkeys(scopes):
+            record = self._endpoint_lifecycle.get(
+                (
+                    operation.logical_endpoint,
+                    operation.route_version,
+                    method,
+                    action,
+                )
+            )
+            if record is not None:
+                records.append(record)
+
+        if not records:
+            return None
+
+        deprecation_dates = [
+            record.deprecated_at
+            for record in records
+            if record.deprecated_at is not None
+        ]
+        sunset_dates = [
+            record.sunset for record in records if record.sunset is not None
+        ]
+        return EndpointLifecycle(
+            deprecated_at=min(deprecation_dates) if deprecation_dates else None,
+            sunset=min(sunset_dates) if sunset_dates else None,
         )
 
     def _should_replace(
