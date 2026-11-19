@@ -434,7 +434,7 @@ class VersionedRouter:
             logical_endpoint = f"{prefix}:{pattern.name}"
             route_key = str(pattern.pattern)
             setattr(pattern, registry._ROUTER_OWNER_ATTR, self._registry_owner)
-            setattr(pattern, registry._ROUTER_PREFIX_ATTR, prefix)
+            setattr(pattern, registry._ROUTER_PREFIX_ATTR, route_prefix)
             setattr(
                 pattern,
                 registry._ROUTER_TRAILING_SLASH_ATTR,
