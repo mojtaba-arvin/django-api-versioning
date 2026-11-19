@@ -172,7 +172,9 @@ def set_endpoint_lifecycle(
         method.strip().upper() if isinstance(method, str) else method
         for method in methods
     ]
-    if any(not isinstance(method, str) or not method for method in normalized_methods):
+    if any(
+        not isinstance(method, str) or not method for method in normalized_methods
+    ):
         raise VersioningError("methods must contain non-empty HTTP method strings.")
     if len(set(normalized_methods)) != len(normalized_methods):
         raise VersioningError("methods must not contain duplicates.")
