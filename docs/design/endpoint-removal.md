@@ -1,6 +1,6 @@
 # Explicit endpoint removal and reintroduction
 
-**Status:** Implemented in PR #44  
+**Status:** Implemented in consolidated PR #58 and merged to `main` as `a8b39343c478bb5a8afbe1de20d95a2b10630f37`. The earlier exploratory PRs #43 and #44 were closed unmerged; this document records the final delivered contract. Issue #39's post-merge acceptance audit was completed and closed on 2026-11-19.  
 **Runtime policy:** Removed endpoint routes are absent and resolve to 404  
 **Scope:** Django-native endpoints and DRF VersionedRouter routes
 
