@@ -227,7 +227,7 @@ REST_FRAMEWORK = {
 
 This adapter marks the matching deprecated operation with OpenAPI's `deprecated: true` field. It requires `drf-spectacular` and is imported only by applications that configure it; it is not a core runtime dependency. Missing or ambiguous route identity fails closed, leaving the generated operation unchanged.
 
-The repository's [executable OpenAPI consumer example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract) demonstrates per-version schemas, committed baselines, request-level checks, deterministic generation, and an `oasdiff` breaking-change gate. The base consumer contract is part of the published router integration; the endpoint-level schema deprecation adapter described above is a current-main addition.
+The repository's [executable OpenAPI consumer example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract) demonstrates per-version schemas, committed baselines, request-level checks, deterministic generation, and an `oasdiff` breaking-change gate. This example and its CI gate were added to repository main after the published release; they are repository-level tooling and are not included in the published wheel. The endpoint-level lifecycle API and schema deprecation adapter described above are also current-main additions.
 
 ## 9. Boundaries and non-goals
 
