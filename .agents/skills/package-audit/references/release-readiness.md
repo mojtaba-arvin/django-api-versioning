@@ -31,8 +31,8 @@
 4. **Release Materials**
    - Release notes prepared: ✓/✗
    - Version number determined: ✓/✗
-   - Git tags ready: ✓/✗
-   - PyPI credentials configured: ✓/✗
+   - Annotated tag target and protection rules verified; create a tag only after explicit authorization: ✓/✗
+   - PyPI Trusted Publishing/OIDC configured with `id-token: write` limited to the publish job; no long-lived PyPI token: ✓/✗
 
 5. **Communication**
    - Release announcement prepared: ✓/✗
