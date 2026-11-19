@@ -440,6 +440,28 @@ class UrlRegistry:
         if not isinstance(route, str) or callback is None:
             return False, None
 
+        tried = getattr(resolver_match, "tried", None)
+        if tried is not None:
+            matched_pattern_ids = {
+                id(chain[-1])
+                for chain in tried
+                if chain and isinstance(chain[-1], URLPattern)
+            }
+            exact_matches = [
+                pattern
+                for pattern in self.urlpatterns
+                if id(pattern) in matched_pattern_ids
+            ]
+            if not exact_matches:
+                return False, None
+            versions = {
+                getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+                for pattern in exact_matches
+            }
+            if len(versions) != 1:
+                return True, None
+            return True, next(iter(versions))
+
         url_name = getattr(resolver_match, "url_name", None)
         matches = []
         for pattern in self.urlpatterns:
