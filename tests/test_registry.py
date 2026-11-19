@@ -982,6 +982,7 @@ def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
 
     def replacement(request):
         return None
+
     registry.register(
         "api/v3/orders/",
         replacement,

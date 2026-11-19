@@ -48,12 +48,8 @@ def test_resolver_match_marks_only_deprecated_registered_operation(monkeypatch):
         deprecated_at=datetime(2030, 1, 1, tzinfo=timezone.utc),
         sunset=None,
     )
-    monkeypatch.setattr(
-        registry, "resolve_operation", lambda match, method: operation
-    )
-    monkeypatch.setattr(
-        registry, "get_endpoint_lifecycle", lambda resolved: lifecycle
-    )
+    monkeypatch.setattr(registry, "resolve_operation", lambda match, method: operation)
+    monkeypatch.setattr(registry, "get_endpoint_lifecycle", lambda resolved: lifecycle)
 
     result = _schema(
         monkeypatch,
@@ -104,9 +100,7 @@ def test_url_path_versioning_resolves_decimal_string_version(monkeypatch):
             calls.append((logical, version, method)) or resolved
         ),
     )
-    monkeypatch.setattr(
-        registry, "get_endpoint_lifecycle", lambda operation: None
-    )
+    monkeypatch.setattr(registry, "get_endpoint_lifecycle", lambda operation: None)
     view = SimpleNamespace(
         request=SimpleNamespace(resolver_match=None),
         versioning_class=URLPathVersioning,
@@ -120,9 +114,7 @@ def test_url_path_versioning_resolves_decimal_string_version(monkeypatch):
     assert result == {"responses": {}}
 
 
-def test_non_url_path_versioning_without_resolver_match_is_left_unchanged(
-    monkeypatch,
-):
+def test_non_url_path_versioning_without_resolver_match_is_left_unchanged(monkeypatch):
     monkeypatch.setattr(
         registry,
         "resolve_registered_operation",
