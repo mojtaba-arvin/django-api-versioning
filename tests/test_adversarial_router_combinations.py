@@ -412,9 +412,7 @@ def test_routers_with_different_path_modes_cannot_register_same_route_prefix(
     regex_router = VersionedRouter(use_regex_path=True)
     path_router = VersionedRouter(use_regex_path=False)
     if versioned:
-        regex_router.register(
-            "orders", OrdersViewSet, versions=[2], basename="order"
-        )
+        regex_router.register("orders", OrdersViewSet, versions=[2], basename="order")
     else:
         regex_router.register("orders", OrdersViewSet, basename="order")
 
@@ -425,9 +423,7 @@ def test_routers_with_different_path_modes_cannot_register_same_route_prefix(
         if versioned:
             # Different basenames also produce different logical endpoint IDs;
             # the shared route prefix is still a collision.
-            path_router.register(
-                "orders", OrdersViewSet, versions=[2], basename="orders"
-            )
+            path_router.register("orders", OrdersViewSet, versions=[2], basename="orders")
         else:
             path_router.register("orders", OrdersViewSet, basename="orders")
 
