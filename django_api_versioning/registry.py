@@ -478,10 +478,16 @@ class UrlRegistry:
                 for chain in tried
                 if chain and isinstance(chain[-1], URLPattern)
             }
+            url_name = getattr(resolver_match, "url_name", None)
             exact_matches = [
                 pattern
                 for pattern in self.urlpatterns
                 if id(pattern) in matched_pattern_ids
+                and pattern.callback is callback
+                and (url_name is None or pattern.name == url_name)
+                and self._resolved_route_match_length(
+                    route, str(pattern.pattern)
+                )
             ]
             if not exact_matches:
                 return False, None
