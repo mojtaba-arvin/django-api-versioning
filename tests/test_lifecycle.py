@@ -73,9 +73,7 @@ def test_retired_version_keeps_lifecycle_headers_on_410(monkeypatch):
     request = _request("1")
     middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
 
-    response = middleware.process_view(
-        request, lambda req: HttpResponse("ok"), [], {}
-    )
+    response = middleware.process_view(request, lambda req: HttpResponse("ok"), [], {})
     assert response is not None
     response = middleware.process_response(request, response)
 
