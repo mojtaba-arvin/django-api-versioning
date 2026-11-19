@@ -214,9 +214,11 @@ def _extract_version(request: HttpRequest) -> int | None:
         # policy; identify the API version from the actual matched route.
         route = getattr(match, "route", None)
         if isinstance(route, str):
-            version = registry.get_resolved_route_version(route)
-            if version is not None:
-                return _coerce_version(version)
+            matched, route_version = registry.get_resolved_route_version_for_match(
+                match
+            )
+            if matched:
+                return _coerce_version(route_version)
             version = _extract_version_from_value(route)
             if version is not None:
                 return version
