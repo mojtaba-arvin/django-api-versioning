@@ -18,7 +18,7 @@
    - Verify version history is accurate
    - Check breaking changes are documented
    - Review migration guides
-   - Verify test counts are correct
+   - Do not preserve transient test counts in release notes; verify release dates and publication status against the exact annotated tag and PyPI artifact
 
 3. **Code Documentation**
    - Check docstrings are present and accurate

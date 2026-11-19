@@ -27,3 +27,7 @@
    - Check for comparison with alternatives
    - Review usage examples
    - Check for troubleshooting documentation
+   - Verify that the README and homepage state the product's specific problem/solution, DRF comparison, primary use cases, and non-goals in independently scannable sections
+   - Verify that current-main/release-candidate capabilities are visibly distinguished from the latest published PyPI artifact
+   - Check that articles, canonical Reference, website output, and PyPI README do not recommend conflicting integration paths or describe superseded behavior
+   - Prefer direct answers to common intents such as when to use `VersionedRouter` versus plain DRF routers, what `@endpoint` does not do, and whether header/query negotiation or automatic discovery is supported
