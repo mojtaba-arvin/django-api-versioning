@@ -710,6 +710,7 @@ def test_reintroduced_endpoint_does_not_reuse_lifecycle_for_removed_concrete_ver
     assert "Deprecation" not in response
     assert "Sunset" not in response
 
+
 def test_lifecycle_declared_after_removal_applies_to_reintroduced_endpoint(
     monkeypatch,
 ):
@@ -741,6 +742,7 @@ def test_lifecycle_declared_after_removal_applies_to_reintroduced_endpoint(
     assert response.status_code == 200
     assert response.content == b"reintroduced"
     assert response["Deprecation"] == "@1893456000"
+
 
 
 def test_removal_preserves_lifecycle_for_an_already_reintroduced_newer_source(
