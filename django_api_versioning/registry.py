@@ -415,7 +415,12 @@ class UrlRegistry:
             action = actions.get(normalized_method.lower())
             if action is None and normalized_method == "HEAD":
                 action = actions.get("get")
-            if not isinstance(action, str) or not action:
+            # DRF handles OPTIONS outside the ViewSet action map, and a
+            # resolved URL may also produce a 405 for an unmapped method.
+            # The route identity is still unambiguous, so retain it for
+            # route-wide lifecycle metadata; action-scoped metadata naturally
+            # remains inapplicable when no action was selected.
+            if action is not None and (not isinstance(action, str) or not action):
                 return None
 
         return ResolvedOperation(
