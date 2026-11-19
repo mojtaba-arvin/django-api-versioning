@@ -51,6 +51,19 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.12.1 --activate
+      - name: Regenerate pnpm lockfile for dependency PR validation
+        if: github.event_name == 'pull_request'
+        working-directory: website
+        run: pnpm install --lockfile-only
+      - name: Upload regenerated pnpm lockfile for review
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: regenerated-pnpm-lock-${{ github.run_id }}
+          path: website/pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Install locked dependencies
         working-directory: website
         run: pnpm install --frozen-lockfile
