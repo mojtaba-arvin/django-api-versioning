@@ -55,6 +55,7 @@ class VersionedRouter:
         self.trailing_slash = trailing_slash
         self.use_regex_path = use_regex_path
         self.app_name = app_name
+        self._registry_owner = object()
         self._route_keys: set[str] = set()
         self._basenames: dict[str, str] = {}
         self._basename_prefixes: dict[str, str] = {}
@@ -319,6 +320,7 @@ class VersionedRouter:
         for pattern in router.urls:
             logical_endpoint = f"{prefix}:{pattern.name}"
             route_key = str(pattern.pattern)
+            setattr(pattern, registry._ROUTER_OWNER_ATTR, self._registry_owner)
             registry.register_urlpattern(
                 pattern,
                 source_version=source_version,
