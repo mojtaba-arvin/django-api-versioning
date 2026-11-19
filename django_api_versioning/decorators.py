@@ -185,14 +185,23 @@ def set_endpoint_lifecycle(
     if len(set(normalized_methods)) != len(normalized_methods):
         raise VersioningError("methods must not contain duplicates.")
 
-    for method in normalized_methods:
-        registry.register_endpoint_lifecycle(
-            logical_endpoint,
-            version,
-            method=method,
-            deprecated_at=deprecated_at,
-            sunset=sunset,
-        )
+    # Match VersionedRouter.set_lifecycle(): a multi-method declaration
+    # is one logical operation and must not leave earlier methods registered
+    # when a later method conflicts with existing metadata.
+    previous_lifecycle = dict(registry._endpoint_lifecycle)
+    try:
+        for method in normalized_methods:
+            registry.register_endpoint_lifecycle(
+                logical_endpoint,
+                version,
+                method=method,
+                deprecated_at=deprecated_at,
+                sunset=sunset,
+            )
+    except Exception:
+        registry._endpoint_lifecycle.clear()
+        registry._endpoint_lifecycle.update(previous_lifecycle)
+        raise
 
 
 def _validate_version(version: int, max_version: int) -> None:
