@@ -224,11 +224,7 @@ class UrlRegistry:
         route_key = str(pattern.pattern)
         route_index = self._find_route_index(route_key)
 
-        if (
-            route_index is None
-            and logical_endpoint is not None
-            and route_version is not None
-        ):
+        if route_index is None and logical_endpoint is not None:
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
             if new_router is not None:
                 for existing in self.urlpatterns:
