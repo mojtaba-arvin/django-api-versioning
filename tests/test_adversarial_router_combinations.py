@@ -217,6 +217,7 @@ def test_schema_version_namespace_wins_over_synthetic_target_route_version():
                 (),
                 {
                     "route": str(target_v2_pattern.pattern),
+                    "url_name": target_v2_pattern.name,
                     "namespace": "v1",
                 },
             )()
