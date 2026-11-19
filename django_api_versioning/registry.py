@@ -438,8 +438,7 @@ class UrlRegistry:
         candidates = [
             pattern
             for pattern in self.urlpatterns
-            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
-            == logical_endpoint
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
             and getattr(pattern, self._ROUTE_VERSION_ATTR, None) == route_version
         ]
         if len(candidates) != 1:
