@@ -415,12 +415,10 @@ class UrlRegistry:
             action = actions.get(normalized_method.lower())
             if action is None and normalized_method == "HEAD":
                 action = actions.get("get")
-            # DRF handles OPTIONS outside the ViewSet action map. It is
-            # still a supported protocol method on this resolved route, so
-            # retain the route identity for route-wide lifecycle metadata.
-            # Other unmapped methods remain fail-closed.
-            if action is None and normalized_method != "OPTIONS":
-                return None
+            # DRF handles OPTIONS outside the ViewSet action map, and
+            # unsupported methods can still resolve to this route and return
+            # 405. Preserve route identity for route-wide lifecycle metadata;
+            # action-scoped metadata remains inapplicable without an action.
             if action is not None and (not isinstance(action, str) or not action):
                 return None
 
