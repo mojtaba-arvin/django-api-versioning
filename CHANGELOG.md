@@ -23,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the optional `VersionedRouter` integration for DRF `SimpleRouter` ViewSets, preserving standard routes, custom actions, callback metadata, and per-route version inheritance.
 - Add `VersionedRouterVersioning` to expose the concrete router namespace as DRF's `request.version` and keep `reverse_action()` and hyperlinked serializer URLs within the active version.
 - Preserve regex-backed and path-converter URLPatterns in the registry; extend `api_reverse()` to reverse DRF regex routes through Django's URL resolver and reject duplicate names within one concrete version.
-- Add an executable, optional OpenAPI consumer example with per-version drf-spectacular snapshots and an oasdiff breaking-change CI gate; neither tool is a runtime dependency.
 
 ### Changed
 

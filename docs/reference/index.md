@@ -1,6 +1,6 @@
 # django-api-versioning reference
 
-This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The published PyPI package includes the VersionedRouter and versioned OpenAPI consumer contract. Explicit endpoint removal and endpoint-level lifecycle declarations are marked **unreleased on main** and are not available from the current published artifact. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The published PyPI package includes the VersionedRouter integration. The executable OpenAPI consumer example and its `oasdiff` gate were added to repository main after the published release; they are repository-level validation tooling, not part of the package wheel. Explicit endpoint removal and endpoint-level lifecycle declarations are also marked **unreleased on main** and are not available from the current published artifact. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Installation
 
