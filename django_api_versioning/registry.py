@@ -172,6 +172,11 @@ class UrlRegistry:
 
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]
+            if getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None) is not None:
+                raise VersioningError(
+                    f"Route pattern {route!r} is already owned by a VersionedRouter; "
+                    "decorator registration cannot replace it."
+                )
 
             if not self._should_replace(existing_pattern, source_version):
                 return
@@ -252,14 +257,12 @@ class UrlRegistry:
             existing_pattern = self.urlpatterns[route_index]
             existing_router = getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None)
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if (
-                existing_router is not None
-                and new_router is not None
-                and existing_router is not new_router
+            if existing_router is not new_router and (
+                existing_router is not None or new_router is not None
             ):
                 raise VersioningError(
-                    f"Route pattern {route_key!r} is already registered by another "
-                    "VersionedRouter instance. Use a distinct route prefix for each router."
+                    f"Route pattern {route_key!r} is already registered by a "
+                    "different registration owner. Use a distinct route path."
                 )
             if not self._should_replace(existing_pattern, source_version):
                 return
