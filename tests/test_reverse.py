@@ -144,9 +144,9 @@ class TestApiReverse:
         def doc_detail(request, slug):
             return JsonResponse({"slug": slug})
 
-        # Parameter containing backslash should be literal, not regex escape sequence
+        # The path parameter is quoted as a URI path component after validation.
         url = api_reverse("doc-detail", version=1, slug=r"path\to\file")
-        assert url == r"/api/v1/docs/path\to\file/"
+        assert url == r"/api/v1/docs/path%5Cto%5Cfile/"
 
     def test_kwarg_with_dollar_sign_not_treated_as_regex_group(self):
         """Ensure parameters with $ don't trigger regex group references."""
