@@ -102,9 +102,6 @@ def endpoint(
         previous_urlpatterns = list(registry.urlpatterns)
         previous_removed_patterns = dict(registry._removed_patterns)
 
-        # Calculate logical endpoint ID from unversioned path
-        logical_endpoint = f"{app_name_part}{postfix}"
-
         def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
             if ver is None:
