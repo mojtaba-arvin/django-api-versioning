@@ -104,17 +104,19 @@ class LifecycleMiddleware:
         deprecation_dates = []
         sunset_dates = []
 
-        if meta and meta.get("status") in ("deprecated", "retired"):
-            if version_deprecation_date is not None:
-                deprecation_dates.append(version_deprecation_date)
-            elif meta.get("status") == "deprecated":
-                logger.warning(
-                    "Deprecated API version %s has no valid deprecated_at date; "
-                    "omitting the Deprecation header.",
-                    version,
-                )
-            if version_sunset_date is not None:
-                sunset_dates.append(version_sunset_date)
+        if meta:
+            status = meta.get("status")
+            if status in ("deprecated", "retired"):
+                if version_deprecation_date is not None:
+                    deprecation_dates.append(version_deprecation_date)
+                elif status == "deprecated":
+                    logger.warning(
+                        "Deprecated API version %s has no valid deprecated_at date; "
+                        "omitting the Deprecation header.",
+                        version,
+                    )
+                if version_sunset_date is not None:
+                    sunset_dates.append(version_sunset_date)
 
         if endpoint_lifecycle is not None:
             if endpoint_lifecycle.deprecated_at is not None:
