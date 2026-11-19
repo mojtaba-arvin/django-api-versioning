@@ -272,7 +272,7 @@ Now:
 - A request to `/api/v2/users/` resolves to `UserListV2`.
 - A request to `/api/v3/users/` resolves to `UserListV3`.
 
-Scope: routing only. The package selects the registered view for a versioned route. It does not configure a DRF versioning class or automatically populate DRF's `request.version`. It also does not decide whether adding a field is backward-compatible, transform response data, or negotiate a serializer automatically.
+Scope: routing and ViewSet version selection. The decorator-based `@endpoint` API selects the registered view for a versioned route but does not configure a DRF versioning class or automatically populate DRF's `request.version`. For ViewSets registered through `VersionedRouter`, configure `VersionedRouterVersioning` to expose the matched namespace as `request.version`. The package does not decide whether adding a field is backward-compatible, transform response data, or negotiate a serializer automatically.
 
 The same registration pattern applies to detail endpoints:
 

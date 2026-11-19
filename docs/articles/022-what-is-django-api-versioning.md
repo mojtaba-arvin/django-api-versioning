@@ -640,8 +640,8 @@ The package does not provide:
 
 - **A version-discovery endpoint:** It does not generate an endpoint such as `/api/versions/`.
 - **Automatic OpenAPI schema generation:** Version-specific schemas remain the responsibility of documentation tools such as [drf-spectacular](https://drf-spectacular.readthedocs.io/).
-- **Direct `ModelViewSet` registration:** A `ModelViewSet` class cannot be passed directly to `@endpoint`, because its `as_view()` method requires an action mapping. A configured `ModelViewSet.as_view({...})` callable can be registered for a specific route, but this does not replace DRF router registration.
-- **DRF version negotiation:** The package does not configure a DRF versioning class or independently populate `request.version`.
+- **Direct `ModelViewSet` decoration:** A `ModelViewSet` class cannot be passed directly to `@endpoint`, because its `as_view()` method requires an action mapping. Use the optional `VersionedRouter` integration for package-managed DRF `SimpleRouter` routes; a configured `ModelViewSet.as_view({...})` callable can still be registered for one specific route.
+- **DRF version negotiation:** The decorator-based `@endpoint` API does not negotiate request versions or populate `request.version`. For ViewSets, the optional `VersionedRouterVersioning` adapter exposes the matched router namespace through `request.version`; arbitrary header/query/host negotiation remains outside the package.
 - **Semantic backward-compatibility checks:** Carrying a route forward does not prove that its response contract remains compatible with earlier clients.
 
 If a view needs `request.version`, configure DRF versioning separately and ensure that its configuration matches the URL structure. See the [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/).
