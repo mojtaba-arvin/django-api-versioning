@@ -418,6 +418,57 @@ class UrlRegistry:
             registered_route=str(pattern.pattern),
         )
 
+    def resolve_registered_operation(
+        self, logical_endpoint: str, route_version: int, method: str
+    ) -> ResolvedOperation | None:
+        """Resolve decorator metadata from its declared identity and schema version.
+
+        This path is used only when a schema tool's URLPathVersioning adapter
+        supplies the concrete version kwarg but no Django ResolverMatch. The
+        decorator attaches the logical endpoint to the registered view class;
+        the registry then requires one active route for that identity/version.
+        """
+        if not isinstance(logical_endpoint, str) or not logical_endpoint:
+            return None
+        if isinstance(route_version, bool) or not isinstance(route_version, int):
+            return None
+        if not isinstance(method, str) or not method:
+            return None
+
+        candidates = [
+            pattern
+            for pattern in self.urlpatterns
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+            and getattr(pattern, self._ROUTE_VERSION_ATTR, None) == route_version
+        ]
+        if len(candidates) != 1:
+            return None
+
+        pattern = candidates[0]
+        normalized_method = method.upper()
+        actions = getattr(pattern.callback, "actions", None)
+        action = None
+        if isinstance(actions, Mapping):
+            action = actions.get(normalized_method.lower())
+            if action is None and normalized_method == "HEAD":
+                action = actions.get("get")
+            if not isinstance(action, str) or not action:
+                return None
+
+        route = str(pattern.pattern)
+        return ResolvedOperation(
+            logical_endpoint=logical_endpoint,
+            route_version=route_version,
+            source_version=getattr(pattern, self._SOURCE_VERSION_ATTR, None),
+            method=normalized_method,
+            action=action,
+            route_name=pattern.name,
+            namespace="",
+            route=route,
+            registered_route=route,
+        )
+
     def register_endpoint_lifecycle(
         self,
         logical_endpoint: str,
