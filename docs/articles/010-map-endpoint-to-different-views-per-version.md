@@ -399,11 +399,11 @@ The examples using `@endpoint` rely on DRF generic views such as `ListAPIView` a
 
 `ModelViewSet` is different. A ViewSet needs an action mapping to turn it into a callable view. Decorating the ViewSet class directly with `@endpoint` does not work because the decorator calls `.as_view()` without that mapping.
 
-For resource-shaped endpoints, use DRF routers and register a router for each API version. This is the standard approach for ViewSets and is independent of the package's generic-view routing.
+For package-managed resource-shaped ViewSet routes, use `VersionedRouter`. It delegates to DRF's `SimpleRouter`, registers generated patterns in the package registry, and inherits unchanged routes per version. Plain DRF routers mounted under manually managed version prefixes remain an alternative.
 
 A configured callable such as `UserViewSetV1.as_view({"get": "list"})` can be registered with `@endpoint` for one explicitly configured route. It is not a replacement for normal router registration when exposing a full resource.
 
-This follows the package's canonical ViewSet/Router position: use routers for resource-shaped ViewSets and `@endpoint` for supported generic views and explicitly configured callables. The [DRF router documentation](https://www.django-rest-framework.org/api-guide/routers/) explains the router registration model.
+This follows the package's canonical ViewSet/Router position: use `VersionedRouter` for package-managed ViewSet integration, plain DRF routers for manual URL management, and `@endpoint` for generic views and explicitly configured callables. See the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) and [DRF router documentation](https://www.django-rest-framework.org/api-guide/routers/).
 
 The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
 

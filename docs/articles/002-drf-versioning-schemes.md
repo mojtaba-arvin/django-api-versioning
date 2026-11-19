@@ -330,7 +330,7 @@ With `API_MAX_VERSION = 3`, the example covers versions 1, 2, and 3:
 
 The override happens at the registration layer, not through Python class inheritance. `UserListViewV2` inherits from `APIView`, not from `UserListView`. Each `@endpoint` call with the same postfix and a higher version replaces the previous registration from that version onward, up to `API_MAX_VERSION`. The package's exported `urlpatterns` references the registry's shared list rather than a copy, so importing it before the view module does not freeze an empty snapshot. Import decorated modules as part of URLconf initialization and ensure registration is complete before request resolution.
 
-**ViewSet note:** DRF `ModelViewSet` classes cannot be decorated directly with `@endpoint`: the decorator calls `as_view()` without an action mapping, while DRF ViewSets need one. ViewSets should normally be registered through a DRF router. A manually configured `ModelViewSet.as_view(actions)` callable can also be passed to the decorator for a specific route, but this does not replace the router's automatic route generation for all ViewSet actions.
+**ViewSet note:** DRF `ModelViewSet` classes cannot be decorated directly with `@endpoint`: the decorator calls `as_view()` without an action mapping. Use the optional `VersionedRouter` when you want package-managed version-specific routes, per-route inheritance, and namespace-aware reversal. A manually configured `ModelViewSet.as_view(actions)` callable can still be passed to `@endpoint` for one specific route. Plain per-version DRF routers remain a separate manual alternative. See the [ViewSet integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 ## When each approach fits
 
@@ -359,7 +359,7 @@ The package's exact registration and routing behavior is defined in the [canonic
 
 If you're comparing DRF versioning approaches and want to avoid view branching or per-version URLconf duplication, evaluate [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/). The package implements version-range registration for Django views, DRF `APIView` classes, and generic views.
 
-ViewSets are registered through DRF routers separately. The package does not replace router-generated routes or infer ViewSet action mappings.
+`VersionedRouter` is the package's supported `SimpleRouter` integration; arbitrary `SimpleRouter` and `DefaultRouter` instances remain outside the package registry. The decorator itself still does not infer ViewSet action mappings.
 
 The next articles show how to register endpoints correctly, handle version skipping, test versioned views, and manage deprecation.
 

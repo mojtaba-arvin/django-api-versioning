@@ -223,9 +223,9 @@ class BookViewSet(ModelViewSet):
     ...
 ```
 
-The package's registry calls `as_view()` for class-based views, while DRF ViewSets require an action mapping for that call.
+The package's `@endpoint` decorator calls `as_view()` for class-based views, while DRF ViewSets require an action mapping for that call. The separate `VersionedRouter` integration handles ViewSet route generation.
 
-Use DRF's `DefaultRouter` or `SimpleRouter` to register ViewSets and configure their generated URLs under the required version prefixes. This router configuration is separate from the package's endpoint registry; the package does not automatically register or inherit ViewSet actions.
+Use `VersionedRouter` when you want the package registry to manage ViewSet routes and inherit unchanged generated actions per version. It delegates route generation to DRF's `SimpleRouter`. Plain DRF routers mounted under manually managed version prefixes remain a valid alternative.
 
 See the DRF documentation for [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [Routers](https://www.django-rest-framework.org/api-guide/routers/).
 
@@ -280,7 +280,7 @@ There are also trade-offs to consider:
 - Segment registration carries an implementation forward through `API_MAX_VERSION` unless a later declaration overrides it.
 - Explicit `versions=[...]` declarations require maintaining the intended version set.
 - The package does not validate semantic compatibility between response contracts.
-- DRF ViewSet router registration remains a separate routing concern.
+- Use `VersionedRouter` for package-managed DRF ViewSet routing; plain per-version DRF routers remain a separate manual alternative.
 
 **Scope: routing only.** The package manages endpoint registration and URL generation. It does not decide whether a serializer change is backward compatible, automatically version business logic, or generate a separate API schema for every version.
 

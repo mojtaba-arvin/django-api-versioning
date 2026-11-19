@@ -133,7 +133,7 @@ This is a valid DRF-only design. A single URL pattern and view class serve both 
 
 A useful distinction: with static URL patterns such as `api/v1/users/` and `api/v2/users/`, `URLPathVersioning` does not receive a dynamic version keyword argument. In that case it falls back to `DEFAULT_VERSION`; the URLconf can still dispatch to different views, but `request.version` will not automatically reflect the static path segment. `NamespaceVersioning` is an alternative when the version is represented by the matched URL namespace.
 
-For ViewSets, DRF's [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/) provide the action mapping and URL generation. A router can be mounted under version-specific prefixes; this is a native DRF option and should be considered before introducing another routing layer.
+For ViewSets, DRF's [ViewSets](https://www.django-rest-framework.org/api-guide/viewsets/) and [routers](https://www.django-rest-framework.org/api-guide/routers/) provide the action mapping and URL generation. Use the package's `VersionedRouter` when you want those `SimpleRouter` patterns registered in the package's version registry with per-route inheritance. Plain DRF routers mounted under version-specific prefixes remain a valid DRF-only option.
 
 ## Option 3: version-range endpoint registration
 
@@ -200,7 +200,7 @@ This behavior does not merge Python classes, serializers, permissions, or respon
 
 There is also a material trade-off: if an endpoint contract changes and the team forgets to register an override, the previous implementation continues to serve later versions. That can unintentionally expose an old contract and make version-by-version differences harder to see. Inspect the registered version matrix and test behavior—not just route existence—across the versions you support.
 
-**ViewSet limitation:** DRF ViewSet classes require an action mapping when converted into view callables. The package's `@endpoint` decorator does not infer that mapping from a ViewSet class. Pass a configured callable such as `MyViewSet.as_view({"get": "list"})` when registering an individual action, or use DRF's `DefaultRouter` or `SimpleRouter` for router-managed resource routes and actions. Router-generated URLs must be mounted separately; they are not automatically registered or inherited by this package. See the canonical routing contract for the current supported view types and registration behavior.
+**ViewSet boundary:** `@endpoint` does not decorate DRF ViewSet classes directly because a ViewSet needs an action mapping. For package-managed version-aware ViewSet routes, use `VersionedRouter`, which delegates to DRF's `SimpleRouter`, registers generated patterns in the package registry, and supports per-route inheritance. `VersionedRouterVersioning` exposes the selected namespace as `request.version` and keeps reversal version-aware. Plain `SimpleRouter` or `DefaultRouter` instances remain valid DRF-only alternatives; the package integration does not provide `DefaultRouter` API-root or format-suffix parity. See the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 ## Compare the trade-offs
 
@@ -210,7 +210,7 @@ There is also a material trade-off: if an endpoint contract changes and the team
 | Shares one view across versions | Yes, by reusing the callable | Yes, often with `request.version` | Yes, by carrying the registration across a version segment |
 | Separate implementation per version | Yes | Yes, with URLconf or dispatch design | Yes, by registering an override |
 | Generates versioned routes | You write URL patterns | You configure URL patterns or routers | Decorator registration creates package-managed patterns |
-| Direct DRF ViewSet registration | Through DRF routers | Through DRF routers | Not supported directly by `@endpoint` |
+| Direct DRF ViewSet registration | Through DRF routers | Through DRF routers | Supported through `VersionedRouter`; direct `@endpoint` decoration remains unsupported |
 | Main trade-off | Explicit repetition can grow | Version-dependent behavior stays in application/view design | Implicit carry-forward requires deliberate contract and matrix review |
 
 No option is universally best. Manual routing remains appropriate when the route map is small and explicitness is valuable. DRF schemes are appropriate when version identification and application-controlled dispatch are sufficient. Version-range registration is useful when teams want to declare only endpoint implementation changes and have the routing registry carry each declaration across its configured segment.

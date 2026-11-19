@@ -622,9 +622,9 @@ The package's responsibility is versioned URL registration.
 
 It does not replace DRF's request-version identification mechanisms, automatically make API contracts compatible, or generate a separate schema for every API version.
 
-DRF ViewSet classes are also not directly supported by `@endpoint`. A ViewSet's `as_view()` method requires an action mapping that the decorator does not supply.
+DRF ViewSet classes are not directly supported by `@endpoint` because a ViewSet's `as_view()` method requires an action mapping. Use `VersionedRouter` for package-managed `SimpleRouter` route generation and version inheritance.
 
-Use DRF's `DefaultRouter` or `SimpleRouter` to register ViewSets and mount their generated URLs separately under the desired versioned prefixes. This router setup is separate from the package's endpoint registry; it is not automatic router integration.
+Use `VersionedRouter` for package-managed ViewSet route generation and version inheritance. It delegates to DRF's `SimpleRouter` and registers generated patterns with the package registry. Plain `SimpleRouter` or `DefaultRouter` instances mounted under manually managed version prefixes remain valid DRF-only alternatives; `DefaultRouter` is not integrated with the package.
 
 For the precise behavior of endpoint declarations, collision precedence, version ranges, and supported view types, see the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 

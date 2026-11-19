@@ -457,9 +457,9 @@ The examples above use DRF generic views such as `ListAPIView`.
 
 The package does not accept `ModelViewSet` classes directly with `@endpoint`. The decorator calls `as_view()` without the action mapping required by a ViewSet.
 
-For resource-oriented APIs built with `ModelViewSet`, use DRF routers and mount their generated URL patterns under the desired versioned prefixes.
+For resource-oriented APIs built with `ModelViewSet`, use `VersionedRouter` when you want package-managed route inheritance and version-aware reversal. Plain per-version DRF routers remain a valid DRF-only alternative.
 
-Router-generated routes and decorator-registered endpoints can coexist in the same project URLconf, but they are separate registration mechanisms. The package does not automatically register or inherit ViewSet actions.
+A project can combine `VersionedRouter` for ViewSets with `@endpoint` for independent APIViews and generic views. Plain DRF router URLs can also coexist, but remain outside the package registry; avoid mounting duplicate patterns.
 
 A manually configured callable such as:
 
@@ -471,7 +471,7 @@ can be registered with `@endpoint` for a specific route. It is not a replacement
 
 DRF's `@action` decorator is intended for ViewSets and relies on router-based action mapping. It does not provide the same mechanism for `GenericAPIView` subclasses. For additional generic-view endpoints, define separate view classes and register each at its starting version.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) demonstrates router-generated ViewSet URLs and decorator-registered endpoints coexisting in one project URLconf. Router URLs are mounted explicitly; they are not automatically registered by `@endpoint`.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates `VersionedRouter` and decorator-registered endpoints coexisting in one project URLconf.
 
 This follows the package's canonical ViewSet and Router boundary described earlier.
 
