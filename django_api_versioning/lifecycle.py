@@ -121,9 +121,7 @@ class LifecycleMiddleware:
                 sunset_dates.append(endpoint_lifecycle.sunset)
 
         if deprecation_dates:
-            response["Deprecation"] = _to_structured_field_date(
-                min(deprecation_dates)
-            )
+            response["Deprecation"] = _to_structured_field_date(min(deprecation_dates))
         if sunset_dates:
             response["Sunset"] = _to_http_date(min(sunset_dates))
         return response
