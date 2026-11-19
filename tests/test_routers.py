@@ -504,8 +504,7 @@ def test_failed_registration_does_not_reserve_prefix_or_basename():
     # basename for a different prefix on the same router must remain valid.
     retryable_router.register("comments", PostViewSetV2, version=1, basename="post")
     assert any(
-        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
-        == "comments:post-list"
+        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == "comments:post-list"
         for pattern in registry.urlpatterns
     )
 
@@ -573,6 +572,7 @@ def test_failed_multi_method_lifecycle_declaration_is_atomic():
 
 def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
     """A conflict in the last method must not persist earlier new scopes."""
+
     class OrderViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
@@ -605,6 +605,9 @@ def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
         "GET",
         "list",
     ) not in registry._endpoint_lifecycle
-    assert registry._endpoint_lifecycle[
-        ("orders:order-list", 1, "POST", "create")
-    ].deprecated_at.year == 2030
+    assert (
+        registry._endpoint_lifecycle[
+            ("orders:order-list", 1, "POST", "create")
+        ].deprecated_at.year
+        == 2030
+    )
