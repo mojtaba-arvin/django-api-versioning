@@ -343,9 +343,7 @@ class UrlRegistry:
         version_namespaces = {
             item
             for item in namespaces
-            if isinstance(item, str)
-            and item.startswith("v")
-            and item[1:].isdecimal()
+            if isinstance(item, str) and item.startswith("v") and item[1:].isdecimal()
         }
 
         candidates: list[tuple[int, URLPattern, str, int, int | None]] = []
