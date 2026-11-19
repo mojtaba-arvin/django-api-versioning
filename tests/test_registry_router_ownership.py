@@ -14,7 +14,6 @@ from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
 
-
 urlconf = ModuleType("router_ownership_test_urls")
 urlconf.urlpatterns = []
 
@@ -160,7 +159,6 @@ def test_router_registration_rolls_back_earlier_versions_after_late_owner_collis
     assert candidate._route_keys == set()
     assert registry.urlpatterns == existing_patterns
     assert all(
-        getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
-        is existing._registry_owner
+        getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is existing._registry_owner
         for pattern in registry.urlpatterns
     )
