@@ -283,7 +283,9 @@ def test_router_remove_rejects_empty_route_name():
         router.remove("orders", "", from_version=3)
 
 
-def test_removal_and_reintroduction_sequences_match_segment_reference_model(monkeypatch):
+def test_removal_and_reintroduction_sequences_match_segment_reference_model(
+    monkeypatch,
+):
     """Exhaustively permute registrations and removals against a simple model."""
     monkeypatch.setattr(api_settings, "API_MAX_VERSION", 6)
     operations = [
