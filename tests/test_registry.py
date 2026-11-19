@@ -12,7 +12,7 @@ from django_api_versioning.exceptions import (
     VersioningError,
 )
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
-from django_api_versioning.registry import ResolvedOperation, registry
+from django_api_versioning.registry import REMOVED_ROUTE, ResolvedOperation, registry
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Optional DRF imports
@@ -977,8 +977,8 @@ def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
         "api/v1/orders/",
         "api/v2/orders/",
     }
-    assert registry.get_version_matrix()["api/v3/orders/"][3] is not None
-    assert registry.get_version_matrix()["api/v4/orders/"][4] is not None
+    assert registry.get_version_matrix()["api/v3/orders/"][3] is REMOVED_ROUTE
+    assert registry.get_version_matrix()["api/v4/orders/"][4] is REMOVED_ROUTE
 
     replacement = lambda request: None
     registry.register(
@@ -991,7 +991,7 @@ def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
 
     assert registry.get_route_version("api/v3/orders/") == 3
     assert registry.urlpatterns[-1].callback is replacement
-    assert 3 not in registry._removed_patterns.get(("orders", 3), {})
+    assert ("orders", 3) not in registry._removed_patterns
 
 
 @pytest.mark.parametrize(
@@ -1074,3 +1074,61 @@ def test_resolve_registered_operation_maps_head_to_get_action(clear_registry):
     assert operation is not None
     assert operation.action == "list"
     assert operation.method == "HEAD"
+
+
+def test_suppressed_register_does_not_remove_another_logical_endpoint(clear_registry):
+    def existing(request):
+        return None
+
+    def removed(request):
+        return None
+
+    registry.remove("orders", from_version=3)
+    registry.register(
+        "api/v3/orders/",
+        existing,
+        source_version=1,
+        route_version=3,
+        logical_endpoint="other-orders",
+    )
+
+    registry.register(
+        "api/v3/orders/",
+        removed,
+        source_version=1,
+        route_version=3,
+        logical_endpoint="orders",
+    )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is existing
+    assert ("orders", 3) in registry._removed_patterns
+
+
+def test_suppressed_urlpattern_does_not_remove_another_logical_endpoint(
+    clear_registry,
+):
+    def existing(request):
+        return None
+
+    def removed(request):
+        return None
+
+    registry.remove("orders", from_version=3)
+    registry.register_urlpattern(
+        path("api/v3/orders/", existing, name="existing-orders"),
+        source_version=1,
+        route_version=3,
+        logical_endpoint="other-orders",
+    )
+
+    registry.register_urlpattern(
+        path("api/v3/orders/", removed, name="removed-orders"),
+        source_version=1,
+        route_version=3,
+        logical_endpoint="orders",
+    )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is existing
+    assert ("orders", 3) in registry._removed_patterns
