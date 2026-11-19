@@ -4,6 +4,7 @@ from typing import Callable
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
+from django.urls.resolvers import RegexPattern
 from django.views import View
 
 from .exceptions import (
@@ -229,7 +230,9 @@ class UrlRegistry:
             raise TypeError("pattern must be a django.urls.URLPattern instance.")
 
         route_key = str(pattern.pattern)
-        route_index = self._find_route_index(route_key)
+        route_index = self._find_route_index(
+            route_key, regex_route=isinstance(pattern.pattern, RegexPattern)
+        )
 
         if route_index is None:
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
@@ -371,11 +374,16 @@ class UrlRegistry:
             return route
         return literal
 
-    def _find_route_index(self, route: str) -> int | None:
+    def _find_route_index(
+        self, route: str, *, regex_route: bool = False
+    ) -> int | None:
         """Return the index of a registered route, or None if absent."""
-        route_key = self._canonical_route_key(route)
+        route_key = self._canonical_route_key(route) if regex_route else route
         for index, pattern in enumerate(self.urlpatterns):
-            if self._canonical_route_key(str(pattern.pattern)) == route_key:
+            existing_key = str(pattern.pattern)
+            if isinstance(pattern.pattern, RegexPattern):
+                existing_key = self._canonical_route_key(existing_key)
+            if existing_key == route_key:
                 return index
 
         return None
