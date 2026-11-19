@@ -188,17 +188,18 @@ class APISettings:
                         value[:-1] + "+00:00" if value.endswith("Z") else value
                     )
                     parsed = datetime.fromisoformat(normalized_value)
-                except ValueError as exc:
+
+                    # Match LifecycleMiddleware: timezone-naive values are UTC.
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(tzinfo=timezone.utc)
+                    else:
+                        parsed = parsed.astimezone(timezone.utc)
+                except (OverflowError, ValueError) as exc:
                     raise VersioningError(
                         f"Lifecycle {field_name} for version {version} "
-                        "must be a valid ISO 8601 date or datetime."
+                        "must be a valid ISO 8601 date or datetime "
+                        "representable in UTC."
                     ) from exc
-
-                # Match LifecycleMiddleware: timezone-naive values are UTC.
-                if parsed.tzinfo is None:
-                    parsed = parsed.replace(tzinfo=timezone.utc)
-                else:
-                    parsed = parsed.astimezone(timezone.utc)
                 parsed_dates[field_name] = parsed
 
             deprecation_date = parsed_dates.get("deprecated_at")
