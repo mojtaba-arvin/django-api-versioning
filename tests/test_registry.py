@@ -912,14 +912,6 @@ def test_endpoint_lifecycle_declarations_are_idempotent_but_conflicts_fail(
 
 
 @pytest.mark.parametrize(
-    ("deprecated_at", "sunset", "message"),
-    [
-        (None, None, "requires deprecated_at or sunset"),
-        ("not-a-date", None, "valid ISO 8601"),
-        ("2028-01-01T00:00:00Z", "2027-01-01T00:00:00Z", "must not be earlier"),
-    ],
-)
-@pytest.mark.parametrize(
     ("field_name", "value"),
     [
         ("deprecated_at", "0001-01-01T00:00:00+23:59"),
@@ -939,6 +931,14 @@ def test_endpoint_lifecycle_rejects_utc_normalization_overflow(
         )
 
 
+@pytest.mark.parametrize(
+    ("deprecated_at", "sunset", "message"),
+    [
+        (None, None, "requires deprecated_at or sunset"),
+        ("not-a-date", None, "valid ISO 8601"),
+        ("2028-01-01T00:00:00Z", "2027-01-01T00:00:00Z", "must not be earlier"),
+    ],
+)
 def test_endpoint_lifecycle_rejects_invalid_date_contract(
     clear_registry, deprecated_at, sunset, message
 ):
