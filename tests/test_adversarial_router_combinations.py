@@ -328,7 +328,8 @@ def test_router_remove_cannot_delete_another_routers_versioned_route():
     assert any(
         getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
         is replacement_router._registry_owner
-        for pattern in replacement_router.urls
+        for wrapper in replacement_router.urls
+        for pattern in getattr(wrapper, "url_patterns", [wrapper])
     )
 
 
