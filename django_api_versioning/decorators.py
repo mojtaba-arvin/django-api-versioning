@@ -65,6 +65,8 @@ def endpoint(
         raise VersioningError("postfix must be relative and must not start with '/'.")
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
+    if versions is not None and not isinstance(versions, list):
+        raise VersionTypeError("'versions' must be a list of integers.")
 
     def decorator(view: Callable) -> Callable:
         # Settings object is pre-validated at module load time by APISettings.
