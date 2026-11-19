@@ -739,7 +739,10 @@ def test_router_registration_rolls_back_earlier_versions_after_late_owner_collis
     existing_patterns = list(registry.urlpatterns)
 
     candidate = VersionedRouter()
-    with pytest.raises(VersioningError, match="already registered by another VersionedRouter"):
+    with pytest.raises(
+        VersioningError,
+        match="already registered by another VersionedRouter",
+    ):
         candidate.register(
             "atomic-owner-collision",
             CollisionViewSet,
