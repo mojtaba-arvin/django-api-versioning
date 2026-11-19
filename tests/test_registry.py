@@ -1,10 +1,12 @@
+from datetime import datetime, timezone
 from types import ModuleType
 
 import pytest
 from django.urls import clear_url_caches, include, path, re_path, resolve, reverse
 from django.views import View
 
-from django_api_versioning.registry import registry
+from django_api_versioning.lifecycle_metadata import EndpointLifecycle
+from django_api_versioning.registry import ResolvedOperation, registry
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Optional DRF imports
@@ -768,6 +770,115 @@ def test_resolve_operation_rejects_conflicting_version_namespace(clear_registry)
     match = resolve("/api/v2/orders/", urlconf=urlconf)
 
     assert registry.resolve_operation(match, "GET") is None
+
+
+
+def _lifecycle_test_operation(
+    method="GET",
+    action="list",
+    logical_endpoint="orders:order-list",
+    route_version=2,
+):
+    return ResolvedOperation(
+        logical_endpoint=logical_endpoint,
+        route_version=route_version,
+        source_version=2,
+        method=method,
+        action=action,
+        route_name="order-list",
+        namespace=f"v{route_version}",
+        route=f"api/v{route_version}/orders/",
+        registered_route=f"api/v{route_version}/orders/",
+    )
+
+
+def test_endpoint_lifecycle_scopes_compose_using_earliest_dates(clear_registry):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+        sunset="2028-01-01T00:00:00Z",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        action="list",
+        deprecated_at="2026-06-01T00:00:00+02:00",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        method="GET",
+        action="list",
+        sunset="2027-01-01T00:00:00Z",
+    )
+
+    lifecycle = registry.get_endpoint_lifecycle(_lifecycle_test_operation())
+
+    assert lifecycle == EndpointLifecycle(
+        deprecated_at=datetime(2026, 5, 31, 22, tzinfo=timezone.utc),
+        sunset=datetime(2027, 1, 1, tzinfo=timezone.utc),
+    )
+    assert registry.get_endpoint_lifecycle(
+        _lifecycle_test_operation(method="POST", action="create")
+    ) == EndpointLifecycle(
+        deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
+        sunset=datetime(2028, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+def test_endpoint_lifecycle_declarations_are_idempotent_but_conflicts_fail(
+    clear_registry,
+):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00+00:00",
+    )
+
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        registry.register_endpoint_lifecycle(
+            "orders:order-list",
+            2,
+            deprecated_at="2026-01-01T00:00:00Z",
+        )
+
+
+@pytest.mark.parametrize(
+    ("deprecated_at", "sunset", "message"),
+    [
+        (None, None, "requires deprecated_at or sunset"),
+        ("not-a-date", None, "valid ISO 8601"),
+        ("2028-01-01T00:00:00Z", "2027-01-01T00:00:00Z", "must not be earlier"),
+    ],
+)
+def test_endpoint_lifecycle_rejects_invalid_date_contract(
+    clear_registry, deprecated_at, sunset, message
+):
+    with pytest.raises(VersioningError, match=message):
+        registry.register_endpoint_lifecycle(
+            "orders:order-list",
+            2,
+            deprecated_at=deprecated_at,
+            sunset=sunset,
+        )
+
+
+def test_clear_removes_endpoint_lifecycle_declarations(clear_registry):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+
+    registry.clear()
+
+    assert registry.get_endpoint_lifecycle(_lifecycle_test_operation()) is None
 
 
 def test_get_route_version_returns_registered_urlpattern_version(clear_registry):
