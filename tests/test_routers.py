@@ -672,7 +672,10 @@ def test_decorator_registration_cannot_replace_existing_router_route(use_regex_p
     original = next(
         pattern
         for pattern in registry.urlpatterns
-        if str(pattern.pattern) == "api/v1/router-owned-collision/"
+        if getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is router._registry_owner
+        and getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "router-owned-collision:router-owned-collision-list"
     )
 
     with pytest.raises(VersioningError, match="owned by a VersionedRouter"):
