@@ -628,9 +628,12 @@ def test_endpoint_rejects_non_list_version_collections(versions):
 
 
 class TestDecoratorInputHardening:
-    def test_ver_range_rejects_non_positive_start_before_allocation(self):
-        with pytest.raises(VersionRangeError, match="positive API version"):
+    def test_ver_range_rejects_negative_start_before_allocation(self):
+        with pytest.raises(VersionRangeError, match="non-negative API version"):
             ver_range(-(10**12), 3)
+
+    def test_zero_is_a_valid_api_version(self):
+        assert ver_range(0, 0) == [0]
 
     def test_ver_range_rejects_end_above_api_max_before_allocation(
         self, versions_1_to_5
