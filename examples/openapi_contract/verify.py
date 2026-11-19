@@ -145,7 +145,7 @@ def main() -> None:
                 "deterministic": True,
                 "version_specific_serializers": True,
                 "inherited_custom_action": True,
-                "removed_action_absent_from_v2_runtime_and_schema": True,\n                "endpoint_lifecycle_openapi_action_scope": True,
+                "removed_action_absent_from_v2_runtime_and_schema": True,\n                "endpoint_lifecycle_openapi_action_scope": True,\n                "endpoint_lifecycle_openapi_action_scope": True,
             },
             indent=2,
         )
