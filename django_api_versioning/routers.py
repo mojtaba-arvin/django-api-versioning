@@ -282,7 +282,7 @@ class VersionedRouter:
         if action is not None:
             if not isinstance(action, str) or not action.strip():
                 raise VersioningError("action must be a non-empty string.")
-            normalized_action = action.strip().lower()
+            normalized_action = action.strip()
             if normalized_action not in actions.values():
                 raise VersioningError(
                     f"Action {normalized_action!r} is not registered for "
