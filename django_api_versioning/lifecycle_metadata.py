@@ -25,7 +25,7 @@ def _parse_date(value: str | None, field_name: str) -> datetime | None:
     normalized = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
         parsed = datetime.fromisoformat(normalized)
-    except ValueError as exc:
+    except (OverflowError, ValueError) as exc:
         raise VersioningError(
             f"Endpoint lifecycle {field_name} must be a valid ISO 8601 date."
         ) from exc
