@@ -530,14 +530,18 @@ def test_versioned_routers_reject_duplicate_route_patterns_across_namespaces():
             return Response({"router": "secondary"})
 
     primary_router = VersionedRouter(app_name="primary_api")
-    primary_router.register("orders", PrimaryOrderViewSet, versions=[2], basename="order")
+    primary_router.register(
+        "orders", PrimaryOrderViewSet, versions=[2], basename="order"
+    )
 
     secondary_router = VersionedRouter(app_name="secondary_api")
     with pytest.raises(
         VersioningError,
         match="already registered by another VersionedRouter",
     ):
-        secondary_router.register("orders", SecondaryOrderViewSet, versions=[2], basename="order")
+        secondary_router.register(
+            "orders", SecondaryOrderViewSet, versions=[2], basename="order"
+        )
 
     context = _install(
         [
@@ -589,6 +593,7 @@ def test_route_lifecycle_headers_apply_to_drf_options_requests():
 
 def test_route_wide_lifecycle_headers_are_present_on_drf_405_responses():
     """A resolved route keeps its route-wide lifecycle contract on HTTP 405."""
+
     class ReadOnlyOrderViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
@@ -615,6 +620,7 @@ def test_route_wide_lifecycle_headers_are_present_on_drf_405_responses():
 
 def test_action_scoped_lifecycle_does_not_leak_to_unmapped_drf_methods():
     """A 405 has route identity but no selected action."""
+
     class ReadOnlyOrderViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
@@ -642,6 +648,7 @@ def test_action_scoped_lifecycle_does_not_leak_to_unmapped_drf_methods():
 
 def test_get_scoped_lifecycle_metadata_also_applies_to_head_requests():
     """HTTP HEAD shares GET semantics and must not lose GET lifecycle headers."""
+
     class ReadOnlyOrderViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
