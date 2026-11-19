@@ -357,6 +357,7 @@ def test_router_remove_remains_idempotent_for_its_own_tombstoned_route():
     router.remove("orders", "order-list", from_version=2)
     router.remove("orders", "order-list", from_version=2)
 
+
 def test_suppressed_re_registration_cannot_steal_router_tombstone_ownership():
     """A suppressed registration must not let another router claim a tombstone."""
 
@@ -376,4 +377,3 @@ def test_suppressed_re_registration_cannot_steal_router_tombstone_ownership():
 
     # The original owner retains its tombstone and can repeat removal safely.
     owner.remove("orders", "order-list", from_version=2)
-
