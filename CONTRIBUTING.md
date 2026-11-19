@@ -91,7 +91,7 @@ bash scripts/maintain.sh release tag X.Y.Z
 
 Replace `X.Y.Z` with the exact version in `pyproject.toml`. The preflight requires a clean working tree, local `main` exactly equal to `origin/main`, matching package metadata, a dated changelog section, and an unused tag. The tag command creates an annotated tag and pushes only that tag. The protected `v*` tag ruleset still restricts tag creation to repository administrators.
 
-The tag workflow verifies the annotated tag and main ancestry, runs the full compatibility and OpenAPI contract gates, builds and validates the distributions, and publishes to PyPI. Only after PyPI publication succeeds, a separate least-privilege job creates the GitHub Release using that version's changelog entry. Check the complete outcome with:
+The tag workflow verifies the annotated tag and main ancestry, runs the full compatibility and OpenAPI contract gates, builds and validates the distributions, and publishes to PyPI. Only after PyPI publication succeeds, a separate least-privilege job creates the GitHub Release using that version's changelog entry. For a tag published before this automation is merged, create its GitHub Release once with `bash scripts/maintain.sh release create X.Y.Z`. This command requires an annotated remote tag, a successful PyPI publish workflow run, the matching version on PyPI, and a dated changelog entry. Future releases create the GitHub Release automatically. Check the complete outcome with:
 
 ```bash
 bash scripts/maintain.sh release status X.Y.Z
