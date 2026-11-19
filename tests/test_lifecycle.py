@@ -259,9 +259,24 @@ class TestVersionExtraction:
         request.version = None
         request.resolver_match = Mock()
         request.resolver_match.kwargs = {"version": "4"}
-        # resolver_match should be second priority
+        request.resolver_match.route = "api/v4/users/"
+        # The matched API route, not an unrelated request attribute, is authoritative.
         version = _extract_version(request)
         assert version == 4
+
+    def test_unrelated_route_version_kwarg_is_not_an_api_version(self):
+        """A generic Django version parameter must not trigger API lifecycle."""
+        from unittest.mock import Mock
+
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/documents/2/")
+        request.version = None
+        request.resolver_match = Mock()
+        request.resolver_match.kwargs = {"version": "2"}
+        request.resolver_match.route = "documents/<int:version>/"
+
+        assert _extract_version(request) is None
 
     def test_extract_version_falls_back_to_path(self):
         """Version extraction falls back to URL path when others are unavailable."""
