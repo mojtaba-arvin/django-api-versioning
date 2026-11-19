@@ -186,6 +186,8 @@ The router supports DRF's regex-backed routes and Django path-converter routes. 
 The constructor supports the relevant `SimpleRouter` options:
 
 ```python
+from django_api_versioning.routers import VersionedRouter
+
 router = VersionedRouter(
     trailing_slash=False,
     use_regex_path=False,
@@ -194,7 +196,7 @@ router = VersionedRouter(
 
 Set `use_regex_path=False` to use Django path converters, including custom converters, instead of DRF's default regex lookup patterns.
 
-Each concrete API version is placed under a Django namespace named `vN`. If multiple independent router instances are mounted in one URLconf, use distinct outer namespaces and distinct route prefixes:
+Each concrete API version is placed under a Django namespace named `vN`. If multiple independent router instances are mounted in one URLconf, use distinct outer namespaces and distinct route prefixes. The example assumes `orders_router` and `billing_router` are separately configured `VersionedRouter` instances with distinct route prefixes:
 
 ```python
 from django.urls import include, path
@@ -226,6 +228,9 @@ Version-wide lifecycle configuration is separate from the endpoint-level declara
 A route that is inherited into later versions must be removed explicitly. The current mainline implementation adds `VersionedRouter.remove()`, which targets one generated route by its stable URL name:
 
 ```python
+from django_api_versioning.routers import VersionedRouter
+from orders.views import OrderViewSetV1
+
 router = VersionedRouter()
 router.register("orders", OrderViewSetV1, version=1, basename="order")
 
@@ -241,7 +246,7 @@ This feature is implemented on the repository's current `main` branch but is not
 
 ## 8. Endpoint-level lifecycle and OpenAPI (current main; not yet in the published package)
 
-Current mainline also adds `VersionedRouter.set_lifecycle()` for metadata attached to one route and concrete API version:
+Current mainline also adds `VersionedRouter.set_lifecycle()` for metadata attached to one route and concrete API version. Using a router registered as in section 2:
 
 ```python
 router.set_lifecycle(
