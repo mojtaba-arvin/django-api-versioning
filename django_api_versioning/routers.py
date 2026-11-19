@@ -212,6 +212,8 @@ class VersionedRouter:
             pattern
             for pattern in registry.urlpatterns
             if str(pattern.pattern) in self._route_keys
+            and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+            is self._registry_owner
             and getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
             == logical_endpoint
             and getattr(pattern, _ROUTE_VERSION_ATTR, None) == version
@@ -403,7 +405,11 @@ class VersionedRouter:
         unversioned: list[URLPattern] = []
 
         for pattern in registry.urlpatterns:
-            if str(pattern.pattern) not in self._route_keys:
+            if (
+                str(pattern.pattern) not in self._route_keys
+                or getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+                is not self._registry_owner
+            ):
                 continue
 
             route_version = getattr(pattern, _ROUTE_VERSION_ATTR, None)

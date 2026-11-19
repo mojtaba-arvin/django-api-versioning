@@ -248,3 +248,47 @@ def test_regex_detail_route_uses_its_versioned_namespace_at_runtime():
 
     assert response.status_code == 200
     assert response.json() == {"pk": "42", "version": "2"}
+
+
+def test_router_urls_exclude_reintroduced_routes_owned_by_another_router(monkeypatch):
+    from django_api_versioning.registry import registry
+    from django_api_versioning.settings import api_settings
+
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    class OriginalOrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"owner": "original"})
+
+    class ReintroducedOrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"owner": "reintroduced"})
+
+    original_router = VersionedRouter(app_name="original_api")
+    original_router.register(
+        "orders", OriginalOrdersViewSet, version=1, basename="order"
+    )
+    original_router.remove("orders", "order-list", from_version=2)
+
+    replacement_router = VersionedRouter(app_name="replacement_api")
+    replacement_router.register(
+        "orders", ReintroducedOrdersViewSet, version=3, basename="order"
+    )
+
+    def owned_versions(router):
+        return {
+            getattr(pattern, registry._ROUTE_VERSION_ATTR)
+            for wrapper in router.urls
+            for pattern in getattr(wrapper, "url_patterns", [wrapper])
+        }
+
+    assert owned_versions(original_router) == {1}
+    assert owned_versions(replacement_router) == {3}
+
+    with pytest.raises(VersioningError, match="found 0"):
+        original_router.set_lifecycle(
+            "orders",
+            "order-list",
+            version=3,
+            deprecated_at="2030-01-01T00:00:00Z",
+        )
