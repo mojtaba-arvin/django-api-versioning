@@ -1,6 +1,5 @@
 import re
 from typing import Any
-
 from urllib.parse import quote
 
 from django.urls import NoReverseMatch, get_script_prefix
