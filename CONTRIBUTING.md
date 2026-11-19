@@ -80,7 +80,24 @@ A package release is separate from a website deployment. A website deployment do
 
 A release requires explicit authorization for a specific version. Prepare the version bump, dated `CHANGELOG.md` entry, and approved documentation changes on one short-lived `release/vX.Y.Z` branch. Open a PR to `main`; do not tag or publish from that branch.
 
-After the PR is merged, verify that its exact merge commit is on `origin/main` and contains the requested `pyproject.toml` version. Create an annotated `vX.Y.Z` tag on that exact commit and push only that tag. The `Protect release tags` ruleset restricts creation, updates, and deletion of `v*` tags to repository administrators. The tag workflow verifies that the tag is annotated, matches the package version, and points to a commit reachable from `main`; it is the final compatibility, build, distribution-validation, and PyPI publication gate. Verify the version-specific PyPI endpoint before announcing success.
+After the PR is merged, update the local clone and run the repository maintainer helper:
+
+```bash
+git switch main
+git pull --ff-only origin main
+bash scripts/maintain.sh release preflight X.Y.Z
+bash scripts/maintain.sh release tag X.Y.Z
+```
+
+Replace `X.Y.Z` with the exact version in `pyproject.toml`. The preflight requires a clean working tree, local `main` exactly equal to `origin/main`, matching package metadata, a dated changelog section, and an unused tag. The tag command creates an annotated tag and pushes only that tag. The protected `v*` tag ruleset still restricts tag creation to repository administrators.
+
+The tag workflow verifies the annotated tag and main ancestry, runs the full compatibility and OpenAPI contract gates, builds and validates the distributions, and publishes to PyPI. Only after PyPI publication succeeds, a separate least-privilege job creates the GitHub Release using that version's changelog entry. Check the complete outcome with:
+
+```bash
+bash scripts/maintain.sh release status X.Y.Z
+```
+
+For branch hygiene, `bash scripts/maintain.sh branches` reports safe deletion candidates without changing anything. Add `--apply` to delete only unprotected branches whose commits are already reachable from `main` and which have no open PR. Unmerged branches are always retained for manual review.
 
 ### Version policy
 
