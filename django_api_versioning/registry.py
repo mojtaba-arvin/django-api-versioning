@@ -44,6 +44,7 @@ class UrlRegistry:
     _LOGICAL_ENDPOINT_ATTR = "_django_api_versioning_logical_endpoint"
     _ROUTER_OWNER_ATTR = "_django_api_versioning_router_owner"
     _ROUTER_PREFIX_ATTR = "_django_api_versioning_router_prefix"
+    _ROUTER_TRAILING_SLASH_ATTR = "_django_api_versioning_router_trailing_slash"
 
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
@@ -237,6 +238,10 @@ class UrlRegistry:
                     and existing_router is not new_router
                     and new_prefix is not None
                     and existing_prefix == new_prefix
+                    and getattr(
+                        existing, self._ROUTER_TRAILING_SLASH_ATTR, None
+                    )
+                    == getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
                     and getattr(existing, self._ROUTE_VERSION_ATTR, None)
                     == route_version
                 ):
