@@ -176,7 +176,7 @@ pip install "djangorestframework>=3.18.3,<3.19"
 
 See the [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for route inheritance, reversal, namespaces, and the exact integration boundary.
 
-For an optional, executable OpenAPI workflow, see the [versioned OpenAPI contract example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract). It demonstrates per-version drf-spectacular generation and serializer introspection; it does not make drf-spectacular or oasdiff runtime dependencies.
+For the repository's executable OpenAPI workflow, see the [versioned OpenAPI contract example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract). This consumer example and its `oasdiff` CI gate were added after the published release; they are repository-level tooling, not part of the package wheel, and do not make drf-spectacular or oasdiff runtime dependencies.
 
 ## Requirements
 
