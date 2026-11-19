@@ -568,12 +568,7 @@ def test_route_lifecycle_headers_apply_to_drf_options_requests():
             return Response([])
 
     router = VersionedRouter()
-    router.register(
-        "products",
-        ReadOnlyProductViewSet,
-        version=1,
-        basename="product",
-    )
+    router.register("products", ReadOnlyProductViewSet, version=1, basename="product")
     router.set_lifecycle(
         "products",
         "product-list",
