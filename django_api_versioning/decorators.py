@@ -65,6 +65,8 @@ def endpoint(
         raise VersioningError("postfix must be relative and must not start with '/'.")
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
+    if versions is not None and not isinstance(versions, list):
+        raise VersionTypeError("'versions' must be a list of integers.")
 
     def decorator(view: Callable) -> Callable:
         # Settings object is pre-validated at module load time by APISettings.
@@ -185,14 +187,23 @@ def set_endpoint_lifecycle(
     if len(set(normalized_methods)) != len(normalized_methods):
         raise VersioningError("methods must not contain duplicates.")
 
-    for method in normalized_methods:
-        registry.register_endpoint_lifecycle(
-            logical_endpoint,
-            version,
-            method=method,
-            deprecated_at=deprecated_at,
-            sunset=sunset,
-        )
+    # Match VersionedRouter.set_lifecycle(): a multi-method declaration
+    # is one logical operation and must not leave earlier methods registered
+    # when a later method conflicts with existing metadata.
+    previous_lifecycle = dict(registry._endpoint_lifecycle)
+    try:
+        for method in normalized_methods:
+            registry.register_endpoint_lifecycle(
+                logical_endpoint,
+                version,
+                method=method,
+                deprecated_at=deprecated_at,
+                sunset=sunset,
+            )
+    except Exception:
+        registry._endpoint_lifecycle.clear()
+        registry._endpoint_lifecycle.update(previous_lifecycle)
+        raise
 
 
 def _validate_version(version: int, max_version: int) -> None:
