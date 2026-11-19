@@ -440,14 +440,28 @@ class VersionedRouterVersioning(NamespaceVersioning):
 
     def determine_version(self, request: Any, *args: Any, **kwargs: Any) -> str | None:
         resolver_match = getattr(request, "resolver_match", None)
-        namespace = getattr(resolver_match, "namespace", "") or ""
+        route = getattr(resolver_match, "route", None)
 
-        for component in reversed(namespace.split(":")):
-            if component.startswith("v") and component[1:].isdigit():
-                version = component[1:]
+        # A Django namespace is application-controlled and may legitimately
+        # be named "v9". Only a version attached to a registered router route
+        # is authoritative when Django has resolved an actual URL pattern.
+        if isinstance(route, str):
+            route_version = registry.get_resolved_route_version(route)
+            if route_version is not None:
+                version = str(route_version)
                 if not self.is_allowed_version(version):
                     raise NotFound(self.invalid_version_message)
                 return version
+        else:
+            # Preserve compatibility for direct adapter use with lightweight
+            # resolver-match objects that expose only a namespace.
+            namespace = getattr(resolver_match, "namespace", "") or ""
+            for component in reversed(namespace.split(":")):
+                if component.startswith("v") and component[1:].isdigit():
+                    version = component[1:]
+                    if not self.is_allowed_version(version):
+                        raise NotFound(self.invalid_version_message)
+                    return version
 
         default_version = self.default_version
         if default_version is not None:
