@@ -96,6 +96,19 @@ jobs:
       - name: Verify workflow matrix matches tox.ini
         run: python scripts/check_tox_workflow_matrix.py
 
+      - name: Regenerate uv.lock for dependency PR validation
+        if: github.event_name == 'pull_request'
+        run: uv lock
+
+      - name: Upload regenerated uv.lock for review
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: regenerated-uv-lock-${{ github.run_id }}
+          path: uv.lock
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Verify uv.lock matches pyproject.toml
         run: uv lock --check
 
