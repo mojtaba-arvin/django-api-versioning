@@ -148,8 +148,8 @@ export const patterns = [
 
 export const caveats = [
   {
-    title: 'Configure request.version for ViewSets',
-    body: 'VersionedRouterVersioning exposes the active router namespace as request.version and keeps reverse_action() and hyperlinked serializer URLs version-aware. Configure it globally or on selected ViewSets.',
+    title: 'request.version depends on the registration path',
+    body: '@endpoint selects a view through its URL pattern but does not populate DRF request.version. Configure a DRF versioning scheme separately for decorator-registered views; use VersionedRouterVersioning for ViewSets registered through VersionedRouter.',
   },
   {
     title: 'Route settings and lifecycle settings have different timing',

@@ -147,7 +147,6 @@ function Features() {
   )
 }
 
-
 function Comparison() {
   const rows = [
     {
