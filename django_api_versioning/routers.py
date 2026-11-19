@@ -462,6 +462,15 @@ class VersionedRouterVersioning(NamespaceVersioning):
                     and namespace_version != str(route_version)
                     else str(route_version)
                 )
+                print(
+                    "VERSIONED_ROUTER_DEBUG",
+                    getattr(request, "path", None),
+                    route,
+                    namespace,
+                    route_version,
+                    namespace_version,
+                    version,
+                )
                 if not self.is_allowed_version(version):
                     raise NotFound(self.invalid_version_message)
                 return version
