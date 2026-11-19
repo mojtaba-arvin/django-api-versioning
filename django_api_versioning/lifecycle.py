@@ -93,7 +93,10 @@ class LifecycleMiddleware:
                 f"API version {version} has been retired as of {sunset}."
             )
 
-        endpoint_lifecycle = _get_endpoint_lifecycle_state(request)
+        endpoint_lifecycle = _get_endpoint_lifecycle_state(
+            request,
+            allow_unmapped_method=response.status_code == 405,
+        )
         if not meta and endpoint_lifecycle is None:
             return response
 
@@ -157,23 +160,36 @@ def _get_lifecycle_state(
     return state
 
 
-def _get_endpoint_lifecycle_state(request: HttpRequest):
+def _get_endpoint_lifecycle_state(
+    request: HttpRequest,
+    *,
+    allow_unmapped_method: bool = False,
+):
     """Resolve endpoint lifecycle metadata from Django's actual URL match."""
-    if hasattr(request, "_django_api_endpoint_lifecycle_state"):
-        return request._django_api_endpoint_lifecycle_state
+    cache_attr = (
+        "_django_api_endpoint_lifecycle_state_405"
+        if allow_unmapped_method
+        else "_django_api_endpoint_lifecycle_state"
+    )
+    if hasattr(request, cache_attr):
+        return getattr(request, cache_attr)
 
     match = getattr(request, "resolver_match", None)
     if match is None:
         lifecycle = None
     else:
-        operation = registry.resolve_operation(match, request.method)
+        operation = registry.resolve_operation(
+            match,
+            request.method,
+            allow_unmapped_method=allow_unmapped_method,
+        )
         lifecycle = (
             registry.get_endpoint_lifecycle(operation)
             if operation is not None
             else None
         )
 
-    request._django_api_endpoint_lifecycle_state = lifecycle
+    setattr(request, cache_attr, lifecycle)
     return lifecycle
 
 

@@ -122,14 +122,35 @@ class VersionedRouter:
         else:
             declarations = [(None, None)]
 
-        for route_version, source_version in declarations:
-            self._register_version(
-                prefix=prefix,
-                viewset=viewset,
-                basename=basename,
-                source_version=source_version,
-                route_version=route_version,
-            )
+        # A logical registration may expand into several concrete versions.
+        # Treat the expansion as one transaction: a collision in a later
+        # version must not leave earlier routes or router bookkeeping behind.
+        registry_urlpatterns = list(registry.urlpatterns)
+        removed_patterns = dict(registry._removed_patterns)
+        route_keys = set(self._route_keys)
+        basenames = dict(self._basenames)
+        basename_prefixes = dict(self._basename_prefixes)
+
+        try:
+            for route_version, source_version in declarations:
+                self._register_version(
+                    prefix=prefix,
+                    viewset=viewset,
+                    basename=basename,
+                    source_version=source_version,
+                    route_version=route_version,
+                )
+        except Exception:
+            registry.urlpatterns[:] = registry_urlpatterns
+            registry._removed_patterns.clear()
+            registry._removed_patterns.update(removed_patterns)
+            self._route_keys.clear()
+            self._route_keys.update(route_keys)
+            self._basenames.clear()
+            self._basenames.update(basenames)
+            self._basename_prefixes.clear()
+            self._basename_prefixes.update(basename_prefixes)
+            raise
 
     def remove(self, prefix: str, route_name: str, *, from_version: int) -> None:
         """Remove one logical DRF route from a concrete version onward.
@@ -228,6 +249,27 @@ class VersionedRouter:
             )
             return
 
+        registrations = self._resolve_lifecycle_methods(
+            methods,
+            actions,
+            normalized_action,
+            logical_endpoint,
+        )
+        self._register_lifecycle_methods(
+            logical_endpoint,
+            version,
+            registrations,
+            deprecated_at,
+            sunset,
+        )
+
+    @staticmethod
+    def _resolve_lifecycle_methods(
+        methods: list[str],
+        actions: Mapping,
+        normalized_action: str | None,
+        logical_endpoint: str,
+    ) -> list[tuple[str, str]]:
         if not isinstance(methods, list) or not methods:
             raise VersioningError("methods must be a non-empty list of HTTP methods.")
         normalized_methods = [
@@ -241,6 +283,7 @@ class VersionedRouter:
         if len(set(normalized_methods)) != len(normalized_methods):
             raise VersioningError("methods must not contain duplicates.")
 
+        registrations = []
         for method in normalized_methods:
             mapped_action = actions.get(method.lower())
             if mapped_action is None and method == "HEAD":
@@ -255,14 +298,34 @@ class VersionedRouter:
                     f"HTTP method {method!r} maps to action {mapped_action!r}, "
                     f"not {normalized_action!r}."
                 )
-            registry.register_endpoint_lifecycle(
-                logical_endpoint,
-                version,
-                method=method,
-                action=mapped_action,
-                deprecated_at=deprecated_at,
-                sunset=sunset,
-            )
+            registrations.append((method, mapped_action))
+        return registrations
+
+    @staticmethod
+    def _register_lifecycle_methods(
+        logical_endpoint: str,
+        version: int,
+        registrations: list[tuple[str, str]],
+        deprecated_at: str | None,
+        sunset: str | None,
+    ) -> None:
+        # Conflicting existing declarations can fail during insertion. Restore
+        # the prior registry state so multi-method declarations are atomic.
+        previous_lifecycle = dict(registry._endpoint_lifecycle)
+        try:
+            for method, mapped_action in registrations:
+                registry.register_endpoint_lifecycle(
+                    logical_endpoint,
+                    version,
+                    method=method,
+                    action=mapped_action,
+                    deprecated_at=deprecated_at,
+                    sunset=sunset,
+                )
+        except Exception:
+            registry._endpoint_lifecycle.clear()
+            registry._endpoint_lifecycle.update(previous_lifecycle)
+            raise
 
     @staticmethod
     def _validate_version(version: int) -> None:

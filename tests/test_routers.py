@@ -489,3 +489,125 @@ def test_router_lifecycle_rejects_method_action_mismatch():
             methods=["POST"],
             deprecated_at="2027-01-01T00:00:00Z",
         )
+
+
+def test_failed_registration_does_not_reserve_prefix_or_basename():
+    """A collision must not poison a router's future valid registrations."""
+    existing_router = VersionedRouter()
+    existing_router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    retryable_router = VersionedRouter()
+    with pytest.raises(VersioningError, match="another VersionedRouter"):
+        retryable_router.register("posts", PostViewSetV2, version=1, basename="post")
+
+    # The failed declaration did not become a registration. Reusing its
+    # basename for a different prefix on the same router must remain valid.
+    retryable_router.register("comments", PostViewSetV2, version=1, basename="post")
+    assert any(
+        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == "comments:post-list"
+        for pattern in registry.urlpatterns
+    )
+
+
+def test_multi_version_registration_is_atomic_when_a_later_version_collides():
+    """A collision in a later concrete version must not leave earlier versions."""
+    existing_router = VersionedRouter()
+    existing_router.register("posts", PostViewSetV1, version=2, basename="post")
+
+    candidate_router = VersionedRouter()
+    with pytest.raises(VersioningError, match="another VersionedRouter"):
+        candidate_router.register(
+            "posts",
+            PostViewSetV2,
+            versions=[1, 2],
+            basename="post",
+        )
+
+    candidate_routes = [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is candidate_router._registry_owner
+    ]
+    assert candidate_routes == []
+
+
+def test_separate_default_routers_keep_reverse_namespaces_isolated():
+    """Distinct routers must not alias the same default vN namespace."""
+    posts_router = VersionedRouter()
+    posts_router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    comments_router = VersionedRouter()
+    comments_router.register("comments", PostViewSetV1, version=1, basename="comment")
+
+    urlconf.urlpatterns = posts_router.urls + comments_router.urls
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        response = APIClient().get("/api/v1/posts/reverse-list/")
+
+    assert response.status_code == 200
+    assert response.json()["url"].endswith("/api/v1/posts/")
+
+
+def test_failed_multi_method_lifecycle_declaration_is_atomic():
+    """An invalid later method must not leave lifecycle metadata for earlier ones."""
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    with pytest.raises(VersioningError, match="is not registered"):
+        router.set_lifecycle(
+            "posts",
+            "post-list",
+            version=1,
+            methods=["GET", "PATCH"],
+            deprecated_at="2030-01-01T00:00:00Z",
+        )
+
+    assert not any(
+        key[0] == "posts:post-list" and key[1] == 1
+        for key in registry._endpoint_lifecycle
+    )
+
+
+def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
+    """A conflict in the last method must not persist earlier new scopes."""
+
+    class OrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+        def create(self, request):
+            return Response({}, status=201)
+
+    router = VersionedRouter()
+    router.register("orders", OrderViewSet, version=1, basename="order")
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=1,
+        methods=["POST"],
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        router.set_lifecycle(
+            "orders",
+            "order-list",
+            version=1,
+            methods=["GET", "POST"],
+            deprecated_at="2040-01-01T00:00:00Z",
+        )
+
+    assert (
+        "orders:order-list",
+        1,
+        "GET",
+        "list",
+    ) not in registry._endpoint_lifecycle
+    assert (
+        registry._endpoint_lifecycle[
+            ("orders:order-list", 1, "POST", "create")
+        ].deprecated_at.year
+        == 2030
+    )

@@ -342,7 +342,11 @@ class UrlRegistry:
         return next(iter(versions)) if len(versions) == 1 else None
 
     def resolve_operation(
-        self, resolver_match: object, method: str
+        self,
+        resolver_match: object,
+        method: str,
+        *,
+        allow_unmapped_method: bool = False,
     ) -> ResolvedOperation | None:
         """Resolve one registered logical operation from Django's ResolverMatch.
 
@@ -415,11 +419,14 @@ class UrlRegistry:
             action = actions.get(normalized_method.lower())
             if action is None and normalized_method == "HEAD":
                 action = actions.get("get")
-            # DRF handles OPTIONS outside the ViewSet action map. It is
-            # still a supported protocol method on this resolved route, so
-            # retain the route identity for route-wide lifecycle metadata.
-            # Other unmapped methods remain fail-closed.
-            if action is None and normalized_method != "OPTIONS":
+            # DRF handles OPTIONS outside the ViewSet action map. For a
+            # real 405 response, the middleware may also request route-only
+            # resolution; action-scoped metadata remains inapplicable.
+            if (
+                action is None
+                and normalized_method != "OPTIONS"
+                and not allow_unmapped_method
+            ):
                 return None
             if action is not None and (not isinstance(action, str) or not action):
                 return None
@@ -548,12 +555,23 @@ class UrlRegistry:
         compose monotonically: the earliest configured instant wins for each
         header. A narrower declaration can add metadata but cannot delay it.
         """
-        scopes = (
-            (None, None),
-            (None, operation.action),
-            (operation.method, None),
-            (operation.method, operation.action),
+        # HTTP HEAD is the body-less form of GET. DRF maps it to the
+        # GET action, and GET-scoped lifecycle declarations must therefore
+        # apply to HEAD as well. Explicit HEAD declarations still compose.
+        methods = (
+            (operation.method, "GET")
+            if operation.method == "HEAD"
+            else (operation.method,)
         )
+        scopes = [(None, None), (None, operation.action)]
+        for method in methods:
+            scopes.extend(
+                (
+                    (method, None),
+                    (method, operation.action),
+                )
+            )
+
         records = []
         for method, action in dict.fromkeys(scopes):
             record = self._endpoint_lifecycle.get(
