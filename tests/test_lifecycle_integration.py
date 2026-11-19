@@ -442,3 +442,58 @@ def test_request_urlconf_override_controls_resolved_lifecycle_version():
     assert response.status_code == 200
     assert response.content == b"custom urlconf"
     assert response["Deprecation"] == "@1577836800"
+
+
+def test_versioned_routers_with_same_route_name_are_isolated_by_namespace():
+    class PrimaryOrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"router": "primary"})
+
+    class SecondaryOrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"router": "secondary"})
+
+    primary_router = VersionedRouter(app_name="primary_api")
+    primary_router.register(
+        "orders", PrimaryOrderViewSet, versions=[2], basename="order"
+    )
+
+    secondary_router = VersionedRouter(app_name="secondary_api")
+    secondary_router.register(
+        "orders", SecondaryOrderViewSet, versions=[2], basename="order"
+    )
+    secondary_router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=2,
+        action="list",
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+
+    context = _install(
+        [
+            path(
+                "primary/",
+                include((primary_router.urls, "primary_api"), namespace="primary"),
+            ),
+            path(
+                "secondary/",
+                include(
+                    (secondary_router.urls, "secondary_api"),
+                    namespace="secondary",
+                ),
+            ),
+        ],
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        primary = Client().get("/primary/api/v2/orders/")
+        secondary = Client().get("/secondary/api/v2/orders/")
+
+    assert primary.status_code == 200
+    assert primary.json() == {"router": "primary"}
+    assert "Deprecation" not in primary
+    assert secondary.status_code == 200
+    assert secondary.json() == {"router": "secondary"}
+    assert secondary["Deprecation"] == "@1893456000"
