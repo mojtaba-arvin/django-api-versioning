@@ -25,7 +25,7 @@ class EndpointLifecycleAutoSchema(AutoSchema):
     concrete HTTP method/action. Missing or ambiguous identities fail closed.
     """
 
-    def get_operation(self, path, path_regex, path_prefix, method, registry_schema):
+    def get_operation(\n        self, path, path_regex, path_prefix, method, registry_schema\n    ):
         operation_schema = super().get_operation(
             path, path_regex, path_prefix, method, registry_schema
         )
