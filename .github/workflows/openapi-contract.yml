@@ -25,10 +25,26 @@ jobs:
       - name: Install package and pinned schema tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .
+          python -m pip install -e ".[dev]"
           python -m pip install \
             -r examples/openapi_contract/requirements.txt \
             -r examples/consumer_migration/requirements.txt
+
+      - name: Run package tests with optional OpenAPI adapter coverage
+        run: |
+          python -m pytest tests --cov=django_api_versioning --cov-append
+          python -m pytest integration_test_project --cov=django_api_versioning --cov-append \
+            --cov-report=term-missing \
+            --cov-report=xml:"$RUNNER_TEMP/package-coverage.xml"
+          python -m coverage report --show-missing --precision=2 --fail-under=94
+
+      - name: Upload combined package coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-coverage-with-openapi
+          path: ${{ runner.temp }}/package-coverage.xml
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Verify runtime routing and versioned OpenAPI schemas
         run: python examples/openapi_contract/verify.py
