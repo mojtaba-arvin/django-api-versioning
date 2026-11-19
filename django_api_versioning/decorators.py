@@ -68,23 +68,23 @@ def _register_endpoint_routes(
                 min_version,
             )
             return
-        for concrete_version in range(version, max_version + 1):
+        for ver in range(version, max_version + 1):
             _register_endpoint_route(
                 postfix,
                 app_name_part,
                 view,
                 view_name,
-                concrete_version,
+                ver,
                 source_version=version,
             )
     elif versions is not None:
-        for concrete_version in versions:
-            if concrete_version < min_version:
+        for ver in versions:
+            if ver < min_version:
                 logger.warning(
                     "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
                     "Skipping this version.",
                     postfix,
-                    concrete_version,
+                    ver,
                     min_version,
                 )
                 continue
@@ -93,8 +93,8 @@ def _register_endpoint_routes(
                 app_name_part,
                 view,
                 view_name,
-                concrete_version,
-                source_version=concrete_version,
+                ver,
+                source_version=ver,
             )
     else:
         _register_endpoint_route(
