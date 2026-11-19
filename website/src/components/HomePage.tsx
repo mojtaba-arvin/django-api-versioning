@@ -21,6 +21,7 @@ export function HomePage({ articles = [] }: { articles?: ArticleMeta[] }) {
       <main>
         <Hero />
         <Features />
+        <Comparison />
         <QuickStart />
         <Patterns />
         <section id="playground" className="border-t border-line py-24">
@@ -141,6 +142,46 @@ function Features() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  )
+}
+
+function Comparison() {
+  const rows = [
+    {
+      title: 'DRF versioning schemes',
+      body: 'Identify a requested version and expose it as request.version. They do not, by themselves, maintain a registry of different view implementations for each route and version.',
+    },
+    {
+      title: 'DRF routers',
+      body: 'Generate ViewSet actions and URL patterns. Ordinary routers leave version-by-version registration and inheritance to your application.',
+    },
+    {
+      title: 'django-api-versioning',
+      body: 'Maps concrete URL-path routes to registered implementations, carries unchanged routes forward, and replaces only the declarations that change. VersionedRouter connects this registry to DRF SimpleRouter.',
+    },
+  ]
+  return (
+    <section id="why-this-package" className="border-t border-line py-24">
+      <div className="mx-auto max-w-6xl px-5">
+        <SectionHead
+          eyebrow="Where it fits"
+          title="DRF identifies versions. This package maps them to views."
+          body="Keep the responsibilities clear: request-version negotiation, router URL generation, and version-to-implementation mapping are related but separate concerns."
+        />
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {rows.map((row, index) => (
+            <div key={row.title} className={`card p-6 ${index === 2 ? 'border-leaf/60' : ''}`}>
+              <p className="font-mono text-xs text-leaf-2">0{index + 1}</p>
+              <h3 className="mt-3 font-display text-lg font-semibold">{row.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-mute">{row.body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-mute">
+          Use DRF alone when its versioning schemes and manually managed routes are enough. Choose this package when explicit per-route inheritance and implementation selection reduce the work of maintaining multiple API versions. It does not transform serializers or guarantee backward-compatible responses.
+        </p>
       </div>
     </section>
   )

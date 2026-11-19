@@ -70,6 +70,29 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 
 This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
 
+### How it complements Django REST Framework
+
+DRF and this package solve related but different parts of API versioning:
+
+| Responsibility | Django REST Framework | django-api-versioning |
+|---|---|---|
+| Identify a requested version | Built-in schemes such as URL path, namespace, query parameter, hostname, and Accept header | Selects registered implementations through concrete URL-path routes; VersionedRouterVersioning exposes the matched ViewSet namespace as request.version |
+| Generate ViewSet routes | SimpleRouter and DefaultRouter generate actions and URL patterns | VersionedRouter integrates DRF SimpleRouter patterns with the package registry |
+| Select a different implementation per version | Application code or separately maintained URL configurations | Declarative endpoint registration and per-generated-route inheritance/replacement |
+| Carry unchanged endpoints forward | Application-managed | Built in to the registry |
+| Inspect and guard the effective route matrix | Application-managed | check_versions and assert_version_matrix |
+
+Use DRF's own versioning schemes when request-version identification is all you need. Use ordinary DRF routers when you want to manage each version's URL configuration yourself. Choose this package when you want a central registry to map concrete URL routes to version-specific implementations and carry unchanged routes forward. For ViewSets, use VersionedRouter; for Django views, APIView, and GenericAPIView, use @endpoint.
+
+### What it does not do
+
+- It does not negotiate versions through request headers, query parameters, hostnames, or tenants. The related channel/resolver settings are reserved and do not activate dispatch.
+- It does not transform serializers or response payloads, guarantee semantic backward compatibility, or replace application contract tests.
+- It does not decorate DRF ViewSet classes directly with @endpoint; use VersionedRouter for package-managed SimpleRouter integration.
+- It does not provide DefaultRouter API-root/format-suffix parity, automatic endpoint-module discovery, or a built-in version-discovery endpoint.
+- It does not generate a separate OpenAPI schema for each API version. The repository's executable OpenAPI example is validation tooling, not a package runtime dependency.
+
+
 **Included in the upcoming 1.2.0 release (not yet published):** Explicit endpoint removal is implemented in the repository and will be included in the next release; it is not part of the published `1.1.0` artifact. Use `remove_endpoint("orders/", from_version=3)` for decorator endpoints or `VersionedRouter.remove(prefix, route_name, from_version=...)` for one generated DRF action. Earlier versions retain the route, removed versions return 404, and a later source declaration can explicitly reintroduce it. These APIs are documented in the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md). The 1.2.0 release candidate also adds `set_endpoint_lifecycle()` for decorator endpoints and `VersionedRouter.set_lifecycle()` for DRF operations. The optional `EndpointLifecycleAutoSchema` integration marks matching deprecated OpenAPI operations; these endpoint-level lifecycle APIs are also included in the upcoming `1.2.0` release, pending publication. See the [endpoint lifecycle design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-lifecycle.md).
 
 ## Why use it with Django REST Framework?

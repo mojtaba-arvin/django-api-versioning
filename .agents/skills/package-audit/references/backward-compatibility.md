@@ -13,10 +13,10 @@
    - Check which APIs are stable
 
 2. **Test Version Migration**
-   - Test 0.2.0 to 0.3.0 migration
-   - Test 0.3.0 forward
-   - Document migration procedures
-   - Verify migration tools work correctly
+   - Derive migration scenarios from the current and previous published versions; do not keep historical version pairs as a permanent checklist.
+   - Verify the 0.2.x decorator-flag migration path only when auditing that legacy upgrade path.
+   - Test the latest published-to-candidate upgrade and any documented breaking changes against the exact tagged artifacts.
+   - Verify migration tools and examples against current source and executable tests.
 
 3. **Check Deprecation Patterns**
    - Verify deprecation warnings work

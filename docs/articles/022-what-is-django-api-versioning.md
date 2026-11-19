@@ -575,7 +575,11 @@ The package provides a focused routing and URL-registration layer:
 - **Explicit version sets:** `versions` and `ver_range()` support non-contiguous and bounded version selection.
 - **URL prefix configuration:** `API_BASE_PATH` and `app_name` control the generated route structure.
 - **Version-aware reverse lookup:** `api_reverse()` resolves a named route for a specified API version.
-- **Lifecycle middleware:** `LifecycleMiddleware` can add deprecation-related headers and enforce a configured sunset date.
+- **DRF ViewSet integration:** `VersionedRouter` delegates route generation to DRF `SimpleRouter`, registers each generated action in the package registry, and supports per-route inheritance and version-aware reversal.
+- **Routing inspection and regression protection:** `check_versions` inspects the root URLconf and `assert_version_matrix()` can enforce a committed, non-empty route snapshot in strict CI mode.
+- **Lifecycle middleware:** `LifecycleMiddleware` can add version-wide deprecation and sunset headers and enforce a configured version-wide sunset date.
+- **Explicit route removal (1.2.0 release candidate; publication pending):** `remove_endpoint()` and `VersionedRouter.remove()` stop forward inheritance from an inclusive version boundary.
+- **Endpoint-level lifecycle (1.2.0 release candidate; publication pending):** `set_endpoint_lifecycle()` and `VersionedRouter.set_lifecycle()` add operation-scoped lifecycle headers; the optional drf-spectacular adapter marks matching operations deprecated in OpenAPI.
 
 These features change how the project declares and generates versioned URLs. They do not replace the application behavior implemented by Django or DRF views.
 
@@ -638,6 +642,9 @@ The package should not be treated as a complete API compatibility or documentati
 
 The package does not provide:
 
+- **Header-, query-, host-, or tenant-based route negotiation:** the current registry dispatches by concrete URL-path patterns; reserved channel/resolver settings do not activate other request channels.
+- **Automatic discovery of arbitrary DRF routers or endpoint modules:** use `VersionedRouter` for package-managed `SimpleRouter` integration and import declaration modules explicitly. Plain DRF routers remain independent of the package registry.
+- **`DefaultRouter` parity:** `VersionedRouter` does not implement the API-root or format-suffix behavior of DRF `DefaultRouter`.
 - **A version-discovery endpoint:** It does not generate an endpoint such as `/api/versions/`.
 - **Automatic OpenAPI schema generation:** Version-specific schemas remain the responsibility of tools such as [drf-spectacular](https://drf-spectacular.readthedocs.io/). The optional 1.2.0 `EndpointLifecycleAutoSchema` adapter marks registered deprecated operations; it does not generate schemas or replace the schema tool.
 - **Direct `ModelViewSet` decoration:** A `ModelViewSet` class cannot be passed directly to `@endpoint`, because its `as_view()` method requires an action mapping. Use the optional `VersionedRouter` integration for package-managed DRF `SimpleRouter` routes; a configured `ModelViewSet.as_view({...})` callable can still be registered for one specific route.
@@ -667,15 +674,16 @@ The directory structure is an organizational convention, not a routing rule. The
 
 The URLconf then includes the package-generated patterns once, after importing the modules containing the declarations.
 
-Projects using `ModelViewSet` and `@action` need a more deliberate decision. The package does not automatically convert router actions into separately registered endpoints.
+Projects using `ModelViewSet` and `@action` should choose explicitly between package-managed and manually managed routing. The package provides `VersionedRouter` for DRF `SimpleRouter` integration: it registers generated actions in the package registry and applies version selection and inheritance per route. Configure `VersionedRouterVersioning` when ViewSets need `request.version`, `reverse_action()`, or version-aware hyperlinked serializer URLs.
 
-There are three practical choices:
+There are four practical choices:
 
-1. Keep DRF routers for ViewSets and use `@endpoint` for other views.
-2. Register a configured `ModelViewSet.as_view({...})` callable for an explicitly mapped route.
-3. Refactor a ViewSet into APIView or generic views when individual endpoint implementations are a better fit.
+1. Use `VersionedRouter` for package-managed ViewSet route generation, per-route inheritance, and version-aware reversal.
+2. Keep plain DRF `SimpleRouter` or `DefaultRouter` instances when the application wants to manage version prefixes and registrations itself; those patterns remain outside the package registry.
+3. Use `@endpoint` for independent function-based views, Django class-based views, DRF `APIView`, and `GenericAPIView` endpoints.
+4. Register a configured `ModelViewSet.as_view({...})` callable with `@endpoint` only when one explicitly mapped route is sufficient; it does not replace full router generation.
 
-The first option is often the least disruptive for an existing router-heavy project. The package and DRF routers can coexist, provided their URL patterns do not overlap.
+The first and third options can coexist in one URLconf. Avoid mounting duplicate URL patterns. `VersionedRouter` supports `SimpleRouter` behavior and does not claim `DefaultRouter` API-root or format-suffix parity.
 
 For the exact ViewSet boundary and the configured-callable limitation, follow the [canonical versioning contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 

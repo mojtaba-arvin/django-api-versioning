@@ -4,7 +4,7 @@ The canonical project website for [django-api-versioning](https://github.com/moj
 
 ## What's on the site
 
-- **Home (`/`)**: product overview, quick start, interactive version-matrix playground, lifecycle demo, reliability tooling, and caveats.
+- **Home (`/`)**: product overview and DRF comparison, quick start, interactive version-matrix playground, lifecycle demo, reliability tooling, and explicit integration caveats.
 - **Reference (`/reference/`)**: settings, `@endpoint` arguments, validation and collision rules, exceptions, management commands, and development setup.
 - **Articles (`/articles/`)**: the repository's canonical Markdown articles, rendered as individual static pages.
 - **RSS (`/rss.xml`)**: generated from the same canonical article corpus during the build.

@@ -17,8 +17,11 @@
    - `decorators.py` - @endpoint decorator mechanism
    - `registry.py` - URL registry pattern
    - `reverse.py` - URL reversal logic
-   - `channels.py` - Version extraction channels
-   - `lifecycle.py` - Deprecation/sunset handling
+   - `routers.py` - optional DRF `SimpleRouter` integration, generated route registration, and namespace-aware version adapter
+   - `channels.py` - version extraction utility; trace call sites and do not assume end-to-end header/query dispatch
+   - `lifecycle.py` and `lifecycle_metadata.py` - version-wide and endpoint-level lifecycle resolution and response headers
+   - `spectacular.py` - optional drf-spectacular operation deprecation integration
+   - `testing.py` and management commands - route-matrix assertions and URLconf-backed inspection
 
 3. **Check Design Patterns**
    - Decorator pattern usage
