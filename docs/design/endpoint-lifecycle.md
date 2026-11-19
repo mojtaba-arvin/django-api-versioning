@@ -255,7 +255,11 @@ router.set_lifecycle(
 - The router adapter identifies a registered route by prefix + generated route name + concrete version, then validates optional action/method scopes against the actual DRF action map.
 - Route-wide, action-wide, method-wide, and exact method/action declarations compose monotonically. For each header, the earliest instant wins.
 - Repeating an identical declaration is idempotent; conflicting values for the same exact scope fail at registration time.
-- Dates are strict ISO 8601 strings normalized to UTC; timezone-naive values are interpreted as UTC. Sunset cannot precede deprecated_at. Sunset may be declared without a Deprecation date; in that case it emits only the Sunset header and does not set O## Implementation gate
+- Dates are strict ISO 8601 strings normalized to UTC; timezone-naive values are interpreted as UTC. Sunset cannot precede deprecated_at. Sunset may be declared without a Deprecation date; in that case it emits only the Sunset header and does not set OpenAPI deprecated: true.
+
+The public API and runtime behavior are implemented in PRs #67–#71 but remain unmerged. Treat their exact branch heads—not main—as the current implementation evidence.
+
+## Implementation gate
 
 The design decisions are resolved and the implementation is available in the Draft PR stack #67–#71. This ADR remains a design record; it does not claim that the feature is present in the currently released package or in main until those PRs are reviewed and merged.
 
