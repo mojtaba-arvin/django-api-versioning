@@ -572,7 +572,10 @@ def test_route_lifecycle_headers_apply_to_drf_options_requests():
 
     router = VersionedRouter()
     router.register(
-        "products", ReadOnlyProductViewSet, version=1, basename="product"
+        "products",
+        ReadOnlyProductViewSet,
+        version=1,
+        basename="product",
     )
     router.set_lifecycle(
         "products",
