@@ -399,7 +399,10 @@ def test_suppressed_re_registration_cannot_steal_router_tombstone_ownership():
     owner.remove("orders", "order-list", from_version=2)
 
 
-def test_routers_with_different_path_modes_cannot_register_same_logical_version():
+@pytest.mark.parametrize("versioned", [False, True])
+def test_routers_with_different_path_modes_cannot_register_same_logical_route(
+    versioned,
+):
     """Regex and path converters may spell the same URL pattern differently."""
 
     class OrdersViewSet(viewsets.ViewSet):
@@ -407,14 +410,24 @@ def test_routers_with_different_path_modes_cannot_register_same_logical_version(
             return Response([])
 
     regex_router = VersionedRouter(use_regex_path=True)
-    regex_router.register("orders", OrdersViewSet, versions=[2], basename="order")
-
     path_router = VersionedRouter(use_regex_path=False)
+    if versioned:
+        regex_router.register(
+            "orders", OrdersViewSet, versions=[2], basename="order"
+        )
+    else:
+        regex_router.register("orders", OrdersViewSet, basename="order")
+
     with pytest.raises(
         VersioningError,
         match="Logical endpoint .* already registered by another VersionedRouter",
     ):
-        path_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+        if versioned:
+            path_router.register(
+                "orders", OrdersViewSet, versions=[2], basename="order"
+            )
+        else:
+            path_router.register("orders", OrdersViewSet, basename="order")
 
     assert path_router._route_keys == set()
 
