@@ -3,7 +3,12 @@ import logging
 import pytest
 from django.http import JsonResponse
 
-from django_api_versioning.decorators import (\n    endpoint,\n    remove_endpoint,\n    set_endpoint_lifecycle,\n    ver_range,\n)
+from django_api_versioning.decorators import (
+    endpoint,
+    remove_endpoint,
+    set_endpoint_lifecycle,
+    ver_range,
+)
 from django_api_versioning.exceptions import (
     InvalidVersionError,
     VersioningError,
