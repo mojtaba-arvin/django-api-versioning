@@ -55,7 +55,7 @@ The files in `articles/` are the only editable article sources. Each article's f
 
 ### OpenAPI contract and schema compatibility
 
-- [Executable versioned OpenAPI contract example](../examples/openapi_contract/README.md): a real consumer project that generates and validates one drf-spectacular schema per VersionedRouter API version, checks serializer selection, inherited actions, explicit endpoint removal, runtime 404 behavior, and deterministic output. The committed per-version schema baselines and `oasdiff breaking` CI gate are implemented. This does not imply that route-matrix checks or schema diffs prove business-level response compatibility.
+- [Executable versioned OpenAPI contract example](../examples/openapi_contract/README.md): a real consumer project that generates and validates one drf-spectacular schema per VersionedRouter API version, checks serializer selection, inherited actions, explicit endpoint removal, endpoint-level lifecycle deprecation for both VersionedRouter and decorator endpoints, runtime 404 behavior, and deterministic output. The committed per-version schema baselines and `oasdiff breaking` CI gate are implemented. This does not imply that route-matrix checks or schema diffs prove business-level response compatibility.
 
 ### Routing operations and API compatibility
 
