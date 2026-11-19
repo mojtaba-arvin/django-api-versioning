@@ -1,6 +1,6 @@
-import pytest
 from types import ModuleType
 
+import pytest
 from django.urls import clear_url_caches, include, path, re_path, resolve, reverse
 from django.views import View
 
