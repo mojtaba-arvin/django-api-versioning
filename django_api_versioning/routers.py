@@ -403,7 +403,11 @@ class VersionedRouter:
         unversioned: list[URLPattern] = []
 
         for pattern in registry.urlpatterns:
-            if str(pattern.pattern) not in self._route_keys:
+            if (
+                str(pattern.pattern) not in self._route_keys
+                or getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+                is not self._registry_owner
+            ):
                 continue
 
             route_version = getattr(pattern, _ROUTE_VERSION_ATTR, None)
