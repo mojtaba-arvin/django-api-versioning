@@ -675,3 +675,36 @@ def test_get_scoped_lifecycle_metadata_also_applies_to_head_requests():
     assert head_response.status_code == 200
     assert get_response["Deprecation"] == "@1893456000"
     assert head_response["Deprecation"] == get_response["Deprecation"]
+
+def test_reintroduced_endpoint_does_not_reuse_lifecycle_for_removed_concrete_version(
+    monkeypatch,
+):
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    @endpoint("same-version-reintroduction", version=1)
+    def original(request):
+        return HttpResponse("original")
+
+    set_endpoint_lifecycle(
+        "same-version-reintroduction",
+        version=3,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    registry.remove("same-version-reintroduction", from_version=2)
+
+    @endpoint("same-version-reintroduction", version=3)
+    def reintroduced(request):
+        return HttpResponse("reintroduced")
+
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().get("/api/v3/same-version-reintroduction")
+
+    assert response.status_code == 200
+    assert response.content == b"reintroduced"
+    assert "Deprecation" not in response
+    assert "Sunset" not in response
