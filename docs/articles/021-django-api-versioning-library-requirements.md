@@ -25,7 +25,7 @@ This article evaluates those requirements through **django-api-versioning**. Rat
 
 The package provides:
 
-- Declarative endpoint registration for function-based and supported class-based views.
+- Declarative endpoint registration for function-based and supported class-based views, plus the optional `VersionedRouter` integration for DRF ViewSets.
 - Version-range registration and explicit version selection.
 - Route inheritance when a new API version is introduced.
 - Version-aware reverse lookup.

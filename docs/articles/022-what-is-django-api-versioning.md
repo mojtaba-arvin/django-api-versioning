@@ -644,7 +644,7 @@ The package does not provide:
 - **DRF version negotiation:** The decorator-based `@endpoint` API does not negotiate request versions or populate `request.version`. For ViewSets, the optional `VersionedRouterVersioning` adapter exposes the matched router namespace through `request.version`; arbitrary header/query/host negotiation remains outside the package.
 - **Semantic backward-compatibility checks:** Carrying a route forward does not prove that its response contract remains compatible with earlier clients.
 
-If a view needs `request.version`, configure DRF versioning separately and ensure that its configuration matches the URL structure. See the [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/).
+For decorator-registered `@endpoint` views, configure a compatible DRF versioning scheme separately if the view needs `request.version`. For ViewSets registered through `VersionedRouter`, use `VersionedRouterVersioning`. See the [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/).
 
 URL registration and request-version identification are different responsibilities.
 
