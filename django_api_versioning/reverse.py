@@ -1,4 +1,5 @@
 import re
+from urllib.parse import quote
 from typing import Any
 
 from django.urls import NoReverseMatch, get_script_prefix
@@ -98,4 +99,6 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    return get_script_prefix() + route.lstrip("/")
+    encoded_route = quote(route.lstrip("/"), safe="/~!    return get_script_prefix() + route.lstrip("/")
+'()*+,;=:@")
+    return get_script_prefix() + encoded_route
