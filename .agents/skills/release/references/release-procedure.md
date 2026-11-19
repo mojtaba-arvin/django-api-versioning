@@ -49,7 +49,7 @@ else
 fi
 ```
 
-Do not classify technical impact from commit prefixes alone. Inspect source and tests. Runtime behavior, public API, supported configuration, dependencies, or user-facing integration examples count as technical impact. Test-only, formatting, CI-only, and editorial changes are not automatically technical changes.
+Do not classify technical impact from commit prefixes alone. Inspect source and tests. Runtime behavior, public API, supported configuration, dependencies, or user-facing integration examples count as technical impact. Test-only, formatting, CI-only, and editorial changes are not automatically technical changes. Compare the workflow definitions at the previous release tag with current `main`: a release gate added after a tag must not be reported as having run for that release. Inspect the actual tag tree and built wheel to distinguish package runtime APIs from repository-only examples and CI tooling.
 
 Apply the version policy in [CONTRIBUTING.md](../../../../CONTRIBUTING.md). Update the dated `CHANGELOG.md` section using only categories that apply. Changelog entries describe user-visible changes; do not copy test counts, CI logs, task status, or internal implementation notes into the changelog.
 
