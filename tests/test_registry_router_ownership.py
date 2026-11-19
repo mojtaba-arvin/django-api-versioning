@@ -162,3 +162,33 @@ def test_router_registration_rolls_back_earlier_versions_after_late_owner_collis
         getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is existing._registry_owner
         for pattern in registry.urlpatterns
     )
+
+
+def test_multi_version_decorator_registration_rolls_back_after_late_router_collision():
+    """A collision in the last version must not leave earlier decorator routes."""
+
+    class CollisionViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register(
+        "atomic-decorator-collision",
+        CollisionViewSet,
+        version=2,
+        basename="atomic-decorator-collision",
+    )
+    existing_patterns = list(registry.urlpatterns)
+
+    def decorator_view(request):
+        return HttpResponse("decorator")
+
+    with pytest.raises(VersioningError, match="different registration owner"):
+        endpoint(
+            "atomic-decorator-collision/",
+            versions=[1, 2],
+            view_name="atomic-decorator-collision",
+        )(decorator_view)
+
+    assert registry.urlpatterns == existing_patterns
+    assert not hasattr(decorator_view, registry._LOGICAL_ENDPOINT_ATTR)
