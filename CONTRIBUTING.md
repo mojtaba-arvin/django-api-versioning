@@ -107,6 +107,27 @@ Follow `AGENTS.md` and the relevant canonical skill in `.agents/skills/`. The pa
 - Edit website articles only in `docs/articles/`; generated article copies and RSS output are build products and must not be committed.
 - Update `website/pnpm-lock.yaml` from `website/package.json` with the pinned pnpm version on the active topic branch. Do not use npm lockfiles or update dependency locks directly on `main`.
 
+## Dependency lockfiles
+
+- Treat `uv.lock` and `website/pnpm-lock.yaml` as generated artifacts. Never hand-edit either file.
+- When `pyproject.toml` changes, regenerate the Python lock with `uv lock` and verify it with `uv lock --check`. Use the same `uv` CLI provided by the repository's `tox-uv` toolchain.
+- When `website/package.json` changes, use Node `22.23.4`, Corepack, and the pinned `pnpm@10.12.1`; regenerate with `pnpm install --lockfile-only --ignore-scripts` from `website/`.
+- Dependency branches under `deps/` use the guarded lock-refresh path in `.github/workflows/generate-evidence.yml`: generation runs with read-only permissions, and only the isolated commit job can push the generated lockfiles. It does not execute package lifecycle scripts.
+- A generated lockfile is not sufficient validation. The PR gate must pass for the final branch head after the lockfile commit.
+
+
+
+## Security and dependency policy
+
+- Report vulnerabilities privately through GitHub's **Report a vulnerability** flow. Do not publish exploit details in an issue or pull request. See [SECURITY.md](SECURITY.md).
+- Keep Dependabot version updates and security updates enabled for GitHub Actions, Python dependencies, and website npm dependencies. Review grouped updates; do not blindly merge major-version changes.
+- Dependency review blocks new high- and critical-severity advisories. Investigate transitive upgrades and license changes; document temporary exceptions in the PR.
+- CodeQL analyzes the Python package and TypeScript/JavaScript website on pull requests, `main`, and weekly. Fix newly introduced actionable findings before merging.
+- Enable secret scanning and push protection. Never place real credentials in examples, fixtures, commits, or workflow output; use clearly fake values.
+- GitHub Actions receive read-only token permissions by default. Grant narrow write permissions only where required. PyPI publication is the only job allowed `id-token: write`.
+
+Repository settings are managed by the idempotent maintainer script `scripts/configure_github_repository.sh`. Run it with authenticated `gh` and repository-admin permissions after the PR gate is available. It configures GitHub rulesets and security settings; it does not change package code or publish releases.
+
 
 ## Security and dependency policy
 
