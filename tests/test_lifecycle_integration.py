@@ -814,3 +814,19 @@ def test_endpoint_lifecycle_extreme_utc_offsets_raise_versioning_error(date_valu
             version=2,
             deprecated_at=date_value,
         )
+
+
+def test_unregistered_route_reusing_unversioned_callback_keeps_path_version_policy():
+    def health(request):
+        return HttpResponse("manual versioned route")
+
+    registry.register_urlpattern(path("health/", health))
+    context = _install(
+        [path("api/v1/proxy/health/", health)],
+        _lifecycle(_retired(), _deprecated()),
+    )
+
+    with context:
+        response = Client().get("/api/v1/proxy/health/")
+
+    assert response.status_code == 410
