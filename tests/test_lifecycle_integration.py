@@ -581,7 +581,9 @@ def test_route_lifecycle_headers_apply_to_resolved_drf_routes_without_action_map
             return Response([])
 
     router = VersionedRouter()
-    router.register("products", ReadOnlyProductViewSet, version=1, basename="product")
+    router.register(
+        "products", ReadOnlyProductViewSet, version=1, basename="product"
+    )
     router.set_lifecycle(
         "products",
         "product-list",
