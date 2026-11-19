@@ -1,6 +1,6 @@
 # Endpoint-level lifecycle metadata
 
-**Status:** Product semantics finalized; implementation is present in Draft PRs #67–#71 but is not merged to main. Exact-head PR gates and CodeQL have passed for the runtime/schema stack; revalidate after subsequent changes.
+**Status:** Implemented and merged to `main` in PR #71 (merge commit `1db0358c1600f97eaabb03c2436551c030dc93af`, 2026-11-19). The exact-head PR gate and CodeQL passed before merge. The feature is in the repository mainline; it is not yet represented by a newer PyPI release.
 **Related:** [Issue #39](https://github.com/mojtaba-arvin/django-api-versioning/issues/39), [roadmap #36](https://github.com/mojtaba-arvin/django-api-versioning/issues/36)
 **Depends on:** the merged endpoint-removal/tombstone contract and version-wide `LifecycleMiddleware`.
 
@@ -83,7 +83,7 @@ The supported extension points are proven by the executable consumer fixture and
 
 ## Acceptance criteria and implementation coverage
 
-The list below defines the acceptance surface. The Draft stack includes executable coverage for resolver identity, action/method isolation, version isolation, headers, version-wide 410 precedence, and both OpenAPI adapter paths. Any criterion not yet represented by a dedicated test remains a pre-merge review item rather than an assumed pass.
+The list below defines the acceptance surface. The merged PR #71 includes executable coverage for resolver identity, action/method isolation, version isolation, headers, version-wide 410 precedence, and both OpenAPI adapter paths. Any criterion not represented by a dedicated test remains a post-merge review item rather than an assumed pass.
 
 ### Registry and identity
 - Decorator endpoint metadata is scoped by logical endpoint and concrete version.
@@ -118,15 +118,9 @@ The list below defines the acceptance surface. The Draft stack includes executab
 
 ## Implementation status and rollout
 
-The implementation is split into independently reviewable Draft PRs:
+The implementation was delivered as one cumulative change in [PR #71](https://github.com/mojtaba-arvin/django-api-versioning/pull/71), after component PRs #67–#70 were closed as superseded to avoid overlapping snapshots. The merged change includes resolver-backed operation identity, normalized declarations, response headers, both optional OpenAPI adapter paths, executable consumer coverage, and reference documentation.
 
-1. [PR #67](https://github.com/mojtaba-arvin/django-api-versioning/pull/67): resolver-backed logical operation identity.
-2. [PR #68](https://github.com/mojtaba-arvin/django-api-versioning/pull/68): normalized lifecycle declarations and decorator/DRF adapters.
-3. [PR #69](https://github.com/mojtaba-arvin/django-api-versioning/pull/69): response headers and version-wide 410 precedence.
-4. [PR #70](https://github.com/mojtaba-arvin/django-api-versioning/pull/70): optional drf-spectacular adapter for VersionedRouter/NamespaceVersioning.
-5. [PR #71](https://github.com/mojtaba-arvin/django-api-versioning/pull/71): decorator endpoint adapter for URLPathVersioning.
-
-The implementation stack remains unmerged. Keep the PRs Draft until dependency order, review, and the normal repository merge gates are satisfied. After merge, verify the final mainline SHA and rerun the relevant consumer and compatibility checks.
+The final mainline commit is `1db0358c1600f97eaabb03c2436551c030dc93af`. Exact-head PR gate run [44442100596](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/44442100596) and CodeQL run [44442100571](https://github.com/mojtaba-arvin/django-api-versioning/actions/runs/44442100571) succeeded before merge. The next release must still include the usual release notes, full compatibility matrix and artifact verification.
 
 ## Product decisions
 
@@ -181,18 +175,18 @@ The implemented public API is:
 
 Both adapters write to the same registry and validation model. Repeating an identical declaration is idempotent; conflicting values for an exact scope fail. No URL-based fallback or second lifecycle store is permitted.
 
-### Implementation audit (Draft stack, 2026-11-19)
+### Implementation audit (merged mainline, 2026-11-19)
 
-The runtime implementation is now present in the stacked Draft PRs:
+The runtime implementation is present in main after PR #71:
 
 - Decorator and DRF route registrations retain stable logical endpoint identity and concrete route-version metadata on their registered URLPatterns.
-- PR #67 adds immutable normalized operation identity based on the actual Django ResolverMatch, concrete HTTP method, namespace/route metadata, and DRF action map. Ambiguous matches fail closed.
-- PR #68 adds one normalized lifecycle registry and adapter-specific public declarations. The decorator declaration uses the same app_name + postfix identity as @endpoint; the router declaration uses prefix + generated route name + concrete version.
-- PR #69 applies endpoint headers from the resolved operation. It composes version-wide and endpoint-level dates independently, choosing the earliest instant for each header. Version-wide past-Sunset 410 remains authoritative; endpoint-level past Sunset is headers-only.
-- PR #70 and PR #71 add optional drf-spectacular AutoSchema integration for VersionedRouter and decorator-backed DRF views respectively. The adapter does not import drf-spectacular from the package root or add it to runtime dependencies.
+- The merged implementation adds immutable normalized operation identity based on the actual Django ResolverMatch, concrete HTTP method, namespace/route metadata, and DRF action map. Ambiguous matches fail closed.
+- The merged implementation adds one normalized lifecycle registry and adapter-specific public declarations. The decorator declaration uses the same app_name + postfix identity as @endpoint; the router declaration uses prefix + generated route name + concrete version.
+- The merged middleware applies endpoint headers from the resolved operation. It composes version-wide and endpoint-level dates independently, choosing the earliest instant for each header. Version-wide past-Sunset 410 remains authoritative; endpoint-level past Sunset is headers-only.
+- The merged optional drf-spectacular AutoSchema integration supports VersionedRouter and decorator-backed DRF views. The adapter does not import drf-spectacular from the package root or add it to runtime dependencies.
 - Tests cover method/action separation, version isolation, route ambiguity, actual Django request resolution, headers, past-Sunset precedence, and generated OpenAPI operation flags.
 
-These PRs are still Draft and not merged. Passing CI on their exact heads is evidence for those branch commits only; it is not evidence that main already contains the implementation.
+The implementation is merged to main at `1db0358c1600f97eaabb03c2436551c030dc93af`. The successful exact-head checks preceded the merge; use this mainline commit for subsequent regression and release verification.
 
 ## Schema-generation implementation (drf-spectacular 0.30.0)
 
@@ -205,7 +199,7 @@ Both paths set only the standard OpenAPI Operation Object field deprecated: true
 
 The executable consumer contract verifies that a V1-only deprecated VersionedRouter action and a V1-only decorator endpoint are marked in V1 schemas but not in V2 or sibling operations. The adapter does not infer identity from paths, regexes, callback identity, or operation IDs.
 
-## Public declaration API (implemented in the Draft stack)
+## Public declaration API (implemented in main)
 
 The first implementation uses adapter-specific public declarations over the same normalized registry:
 
@@ -242,10 +236,10 @@ router.set_lifecycle(
 - Repeating an identical declaration is idempotent; conflicting values for the same exact scope fail at registration time.
 - Dates are strict ISO 8601 strings normalized to UTC; timezone-naive values are interpreted as UTC. Sunset cannot precede deprecated_at. Sunset may be declared without a Deprecation date; in that case it emits only the Sunset header and does not set OpenAPI deprecated: true.
 
-The public API and runtime behavior are implemented in PRs #67–#71 but remain unmerged. Treat their exact branch heads—not main—as the current implementation evidence.
+The public API and runtime behavior are implemented in main by PR #71. The mainline commit `1db0358c1600f97eaabb03c2436551c030dc93af` is the current implementation evidence.
 
 ## Implementation gate
 
-The design decisions are resolved and the implementation is available in the Draft PR stack #67–#71. This ADR remains a design record; it does not claim that the feature is present in the currently released package or in main until those PRs are reviewed and merged.
+The design decisions are resolved and the implementation is merged to main in PR #71 at `1db0358c1600f97eaabb03c2436551c030dc93af`. The exact-head PR gate and CodeQL checks passed, including the executable consumer contract.
 
-Do not mark the implementation complete based only on a documentation workflow. Completion on main requires the final merged SHA, passing exact-head PR gate and CodeQL evidence for the merged code, and the executable consumer contract passing against that mainline commit.
+The feature is implemented in the repository mainline but is not yet a separately published PyPI release. Before the next release, run the full release compatibility matrix, rebuild and install both wheel and sdist in isolation, verify the changelog and docs, and publish only from the verified mainline tag.
