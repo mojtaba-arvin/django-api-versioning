@@ -181,7 +181,6 @@ class TestApiReverse:
             url = api_reverse("search-results", version=1, query=query)
             assert url == expected_url, f"Failed for query={query!r}"
 
-
     def test_unicode_parameter_is_urlquoted(self):
         @endpoint("cities/<str:name>/", version=1, view_name="city-detail")
         def city_detail(request, name):
