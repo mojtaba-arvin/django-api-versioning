@@ -744,7 +744,6 @@ def test_lifecycle_declared_after_removal_applies_to_reintroduced_endpoint(
     assert response["Deprecation"] == "@1893456000"
 
 
-
 def test_removal_preserves_lifecycle_for_an_already_reintroduced_newer_source(
     monkeypatch,
 ):
