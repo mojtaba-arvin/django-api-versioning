@@ -188,7 +188,6 @@ def test_versioned_router_route_metadata_survives_nested_include(monkeypatch):
     assert response["Deprecation"] == "@1577836800"
 
 
-
 def test_decorator_endpoint_lifecycle_headers_are_concrete_version_scoped():
     @endpoint("lifecycle-orders", versions=[2, 3])
     def orders(request):
@@ -279,7 +278,6 @@ def test_past_endpoint_sunset_emits_headers_without_returning_410():
     assert response.content == b"still available"
     assert response["Deprecation"] == "@1577836800"
     assert response["Sunset"] == "Fri, 01 Jan 2021 00:00:00 GMT"
-
 
 
 def test_endpoint_sunset_without_deprecation_emits_only_sunset_header():
