@@ -442,3 +442,77 @@ def test_request_urlconf_override_controls_resolved_lifecycle_version():
     assert response.status_code == 200
     assert response.content == b"custom urlconf"
     assert response["Deprecation"] == "@1577836800"
+
+
+def test_endpoint_lifecycle_declaration_before_registration_is_applied():
+    set_endpoint_lifecycle(
+        "lifecycle-before-registration",
+        version=2,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+
+    @endpoint("lifecycle-before-registration", versions=[2])
+    def before_registration(request):
+        return HttpResponse("registered after declaration")
+
+    @endpoint("lifecycle-after-registration", versions=[2])
+    def after_registration(request):
+        return HttpResponse("declared after registration")
+
+    set_endpoint_lifecycle(
+        "lifecycle-after-registration",
+        version=2,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        before = Client().get("/api/v2/lifecycle-before-registration")
+        after = Client().get("/api/v2/lifecycle-after-registration")
+
+    assert before.status_code == 200
+    assert before["Deprecation"] == "@1893456000"
+    assert after.status_code == 200
+    assert after["Deprecation"] == "@1893456000"
+
+
+def test_reintroduced_endpoint_does_not_inherit_previous_version_lifecycle(
+    monkeypatch,
+):
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    @endpoint("reintroduced-lifecycle", version=1)
+    def original(request):
+        return HttpResponse("original")
+
+    set_endpoint_lifecycle(
+        "reintroduced-lifecycle",
+        version=1,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    registry.remove("reintroduced-lifecycle", from_version=2)
+
+    @endpoint("reintroduced-lifecycle", version=3)
+    def reintroduced(request):
+        return HttpResponse("reintroduced")
+
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        version_one = Client().get("/api/v1/reintroduced-lifecycle")
+        removed_version = Client().get("/api/v2/reintroduced-lifecycle")
+        version_three = Client().get("/api/v3/reintroduced-lifecycle")
+
+    assert version_one.status_code == 200
+    assert version_one["Deprecation"] == "@1893456000"
+    assert removed_version.status_code == 404
+    assert version_three.status_code == 200
+    assert version_three.content == b"reintroduced"
+    assert "Deprecation" not in version_three
+    assert "Sunset" not in version_three
