@@ -287,6 +287,8 @@ The integration also does not:
 
 The package's channel extraction utilities and reserved negotiation settings do not activate header/query-based request dispatch. Dispatching to a version-specific ViewSet through those channels requires a separate runtime contract, including cache behavior, reversal, and trusted version identity. See the [request-version-resolution design decision](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-resolution.md).
 
+When the package's benefit is smaller: if every endpoint is resource-oriented, a single API version is maintained, and there is no need to inherit route implementations between versions, a plain DRF `SimpleRouter` may be simpler. `VersionedRouter` is most useful when endpoint implementations change incrementally and unchanged actions should remain available without repeating their registrations.
+
 ## 10. Verification and evidence
 
 The repository contains direct tests for router version registration, namespace-based version resolution, path-converter preservation, duplicate basename and route handling, and lifecycle action/method mapping. Endpoint-removal tests cover action-specific removal, earlier-version preservation, 404 behavior, URL reversal, and later reintroduction. The optional schema adapter has focused tests for resolver identity, version resolution, and fail-closed behavior.
@@ -297,4 +299,4 @@ The executable OpenAPI consumer example separately exercises real API requests, 
 
 Use `VersionedRouter` for DRF ViewSets and `@endpoint` for Django-native views, including DRF `APIView` and `GenericAPIView` endpoints. The router delegates route generation to DRF, while the package manages version-specific implementation selection, per-route inheritance, namespace-aware reversal, and the route matrix. DRF remains responsible for ViewSet behavior and serializer contracts.
 
-To use this routing model in a Django project, install [django-api-versioning from PyPI](https://pypi.org/project/django-api-versioning/) and follow the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) for the complete package behavior.
+To evaluate the implementation and its integration examples against your API, start with the [django-api-versioning source repository](https://github.com/mojtaba-arvin/django-api-versioning).
