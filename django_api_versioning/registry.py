@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Callable
 
 from django.http import HttpResponse
@@ -8,6 +10,22 @@ from .exceptions import InvalidVersionError, VersionRangeError, VersionTypeError
 from .settings import api_settings
 
 REMOVED_ROUTE = object()
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedOperation:
+    """Stable identity for one operation resolved by Django's URL resolver."""
+
+    logical_endpoint: str
+    route_version: int
+    source_version: int | None
+    method: str
+    action: str | None
+    route_name: str | None
+    namespace: str
+    route: str
+    registered_route: str
+
 
 ViewType = Callable[..., HttpResponse] | type[View]
 
@@ -250,6 +268,29 @@ class UrlRegistry:
 
         return None
 
+    @staticmethod
+    def _resolved_route_match_length(route: str, registered_route: str) -> int:
+        """Return the longest complete registered-route suffix match."""
+        route_variants = {
+            route,
+            route.removeprefix("^").removesuffix("$"),
+        }
+        pattern_variants = {
+            registered_route,
+            registered_route.removeprefix("^").removesuffix("$"),
+        }
+
+        matched_length = 0
+        for route_candidate in route_variants:
+            for pattern_candidate in pattern_variants:
+                start = len(route_candidate) - len(pattern_candidate)
+                if start < 0 or route_candidate[start:] != pattern_candidate:
+                    continue
+                if start and route_candidate[start - 1] != "/":
+                    continue
+                matched_length = max(matched_length, len(pattern_candidate))
+        return matched_length
+
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
 
@@ -259,27 +300,10 @@ class UrlRegistry:
         child endpoint's version.
         """
         matches: list[tuple[int, int]] = []
-        route_variants = {
-            route,
-            route.removeprefix("^").removesuffix("$"),
-        }
         for pattern in self.urlpatterns:
-            registered_pattern = str(pattern.pattern)
-            pattern_variants = {
-                registered_pattern,
-                registered_pattern.removeprefix("^").removesuffix("$"),
-            }
-
-            matched_length = 0
-            for route_candidate in route_variants:
-                for pattern_candidate in pattern_variants:
-                    start = len(route_candidate) - len(pattern_candidate)
-                    if start < 0 or route_candidate[start:] != pattern_candidate:
-                        continue
-                    if start and route_candidate[start - 1] != "/":
-                        continue
-                    matched_length = max(matched_length, len(pattern_candidate))
-
+            matched_length = self._resolved_route_match_length(
+                route, str(pattern.pattern)
+            )
             version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             if (
                 matched_length
@@ -294,6 +318,86 @@ class UrlRegistry:
         longest = max(length for length, _ in matches)
         versions = {version for length, version in matches if length == longest}
         return next(iter(versions)) if len(versions) == 1 else None
+
+    def resolve_operation(self, resolver_match: object, method: str) -> ResolvedOperation | None:
+        """Resolve one registered logical operation from Django's ResolverMatch.
+
+        The resolver's route and URL name are matched against registered
+        URLPatterns. DRF's method-to-action map is used only to identify the
+        action selected for this HTTP method; callback identity is never used.
+        Ambiguous or incomplete matches fail closed.
+        """
+        route = getattr(resolver_match, "route", None)
+        if not isinstance(route, str) or not isinstance(method, str) or not method:
+            return None
+
+        normalized_method = method.upper()
+        url_name = getattr(resolver_match, "url_name", None)
+        namespaces = tuple(getattr(resolver_match, "namespaces", ()) or ())
+        namespace = getattr(resolver_match, "namespace", "") or ""
+
+        # VersionedRouter places the concrete API version in a vN namespace.
+        # If such a namespace is present, it must agree with the registry record.
+        version_namespaces = {
+            item for item in namespaces
+            if isinstance(item, str) and item.startswith("v") and item[1:].isdecimal()
+        }
+
+        candidates: list[tuple[int, URLPattern, str, int, int | None]] = []
+        for pattern in self.urlpatterns:
+            if url_name is not None and pattern.name != url_name:
+                continue
+
+            logical_endpoint = getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            if not isinstance(logical_endpoint, str) or not logical_endpoint:
+                continue
+            if isinstance(route_version, bool) or not isinstance(route_version, int):
+                continue
+            if version_namespaces and f"v{route_version}" not in version_namespaces:
+                continue
+
+            matched_length = self._resolved_route_match_length(
+                route, str(pattern.pattern)
+            )
+            if not matched_length:
+                continue
+
+            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
+            candidates.append(
+                (matched_length, pattern, logical_endpoint, route_version, source_version)
+            )
+
+        if not candidates:
+            return None
+
+        longest = max(item[0] for item in candidates)
+        best = [item for item in candidates if item[0] == longest]
+        if len(best) != 1:
+            return None
+
+        _, pattern, logical_endpoint, route_version, source_version = best
+        callback = getattr(resolver_match, "func", None)
+        actions = getattr(callback, "actions", None)
+        action = None
+        if isinstance(actions, Mapping):
+            action = actions.get(normalized_method.lower())
+            if action is None and normalized_method == "HEAD":
+                action = actions.get("get")
+            if not isinstance(action, str) or not action:
+                return None
+
+        return ResolvedOperation(
+            logical_endpoint=logical_endpoint,
+            route_version=route_version,
+            source_version=source_version,
+            method=normalized_method,
+            action=action,
+            route_name=pattern.name,
+            namespace=namespace,
+            route=route,
+            registered_route=str(pattern.pattern),
+        )
 
     def _should_replace(
         self,
