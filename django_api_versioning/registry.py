@@ -308,7 +308,16 @@ class UrlRegistry:
 
     def get_route_version(self, route: str) -> int | None:
         """Return the concrete version registered for a resolved route."""
-        route_index = self._find_route_index(route)
+        route_index = next(
+            (
+                index
+                for index, pattern in enumerate(self.urlpatterns)
+                if str(pattern.pattern) == route
+            ),
+            None,
+        )
+        if route_index is None:
+            route_index = self._find_route_index(route)
         if route_index is None:
             return None
 
@@ -380,9 +389,14 @@ class UrlRegistry:
         """Return the index of a registered route, or None if absent."""
         route_key = self._canonical_route_key(route) if regex_route else route
         for index, pattern in enumerate(self.urlpatterns):
-            existing_key = str(pattern.pattern)
-            if isinstance(pattern.pattern, RegexPattern):
-                existing_key = self._canonical_route_key(existing_key)
+            pattern_route = str(pattern.pattern)
+            if regex_route and pattern_route == route:
+                return index
+            existing_key = (
+                self._canonical_route_key(pattern_route)
+                if isinstance(pattern.pattern, RegexPattern)
+                else pattern_route
+            )
             if existing_key == route_key:
                 return index
 
