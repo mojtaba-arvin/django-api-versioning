@@ -614,7 +614,8 @@ def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
     )
 
 
-def test_router_registration_cannot_replace_existing_decorator_route():
+@pytest.mark.parametrize("use_regex_path", [False, True])
+def test_router_registration_cannot_replace_existing_decorator_route(use_regex_path):
     """A path-converter router must not silently take over a decorator route."""
 
     from django.http import HttpResponse
@@ -637,7 +638,7 @@ def test_router_registration_cannot_replace_existing_decorator_route():
         def list(self, request):
             return Response({"source": "router"})
 
-    router = VersionedRouter(use_regex_path=False)
+    router = VersionedRouter(use_regex_path=use_regex_path)
     with pytest.raises(VersioningError, match="different registration owner"):
         router.register(
             "router-ownership-collision",
@@ -651,7 +652,8 @@ def test_router_registration_cannot_replace_existing_decorator_route():
     assert original.callback is decorator_view
 
 
-def test_decorator_registration_cannot_replace_existing_router_route():
+@pytest.mark.parametrize("use_regex_path", [False, True])
+def test_decorator_registration_cannot_replace_existing_router_route(use_regex_path):
     """A decorator must not silently remove a router-owned URLPattern."""
 
     from django.http import HttpResponse
@@ -660,7 +662,7 @@ def test_decorator_registration_cannot_replace_existing_router_route():
         def list(self, request):
             return Response({"source": "router"})
 
-    router = VersionedRouter(use_regex_path=False)
+    router = VersionedRouter(use_regex_path=use_regex_path)
     router.register(
         "router-owned-collision",
         CollisionViewSet,
