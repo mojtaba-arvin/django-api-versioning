@@ -96,11 +96,13 @@ class UrlRegistry:
         # into a later reintroduction at the same concrete API version. Preserve
         # metadata only for versions that already have a newer active source.
         preserved_versions = {
-            getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            route_version
             for pattern in self.urlpatterns
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
             == logical_endpoint
-            and getattr(pattern, self._ROUTE_VERSION_ATTR, None) >= from_version
+            and (route_version := getattr(pattern, self._ROUTE_VERSION_ATTR, None))
+            is not None
+            and route_version >= from_version
             and getattr(pattern, self._SOURCE_VERSION_ATTR, None) is not None
             and getattr(pattern, self._SOURCE_VERSION_ATTR) > from_version
         }
