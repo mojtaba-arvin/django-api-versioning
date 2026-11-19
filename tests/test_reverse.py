@@ -182,6 +182,25 @@ class TestApiReverse:
             assert url == expected_url, f"Failed for query={query!r}"
 
 
+    def test_unicode_parameter_is_urlquoted(self):
+        @endpoint("cities/<str:name>/", version=1, view_name="city-detail")
+        def city_detail(request, name):
+            return JsonResponse({"name": name})
+
+        assert api_reverse("city-detail", version=1, name="Orléans") == (
+            "/api/v1/cities/Orl%C3%A9ans/"
+        )
+
+    def test_space_parameter_is_urlquoted(self):
+        @endpoint("cities/<str:name>/", version=1, view_name="city-space-detail")
+        def city_detail(request, name):
+            return JsonResponse({"name": name})
+
+        assert api_reverse("city-space-detail", version=1, name="New York") == (
+            "/api/v1/cities/New%20York/"
+        )
+
+
 def test_regex_backed_urlpattern_uses_django_reverse():
     """DRF-style RegexPattern routes can be reversed with named groups."""
 
