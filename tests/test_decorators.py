@@ -680,7 +680,7 @@ class TestDecoratorInputHardening:
         with pytest.raises(TypeError, match="app_name must be a string"):
             set_endpoint_lifecycle("users", version=2, app_name=123)
 
-def test_remove_endpoint_rejects_malformed_app_name(self):
+    def test_remove_endpoint_rejects_malformed_app_name(self):
         with pytest.raises(VersioningError, match="app_name"):
             remove_endpoint("users", from_version=2, app_name="billing/")
 
