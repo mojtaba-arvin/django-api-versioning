@@ -566,6 +566,7 @@ def test_route_lifecycle_headers_apply_to_drf_options_requests():
     The URL still resolves to a registered endpoint, so route-wide lifecycle
     metadata must be retained even though OPTIONS has no ViewSet action.
     """
+
     class ReadOnlyProductViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
