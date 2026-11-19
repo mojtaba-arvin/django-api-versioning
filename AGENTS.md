@@ -34,7 +34,7 @@ Shared policy for all coding agents. Procedures belong in skills; domain constra
 - For behavioral or compatibility evidence, record repository URL, full source commit SHA, package version from `pyproject.toml`, actual Python/Django/DRF versions, commands, exit codes, and timestamp. Never mix results from different commits or package versions.
 - `tox.ini` defines the configured compatibility matrix; it does not prove environments passed. Run `scripts/check_tox_workflow_matrix.py` when validating tox/Actions consistency, then inspect actual run results.
 - Run unit and integration pytest invocations separately; `integration_test_project/pytest.ini` owns integration settings.
-- Run only checks relevant to the changed scope. Report PASS, FAIL, and NOT RUN accurately.
+- Run focused tests and `tox run -e lint` after the final Python edit and before commit; rerun lint after any later Python change. Report PASS, FAIL, and NOT RUN accurately.
 - Verify wheel and sdist contents whenever package metadata, dependencies, package discovery, or build configuration changes. Repository docs, tests, integration project, and website must not leak into distributions.
 
 ## Efficient agent workflow

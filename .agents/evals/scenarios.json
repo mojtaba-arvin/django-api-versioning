@@ -108,13 +108,17 @@
         "Run Black/isort once across the complete changed Python scope instead of committing one formatted file at a time.",
         "Do not add duplicate roadmap, progress, implementation-status, or CI-strategy trackers when canonical documents and workflows own the facts.",
         "Do not create no-op commits to trigger CI; use workflow_dispatch or rerun a suitable workflow.",
-        "Use the GitHub Actions bot identity for commits made by automation, and the verified maintainer identity only for manual commits."
+        "Use the GitHub Actions bot identity for commits made by automation, and the verified maintainer identity only for manual commits.",
+        "Run `tox run -e lint` after the final Python edit and before committing; rerun it after any subsequent Python change.",
+        "For tests expecting a specific validation error, construct a valid fixture that passes earlier guards and assert the intended error message or branch."
       ],
       "failure_modes": [
         "Creates whitespace-only or per-file formatting commits.",
         "Maintains a status tracker that duplicates canonical workflow and architecture data.",
         "Creates empty commits or changes workflow triggers solely to start CI.",
-        "Attributes a bot-generated commit to the maintainer's personal Git identity."
+        "Attributes a bot-generated commit to the maintainer's personal Git identity.",
+        "Pushes or requests review while final lint is pending or failing.",
+        "Uses an invalid fixture that triggers an earlier exception and falsely counts it as coverage of the intended validation branch."
       ]
     },
     {
@@ -165,6 +169,23 @@
         "Force-pushes, resets a remote branch, or overwrites commits created during generation.",
         "Commits generated output from a stale source SHA.",
         "Uses unpinned Actions or attributes automation commits to the maintainer."
+      ]
+    },
+    {
+      "id": "negative-test-branch-reachability",
+      "profile": "implementation",
+      "task": "Add a regression test for a specific validation branch in a router API that has several earlier preconditions. Make the intended error branch execute.",
+      "checks": [
+        "Trace validation order from the public entry point before designing the fixture.",
+        "Make all earlier preconditions valid and vary only the input needed to reach the target branch.",
+        "Assert the expected exception message or another stable observable signal, not merely a broad exception type.",
+        "Run the focused test and the final lint gate after all Python edits."
+      ],
+      "failure_modes": [
+        "Uses an unregistered route/action and receives an earlier error than the branch under test.",
+        "Treats any exception as proof that the target validation branch was covered.",
+        "Edits the test after lint without rerunning lint.",
+        "Claims branch coverage without test or coverage evidence."
       ]
     }
   ]

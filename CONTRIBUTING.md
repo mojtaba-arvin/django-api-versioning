@@ -56,7 +56,7 @@ git status --short
 git diff
 ```
 
-Stage explicit paths, inspect the staged diff, and verify the commit identity. Never commit credentials, local environment files, non-canonical generated files, or unrelated user work.
+Stage explicit paths, inspect the staged diff, and verify the commit identity. Never commit credentials, local environment files, non-canonical generated files, or unrelated user work. When pre-commit is installed, activate the repository hooks once with `pre-commit install`; they provide local feedback, while `tox run -e lint` and the required PR gate remain authoritative.
 
 ## Pull requests to main
 
