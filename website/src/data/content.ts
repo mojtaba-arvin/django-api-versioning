@@ -89,7 +89,7 @@ export const features = [
   },
   {
     title: 'Django & DRF',
-    body: 'Works with plain Django views and Django REST Framework APIViews. DRF stays optional.',
+    body: 'Use @endpoint for Django views and APIViews, or VersionedRouter for DRF ViewSets. DRF remains optional for Django-native projects.',
     icon: '⌘',
   },
   {
@@ -104,8 +104,18 @@ export const features = [
   },
   {
     title: 'Deprecation & Sunset',
-    body: 'LifecycleMiddleware adds RFC 9745 Deprecation and RFC 8594 Sunset headers, then 410 Gone after sunset.',
+    body: 'LifecycleMiddleware handles version-wide deprecation and retirement. Current main also supports route-level lifecycle headers and optional OpenAPI deprecation metadata.',
     icon: '◐',
+  },
+  {
+    title: 'Versioned DRF ViewSets',
+    body: 'VersionedRouter delegates URL generation to DRF SimpleRouter and inherits or replaces implementations per generated action.',
+    icon: '⇄',
+  },
+  {
+    title: 'Explicit route removal',
+    body: 'Current main adds remove_endpoint() and VersionedRouter.remove() so inherited routes can be removed from a chosen version onward.',
+    icon: '−',
   },
 ]
 
@@ -138,19 +148,19 @@ export const patterns = [
 
 export const caveats = [
   {
-    title: 'request.version is not set',
-    body: 'Routing is handled for you, but configure DRF versioning separately if your views need request.version.',
+    title: 'Configure request.version for ViewSets',
+    body: 'VersionedRouterVersioning exposes the active router namespace as request.version and keeps reverse_action() and hyperlinked serializer URLs version-aware. Configure it globally or on selected ViewSets.',
   },
   {
-    title: 'Settings are read at import time',
-    body: 'override_settings will not rebuild URL patterns. The lifecycle middleware, however, reads its settings per request.',
+    title: 'Route settings and lifecycle settings have different timing',
+    body: 'Changing route settings after URL patterns are imported does not rebuild the registry. LifecycleMiddleware reads lifecycle settings per request.',
   },
   {
     title: 'Import order matters',
     body: 'Import your endpoint modules in the root URLconf before including django_api_versioning.urls.',
   },
   {
-    title: 'Upgrading from 0.2.0',
-    body: 'The old forward/backward flags are replaced. Run migrate_endpoints --dry-run and review every change.',
+    title: 'ViewSet integration scope',
+    body: 'VersionedRouter supports DRF SimpleRouter, not DefaultRouter API-root or format-suffix behavior. It selects route callbacks; it does not transform serializers or response payloads.',
   },
 ]

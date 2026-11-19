@@ -70,7 +70,7 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 
 This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
 
-**Unreleased on repository main:** Explicit endpoint removal is the next planned package addition; it is not included in the currently published PyPI artifact. In the current mainline source, use `remove_endpoint("orders/", from_version=3)` for decorator endpoints or `VersionedRouter.remove(prefix, route_name, from_version=...)` for one generated DRF action. Earlier versions retain the route, removed versions return 404, and a later source declaration can explicitly reintroduce it. See the [Unreleased changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md#unreleased) before relying on this API.
+**Current main (unreleased on PyPI):** Explicit endpoint removal is implemented in the repository but is not included in the published `1.1.0` artifact. Use `remove_endpoint("orders/", from_version=3)` for decorator endpoints or `VersionedRouter.remove(prefix, route_name, from_version=...)` for one generated DRF action. Earlier versions retain the route, removed versions return 404, and a later source declaration can explicitly reintroduce it. These APIs are documented in the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md).
 
 ## Why use it with Django REST Framework?
 
@@ -163,7 +163,7 @@ For endpoints that should exist only in selected versions, pass `versions=[1, 3]
 
 The adapter is required when ViewSets need `request.version`, `reverse_action()`, or hyperlinked serializer support. You can configure it globally through `REST_FRAMEWORK` as shown above, or set `versioning_class = VersionedRouterVersioning` on selected ViewSets.
 
-**Scope:** the initial integration supports DRF `SimpleRouter`; it does not claim `DefaultRouter` API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; explicit route removal is tracked separately in [Issue #39](https://github.com/mojtaba-arvin/django-api-versioning/issues/39). Header/query/tenant negotiation is not enabled by the reserved settings and remains a separate design decision.
+**Scope:** the initial integration supports DRF `SimpleRouter`; it does not claim `DefaultRouter` API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with `VersionedRouter.remove()` (available on current main, not in the published `1.1.0` artifact). Header/query/tenant negotiation is not enabled by the reserved settings and remains a separate design decision.
 
 For DRF installation, use a version compatible with your Django release:
 ```bash
