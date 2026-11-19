@@ -42,9 +42,8 @@ class EndpointLifecycleAutoSchema(AutoSchema):
             from rest_framework.versioning import URLPathVersioning
 
             versioning_class = getattr(self.view, "versioning_class", None)
-            if (
-                not isinstance(versioning_class, type)
-                or not issubclass(versioning_class, URLPathVersioning)
+            if not isinstance(versioning_class, type) or not issubclass(
+                versioning_class, URLPathVersioning
             ):
                 return operation_schema
 
