@@ -59,6 +59,50 @@ def test_deprecated_without_valid_deprecation_date_omits_header(monkeypatch, cap
     assert "no valid deprecated_at date" in caplog.text
 
 
+def test_retired_version_keeps_lifecycle_headers_on_410(monkeypatch):
+    """The enforced 410 response still carries the configured lifecycle dates."""
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        1,
+        {
+            "status": "retired",
+            "deprecated_at": DEPRECATED_AT,
+            "sunset": PAST,
+        },
+    )
+    request = _request("1")
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
+
+    response = middleware.process_view(request, lambda req: HttpResponse("ok"), [], {})
+    assert response is not None
+    response = middleware.process_response(request, response)
+
+    assert response.status_code == 410
+    assert response["Deprecation"] == "@1735689600"
+    assert "Sunset" in response
+
+
+def test_response_short_circuited_before_view_keeps_lifecycle_headers(monkeypatch):
+    """A response created before process_view still gets retirement headers."""
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        1,
+        {
+            "status": "retired",
+            "deprecated_at": DEPRECATED_AT,
+            "sunset": PAST,
+        },
+    )
+    request = _request("1")
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("blocked"))
+
+    response = middleware.process_response(request, HttpResponse("blocked"))
+
+    assert response.status_code == 410
+    assert response["Deprecation"] == "@1735689600"
+    assert "Sunset" in response
+
+
 def test_retired_version_returns_410(monkeypatch):
     monkeypatch.setitem(
         settings.API_VERSION_LIFECYCLE,
