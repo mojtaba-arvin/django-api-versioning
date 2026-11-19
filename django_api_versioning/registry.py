@@ -199,8 +199,7 @@ class UrlRegistry:
             ):
                 raise VersioningError(
                     f"Route pattern {route_key!r} is already registered by another "
-                    "VersionedRouter instance. Use a distinct route prefix for "
-                    "each router."
+                    "VersionedRouter instance. Use a distinct route prefix for each router."
                 )
             if not self._should_replace(existing_pattern, source_version):
                 return
