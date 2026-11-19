@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import HyperlinkedIdentityField, Serializer
 from rest_framework.test import APIClient
 
+from django_api_versioning import endpoint
 from django_api_versioning.exceptions import (
     InvalidVersionError,
     VersioningError,
@@ -611,3 +612,77 @@ def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
         ].deprecated_at.year
         == 2030
     )
+
+
+def test_router_registration_cannot_replace_existing_decorator_route():
+    """A path-converter router must not silently take over a decorator route."""
+
+    from django.http import HttpResponse
+
+    @endpoint(
+        "router-ownership-collision/",
+        version=1,
+        view_name="router-ownership-collision",
+    )
+    def decorator_view(request):
+        return HttpResponse("decorator")
+
+    original = next(
+        pattern
+        for pattern in registry.urlpatterns
+        if str(pattern.pattern) == "api/v1/router-ownership-collision/"
+    )
+
+    class CollisionViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"source": "router"})
+
+    router = VersionedRouter(use_regex_path=False)
+    with pytest.raises(VersioningError, match="different registration owner"):
+        router.register(
+            "router-ownership-collision",
+            CollisionViewSet,
+            version=1,
+            basename="router-ownership-collision",
+        )
+
+    assert router._route_keys == set()
+    assert any(pattern is original for pattern in registry.urlpatterns)
+    assert original.callback is decorator_view
+
+
+def test_decorator_registration_cannot_replace_existing_router_route():
+    """A decorator must not silently remove a router-owned URLPattern."""
+
+    from django.http import HttpResponse
+
+    class CollisionViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"source": "router"})
+
+    router = VersionedRouter(use_regex_path=False)
+    router.register(
+        "router-owned-collision",
+        CollisionViewSet,
+        version=1,
+        basename="router-owned-collision",
+    )
+    original = next(
+        pattern
+        for pattern in registry.urlpatterns
+        if str(pattern.pattern) == "api/v1/router-owned-collision/"
+    )
+
+    with pytest.raises(VersioningError, match="owned by a VersionedRouter"):
+        endpoint(
+            "router-owned-collision/",
+            version=1,
+            view_name="router-owned-collision-list",
+        )(lambda request: HttpResponse("decorator"))
+
+    assert any(pattern is original for pattern in registry.urlpatterns)
+    assert original in [
+        pattern
+        for wrapper in router.urls
+        for pattern in getattr(wrapper, "url_patterns", [wrapper])
+    ]
