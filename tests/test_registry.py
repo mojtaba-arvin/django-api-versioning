@@ -655,6 +655,71 @@ def test_resolve_operation_uses_resolver_route_and_nested_namespace(clear_regist
     assert operation.registered_route == "api/v2/orders/<int:order_id>/"
 
 
+def test_resolve_registered_operation_uses_decorator_identity_and_version(
+    clear_registry,
+):
+    """Decorator schema lookup uses declared identity, concrete version, and method."""
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/decorated-status/",
+        callback,
+        name="decorated-status",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="decorated-status/",
+    )
+
+    operation = registry.resolve_registered_operation(
+        "decorated-status/", 2, "get"
+    )
+
+    assert operation is not None
+    assert operation.logical_endpoint == "decorated-status/"
+    assert operation.route_version == 2
+    assert operation.source_version == 2
+    assert operation.method == "GET"
+    assert operation.action is None
+    assert registry.resolve_registered_operation(
+        "decorated-status/", 1, "GET"
+    ) is None
+    assert registry.resolve_registered_operation(
+        "unknown/", 2, "GET"
+    ) is None
+
+
+def test_resolve_registered_operation_fails_closed_for_duplicate_identity(
+    clear_registry,
+):
+    """Multiple active patterns cannot be guessed from a logical identity alone."""
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/decorated-status/",
+        callback,
+        name="decorated-status",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="decorated-status/",
+    )
+    registry.register(
+        "api/v2/decorated-status/alternate/",
+        callback,
+        name="decorated-status-alternate",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="decorated-status/",
+    )
+
+    assert registry.resolve_registered_operation(
+        "decorated-status/", 2, "GET"
+    ) is None
+
+
 def test_resolve_operation_fails_closed_for_unregistered_or_mismatched_route(
     clear_registry,
 ):
