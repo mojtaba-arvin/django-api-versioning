@@ -137,7 +137,6 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         cases = {
             ".github/workflows/tests.yml": "python",
             ".github/workflows/compatibility.yml": "compatibility",
-            ".github/workflows/publish.yml": "compatibility",
             ".github/workflows/package-artifacts.yml": "package",
             ".github/workflows/website-data-preflight.yml": "website",
             ".github/workflows/openapi-contract.yml": "openapi",
@@ -148,6 +147,11 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
                 result = classify_paths([path])
                 self.assertTrue(result[expected])
                 self.assertTrue(result["agent"])
+
+    def test_publish_workflow_runs_compatibility_and_openapi_checks(self):
+        result = classify_paths([".github/workflows/publish.yml"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["openapi"])
 
     def test_classifier_self_test_runs_agent_validation(self):
         result = classify_paths(["scripts/test_classify_pr_changes.py"])
