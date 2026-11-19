@@ -1045,7 +1045,9 @@ def test_resolve_operation_maps_head_to_get_action(clear_registry):
         logical_endpoint="orders:order-list",
     )
     urlconf = ModuleType("resolved_operation_head_urls")
-    urlconf.urlpatterns = [path("", include((registry.urlpatterns, "orders"), namespace="v2"))]
+    urlconf.urlpatterns = [
+        path("", include((registry.urlpatterns, "orders"), namespace="v2"))
+    ]
     match = resolve("/api/v2/orders/", urlconf=urlconf)
 
     operation = registry.resolve_operation(match, "HEAD")
