@@ -479,9 +479,9 @@ def test_router_lifecycle_rejects_method_action_mismatch():
     with pytest.raises(VersioningError, match="maps to action"):
         router.set_lifecycle(
             "posts",
-            "post-list",
+            "post-status",
             version=1,
-            action="create",
-            methods=["GET"],
+            action="status",
+            methods=["POST"],
             deprecated_at="2027-01-01T00:00:00Z",
         )
