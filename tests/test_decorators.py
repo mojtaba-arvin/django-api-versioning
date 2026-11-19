@@ -26,7 +26,6 @@ def _routes():
     return {str(p.pattern) for p in registry.urlpatterns}
 
 
-
 def test_endpoint_lifecycle_applies_only_to_the_declared_concrete_version(
     versions_1_to_5,
 ):
