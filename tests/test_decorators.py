@@ -585,3 +585,13 @@ def test_set_endpoint_lifecycle_normalizes_method_scope(versions_1_to_5):
 def test_remove_endpoint_validates_relative_postfix(postfix, error, message):
     with pytest.raises(error, match=message):
         remove_endpoint(postfix, from_version=2)
+
+
+def test_set_endpoint_lifecycle_rejects_non_string_app_name(versions_1_to_5):
+    with pytest.raises(TypeError, match="app_name must be a string"):
+        set_endpoint_lifecycle(
+            "users",
+            version=2,
+            app_name=1,
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
