@@ -75,10 +75,11 @@ function Hero() {
             <span className="text-leaf">declaring it</span>, not copying it.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-mute">
-            <strong className="font-semibold text-paper">django-api-versioning</strong> gives Django and DRF
-            decorator-based, version-aware endpoints. Mark a view with{' '}
-            <code className="inline-code">@endpoint</code> and the package generates every versioned URL — later
-            versions reuse the most recent earlier implementation automatically.
+            <strong className="font-semibold text-paper">django-api-versioning</strong> provides declarative,
+            version-aware routing for Django and Django REST Framework. Use{' '}
+            <code className="inline-code">@endpoint</code> for Django views and APIViews, or{' '}
+            <code className="inline-code">VersionedRouter</code> for DRF ViewSets. Later versions reuse unchanged
+            route implementations and replace only the routes you redeclare.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-3 rounded-lg border border-line bg-ink-2 py-1.5 pr-1.5 pl-4 font-mono text-sm">
