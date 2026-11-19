@@ -16,6 +16,7 @@ from django_api_versioning.exceptions import (
     VersionRangeError,
     VersionTypeError,
 )
+from django_api_versioning.registry import registry
 from django_api_versioning.reverse import api_reverse
 from django_api_versioning.routers import VersionedRouter, VersionedRouterVersioning
 
@@ -209,6 +210,85 @@ class TestVersionedRouter:
 
 
 @pytest.mark.parametrize("invalid_version", [True, 1.0, "1"])
+
+def test_router_lifecycle_scopes_one_viewset_action():
+    class LifecycleViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+        def create(self, request):
+            return Response({}, status=201)
+
+    router = VersionedRouter()
+    router.register("orders", LifecycleViewSet, version=2, basename="order")
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=2,
+        action="list",
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    urlconf.urlpatterns = router.urls
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    list_operation = registry.resolve_operation(match, "GET")
+    create_operation = registry.resolve_operation(match, "POST")
+
+    assert list_operation is not None
+    assert list_operation.action == "list"
+    assert registry.get_endpoint_lifecycle(list_operation) is not None
+    assert create_operation is not None
+    assert create_operation.action == "create"
+    assert registry.get_endpoint_lifecycle(create_operation) is None
+
+
+def test_router_lifecycle_methods_resolve_through_action_map():
+    class LifecycleViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+        def create(self, request):
+            return Response({}, status=201)
+
+    router = VersionedRouter()
+    router.register("orders", LifecycleViewSet, version=2, basename="order")
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=2,
+        methods=["POST"],
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    urlconf.urlpatterns = router.urls
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    list_operation = registry.resolve_operation(match, "GET")
+    create_operation = registry.resolve_operation(match, "POST")
+
+    assert list_operation is not None
+    assert registry.get_endpoint_lifecycle(list_operation) is None
+    assert create_operation is not None
+    assert registry.get_endpoint_lifecycle(create_operation) is not None
+
+
+def test_router_lifecycle_rejects_unknown_action():
+    class LifecycleViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("orders", LifecycleViewSet, version=2, basename="order")
+
+    with pytest.raises(VersioningError, match="not registered"):
+        router.set_lifecycle(
+            "orders",
+            "order-list",
+            version=2,
+            action="archive",
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
+
+
 def test_router_rejects_non_integer_version_values(invalid_version):
     router = VersionedRouter()
     with pytest.raises(VersionTypeError, match="Version must be an integer"):
