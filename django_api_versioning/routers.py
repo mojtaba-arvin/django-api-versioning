@@ -262,6 +262,7 @@ class VersionedRouter:
         if len(set(normalized_methods)) != len(normalized_methods):
             raise VersioningError("methods must not contain duplicates.")
 
+        registrations = []
         for method in normalized_methods:
             mapped_action = actions.get(method.lower())
             if mapped_action is None and method == "HEAD":
@@ -276,14 +277,26 @@ class VersionedRouter:
                     f"HTTP method {method!r} maps to action {mapped_action!r}, "
                     f"not {normalized_action!r}."
                 )
-            registry.register_endpoint_lifecycle(
-                logical_endpoint,
-                version,
-                method=method,
-                action=mapped_action,
-                deprecated_at=deprecated_at,
-                sunset=sunset,
-            )
+            registrations.append((method, mapped_action))
+
+        # Validate every mapping before mutating the global lifecycle registry.
+        # Conflicting existing declarations can still fail during insertion,
+        # so restore the previous state if any insertion fails.
+        previous_lifecycle = dict(registry._endpoint_lifecycle)
+        try:
+            for method, mapped_action in registrations:
+                registry.register_endpoint_lifecycle(
+                    logical_endpoint,
+                    version,
+                    method=method,
+                    action=mapped_action,
+                    deprecated_at=deprecated_at,
+                    sunset=sunset,
+                )
+        except Exception:
+            registry._endpoint_lifecycle.clear()
+            registry._endpoint_lifecycle.update(previous_lifecycle)
+            raise
 
     @staticmethod
     def _validate_version(version: int) -> None:
