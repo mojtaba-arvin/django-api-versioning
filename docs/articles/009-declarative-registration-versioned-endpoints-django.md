@@ -483,7 +483,7 @@ This callable can be registered as a route, but it does not generate the full se
 
 For resource-oriented ViewSets, use `VersionedRouter` when you want package-managed route inheritance, or plain DRF routers when you prefer manual per-version routing. For generic views and individual endpoints, `@endpoint` provides version-based registration without a separate router configuration.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows `VersionedRouter` alongside decorator-based endpoint registration. See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows plain DRF routers mounted alongside decorator-based endpoint registration. For package-managed ViewSet routes, use `VersionedRouter` as described in the [dedicated integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/). See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
 
 ## Trade-offs and scope
 

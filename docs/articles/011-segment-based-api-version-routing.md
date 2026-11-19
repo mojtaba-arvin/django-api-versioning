@@ -517,7 +517,7 @@ The practical boundary is:
 - Use `APIView` or generic views with `@endpoint` for non-resource endpoints.
 - Use a configured `ModelViewSet.as_view({...})` callable only when one explicit route is appropriate.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates `VersionedRouter` and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates plain DRF routers and decorator-based routing in the same project. `VersionedRouter` is the package-managed alternative described in the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 ## Trade-offs and scope
 

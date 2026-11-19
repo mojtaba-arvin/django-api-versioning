@@ -319,7 +319,7 @@ If you want to keep a ViewSet, choose among three approaches:
 
 The generic-view example in this article uses `@endpoint`; the package's separate `VersionedRouter` integration supports ViewSets. It does not claim `DefaultRouter` API-root or format-suffix parity.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows `VersionedRouter` alongside decorator-based routes.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows plain DRF routers mounted alongside decorator-based routes. This is the manual DRF-only alternative; the package-managed `VersionedRouter` pattern is documented in the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 ## Trade-offs and scope
 
