@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-19
+
+### Documentation
+
+- Refresh the PyPI long description and align published-version guidance with the 1.2.0 release.
+- Restore the landing page’s original, more concise section flow while keeping product positioning in page metadata and documentation.
+
+### Packaging
+
+- Publish the documentation and project-metadata update as a patch release; no runtime behavior changes.
+
 ## [1.2.0] - 2026-11-19
 
 ### Added

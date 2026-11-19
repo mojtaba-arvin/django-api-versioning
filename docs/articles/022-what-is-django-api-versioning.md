@@ -578,8 +578,8 @@ The package provides a focused routing and URL-registration layer:
 - **DRF ViewSet integration:** `VersionedRouter` delegates route generation to DRF `SimpleRouter`, registers each generated action in the package registry, and supports per-route inheritance and version-aware reversal.
 - **Routing inspection and regression protection:** `check_versions` inspects the root URLconf and `assert_version_matrix()` can enforce a committed, non-empty route snapshot in strict CI mode.
 - **Lifecycle middleware:** `LifecycleMiddleware` can add version-wide deprecation and sunset headers and enforce a configured version-wide sunset date.
-- **Explicit route removal (1.2.0 release candidate; publication pending):** `remove_endpoint()` and `VersionedRouter.remove()` stop forward inheritance from an inclusive version boundary.
-- **Endpoint-level lifecycle (1.2.0 release candidate; publication pending):** `set_endpoint_lifecycle()` and `VersionedRouter.set_lifecycle()` add operation-scoped lifecycle headers; the optional drf-spectacular adapter marks matching operations deprecated in OpenAPI.
+- **Explicit route removal (available since 1.2.0):** `remove_endpoint()` and `VersionedRouter.remove()` stop forward inheritance from an inclusive version boundary.
+- **Endpoint-level lifecycle (available since 1.2.0):** `set_endpoint_lifecycle()` and `VersionedRouter.set_lifecycle()` add operation-scoped lifecycle headers; the optional drf-spectacular adapter marks matching operations deprecated in OpenAPI.
 
 These features change how the project declares and generates versioned URLs. They do not replace the application behavior implemented by Django or DRF views.
 

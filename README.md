@@ -93,7 +93,7 @@ Use DRF's own versioning schemes when request-version identification is all you 
 - It does not generate a separate OpenAPI schema for each API version. The repository's executable OpenAPI example is validation tooling, not a package runtime dependency.
 
 
-**Included in the upcoming 1.2.0 release (not yet published):** Explicit endpoint removal is implemented in the repository and will be included in the next release; it is not part of the published `1.1.0` artifact. Use `remove_endpoint("orders/", from_version=3)` for decorator endpoints or `VersionedRouter.remove(prefix, route_name, from_version=...)` for one generated DRF action. Earlier versions retain the route, removed versions return 404, and a later source declaration can explicitly reintroduce it. These APIs are documented in the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md). The 1.2.0 release candidate also adds `set_endpoint_lifecycle()` for decorator endpoints and `VersionedRouter.set_lifecycle()` for DRF operations. The optional `EndpointLifecycleAutoSchema` integration marks matching deprecated OpenAPI operations; these endpoint-level lifecycle APIs are also included in the upcoming `1.2.0` release, pending publication. See the [endpoint lifecycle design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-lifecycle.md).
+**Available since 1.2.0:** Explicit endpoint removal is supported through remove_endpoint() for decorator endpoints and VersionedRouter.remove() for generated DRF actions. Earlier versions retain the route, removed versions return 404, and a later declaration can explicitly reintroduce it. Version 1.2.0 also adds set_endpoint_lifecycle() for decorator endpoints and VersionedRouter.set_lifecycle() for DRF operations. The optional EndpointLifecycleAutoSchema integration marks matching deprecated OpenAPI operations. See the endpoint-removal and endpoint-lifecycle design documents.
 
 ## Why use it with Django REST Framework?
 
@@ -186,7 +186,7 @@ For endpoints that should exist only in selected versions, pass `versions=[1, 3]
 
 The adapter is required when ViewSets need `request.version`, `reverse_action()`, or hyperlinked serializer support. You can configure it globally through `REST_FRAMEWORK` as shown above, or set `versioning_class = VersionedRouterVersioning` on selected ViewSets.
 
-**Scope:** the initial integration supports DRF `SimpleRouter`; it does not claim `DefaultRouter` API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with `VersionedRouter.remove()` (included in the upcoming 1.2.0 release, not in the published `1.1.0` artifact). Header/query/tenant negotiation is not enabled by the reserved settings and remains a separate design decision.
+**Scope:** the initial integration supports DRF SimpleRouter; it does not claim DefaultRouter API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with VersionedRouter.remove() (available since 1.2.0). Header/query/tenant negotiation is not enabled by the reserved settings and remains a separate design decision.
 
 For DRF installation, use a version compatible with your Django release:
 ```bash
