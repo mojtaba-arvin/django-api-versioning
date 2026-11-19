@@ -594,3 +594,60 @@ def test_route_lifecycle_headers_apply_to_drf_options_requests():
 
     assert response.status_code == 200
     assert response["Deprecation"] == "@1893456000"
+
+
+def test_route_wide_lifecycle_headers_are_present_on_drf_405_responses():
+    """A resolved route keeps its route-wide lifecycle contract on HTTP 405."""
+    class ReadOnlyOrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register(
+        "orders", ReadOnlyOrderViewSet, version=1, basename="order"
+    )
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=1,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        router.urls,
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().patch("/api/v1/orders/")
+
+    assert response.status_code == 405
+    assert response["Deprecation"] == "@1893456000"
+
+
+def test_action_scoped_lifecycle_does_not_leak_to_unmapped_drf_methods():
+    """A 405 has route identity but no selected action."""
+    class ReadOnlyOrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register(
+        "orders", ReadOnlyOrderViewSet, version=1, basename="order"
+    )
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=1,
+        action="list",
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        router.urls,
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().patch("/api/v1/orders/")
+
+    assert response.status_code == 405
+    assert "Deprecation" not in response
