@@ -558,3 +558,43 @@ def test_versioned_routers_reject_duplicate_route_patterns_across_namespaces():
 
     assert primary.status_code == 200
     assert primary.json() == {"router": "primary"}
+
+
+@pytest.mark.parametrize(
+    ("method", "expected_status"),
+    [
+        ("options", 200),
+        ("patch", 405),
+    ],
+)
+def test_route_lifecycle_headers_apply_to_resolved_drf_routes_without_action_mapping(
+    method, expected_status
+):
+    """Route-wide lifecycle metadata applies even when DRF has no action mapping.
+
+    OPTIONS is handled by APIView itself, while PATCH reaches the resolved URL
+    but is rejected by a read-only ViewSet. Neither request should lose the
+    route-wide deprecation signal merely because callback.actions has no entry.
+    """
+    class ReadOnlyProductViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("products", ReadOnlyProductViewSet, version=1, basename="product")
+    router.set_lifecycle(
+        "products",
+        "product-list",
+        version=1,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        router.urls,
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = getattr(Client(), method)("/api/v1/products/")
+
+    assert response.status_code == expected_status
+    assert response["Deprecation"] == "@1893456000"
