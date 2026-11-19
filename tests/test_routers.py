@@ -575,3 +575,42 @@ def test_failed_multi_method_lifecycle_declaration_is_atomic():
         key[0] == "posts:post-list" and key[1] == 1
         for key in registry._endpoint_lifecycle
     )
+
+
+def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
+    """A conflict in the last method must not persist earlier new scopes."""
+    class OrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+        def create(self, request):
+            return Response({}, status=201)
+
+    router = VersionedRouter()
+    router.register("orders", OrderViewSet, version=1, basename="order")
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=1,
+        methods=["POST"],
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        router.set_lifecycle(
+            "orders",
+            "order-list",
+            version=1,
+            methods=["GET", "POST"],
+            deprecated_at="2040-01-01T00:00:00Z",
+        )
+
+    assert (
+        "orders:order-list",
+        1,
+        "GET",
+        "list",
+    ) not in registry._endpoint_lifecycle
+    assert registry._endpoint_lifecycle[
+        ("orders:order-list", 1, "POST", "create")
+    ].deprecated_at.year == 2030
