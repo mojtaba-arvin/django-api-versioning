@@ -43,6 +43,7 @@ class UrlRegistry:
     _ROUTE_VERSION_ATTR = "_django_api_versioning_route_version"
     _LOGICAL_ENDPOINT_ATTR = "_django_api_versioning_logical_endpoint"
     _ROUTER_OWNER_ATTR = "_django_api_versioning_router_owner"
+    _ROUTER_PREFIX_ATTR = "_django_api_versioning_router_prefix"
 
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
@@ -224,28 +225,25 @@ class UrlRegistry:
         route_key = str(pattern.pattern)
         route_index = self._find_route_index(route_key)
 
-        if route_index is None and logical_endpoint is not None:
+        if route_index is None:
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if new_router is not None:
-                for existing in self.urlpatterns:
-                    if (
-                        getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
-                        == logical_endpoint
-                        and getattr(existing, self._ROUTE_VERSION_ATTR, None)
-                        == route_version
-                    ):
-                        existing_router = getattr(
-                            existing, self._ROUTER_OWNER_ATTR, None
-                        )
-                        if (
-                            existing_router is not None
-                            and existing_router is not new_router
-                        ):
-                            raise VersioningError(
-                                f"Logical endpoint {logical_endpoint!r} in version "
-                                f"{route_version} is already registered by another "
-                                "VersionedRouter instance."
-                            )
+            new_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
+            for existing in self.urlpatterns:
+                existing_router = getattr(existing, self._ROUTER_OWNER_ATTR, None)
+                existing_prefix = getattr(existing, self._ROUTER_PREFIX_ATTR, None)
+                if (
+                    new_router is not None
+                    and existing_router is not None
+                    and existing_router is not new_router
+                    and new_prefix is not None
+                    and existing_prefix == new_prefix
+                    and getattr(existing, self._ROUTE_VERSION_ATTR, None)
+                    == route_version
+                ):
+                    raise VersioningError(
+                        f"Router prefix {new_prefix!r} in version {route_version} "
+                        "is already registered by another VersionedRouter instance."
+                    )
 
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]
