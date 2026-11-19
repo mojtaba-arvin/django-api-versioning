@@ -48,9 +48,7 @@ class EndpointLifecycleAutoSchema(AutoSchema):
             ):
                 return operation_schema
 
-            logical_endpoint = getattr(
-                self.view, registry._LOGICAL_ENDPOINT_ATTR, None
-            )
+            logical_endpoint = getattr(self.view, registry._LOGICAL_ENDPOINT_ATTR, None)
             version_param = getattr(versioning_class, "version_param", "version")
             kwargs = getattr(self.view, "kwargs", {}) or {}
             version = kwargs.get(version_param)
