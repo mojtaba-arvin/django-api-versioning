@@ -400,9 +400,7 @@ def test_suppressed_re_registration_cannot_steal_router_tombstone_ownership():
 
 
 @pytest.mark.parametrize("versioned", [False, True])
-def test_routers_with_different_path_modes_cannot_register_same_route_prefix(
-    versioned,
-):
+def test_routers_with_different_path_modes_cannot_register_same_route_prefix(versioned):
     """Regex and path converters can overlap despite different pattern strings."""
 
     class OrdersViewSet(viewsets.ViewSet):
@@ -423,7 +421,9 @@ def test_routers_with_different_path_modes_cannot_register_same_route_prefix(
         if versioned:
             # Different basenames also produce different logical endpoint IDs;
             # the shared route prefix is still a collision.
-            path_router.register("orders", OrdersViewSet, versions=[2], basename="orders")
+            path_router.register(
+                "orders", OrdersViewSet, versions=[2], basename="orders"
+            )
         else:
             path_router.register("orders", OrdersViewSet, basename="orders")
 
