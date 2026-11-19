@@ -52,6 +52,7 @@ OPENAPI_PATHS = (
 OPENAPI_EXPLICIT_PATHS = {
     "docs/design/versioned-openapi-contract.md",
     ".github/workflows/openapi-contract.yml",
+    ".github/workflows/publish.yml",
 }
 
 
