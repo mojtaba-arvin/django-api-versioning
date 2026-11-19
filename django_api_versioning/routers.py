@@ -236,9 +236,7 @@ class VersionedRouter:
         if any(
             not isinstance(method, str) or not method for method in normalized_methods
         ):
-            raise VersioningError(
-                "methods must contain non-empty HTTP method strings."
-            )
+            raise VersioningError("methods must contain non-empty HTTP method strings.")
         if len(set(normalized_methods)) != len(normalized_methods):
             raise VersioningError("methods must not contain duplicates.")
 
