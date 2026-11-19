@@ -74,14 +74,22 @@ class LifecycleMiddleware:
     ) -> HttpResponse:
         """Apply lifecycle headers or preserve version-wide 410 behavior."""
         state = _get_lifecycle_state(request)
-        if state is None:
-            return response
+        version = None
+        meta = None
+        version_deprecation_date = None
+        version_sunset_date = None
 
-        version, meta, deprecation_date, sunset_date = state
-        if not meta:
-            return response
+        if state is not None:
+            version, meta, version_deprecation_date, version_sunset_date = state
 
-        if sunset_date is not None and _is_past(sunset_date):
+        # Version-wide retirement remains authoritative and is evaluated
+        # before endpoint metadata. Endpoint Sunset never changes the status
+        # code or suppresses the existing version-wide 410 contract.
+        if (
+            meta
+            and version_sunset_date is not None
+            and _is_past(version_sunset_date)
+        ):
             if getattr(request, "_django_api_version_lifecycle_sunset_enforced", False):
                 return response
             sunset = meta.get("sunset")
@@ -89,18 +97,37 @@ class LifecycleMiddleware:
                 f"API version {version} has been retired as of {sunset}."
             )
 
-        status = meta.get("status")
-        if status in ("deprecated", "retired"):
-            if deprecation_date is not None:
-                response["Deprecation"] = _to_structured_field_date(deprecation_date)
-            elif status == "deprecated":
+        endpoint_lifecycle = _get_endpoint_lifecycle_state(request)
+        if not meta and endpoint_lifecycle is None:
+            return response
+
+        deprecation_dates = []
+        sunset_dates = []
+
+        if meta and meta.get("status") in ("deprecated", "retired"):
+            if version_deprecation_date is not None:
+                deprecation_dates.append(version_deprecation_date)
+            elif meta.get("status") == "deprecated":
                 logger.warning(
                     "Deprecated API version %s has no valid deprecated_at date; "
                     "omitting the Deprecation header.",
                     version,
                 )
-            if sunset_date:
-                response["Sunset"] = _to_http_date(sunset_date)
+            if version_sunset_date is not None:
+                sunset_dates.append(version_sunset_date)
+
+        if endpoint_lifecycle is not None:
+            if endpoint_lifecycle.deprecated_at is not None:
+                deprecation_dates.append(endpoint_lifecycle.deprecated_at)
+            if endpoint_lifecycle.sunset is not None:
+                sunset_dates.append(endpoint_lifecycle.sunset)
+
+        if deprecation_dates:
+            response["Deprecation"] = _to_structured_field_date(
+                min(deprecation_dates)
+            )
+        if sunset_dates:
+            response["Sunset"] = _to_http_date(min(sunset_dates))
         return response
 
 
@@ -132,6 +159,26 @@ def _get_lifecycle_state(
 
     request._django_api_version_lifecycle_state = state
     return state
+
+
+def _get_endpoint_lifecycle_state(request: HttpRequest):
+    """Resolve endpoint lifecycle metadata from Django's actual URL match."""
+    if hasattr(request, "_django_api_endpoint_lifecycle_state"):
+        return request._django_api_endpoint_lifecycle_state
+
+    match = getattr(request, "resolver_match", None)
+    if match is None:
+        lifecycle = None
+    else:
+        operation = registry.resolve_operation(match, request.method)
+        lifecycle = (
+            registry.get_endpoint_lifecycle(operation)
+            if operation is not None
+            else None
+        )
+
+    request._django_api_endpoint_lifecycle_state = lifecycle
+    return lifecycle
 
 
 def _coerce_version(value: Any) -> int | None:
