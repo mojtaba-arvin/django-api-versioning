@@ -603,9 +603,7 @@ def test_route_wide_lifecycle_headers_are_present_on_drf_405_responses():
             return Response([])
 
     router = VersionedRouter()
-    router.register(
-        "orders", ReadOnlyOrderViewSet, version=1, basename="order"
-    )
+    router.register("orders", ReadOnlyOrderViewSet, version=1, basename="order")
     router.set_lifecycle(
         "orders",
         "order-list",
@@ -631,9 +629,7 @@ def test_action_scoped_lifecycle_does_not_leak_to_unmapped_drf_methods():
             return Response([])
 
     router = VersionedRouter()
-    router.register(
-        "orders", ReadOnlyOrderViewSet, version=1, basename="order"
-    )
+    router.register("orders", ReadOnlyOrderViewSet, version=1, basename="order")
     router.set_lifecycle(
         "orders",
         "order-list",
@@ -660,9 +656,7 @@ def test_get_scoped_lifecycle_metadata_also_applies_to_head_requests():
             return Response([])
 
     router = VersionedRouter()
-    router.register(
-        "orders", ReadOnlyOrderViewSet, version=1, basename="order"
-    )
+    router.register("orders", ReadOnlyOrderViewSet, version=1, basename="order")
     router.set_lifecycle(
         "orders",
         "order-list",
