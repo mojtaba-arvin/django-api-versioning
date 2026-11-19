@@ -389,13 +389,13 @@ class UrlRegistry:
         """Return the index of a registered route, or None if absent."""
         route_key = self._canonical_route_key(route) if regex_route else route
         for index, pattern in enumerate(self.urlpatterns):
-            pattern_route = str(pattern.pattern)
-            if regex_route and pattern_route == route:
+            existing_pattern_text = str(pattern.pattern)
+            if regex_route and existing_pattern_text == route:
                 return index
             existing_key = (
-                self._canonical_route_key(pattern_route)
+                self._canonical_route_key(existing_pattern_text)
                 if isinstance(pattern.pattern, RegexPattern)
-                else pattern_route
+                else existing_pattern_text
             )
             if existing_key == route_key:
                 return index
