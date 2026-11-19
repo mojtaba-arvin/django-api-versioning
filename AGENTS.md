@@ -16,7 +16,7 @@ Shared policy for all coding agents. Procedures belong in skills; domain constra
 
 - Verify behavior against current source and executable tests, not article wording, old logs, generated data, or an agent's prior answer.
 - Distinguish route registration/import-time behavior from per-request version selection. Do not claim version channels participate in endpoint dispatch unless source and tests prove it.
-- Package-generated URL routing does not automatically populate DRF `request.version`. DRF ViewSets/routers are separate routing mechanisms; a ViewSet needs an action map through `as_view()`.
+- The decorator-based `@endpoint` API selects a callable from the URL path but does not automatically populate DRF `request.version`. The optional `VersionedRouter` integration delegates route generation to DRF `SimpleRouter`; `VersionedRouterVersioning` exposes the matched namespace through `request.version` and provides namespace-aware reversal. `@endpoint` does not decorate ViewSet classes directly because they require an action map.
 - For website tasks, read `website/AGENTS.md` for site-specific constraints. Shared repository and Git policy in this file always takes precedence.
 - Do not add model SDKs, agent frameworks, MCP servers, telemetry exporters, or LLM evaluation services to package runtime dependencies for repository automation.
 

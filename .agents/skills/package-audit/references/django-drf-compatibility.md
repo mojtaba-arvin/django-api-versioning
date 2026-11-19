@@ -17,7 +17,7 @@
    - DRF `APIView` and `GenericAPIView` classes registered through `@endpoint`.
    - DRF ViewSets registered through the optional `VersionedRouter`, which delegates route generation to `SimpleRouter` and registers each generated pattern in the package registry.
    - Verify `VersionedRouterVersioning` request-version identification, namespace-aware `reverse_action()` and hyperlinked fields, per-route inheritance, regex/path-converter routes, and coexistence with decorator endpoints.
-   - Verify explicit route removal and endpoint lifecycle metadata on current main separately from the published PyPI artifact until those APIs are released.
+   - Verify explicit route removal and endpoint lifecycle metadata against the 1.2.0 release candidate; do not claim PyPI availability until the annotated tag workflow and installed artifact confirm publication.
    - Keep the boundary explicit: direct `@endpoint(ViewSetClass)` decoration is unsupported, and `DefaultRouter` API-root/format-suffix parity is not implemented. Plain DRF routers remain a valid separate alternative.
 
 3. **Execute Compatibility Tests**
