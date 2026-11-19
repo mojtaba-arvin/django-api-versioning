@@ -1,6 +1,6 @@
 # Versioned OpenAPI contract integration
 
-**Status:** Executable integration and CI validation complete  
+**Status:** Executable repository integration and CI validation complete on `main` after the `v1.1.0` release; not included in the published `1.1.0` wheel. The current mainline tag-based publish workflow requires this contract gate for future releases.  
 **Runtime dependencies:** None added
 
 ## Decision
