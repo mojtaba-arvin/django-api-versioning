@@ -56,7 +56,7 @@ class AgentToolingTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             agent.context_profile("everything")
 
-    def test_release_provenance_scenario_covers_tag_and_artifact_boundaries(self) -> None:
+    def test_release_provenance_eval_covers_artifact_boundary(self) -> None:
         evaluation = json.loads(
             (ROOT / ".agents/evals/scenarios.json").read_text(encoding="utf-8")
         )
