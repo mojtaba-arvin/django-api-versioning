@@ -52,6 +52,8 @@ You can instead set `versioning_class = VersionedRouterVersioning` on an individ
 
 Use the familiar DRF registration style, adding either `version` or `versions`:
 
+The example assumes the application already defines `orders.models.Order` with `status` and `total` fields.
+
 ```python
 # orders/views.py
 
