@@ -1,6 +1,7 @@
 import pytest
+from urllib.parse import unquote
 from django.http import JsonResponse
-from django.urls import NoReverseMatch, re_path, register_converter
+from django.urls import NoReverseMatch, re_path, register_converter, resolve
 
 from django_api_versioning import api_reverse
 from django_api_versioning.decorators import endpoint
@@ -186,11 +187,14 @@ class TestApiReverse:
         def file_detail(request, resource):
             return JsonResponse({"resource": resource})
 
-        assert api_reverse(
+        url = api_reverse(
             "encoded-file",
             version=1,
             resource="reports/annual?draft=true#section",
-        ) == "/api/v1/files/reports/annual%3Fdraft=true%23section/"
+        )
+        assert url == "/api/v1/files/reports/annual%3Fdraft=true%23section/"
+        match = resolve(unquote(url), urlconf=registry.urlpatterns)
+        assert match.kwargs["resource"] == "reports/annual?draft=true#section"
 
 
 def test_regex_backed_urlpattern_uses_django_reverse():
