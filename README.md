@@ -70,12 +70,7 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 
 This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
 
-When an endpoint must stop existing in a later version, declare that explicitly
-with `remove_endpoint("orders/", from_version=3)`. The route remains available
-in earlier versions, disappears from the removed version onward, and can be
-reintroduced by a later version declaration. For DRF, use
-`VersionedRouter.remove(prefix, route_name, from_version=...)` to remove one
-generated action without removing the rest of its ViewSet.
+**Unreleased on repository main:** Explicit endpoint removal is the next planned package addition; it is not included in the currently published PyPI artifact. In the current mainline source, use `remove_endpoint("orders/", from_version=3)` for decorator endpoints or `VersionedRouter.remove(prefix, route_name, from_version=...)` for one generated DRF action. Earlier versions retain the route, removed versions return 404, and a later source declaration can explicitly reintroduce it. See the [Unreleased changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md#unreleased) before relying on this API.
 
 ## Why use it with Django REST Framework?
 
