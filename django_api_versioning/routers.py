@@ -122,14 +122,35 @@ class VersionedRouter:
         else:
             declarations = [(None, None)]
 
-        for route_version, source_version in declarations:
-            self._register_version(
-                prefix=prefix,
-                viewset=viewset,
-                basename=basename,
-                source_version=source_version,
-                route_version=route_version,
-            )
+        # A logical registration may expand into several concrete versions.
+        # Treat the expansion as one transaction: a collision in a later
+        # version must not leave earlier routes or router bookkeeping behind.
+        registry_urlpatterns = list(registry.urlpatterns)
+        removed_patterns = dict(registry._removed_patterns)
+        route_keys = set(self._route_keys)
+        basenames = dict(self._basenames)
+        basename_prefixes = dict(self._basename_prefixes)
+
+        try:
+            for route_version, source_version in declarations:
+                self._register_version(
+                    prefix=prefix,
+                    viewset=viewset,
+                    basename=basename,
+                    source_version=source_version,
+                    route_version=route_version,
+                )
+        except Exception:
+            registry.urlpatterns[:] = registry_urlpatterns
+            registry._removed_patterns.clear()
+            registry._removed_patterns.update(removed_patterns)
+            self._route_keys.clear()
+            self._route_keys.update(route_keys)
+            self._basenames.clear()
+            self._basenames.update(basenames)
+            self._basename_prefixes.clear()
+            self._basename_prefixes.update(basename_prefixes)
+            raise
 
     def remove(self, prefix: str, route_name: str, *, from_version: int) -> None:
         """Remove one logical DRF route from a concrete version onward.
