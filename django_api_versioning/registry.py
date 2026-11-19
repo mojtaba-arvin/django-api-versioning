@@ -4,6 +4,7 @@ from typing import Callable
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
+from django.urls.resolvers import RegexPattern
 from django.views import View
 
 from .exceptions import (
@@ -172,6 +173,11 @@ class UrlRegistry:
 
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]
+            if getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None) is not None:
+                raise VersioningError(
+                    f"Route pattern {route!r} is already owned by a VersionedRouter; "
+                    "decorator registration cannot replace it."
+                )
 
             if not self._should_replace(existing_pattern, source_version):
                 return
@@ -224,7 +230,11 @@ class UrlRegistry:
             raise TypeError("pattern must be a django.urls.URLPattern instance.")
 
         route_key = str(pattern.pattern)
-        route_index = self._find_route_index(route_key)
+        route_index = self._find_route_index(
+            route_key,
+            regex_route=isinstance(pattern.pattern, RegexPattern),
+            new_owner=getattr(pattern, self._ROUTER_OWNER_ATTR, None),
+        )
 
         if route_index is None:
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
@@ -257,9 +267,33 @@ class UrlRegistry:
                 and new_router is not None
                 and existing_router is not new_router
             ):
+                existing_prefix = getattr(
+                    existing_pattern, self._ROUTER_PREFIX_ATTR, None
+                )
+                new_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
+                same_router_prefix = (
+                    existing_prefix is not None
+                    and existing_prefix == new_prefix
+                    and getattr(
+                        existing_pattern, self._ROUTER_TRAILING_SLASH_ATTR, None
+                    )
+                    == getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
+                    and getattr(existing_pattern, self._ROUTE_VERSION_ATTR, None)
+                    == route_version
+                )
+                if same_router_prefix:
+                    raise VersioningError(
+                        f"Router prefix {new_prefix!r} in version {route_version} "
+                        "is already registered by another VersionedRouter instance."
+                    )
                 raise VersioningError(
                     f"Route pattern {route_key!r} is already registered by another "
                     "VersionedRouter instance. Use a distinct route prefix for each router."
+                )
+            if (existing_router is None) != (new_router is None):
+                raise VersioningError(
+                    f"Route pattern {route_key!r} is already registered by a "
+                    "different registration owner. Use a distinct route path."
                 )
             if not self._should_replace(existing_pattern, source_version):
                 return
@@ -295,7 +329,16 @@ class UrlRegistry:
 
     def get_route_version(self, route: str) -> int | None:
         """Return the concrete version registered for a resolved route."""
-        route_index = self._find_route_index(route)
+        route_index = next(
+            (
+                index
+                for index, pattern in enumerate(self.urlpatterns)
+                if str(pattern.pattern) == route
+            ),
+            None,
+        )
+        if route_index is None:
+            route_index = self._find_route_index(route)
         if route_index is None:
             return None
 
@@ -344,10 +387,48 @@ class UrlRegistry:
             matrix.setdefault(logical_id, {})[route_version] = REMOVED_ROUTE
         return matrix
 
-    def _find_route_index(self, route: str) -> int | None:
+    @staticmethod
+    def _canonical_route_key(route: str) -> str:
+        """Normalize simple anchored regex routes to their literal path form.
+
+        DRF regex routes use ^literal/path/$ while Django path() uses
+        literal/path/. Treat them as identical only for static literal paths.
+        """
+        if not (route.startswith("^") and route.endswith("$")):
+            return route
+
+        literal = route[1:-1]
+        if "<" in literal or ">" in literal:
+            return route
+        if any(character in literal for character in r".^$*+?{}[]\\|()"):
+            return route
+        return literal
+
+    def _find_route_index(
+        self,
+        route: str,
+        *,
+        regex_route: bool = False,
+        new_owner: object | None = None,
+    ) -> int | None:
         """Return the index of a registered route, or None if absent."""
         for index, pattern in enumerate(self.urlpatterns):
-            if str(pattern.pattern) == route:
+            existing_pattern_text = str(pattern.pattern)
+            existing_is_regex = isinstance(pattern.pattern, RegexPattern)
+            if existing_pattern_text == route and existing_is_regex == regex_route:
+                return index
+
+            existing_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if new_owner is None and existing_owner is None:
+                continue
+
+            route_key = self._canonical_route_key(route) if regex_route else route
+            existing_key = (
+                self._canonical_route_key(existing_pattern_text)
+                if existing_is_regex
+                else existing_pattern_text
+            )
+            if existing_key == route_key:
                 return index
 
         return None
@@ -374,6 +455,74 @@ class UrlRegistry:
                     continue
                 matched_length = max(matched_length, len(pattern_candidate))
         return matched_length
+
+    def get_resolved_route_version_for_match(
+        self, resolver_match: object
+    ) -> tuple[bool, int | None]:
+        """Resolve version metadata for the exact URLPattern Django matched.
+
+        The boolean distinguishes an explicitly registered unversioned route
+        from a route that is absent from this registry. This matters for nested
+        includes: a parent URL prefix may contain an API-looking version even
+        when the matched child route is unversioned.
+        """
+        route = getattr(resolver_match, "route", None)
+        callback = getattr(resolver_match, "func", None)
+        if not isinstance(route, str) or callback is None:
+            return False, None
+
+        tried = getattr(resolver_match, "tried", None)
+        if isinstance(tried, (list, tuple)):
+            matched_pattern_ids = {
+                id(chain[-1])
+                for chain in tried
+                if chain and isinstance(chain[-1], URLPattern)
+            }
+            url_name = getattr(resolver_match, "url_name", None)
+            exact_matches = [
+                pattern
+                for pattern in self.urlpatterns
+                if id(pattern) in matched_pattern_ids
+                and pattern.callback is callback
+                and (url_name is None or pattern.name == url_name)
+                and self._resolved_route_match_length(route, str(pattern.pattern))
+            ]
+            if not exact_matches:
+                return False, None
+            versions = {
+                getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+                for pattern in exact_matches
+            }
+            if len(versions) != 1:
+                return True, None
+            return True, next(iter(versions))
+
+        url_name = getattr(resolver_match, "url_name", None)
+        matches = []
+        for pattern in self.urlpatterns:
+            if pattern.callback is not callback:
+                continue
+            if url_name is not None and pattern.name != url_name:
+                continue
+            matched_length = self._resolved_route_match_length(
+                route, str(pattern.pattern)
+            )
+            if matched_length:
+                matches.append(
+                    (
+                        matched_length,
+                        getattr(pattern, self._ROUTE_VERSION_ATTR, None),
+                    )
+                )
+
+        if not matches:
+            return False, None
+
+        longest = max(length for length, _ in matches)
+        versions = {version for length, version in matches if length == longest}
+        if len(versions) != 1:
+            return True, None
+        return True, next(iter(versions))
 
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
@@ -591,7 +740,7 @@ class UrlRegistry:
         if action is not None:
             if not isinstance(action, str) or not action.strip():
                 raise VersioningError("Endpoint lifecycle action must be a string.")
-            normalized_action = action.strip().lower()
+            normalized_action = action.strip()
 
         lifecycle = parse_endpoint_lifecycle(deprecated_at, sunset)
         key = (

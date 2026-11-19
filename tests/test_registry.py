@@ -1136,3 +1136,22 @@ def test_suppressed_urlpattern_does_not_remove_another_logical_endpoint(
     assert len(registry.urlpatterns) == 1
     assert registry.urlpatterns[0].callback is existing
     assert ("orders", 3) in registry._removed_patterns
+
+
+def test_literal_path_with_regex_anchor_characters_does_not_collide_with_regex_route(
+    clear_registry,
+):
+    """A Django path route treats ^ and $ literally, unlike re_path()."""
+
+    def regex_view(request):
+        return None
+
+    def literal_path_view(request):
+        return None
+
+    registry.register_urlpattern(re_path(r"^literal/$", regex_view))
+    registry.register("^literal/$", literal_path_view)
+
+    assert len(registry.urlpatterns) == 2
+    assert registry.urlpatterns[0].callback is regex_view
+    assert registry.urlpatterns[1].callback is literal_path_view

@@ -775,3 +775,58 @@ def test_removal_preserves_lifecycle_for_an_already_reintroduced_newer_source(
     assert response.status_code == 200
     assert response.content == b"reintroduced"
     assert response["Deprecation"] == "@1893456000"
+
+
+def test_nested_unversioned_child_does_not_inherit_parent_api_version_lifecycle():
+    def health(request):
+        return HttpResponse("healthy")
+
+    registry.register_urlpattern(path("health/", health))
+    context = _install(
+        [path("api/v1/proxy/", include(registry.urlpatterns))],
+        _lifecycle(_retired(), _deprecated()),
+    )
+
+    with context:
+        response = Client().get("/api/v1/proxy/health/")
+
+    assert response.status_code == 200
+    assert response.content == b"healthy"
+    assert "Deprecation" not in response
+    assert "Sunset" not in response
+
+
+@pytest.mark.parametrize(
+    "date_value",
+    [
+        "0001-01-01T00:00:00+14:00",
+        "9999-12-31T23:59:59-14:00",
+    ],
+)
+def test_endpoint_lifecycle_extreme_utc_offsets_raise_versioning_error(date_value):
+    @endpoint("extreme-lifecycle-date", versions=[2])
+    def endpoint_view(request):
+        return HttpResponse("ok")
+
+    with pytest.raises(VersioningError, match="valid ISO 8601 date"):
+        set_endpoint_lifecycle(
+            "extreme-lifecycle-date",
+            version=2,
+            deprecated_at=date_value,
+        )
+
+
+def test_unregistered_route_reusing_unversioned_callback_keeps_path_version_policy():
+    def health(request):
+        return HttpResponse("manual versioned route")
+
+    registry.register_urlpattern(path("health/", health))
+    context = _install(
+        [path("api/v1/proxy/health/", health)],
+        _lifecycle(_retired(), _deprecated()),
+    )
+
+    with context:
+        response = Client().get("/api/v1/proxy/health/")
+
+    assert response.status_code == 410
