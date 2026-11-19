@@ -512,3 +512,26 @@ def test_failed_registration_does_not_reserve_prefix_or_basename():
         == "comments:post-list"
         for pattern in registry.urlpatterns
     )
+
+
+def test_multi_version_registration_is_atomic_when_a_later_version_collides():
+    """A collision in a later concrete version must not leave earlier versions."""
+    existing_router = VersionedRouter()
+    existing_router.register("posts", PostViewSetV1, version=2, basename="post")
+
+    candidate_router = VersionedRouter()
+    with pytest.raises(VersioningError, match="another VersionedRouter"):
+        candidate_router.register(
+            "posts",
+            PostViewSetV2,
+            versions=[1, 2],
+            basename="post",
+        )
+
+    candidate_routes = [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is candidate_router._registry_owner
+    ]
+    assert candidate_routes == []
