@@ -9,8 +9,7 @@ from types import SimpleNamespace
 import pytest
 from rest_framework.versioning import URLPathVersioning
 
-pytest.importorskip("drf_spectacular.openapi")
-from drf_spectacular.openapi import AutoSchema
+AutoSchema = pytest.importorskip("drf_spectacular.openapi").AutoSchema
 
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
 from django_api_versioning.registry import registry
