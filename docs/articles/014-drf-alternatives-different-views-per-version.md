@@ -336,14 +336,14 @@ DRF routers discover the extra actions declared on the ViewSet, including inheri
 The approaches solve related but different problems:
 
 | Concern | `django-api-versioning` with generic views | Per-version ViewSets and routers | Mixin-based ViewSets | `VersionedRouter` |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- |
 | Main registration mechanism | `@endpoint` declarations | `SimpleRouter` registrations | `SimpleRouter` registrations | `VersionedRouter` registrations |
-| Version-specific implementations | Separate decorated views | Separate ViewSet classes | Separate ViewSet classes |
-| Shared behavior | Python inheritance or shared helpers | Optional Python inheritance | Composed mixins and shared base classes |
+| Version-specific implementations | Separate decorated views | Separate ViewSet classes | Separate ViewSet classes | Separate ViewSet classes |
+| Shared behavior | Python inheritance or shared helpers | Optional Python inheritance | Composed mixins and shared base classes | Optional Python inheritance or mixins |
 | Carry-forward of unchanged routes | Supported through `version=N` | Must be represented in router configuration | Must be represented in router configuration | Supported per generated route through the package registry |
 | `ModelViewSet` and `@action` | Not supported by direct class decoration; use a configured callable only for one route | Supported | Supported | Supported through DRF `SimpleRouter` integration |
 | URLconf structure | One include for generated package routes | Router URLs mounted under each version | Router URLs mounted under each version | VersionedRouter-generated version namespaces |
-| Import requirement | Import decorated modules during URLconf initialization; exported urlpatterns is a shared list | Import ViewSets before router registration | Import ViewSets and mixins before router registration |
+| Import requirement | Import decorated modules during URLconf initialization; exported urlpatterns is a shared list | Import ViewSets before router registration | Import ViewSets and mixins before router registration | Import ViewSets and configure the versioning adapter before requests |
 
 The package is most useful when the main maintenance problem is registering endpoint implementations across versions, particularly when many endpoints remain unchanged and only selected implementations need replacement.
 
