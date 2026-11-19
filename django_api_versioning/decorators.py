@@ -89,10 +89,21 @@ def endpoint(
         # The schema adapter for URLPathVersioning has no ResolverMatch. Carry
         # the stable decorator identity on the view class, not on callback
         # identity, so schema introspection can resolve it through the registry.
-        setattr(view, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+        attribute_name = registry._LOGICAL_ENDPOINT_ATTR
         view_class = getattr(view, "cls", None)
-        if isinstance(view_class, type):
-            setattr(view_class, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+        attribute_targets = [view]
+        if isinstance(view_class, type) and view_class is not view:
+            attribute_targets.append(view_class)
+        missing = object()
+        previous_attributes = [
+            (target, getattr(target, "__dict__", {}).get(attribute_name, missing))
+            for target in attribute_targets
+        ]
+        previous_urlpatterns = list(registry.urlpatterns)
+        previous_removed_patterns = dict(registry._removed_patterns)
+
+        # Calculate logical endpoint ID from unversioned path
+        logical_endpoint = f"{app_name_part}{postfix}"
 
         def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
@@ -110,33 +121,46 @@ def endpoint(
                 logical_endpoint=logical_endpoint,
             )
 
-        if version is not None:
-            if version < min_version:
-                logger.warning(
-                    "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
-                    "No routes will be registered.",
-                    postfix,
-                    version,
-                    min_version,
-                )
-                return view
-            for ver in range(version, max_version + 1):
-                _register_route(ver, source_version=version)
-        elif versions is not None:
-            for ver in versions:
-                if ver < min_version:
+        try:
+            for target in attribute_targets:
+                setattr(target, attribute_name, logical_endpoint)
+
+            if version is not None:
+                if version < min_version:
                     logger.warning(
                         "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
-                        "Skipping this version.",
+                        "No routes will be registered.",
                         postfix,
-                        ver,
+                        version,
                         min_version,
                     )
-                    continue
-                _register_route(ver, source_version=ver)
-        else:
-            _register_route(None, source_version=None)
-
+                    return view
+                for ver in range(version, max_version + 1):
+                    _register_route(ver, source_version=version)
+            elif versions is not None:
+                for ver in versions:
+                    if ver < min_version:
+                        logger.warning(
+                            "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
+                            "Skipping this version.",
+                            postfix,
+                            ver,
+                            min_version,
+                        )
+                        continue
+                    _register_route(ver, source_version=ver)
+            else:
+                _register_route(None, source_version=None)
+        except Exception:
+            registry.urlpatterns[:] = previous_urlpatterns
+            registry._removed_patterns.clear()
+            registry._removed_patterns.update(previous_removed_patterns)
+            for target, previous_value in previous_attributes:
+                if previous_value is missing:
+                    target.__dict__.pop(attribute_name, None)
+                else:
+                    setattr(target, attribute_name, previous_value)
+            raise
         return view
 
     return decorator
