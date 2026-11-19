@@ -137,8 +137,8 @@ class TestApiReverse:
             "/api/v1/items/abc/"
         )
 
-    def test_kwarg_with_backslash_not_treated_as_regex_escape(self):
-        """Ensure parameters with backslashes don't trigger regex escape sequences."""
+    def test_kwarg_with_backslash_is_percent_encoded(self):
+        """Backslashes in path parameters must not become URL separators."""
 
         @endpoint("docs/<slug>/", version=1, view_name="doc-detail")
         def doc_detail(request, slug):
@@ -146,7 +146,7 @@ class TestApiReverse:
 
         # Parameter containing backslash should be literal, not regex escape sequence
         url = api_reverse("doc-detail", version=1, slug=r"path\to\file")
-        assert url == r"/api/v1/docs/path\to\file/"
+        assert url == "/api/v1/docs/path%5Cto%5Cfile/"
 
     def test_kwarg_with_dollar_sign_not_treated_as_regex_group(self):
         """Ensure parameters with $ don't trigger regex group references."""
@@ -160,7 +160,7 @@ class TestApiReverse:
         assert url == "/api/v1/items/price$5/"
 
     def test_kwarg_with_regex_metacharacters(self):
-        """Ensure all regex metacharacters are escaped in parameters."""
+        """URL-reserved characters are encoded without regex interpolation."""
 
         @endpoint("search/<query>/", version=1, view_name="search-results")
         def search(request, query):
@@ -180,6 +180,18 @@ class TestApiReverse:
         for query, expected_url in test_cases:
             url = api_reverse("search-results", version=1, query=query)
             assert url == expected_url, f"Failed for query={query!r}"
+
+    def test_path_converter_encodes_query_and_fragment_delimiters(self):
+        @endpoint("files/<path:resource>/", version=1, view_name="encoded-file")
+        def file_detail(request, resource):
+            return JsonResponse({"resource": resource})
+
+        assert api_reverse(
+            "encoded-file",
+            version=1,
+            resource="reports/annual?draft=true#section",
+        ) == "/api/v1/files/reports/annual%3Fdraft=true%23section/"
+
 
 
 def test_regex_backed_urlpattern_uses_django_reverse():
