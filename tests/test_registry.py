@@ -672,9 +672,7 @@ def test_resolve_registered_operation_uses_decorator_identity_and_version(
         logical_endpoint="decorated-status/",
     )
 
-    operation = registry.resolve_registered_operation(
-        "decorated-status/", 2, "get"
-    )
+    operation = registry.resolve_registered_operation("decorated-status/", 2, "get")
 
     assert operation is not None
     assert operation.logical_endpoint == "decorated-status/"
@@ -682,12 +680,8 @@ def test_resolve_registered_operation_uses_decorator_identity_and_version(
     assert operation.source_version == 2
     assert operation.method == "GET"
     assert operation.action is None
-    assert registry.resolve_registered_operation(
-        "decorated-status/", 1, "GET"
-    ) is None
-    assert registry.resolve_registered_operation(
-        "unknown/", 2, "GET"
-    ) is None
+    assert registry.resolve_registered_operation("decorated-status/", 1, "GET") is None
+    assert registry.resolve_registered_operation("unknown/", 2, "GET") is None
 
 
 def test_resolve_registered_operation_fails_closed_for_duplicate_identity(
@@ -715,9 +709,7 @@ def test_resolve_registered_operation_fails_closed_for_duplicate_identity(
         logical_endpoint="decorated-status/",
     )
 
-    assert registry.resolve_registered_operation(
-        "decorated-status/", 2, "GET"
-    ) is None
+    assert registry.resolve_registered_operation("decorated-status/", 2, "GET") is None
 
 
 def test_resolve_operation_fails_closed_for_unregistered_or_mismatched_route(
