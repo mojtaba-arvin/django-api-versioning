@@ -106,8 +106,11 @@ operation as deprecated. Sibling actions and other API versions remain
 unchanged. The executable verifier runs this isolated scenario in addition
 to the unchanged committed baseline checks.
 
-This first adapter covers `VersionedRouter` with `NamespaceVersioning`.
-Decorator endpoints using `URLPathVersioning` need a separate adapter based
-on their registered logical endpoint metadata and remain a follow-up. The
-integration intentionally does not infer operation identity from generated
-paths or operation IDs.
+The adapter also supports DRF function/class views registered through
+`@endpoint` when they use `URLPathVersioning`. The decorator attaches its
+logical endpoint identity to the view class; drf-spectacular supplies the
+concrete schema version in `view.kwargs`, and the adapter resolves that pair
+against the active registry. This path is used only when no
+`ResolverMatch` exists and never falls back to generated path or operation ID
+matching. The verifier covers a decorator endpoint deprecated in V1 but not
+V2, alongside the VersionedRouter action-scope case.
