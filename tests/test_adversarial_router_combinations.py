@@ -284,3 +284,11 @@ def test_router_urls_exclude_reintroduced_routes_owned_by_another_router(monkeyp
 
     assert owned_versions(original_router) == {1}
     assert owned_versions(replacement_router) == {3}
+
+    with pytest.raises(VersioningError, match="found 0"):
+        original_router.set_lifecycle(
+            "orders",
+            "order-list",
+            version=3,
+            deprecated_at="2030-01-01T00:00:00Z",
+        )
