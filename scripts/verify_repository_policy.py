@@ -115,6 +115,12 @@ def _validate_workflow_permissions(errors: list[str]) -> None:
         errors.append("Missing .github/workflows/generate-evidence.yml")
         return
     content = evidence.read_text(encoding="utf-8")
+    publish = WORKFLOWS / "publish.yml"
+    if not publish.exists():
+        errors.append("Missing .github/workflows/publish.yml")
+        publish_content = ""
+    else:
+        publish_content = publish.read_text(encoding="utf-8")
 
     def job_block(name: str) -> str:
         match = re.search(
@@ -143,6 +149,23 @@ def _validate_workflow_permissions(errors: list[str]) -> None:
         errors.append(
             "Evidence workflow must separate generation and commit into distinct jobs"
         )
+    def release_job_block() -> str:
+        match = re.search(
+            r"(?ms)^  github-release:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            publish_content,
+        )
+        return match.group(1) if match else ""
+
+    release_job = release_job_block()
+    if not re.search(r"(?m)^    permissions:\n      contents: write$", release_job):
+        errors.append("GitHub Release creation must use a job-scoped contents: write grant")
+    if not re.search(r"(?m)^    needs: publish$", release_job):
+        errors.append("GitHub Release creation must depend on successful PyPI publication")
+    if "gh release create" not in release_job:
+        errors.append("The isolated GitHub Release job must create the tagged release")
+    if "id-token: write" in release_job:
+        errors.append("GitHub Release creation must not receive PyPI OIDC permissions")
+
     if re.search(r"(?m)^\s*(?:python|node|npm|pnpm|uv|tox)\b", committer):
         errors.append("Evidence commit job must not execute repository or package code")
     if "--force" in committer or "git reset" in committer:
@@ -153,8 +176,11 @@ def _validate_workflow_permissions(errors: list[str]) -> None:
         for line in workflow.read_text(encoding="utf-8").splitlines():
             if re.match(r"^\s*contents:\s*write\s*$", line):
                 write_grants.append((workflow.name, len(line) - len(line.lstrip())))
-    if write_grants != [("generate-evidence.yml", 6)]:
-        errors.append("Only generate-evidence's commit job may grant contents: write")
+    if write_grants != [("generate-evidence.yml", 6), ("publish.yml", 6)]:
+        errors.append(
+            "Only the isolated evidence commit and post-publication GitHub Release jobs "
+            "may grant contents: write"
+        )
 
 
 def _validate_reusable_workflows(errors: list[str]) -> None:
