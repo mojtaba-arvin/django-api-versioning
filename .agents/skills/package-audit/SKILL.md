@@ -43,7 +43,7 @@ For a comprehensive audit, read all twelve references. For a focused review, loa
 ## Audit Execution Workflow
 
 1. Define the audit scope and load only the applicable dimension references; use all twelve only for a comprehensive audit.
-2. Record the immutable source commit and package version, then inspect implementation, callers, public APIs, and matching tests.
+2. Record the immutable source commit, latest published version, and exact annotated release-tag commit. Compare the tag tree and tag-time workflows with current `main` before inspecting implementation, callers, public APIs, and matching tests; current-main docs or examples are not proof that an API exists in the published wheel.
 3. Verify documented claims against source and executable behavior. Run focused tests first; use the manual-testing skill when full compatibility evidence is required.
 4. Classify each observation as verified, suspected, implemented, partial, a known limitation, or a proposed improvement.
 5. Report actionable findings with exact locations, impact, evidence, and the smallest safe recommendation. Record executed commands, exit codes, and unverified areas.
@@ -74,6 +74,7 @@ Document audit findings in a clear, structured format. Populate all counts, vers
 - `API_VERSIONING_CHANNELS` and `extract_version()` do not currently provide end-to-end header/query-based routing through the package registry.
 - Python versions below 3.10 are outside the declared package requirement.
 - Explicit endpoint removal and endpoint-level lifecycle declarations are present on repository `main` but remain under `Unreleased`; verify the release tag and installed artifact before claiming they are available to PyPI consumers.
+- The executable versioned OpenAPI consumer example and `oasdiff` release gate were added to repository `main` after `v1.1.0`; they are repository-level validation tooling, not part of the published wheel. Verify the exact release tag and tag-time workflow before attributing them to a release.
 
 **RECOMMENDATIONS**:
 - If header/query-based request routing is a product goal, trace and test the integration from channel extraction through request dispatch before claiming support.
