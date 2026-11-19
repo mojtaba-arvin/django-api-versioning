@@ -25,6 +25,156 @@ def ver_range(start: int, end: int) -> list[int]:
     return list(range(start, end + 1))
 
 
+def _register_endpoint_route(
+    postfix: str,
+    app_name_part: str,
+    view: Callable,
+    view_name: str | None,
+    version: int | None,
+    source_version: int | None,
+) -> None:
+    """Register one concrete route for an endpoint declaration."""
+    base_path = (
+        settings.API_BASE_PATH.format(version=version) if version is not None else ""
+    )
+    registry.register(
+        f"{base_path}{app_name_part}{postfix}",
+        view,
+        view_name,
+        source_version=source_version,
+        route_version=version,
+        logical_endpoint=f"{app_name_part}{postfix}",
+    )
+
+
+def _register_endpoint_routes(
+    postfix: str,
+    app_name_part: str,
+    view: Callable,
+    view_name: str | None,
+    version: int | None,
+    versions: list[int] | None,
+    min_version: int,
+    max_version: int,
+) -> None:
+    """Register all concrete versions selected by one endpoint declaration."""
+    if version is not None:
+        if version < min_version:
+            logger.warning(
+                "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
+                "No routes will be registered.",
+                postfix,
+                version,
+                min_version,
+            )
+            return
+        for concrete_version in range(version, max_version + 1):
+            _register_endpoint_route(
+                postfix,
+                app_name_part,
+                view,
+                view_name,
+                concrete_version,
+                source_version=version,
+            )
+    elif versions is not None:
+        for concrete_version in versions:
+            if concrete_version < min_version:
+                logger.warning(
+                    "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
+                    "Skipping this version.",
+                    postfix,
+                    concrete_version,
+                    min_version,
+                )
+                continue
+            _register_endpoint_route(
+                postfix,
+                app_name_part,
+                view,
+                view_name,
+                concrete_version,
+                source_version=concrete_version,
+            )
+    else:
+        _register_endpoint_route(
+            postfix,
+            app_name_part,
+            view,
+            view_name,
+            None,
+            source_version=None,
+        )
+
+
+def _register_endpoint_view(
+    view: Callable,
+    postfix: str,
+    version: int | None,
+    versions: list[int] | None,
+    app_name: str | None,
+    view_name: str | None,
+) -> None:
+    """Register an endpoint view atomically and attach schema identity."""
+    min_version = settings.API_MIN_VERSION
+    max_version = settings.API_MAX_VERSION
+
+    if version is not None:
+        _validate_version(version, max_version)
+    if versions is not None:
+        for concrete_version in versions:
+            _validate_version(concrete_version, max_version)
+
+    app_name_part = f"{app_name}/" if app_name else ""
+    logical_endpoint = f"{app_name_part}{postfix}"
+    attribute_name = registry._LOGICAL_ENDPOINT_ATTR
+    view_class = getattr(view, "cls", None)
+    attribute_targets = [view]
+    if isinstance(view_class, type) and view_class is not view:
+        attribute_targets.append(view_class)
+
+    missing = object()
+    previous_attributes = [
+        (
+            target,
+            getattr(target, attribute_name, missing),
+            attribute_name in getattr(target, "__dict__", {}),
+        )
+        for target in attribute_targets
+    ]
+    previous_urlpatterns = list(registry.urlpatterns)
+    previous_removed_patterns = dict(registry._removed_patterns)
+
+    try:
+        for target in attribute_targets:
+            setattr(target, attribute_name, logical_endpoint)
+        _register_endpoint_routes(
+            postfix,
+            app_name_part,
+            view,
+            view_name,
+            version,
+            versions,
+            min_version,
+            max_version,
+        )
+    except Exception:
+        registry.urlpatterns[:] = previous_urlpatterns
+        registry._removed_patterns.clear()
+        registry._removed_patterns.update(previous_removed_patterns)
+        for target, previous_value, had_own_attribute in previous_attributes:
+            if had_own_attribute:
+                setattr(target, attribute_name, previous_value)
+            elif previous_value is missing or hasattr(target, "__dict__"):
+                try:
+                    delattr(target, attribute_name)
+                except AttributeError:
+                    pass
+            else:
+                setattr(target, attribute_name, previous_value)
+        raise
+
+
 def endpoint(
     postfix: str,
     version: int | None = None,
@@ -69,108 +219,17 @@ def endpoint(
         raise VersionTypeError("'versions' must be a list of integers.")
 
     def decorator(view: Callable) -> Callable:
-        # Settings object is pre-validated at module load time by APISettings.
-        # Accessing validated api_settings directly instead of getattr() with defaults
-        # and re-validating, which was redundant with the validation in settings.py.
-        min_version: int = settings.API_MIN_VERSION
-        max_version: int = settings.API_MAX_VERSION
-
-        if version is not None:
-            _validate_version(version, max_version)
-        if versions is not None:
-            for v in versions:
-                _validate_version(v, max_version)
-
-        app_name_part: str = f"{app_name}/" if app_name else ""
-
-        # Calculate logical endpoint ID from unversioned path
-        logical_endpoint = f"{app_name_part}{postfix}"
-
-        # The schema adapter for URLPathVersioning has no ResolverMatch. Carry
-        # the stable decorator identity on the view class, not on callback
-        # identity, so schema introspection can resolve it through the registry.
-        attribute_name = registry._LOGICAL_ENDPOINT_ATTR
-        view_class = getattr(view, "cls", None)
-        attribute_targets = [view]
-        if isinstance(view_class, type) and view_class is not view:
-            attribute_targets.append(view_class)
-        missing = object()
-        previous_attributes = [
-            (
-                target,
-                getattr(target, attribute_name, missing),
-                attribute_name in getattr(target, "__dict__", {}),
-            )
-            for target in attribute_targets
-        ]
-        previous_urlpatterns = list(registry.urlpatterns)
-        previous_removed_patterns = dict(registry._removed_patterns)
-
-        def _register_route(ver: int | None, source_version: int | None) -> None:
-            """Helper function to register a route in the registry."""
-            if ver is None:
-                base_path = ""  # No version prefix
-            else:
-                base_path = settings.API_BASE_PATH.format(version=ver)
-            route = f"{base_path}{app_name_part}{postfix}"
-            registry.register(
-                route,
-                view,
-                view_name,
-                source_version=source_version,
-                route_version=ver,
-                logical_endpoint=logical_endpoint,
-            )
-
-        try:
-            for target in attribute_targets:
-                setattr(target, attribute_name, logical_endpoint)
-
-            if version is not None:
-                if version < min_version:
-                    logger.warning(
-                        "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
-                        "No routes will be registered.",
-                        postfix,
-                        version,
-                        min_version,
-                    )
-                    return view
-                for ver in range(version, max_version + 1):
-                    _register_route(ver, source_version=version)
-            elif versions is not None:
-                for ver in versions:
-                    if ver < min_version:
-                        logger.warning(
-                            "Endpoint %r is declared for version %d, but API_MIN_VERSION is %d. "
-                            "Skipping this version.",
-                            postfix,
-                            ver,
-                            min_version,
-                        )
-                        continue
-                    _register_route(ver, source_version=ver)
-            else:
-                _register_route(None, source_version=None)
-        except Exception:
-            registry.urlpatterns[:] = previous_urlpatterns
-            registry._removed_patterns.clear()
-            registry._removed_patterns.update(previous_removed_patterns)
-            for target, previous_value, had_own_attribute in previous_attributes:
-                if had_own_attribute:
-                    setattr(target, attribute_name, previous_value)
-                elif previous_value is missing or hasattr(target, "__dict__"):
-                    try:
-                        delattr(target, attribute_name)
-                    except AttributeError:
-                        pass
-                else:
-                    setattr(target, attribute_name, previous_value)
-            raise
+        _register_endpoint_view(
+            view,
+            postfix,
+            version,
+            versions,
+            app_name,
+            view_name,
+        )
         return view
 
     return decorator
-
 
 def set_endpoint_lifecycle(
     postfix: str,
