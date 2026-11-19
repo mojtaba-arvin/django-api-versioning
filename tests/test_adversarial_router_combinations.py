@@ -436,3 +436,28 @@ def test_router_remove_validates_minimum_version_before_ownership_checks():
     unrelated = VersionedRouter()
     with pytest.raises(VersionRangeError, match="below API_MIN_VERSION"):
         unrelated.remove("orders", "order-list", from_version=0)
+
+
+def test_same_router_prefix_with_distinct_trailing_slash_modes_can_coexist():
+    """Distinct URL paths are not a collision merely because the prefix matches."""
+
+    from django_api_versioning.registry import registry
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
+    no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
+    slash_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+    no_slash_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+
+    patterns = [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "orders:order-list"
+        and getattr(pattern, registry._ROUTE_VERSION_ATTR, None) == 2
+    ]
+    assert len(patterns) == 2
+    assert str(patterns[0].pattern) != str(patterns[1].pattern)
