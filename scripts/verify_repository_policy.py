@@ -149,7 +149,9 @@ def _validate_github_release_permissions(errors: list[str]) -> None:
     release_job = _workflow_job_block(
         publish.read_text(encoding="utf-8"), "github-release"
     )
-    if not re.search(r"(?m)^    permissions:\n      contents: write$", release_job):
+    if not re.search(
+        r"(?m)^    permissions:\\n      contents: write$", release_job
+    ):
         errors.append(
             "GitHub Release creation must use a job-scoped contents: write grant"
         )
@@ -158,7 +160,9 @@ def _validate_github_release_permissions(errors: list[str]) -> None:
             "GitHub Release creation must depend on successful PyPI publication"
         )
     if "gh release create" not in release_job:
-        errors.append("The isolated GitHub Release job must create the tagged release")
+        errors.append(
+            "The isolated GitHub Release job must create the tagged release"
+        )
     if "id-token: write" in release_job:
         errors.append("GitHub Release creation must not receive PyPI OIDC permissions")
 
