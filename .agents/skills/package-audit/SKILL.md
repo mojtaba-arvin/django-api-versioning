@@ -67,12 +67,13 @@ Document audit findings in a clear, structured format. Populate all counts, vers
 
 **PARTIAL CAPABILITIES**:
 - [ ] Version-channel parsing utility supports `path`, `header`, and `query` in `channels.py`; verify call sites before describing this as end-to-end request routing. In the current source tree, the utility is tested directly, but is not wired into the endpoint registry's request dispatch.
-- [ ] DRF ViewSet classes cannot be registered directly without an action map; a specifically configured callable such as `MyViewSet.as_view({"get": "list"})` can be registered, while router-style route generation remains the application's responsibility.
+- [ ] `@endpoint` does not decorate a DRF ViewSet class directly because ViewSets require an action map. A configured callable such as `MyViewSet.as_view({"get": "list"})` can be registered for one route. Full version-aware route generation is implemented through the optional `VersionedRouter`, which delegates to DRF's `SimpleRouter`, registers generated patterns in the package registry, and provides `VersionedRouterVersioning` for `request.version` and namespace-aware reversal. `DefaultRouter` API-root and format-suffix parity are not supported.
 
 **KNOWN LIMITATIONS**:
-- Direct ViewSet class decoration is not supported as a substitute for DRF router/action configuration.
+- Direct `@endpoint` decoration of ViewSet classes is not supported; use `VersionedRouter` for the package's supported DRF `SimpleRouter` integration.
 - `API_VERSIONING_CHANNELS` and `extract_version()` do not currently provide end-to-end header/query-based routing through the package registry.
 - Python versions below 3.10 are outside the declared package requirement.
+- Explicit endpoint removal and endpoint-level lifecycle declarations are present on repository `main` but remain under `Unreleased`; verify the release tag and installed artifact before claiming they are available to PyPI consumers.
 
 **RECOMMENDATIONS**:
 - If header/query-based request routing is a product goal, trace and test the integration from channel extraction through request dispatch before claiming support.
