@@ -38,8 +38,8 @@ def ver_range(start: int, end: int) -> list[int]:
         raise VersionTypeError("ver_range end must be an integer.")
     if start > end:
         raise VersionRangeError(f"ver_range start ({start}) must be <= end ({end}).")
-    if start < 1:
-        raise VersionRangeError("ver_range start must be a positive API version.")
+    if start < 0:
+        raise VersionRangeError("ver_range start must be a non-negative API version.")
     if end > settings.API_MAX_VERSION:
         raise InvalidVersionError(
             f"Version {end} is above the maximum allowed version "
