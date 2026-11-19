@@ -141,6 +141,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ".github/workflows/package-artifacts.yml": "package",
             ".github/workflows/website-data-preflight.yml": "website",
             ".github/workflows/openapi-contract.yml": "openapi",
+            ".github/workflows/publish.yml": "openapi",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
