@@ -224,6 +224,29 @@ class UrlRegistry:
         route_key = str(pattern.pattern)
         route_index = self._find_route_index(route_key)
 
+        if route_index is None and logical_endpoint is not None and route_version is not None:
+            new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if new_router is not None:
+                for existing in self.urlpatterns:
+                    if (
+                        getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
+                        == logical_endpoint
+                        and getattr(existing, self._ROUTE_VERSION_ATTR, None)
+                        == route_version
+                    ):
+                        existing_router = getattr(
+                            existing, self._ROUTER_OWNER_ATTR, None
+                        )
+                        if (
+                            existing_router is not None
+                            and existing_router is not new_router
+                        ):
+                            raise VersioningError(
+                                f"Logical endpoint {logical_endpoint!r} in version "
+                                f"{route_version} is already registered by another "
+                                "VersionedRouter instance."
+                            )
+
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]
             existing_router = getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None)
