@@ -96,7 +96,11 @@ def endpoint(
             attribute_targets.append(view_class)
         missing = object()
         previous_attributes = [
-            (target, getattr(target, "__dict__", {}).get(attribute_name, missing))
+            (
+                target,
+                getattr(target, attribute_name, missing),
+                attribute_name in getattr(target, "__dict__", {}),
+            )
             for target in attribute_targets
         ]
         previous_urlpatterns = list(registry.urlpatterns)
@@ -152,10 +156,14 @@ def endpoint(
             registry.urlpatterns[:] = previous_urlpatterns
             registry._removed_patterns.clear()
             registry._removed_patterns.update(previous_removed_patterns)
-            for target, previous_value in previous_attributes:
-                if previous_value is missing:
-                    if attribute_name in target.__dict__:
+            for target, previous_value, had_own_attribute in previous_attributes:
+                if had_own_attribute:
+                    setattr(target, attribute_name, previous_value)
+                elif previous_value is missing or hasattr(target, "__dict__"):
+                    try:
                         delattr(target, attribute_name)
+                    except AttributeError:
+                        pass
                 else:
                     setattr(target, attribute_name, previous_value)
             raise
