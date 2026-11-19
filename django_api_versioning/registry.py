@@ -471,7 +471,7 @@ class UrlRegistry:
             return False, None
 
         tried = getattr(resolver_match, "tried", None)
-        if tried is not None:
+        if isinstance(tried, (list, tuple)):
             matched_pattern_ids = {
                 id(chain[-1])
                 for chain in tried
