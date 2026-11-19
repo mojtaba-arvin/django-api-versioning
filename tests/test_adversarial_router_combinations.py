@@ -294,7 +294,6 @@ def test_router_urls_exclude_reintroduced_routes_owned_by_another_router(monkeyp
         )
 
 
-
 def test_router_remove_cannot_delete_another_routers_versioned_route():
     from django_api_versioning.registry import registry
 
@@ -307,7 +306,7 @@ def test_router_remove_cannot_delete_another_routers_versioned_route():
             return Response({"owner": "replacement"})
 
     original_router = VersionedRouter()
-    original_router.register("shared", OriginalViewSet, version=1, basename="shared")
+    original_router.register("shared", OriginalViewSet, versions=[1], basename="shared")
 
     replacement_router = VersionedRouter()
     replacement_router.register(
@@ -339,7 +338,7 @@ def test_router_remove_rejects_a_router_that_does_not_own_the_endpoint():
             return Response([])
 
     owner = VersionedRouter()
-    owner.register("orders", OrdersViewSet, version=1, basename="order")
+    owner.register("orders", OrdersViewSet, versions=[1], basename="order")
     unrelated = VersionedRouter()
 
     with pytest.raises(VersioningError, match="does not own an active route"):
