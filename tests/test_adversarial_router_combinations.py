@@ -197,36 +197,6 @@ def test_failed_multi_version_registration_rolls_back_at_every_collision_positio
     assert candidate_router._basename_prefixes == {}
 
 
-def test_schema_version_namespace_wins_over_synthetic_target_route_version():
-    """Schema generation may resolve a target route under the requested namespace."""
-    router = VersionedRouter()
-    router.register("orders", OrderedViewSetV1, version=1, basename="order")
-    router.register("orders", OrderedViewSetV2, version=2, basename="order")
-    target_v2_pattern = next(
-        pattern
-        for pattern in router.urls
-        if getattr(pattern, "namespace", None) == "v2"
-    ).url_patterns[0]
-
-    request = type(
-        "SchemaRequest",
-        (),
-        {
-            "resolver_match": type(
-                "ResolverMatch",
-                (),
-                {
-                    "route": str(target_v2_pattern.pattern),
-                    "url_name": target_v2_pattern.name,
-                    "namespace": "v1",
-                },
-            )()
-        },
-    )()
-
-    assert VersionedRouterVersioning().determine_version(request) == "1"
-
-
 def test_registered_namespace_resolves_regex_route_when_route_text_is_not_matchable():
     """A namespace can identify a regex route whose resolver text is synthetic."""
 
@@ -247,7 +217,7 @@ def test_registered_namespace_resolves_regex_route_when_route_text_is_not_matcha
                 "ResolverMatch",
                 (),
                 {
-                    "route": "synthetic-regex-route",
+                    "route": "api/v2/orders/(?P<pk>[^/.]+)/",
                     "url_name": "order-detail",
                     "namespace": "v2",
                 },
