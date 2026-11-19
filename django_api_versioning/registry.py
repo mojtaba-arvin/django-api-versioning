@@ -257,9 +257,16 @@ class UrlRegistry:
             existing_pattern = self.urlpatterns[route_index]
             existing_router = getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None)
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if existing_router is not new_router and (
-                existing_router is not None or new_router is not None
+            if (
+                existing_router is not None
+                and new_router is not None
+                and existing_router is not new_router
             ):
+                raise VersioningError(
+                    f"Route pattern {route_key!r} is already registered by another "
+                    "VersionedRouter instance. Use a distinct route prefix for each router."
+                )
+            if (existing_router is None) != (new_router is None):
                 raise VersioningError(
                     f"Route pattern {route_key!r} is already registered by a "
                     "different registration owner. Use a distinct route path."
