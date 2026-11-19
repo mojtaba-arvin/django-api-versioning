@@ -195,3 +195,32 @@ def test_failed_multi_version_registration_rolls_back_at_every_collision_positio
     assert candidate_router._route_keys == set()
     assert candidate_router._basenames == {}
     assert candidate_router._basename_prefixes == {}
+
+
+def test_schema_version_namespace_wins_over_synthetic_target_route_version():
+    """Schema generation may resolve a target route under the requested namespace."""
+    router = VersionedRouter()
+    router.register("orders", OrderedViewSetV1, version=1, basename="order")
+    router.register("orders", OrderedViewSetV2, version=2, basename="order")
+    target_v2_pattern = next(
+        pattern
+        for pattern in router.urls
+        if getattr(pattern, "namespace", None) == "v2"
+    ).url_patterns[0]
+
+    request = type(
+        "SchemaRequest",
+        (),
+        {
+            "resolver_match": type(
+                "ResolverMatch",
+                (),
+                {
+                    "route": str(target_v2_pattern.pattern),
+                    "namespace": "v1",
+                },
+            )()
+        },
+    )()
+
+    assert VersionedRouterVersioning().determine_version(request) == "1"
