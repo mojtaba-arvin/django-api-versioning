@@ -387,7 +387,7 @@ class UrlRegistry:
         if len(best) != 1:
             return None
 
-        _, pattern, logical_endpoint, route_version, source_version = best
+        _, pattern, logical_endpoint, route_version, source_version = best[0]
         callback = getattr(resolver_match, "func", None)
         actions = getattr(callback, "actions", None)
         action = None
