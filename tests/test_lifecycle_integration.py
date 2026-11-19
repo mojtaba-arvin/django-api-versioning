@@ -558,3 +558,39 @@ def test_versioned_routers_reject_duplicate_route_patterns_across_namespaces():
 
     assert primary.status_code == 200
     assert primary.json() == {"router": "primary"}
+
+
+def test_route_lifecycle_headers_apply_to_drf_options_requests():
+    """DRF handles OPTIONS outside the ViewSet action map.
+
+    The URL still resolves to a registered endpoint, so route-wide lifecycle
+    metadata must be retained even though OPTIONS has no ViewSet action.
+    """
+
+    class ReadOnlyProductViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register(
+        "products",
+        ReadOnlyProductViewSet,
+        version=1,
+        basename="product",
+    )
+    router.set_lifecycle(
+        "products",
+        "product-list",
+        version=1,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        router.urls,
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().options("/api/v1/products/")
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "@1893456000"
