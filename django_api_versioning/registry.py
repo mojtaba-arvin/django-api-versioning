@@ -91,6 +91,28 @@ class UrlRegistry:
             self._removed_patterns[(logical_endpoint, route_version)] = pattern
             del self.urlpatterns[index]
 
+        # Lifecycle metadata belongs to a concrete active declaration segment.
+        # A tombstone must not let metadata from the removed implementation leak
+        # into a later reintroduction at the same concrete API version. Preserve
+        # metadata only for versions that already have a newer active source.
+        preserved_versions = {
+            getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            for pattern in self.urlpatterns
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+            and getattr(pattern, self._ROUTE_VERSION_ATTR, None) >= from_version
+            and getattr(pattern, self._SOURCE_VERSION_ATTR, None) is not None
+            and getattr(pattern, self._SOURCE_VERSION_ATTR) > from_version
+        }
+        for key in list(self._endpoint_lifecycle):
+            endpoint, version, _, _ = key
+            if (
+                endpoint == logical_endpoint
+                and version >= from_version
+                and version not in preserved_versions
+            ):
+                del self._endpoint_lifecycle[key]
+
     def _removal_boundary(
         self,
         logical_endpoint: str | None,
