@@ -166,9 +166,15 @@ class VersionedRouter:
         optionally narrows it to HTTP methods; each method is resolved through
         the router's action map before the declaration is stored.
         """
-        if not isinstance(prefix, str) or not prefix or prefix.startswith("/") or prefix.endswith("/"):
+        if (
+            not isinstance(prefix, str)
+            or not prefix
+            or prefix.startswith("/")
+            or prefix.endswith("/")
+        ):
             raise VersioningError(
-                "prefix must be a non-empty relative path without leading or trailing '/'."
+                "prefix must be a non-empty relative path without leading or "
+                "trailing '/'."
             )
         if not isinstance(route_name, str) or not route_name:
             raise VersioningError("route_name must be a non-empty string.")
@@ -227,7 +233,9 @@ class VersionedRouter:
             method.strip().upper() if isinstance(method, str) else method
             for method in methods
         ]
-        if any(not isinstance(method, str) or not method for method in normalized_methods):
+        if any(
+            not isinstance(method, str) or not method for method in normalized_methods
+        ):
             raise VersioningError(
                 "methods must contain non-empty HTTP method strings."
             )
