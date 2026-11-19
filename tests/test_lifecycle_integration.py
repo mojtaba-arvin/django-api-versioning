@@ -530,9 +530,7 @@ def test_versioned_routers_reject_duplicate_route_patterns_across_namespaces():
             return Response({"router": "secondary"})
 
     primary_router = VersionedRouter(app_name="primary_api")
-    primary_router.register(
-        "orders", PrimaryOrderViewSet, versions=[2], basename="order"
-    )
+    primary_router.register("orders", PrimaryOrderViewSet, versions=[2], basename="order")
 
     secondary_router = VersionedRouter(app_name="secondary_api")
     with pytest.raises(
