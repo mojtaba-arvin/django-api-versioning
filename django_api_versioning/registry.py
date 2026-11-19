@@ -188,9 +188,7 @@ class UrlRegistry:
 
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]
-            existing_router = getattr(
-                existing_pattern, self._ROUTER_OWNER_ATTR, None
-            )
+            existing_router = getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None)
             new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
             if (
                 existing_router is not None
