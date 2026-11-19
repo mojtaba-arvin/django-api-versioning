@@ -16,8 +16,8 @@ from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from django_api_versioning.exceptions import (
-    VersionRangeError,
     VersioningError,
+    VersionRangeError,
     VersionTypeError,
 )
 from django_api_versioning.routers import (
