@@ -537,9 +537,7 @@ def test_versioned_routers_reject_duplicate_route_patterns_across_namespaces():
         VersioningError,
         match="already registered by another VersionedRouter",
     ):
-        secondary_router.register(
-            "orders", SecondaryOrderViewSet, versions=[2], basename="order"
-        )
+        secondary_router.register("orders", SecondaryOrderViewSet, versions=[2], basename="order")
 
     context = _install(
         [
