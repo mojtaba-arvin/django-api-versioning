@@ -85,11 +85,7 @@ class LifecycleMiddleware:
         # Version-wide retirement remains authoritative and is evaluated
         # before endpoint metadata. Endpoint Sunset never changes the status
         # code or suppresses the existing version-wide 410 contract.
-        if (
-            meta
-            and version_sunset_date is not None
-            and _is_past(version_sunset_date)
-        ):
+        if meta and version_sunset_date is not None and _is_past(version_sunset_date):
             if getattr(request, "_django_api_version_lifecycle_sunset_enforced", False):
                 return response
             sunset = meta.get("sunset")
