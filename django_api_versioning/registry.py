@@ -705,7 +705,7 @@ class UrlRegistry:
         if action is not None:
             if not isinstance(action, str) or not action.strip():
                 raise VersioningError("Endpoint lifecycle action must be a string.")
-            normalized_action = action.strip().lower()
+            normalized_action = action.strip()
 
         lifecycle = parse_endpoint_lifecycle(deprecated_at, sunset)
         key = (
