@@ -5,6 +5,7 @@ This module is optional: importing the core package does not require DRF.
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from typing import Any
 
 from django.urls import URLPattern, URLResolver, include, path
@@ -147,6 +148,114 @@ class VersionedRouter:
         if not route_name:
             raise VersioningError("route_name must be a non-empty string.")
         registry.remove(f"{prefix}:{route_name}", from_version)
+
+    def set_lifecycle(
+        self,
+        prefix: str,
+        route_name: str,
+        *,
+        version: int,
+        action: str | None = None,
+        methods: list[str] | None = None,
+        deprecated_at: str | None = None,
+        sunset: str | None = None,
+    ) -> None:
+        """Declare lifecycle metadata for one concrete DRF route version.
+
+        ``action`` scopes the declaration to a ViewSet action. ``methods``
+        optionally narrows it to HTTP methods; each method is resolved through
+        the router's action map before the declaration is stored.
+        """
+        if not isinstance(prefix, str) or not prefix or prefix.startswith("/") or prefix.endswith("/"):
+            raise VersioningError(
+                "prefix must be a non-empty relative path without leading or trailing '/'."
+            )
+        if not isinstance(route_name, str) or not route_name:
+            raise VersioningError("route_name must be a non-empty string.")
+        self._validate_version(version)
+        if version < api_settings.API_MIN_VERSION:
+            raise VersionRangeError(
+                f"Lifecycle version {version} is below API_MIN_VERSION "
+                f"{api_settings.API_MIN_VERSION}."
+            )
+
+        logical_endpoint = f"{prefix}:{route_name}"
+        matches = [
+            pattern
+            for pattern in registry.urlpatterns
+            if str(pattern.pattern) in self._route_keys
+            and getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+            and getattr(pattern, _ROUTE_VERSION_ATTR, None) == version
+        ]
+        if len(matches) != 1:
+            raise VersioningError(
+                f"Expected one registered route for {logical_endpoint!r} "
+                f"in version {version}; found {len(matches)}."
+            )
+
+        actions = getattr(matches[0].callback, "actions", None)
+        if not isinstance(actions, Mapping):
+            raise VersioningError(
+                f"Route {logical_endpoint!r} does not expose a DRF action map."
+            )
+
+        normalized_action = None
+        if action is not None:
+            if not isinstance(action, str) or not action.strip():
+                raise VersioningError("action must be a non-empty string.")
+            normalized_action = action.strip().lower()
+            if normalized_action not in actions.values():
+                raise VersioningError(
+                    f"Action {normalized_action!r} is not registered for "
+                    f"{logical_endpoint!r}."
+                )
+
+        if methods is None:
+            registry.register_endpoint_lifecycle(
+                logical_endpoint,
+                version,
+                action=normalized_action,
+                deprecated_at=deprecated_at,
+                sunset=sunset,
+            )
+            return
+
+        if not isinstance(methods, list) or not methods:
+            raise VersioningError("methods must be a non-empty list of HTTP methods.")
+        normalized_methods = [
+            method.strip().upper() if isinstance(method, str) else method
+            for method in methods
+        ]
+        if any(not isinstance(method, str) or not method for method in normalized_methods):
+            raise VersioningError(
+                "methods must contain non-empty HTTP method strings."
+            )
+        if len(set(normalized_methods)) != len(normalized_methods):
+            raise VersioningError("methods must not contain duplicates.")
+
+        for method in normalized_methods:
+            mapped_action = actions.get(method.lower())
+            if mapped_action is None and method == "HEAD":
+                mapped_action = actions.get("get")
+            if not isinstance(mapped_action, str) or not mapped_action:
+                raise VersioningError(
+                    f"HTTP method {method!r} is not registered for "
+                    f"{logical_endpoint!r}."
+                )
+            if normalized_action is not None and mapped_action != normalized_action:
+                raise VersioningError(
+                    f"HTTP method {method!r} maps to action {mapped_action!r}, "
+                    f"not {normalized_action!r}."
+                )
+            registry.register_endpoint_lifecycle(
+                logical_endpoint,
+                version,
+                method=method,
+                action=mapped_action,
+                deprecated_at=deprecated_at,
+                sunset=sunset,
+            )
 
     @staticmethod
     def _validate_version(version: int) -> None:
