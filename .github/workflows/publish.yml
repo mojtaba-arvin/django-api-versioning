@@ -44,9 +44,15 @@ jobs:
     permissions:
       contents: read
 
+  openapi-contract:
+    name: Versioned OpenAPI consumer contract
+    uses: ./.github/workflows/openapi-contract.yml
+    permissions:
+      contents: read
+
   build:
     name: Build and verify distributions
-    needs: [verify-release-ref, compatibility]
+    needs: [verify-release-ref, compatibility, openapi-contract]
     runs-on: ubuntu-latest
     permissions:
       contents: read
