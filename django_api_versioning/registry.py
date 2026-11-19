@@ -319,7 +319,9 @@ class UrlRegistry:
         versions = {version for length, version in matches if length == longest}
         return next(iter(versions)) if len(versions) == 1 else None
 
-    def resolve_operation(self, resolver_match: object, method: str) -> ResolvedOperation | None:
+    def resolve_operation(
+        self, resolver_match: object, method: str
+    ) -> ResolvedOperation | None:
         """Resolve one registered logical operation from Django's ResolverMatch.
 
         The resolver's route and URL name are matched against registered
@@ -339,8 +341,11 @@ class UrlRegistry:
         # VersionedRouter places the concrete API version in a vN namespace.
         # If such a namespace is present, it must agree with the registry record.
         version_namespaces = {
-            item for item in namespaces
-            if isinstance(item, str) and item.startswith("v") and item[1:].isdecimal()
+            item
+            for item in namespaces
+            if isinstance(item, str)
+            and item.startswith("v")
+            and item[1:].isdecimal()
         }
 
         candidates: list[tuple[int, URLPattern, str, int, int | None]] = []
@@ -365,7 +370,13 @@ class UrlRegistry:
 
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
             candidates.append(
-                (matched_length, pattern, logical_endpoint, route_version, source_version)
+                (
+                    matched_length,
+                    pattern,
+                    logical_endpoint,
+                    route_version,
+                    source_version,
+                )
             )
 
         if not candidates:
