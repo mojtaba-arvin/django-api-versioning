@@ -566,12 +566,13 @@ A versioned URL structure does not guarantee zero downtime. Database migrations,
 - You want the version matrix to be derived from endpoint declarations rather than repeated URL registration.
 - You are comfortable reviewing the carry-forward behavior when increasing `API_MAX_VERSION`.
 
-Per-version DRF routers remain a natural choice when:
+Plain per-version DRF routers remain a natural choice when:
 
-- Your API is primarily built around `ModelViewSet`.
-- You rely heavily on `@action`.
-- You prefer router-managed resource routes and explicit router configuration.
+- You want to own every version's URL prefix and router registration.
+- You rely on `DefaultRouter` API-root or format-suffix behavior that `VersionedRouter` does not provide.
 - The API has few versions and the URL configuration is already easy to maintain.
+
+For package-managed ViewSet route inheritance, use `VersionedRouter`; DRF's `SimpleRouter` route generation remains the supported integration boundary.
 
 The benefit of the package depends on the endpoint structure and how often endpoints change. There is no universal endpoint-count threshold. If every endpoint changes at every version boundary, the carry-forward advantage is smaller. If many endpoints remain unchanged, avoiding repeated declarations becomes more useful.
 
