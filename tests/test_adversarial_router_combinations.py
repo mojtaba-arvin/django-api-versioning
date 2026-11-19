@@ -344,3 +344,15 @@ def test_router_remove_rejects_a_router_that_does_not_own_the_endpoint():
 
     with pytest.raises(VersioningError, match="does not own an active route"):
         unrelated.remove("orders", "order-list", from_version=2)
+
+
+def test_router_remove_remains_idempotent_for_its_own_tombstoned_route():
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+
+    router.remove("orders", "order-list", from_version=2)
+    router.remove("orders", "order-list", from_version=2)
