@@ -3,7 +3,7 @@ import logging
 import pytest
 from django.http import JsonResponse
 
-from django_api_versioning.decorators import endpoint, set_endpoint_lifecycle, ver_range
+from django_api_versioning.decorators import (\n    endpoint,\n    remove_endpoint,\n    set_endpoint_lifecycle,\n    ver_range,\n)
 from django_api_versioning.exceptions import (
     InvalidVersionError,
     VersioningError,
@@ -525,3 +525,58 @@ class TestIssue7OverrideSettingsAfterImport:
         #
         # See documentation for correct patterns.
         assert settings.API_MIN_VERSION <= settings.API_MAX_VERSION
+
+
+@pytest.mark.parametrize(
+    ("methods", "message"),
+    [
+        ([], "non-empty list"),
+        ((), "non-empty list"),
+        ([""], "non-empty HTTP method strings"),
+        (["GET", " get "], "must not contain duplicates"),
+    ],
+)
+def test_set_endpoint_lifecycle_validates_method_scopes(
+    versions_1_to_5, methods, message
+):
+    with pytest.raises(VersioningError, match=message):
+        set_endpoint_lifecycle(
+            "users",
+            version=2,
+            methods=methods,
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
+
+
+def test_set_endpoint_lifecycle_normalizes_method_scope(versions_1_to_5):
+    set_endpoint_lifecycle(
+        "users",
+        version=2,
+        methods=[" get "],
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    operation = ResolvedOperation(
+        logical_endpoint="users",
+        route_version=2,
+        source_version=2,
+        method="GET",
+        action=None,
+        route_name="users",
+        namespace="v2",
+        route="api/v2/users/",
+        registered_route="api/v2/users/",
+    )
+
+    assert registry.get_endpoint_lifecycle(operation) is not None
+
+
+@pytest.mark.parametrize(
+    ("postfix", "error", "message"),
+    [
+        (None, TypeError, "postfix must be a string"),
+        ("/users/", VersioningError, "must not start with"),
+    ],
+)
+def test_remove_endpoint_validates_relative_postfix(postfix, error, message):
+    with pytest.raises(error, match=message):
+        remove_endpoint(postfix, from_version=2)
