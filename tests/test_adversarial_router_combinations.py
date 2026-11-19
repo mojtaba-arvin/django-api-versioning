@@ -15,7 +15,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-from django_api_versioning.exceptions import VersioningError
+from django_api_versioning.exceptions import VersionTypeError, VersioningError
 from django_api_versioning.routers import (
     VersionedRouter,
     VersionedRouterVersioning,
@@ -356,3 +356,19 @@ def test_router_remove_remains_idempotent_for_its_own_tombstoned_route():
 
     router.remove("orders", "order-list", from_version=2)
     router.remove("orders", "order-list", from_version=2)
+
+@pytest.mark.parametrize("invalid_version", [True, "2", 2.0])
+def test_router_remove_validates_version_before_foreign_owner_checks(invalid_version):
+    """Invalid versions must fail validation before route ownership is inspected."""
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    owner = VersionedRouter()
+    owner.register("shared", OrdersViewSet, version=1, basename="shared")
+    unrelated = VersionedRouter()
+
+    with pytest.raises(VersionTypeError, match="Version must be an integer"):
+        unrelated.remove("shared", "shared-list", from_version=invalid_version)
+
