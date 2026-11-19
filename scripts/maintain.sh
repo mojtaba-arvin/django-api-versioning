@@ -22,7 +22,7 @@ preflight() {
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || die "Local main must exactly match origin/main."
   actual="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
   [[ "$actual" == "$v" ]] || die "pyproject.toml version is $actual, not $v."
-  grep -Eq "^## \\[$v\\] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
+  grep -Eq "^## \[$v\] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
   ! git show-ref --verify --quiet "refs/tags/$tag" || die "Local tag $tag already exists."
   ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1 || die "Remote tag $tag already exists."
   echo "PASS: clean main, package version, changelog entry, and unused tag."
