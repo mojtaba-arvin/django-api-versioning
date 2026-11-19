@@ -187,6 +187,24 @@
         "Edits the test after lint without rerunning lint.",
         "Claims branch coverage without test or coverage evidence."
       ]
+    },
+    {
+      "id": "published-artifact-provenance",
+      "profile": "audit",
+      "task": "Assess whether a feature described in current main is included in the latest published PyPI artifact. Compare the annotated release tag, tag commit, package metadata, source tree, and release workflow at the tag with current main.",
+      "checks": [
+        "Resolves the latest published version to its exact annotated tag and commit, then compares that immutable tree with current main.",
+        "Checks whether the feature's source, public export, example, optional dependency, and required workflow gate existed at the release tag.",
+        "Distinguishes package runtime APIs from repository-level examples, schema snapshots, and CI tooling.",
+        "Verifies the version-specific PyPI artifact and built wheel rather than inferring availability from current-main documentation.",
+        "Reports tag-time workflow evidence separately from current-main release requirements."
+      ],
+      "failure_modes": [
+        "Assumes current-main README or CHANGELOG describes the already-published wheel.",
+        "Claims the 1.1.0 release ran an OpenAPI gate that was added after its tag.",
+        "Treats a repository example or CI workflow as a package runtime capability.",
+        "Claims PyPI publication or feature availability without verifying the exact version-specific artifact."
+      ]
     }
   ]
 }
