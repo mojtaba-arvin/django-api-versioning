@@ -2,6 +2,7 @@ import re
 from typing import Any
 
 from django.urls import NoReverseMatch, get_script_prefix
+from django.utils.encoding import iri_to_uri
 from django.urls.resolvers import RegexPattern, URLResolver
 
 from .exceptions import AmbiguousVersionError, VersionTypeError
@@ -98,4 +99,4 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    return get_script_prefix() + route.lstrip("/")
+    return iri_to_uri(get_script_prefix() + route.lstrip("/"))
