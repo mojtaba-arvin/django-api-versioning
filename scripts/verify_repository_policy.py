@@ -150,7 +150,7 @@ def _validate_github_release_permissions(errors: list[str]) -> None:
         publish.read_text(encoding="utf-8"), "github-release"
     )
     if not re.search(
-        r"(?m)^    permissions:\\n      contents: write$", release_job
+        r"(?m)^    permissions:\n      contents: write$", release_job
     ):
         errors.append(
             "GitHub Release creation must use a job-scoped contents: write grant"
