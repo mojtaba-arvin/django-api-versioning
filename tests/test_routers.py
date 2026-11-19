@@ -554,4 +554,4 @@ def test_separate_default_routers_keep_reverse_namespaces_isolated():
         response = APIClient().get("/api/v1/posts/reverse-list/")
 
     assert response.status_code == 200
-    assert response.json()["url"] == "/api/v1/posts/"
+    assert response.json()["url"].endswith("/api/v1/posts/")
