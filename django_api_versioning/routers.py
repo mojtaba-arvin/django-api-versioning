@@ -173,6 +173,11 @@ class VersionedRouter:
         # malformed values can raise incidental TypeError or mask the intended
         # VersionTypeError with an ownership error.
         self._validate_version(from_version)
+        if from_version < api_settings.API_MIN_VERSION:
+            raise VersionRangeError(
+                f"Removal version {from_version} is below API_MIN_VERSION "
+                f"{api_settings.API_MIN_VERSION}."
+            )
         logical_endpoint = f"{prefix}:{route_name}"
         affected_foreign_routes = [
             pattern
