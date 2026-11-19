@@ -5,9 +5,14 @@ import pytest
 from django.urls import clear_url_caches, include, path, re_path, resolve, reverse
 from django.views import View
 
-from django_api_versioning.exceptions import VersioningError
+from django_api_versioning.exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
-from django_api_versioning.registry import ResolvedOperation, registry
+from django_api_versioning.registry import REMOVED_ROUTE, ResolvedOperation, registry
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Optional DRF imports
@@ -949,3 +954,185 @@ def test_get_route_version_returns_registered_urlpattern_version(clear_registry)
 
     assert registry.get_route_version(str(pattern.pattern)) == 3
     assert registry.get_route_version("^api/v4/orders/$") is None
+
+
+def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
+    clear_registry,
+):
+    def callback(request):
+        return None
+
+    for version in range(1, 5):
+        registry.register(
+            f"api/v{version}/orders/",
+            callback,
+            source_version=1,
+            route_version=version,
+            logical_endpoint="orders",
+        )
+
+    registry.remove("orders", from_version=3)
+
+    assert {str(pattern.pattern) for pattern in registry.urlpatterns} == {
+        "api/v1/orders/",
+        "api/v2/orders/",
+    }
+    assert registry.get_version_matrix()["api/v3/orders/"][3] is REMOVED_ROUTE
+    assert registry.get_version_matrix()["api/v4/orders/"][4] is REMOVED_ROUTE
+
+    def replacement(request):
+        return None
+
+    registry.register(
+        "api/v3/orders/",
+        replacement,
+        source_version=4,
+        route_version=3,
+        logical_endpoint="orders",
+    )
+
+    assert registry.get_route_version("api/v3/orders/") == 3
+    assert registry.urlpatterns[-1].callback is replacement
+    assert ("orders", 3) not in registry._removed_patterns
+
+
+@pytest.mark.parametrize(
+    ("logical_endpoint", "from_version", "error"),
+    [
+        ("", 2, TypeError),
+        ("orders", True, VersionTypeError),
+        ("orders", 6, InvalidVersionError),
+        ("orders", 0, VersionRangeError),
+    ],
+)
+def test_remove_endpoint_validates_identity_and_version(
+    clear_registry, logical_endpoint, from_version, error
+):
+    with pytest.raises(error):
+        registry.remove(logical_endpoint, from_version)
+
+
+def test_resolved_route_version_uses_complete_longest_suffix(clear_registry):
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/orders/",
+        callback,
+        route_version=2,
+    )
+    registry.register(
+        "v2/orders/",
+        callback,
+        route_version=1,
+    )
+
+    assert registry.get_resolved_route_version("proxy/api/v2/orders/") == 2
+    assert registry.get_resolved_route_version("proxy/not-api/v2/orders/") == 1
+    assert registry.get_resolved_route_version("proxy/api/v2/orders-extra/") is None
+
+
+@pytest.mark.skipif(not HAS_DRF, reason="DRF not installed")
+def test_resolve_operation_maps_head_to_get_action(clear_registry):
+    class OrderViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    callback = OrderViewSet.as_view({"get": "list"})
+    registry.register_urlpattern(
+        path("api/v2/orders/", callback, name="order-list"),
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+    urlconf = ModuleType("resolved_operation_head_urls")
+    urlconf.urlpatterns = [
+        path("", include((registry.urlpatterns, "orders"), namespace="v2"))
+    ]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    operation = registry.resolve_operation(match, "HEAD")
+
+    assert operation is not None
+    assert operation.method == "HEAD"
+    assert operation.action == "list"
+
+
+@pytest.mark.skipif(not HAS_DRF, reason="DRF not installed")
+def test_resolve_registered_operation_maps_head_to_get_action(clear_registry):
+    class OrderViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    callback = OrderViewSet.as_view({"get": "list"})
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+
+    operation = registry.resolve_registered_operation("orders:order-list", 2, "HEAD")
+
+    assert operation is not None
+    assert operation.action == "list"
+    assert operation.method == "HEAD"
+
+
+def test_suppressed_register_does_not_remove_another_logical_endpoint(clear_registry):
+    def existing(request):
+        return None
+
+    def removed(request):
+        return None
+
+    registry.remove("orders", from_version=3)
+    registry.register(
+        "api/v3/orders/",
+        existing,
+        source_version=1,
+        route_version=3,
+        logical_endpoint="other-orders",
+    )
+
+    registry.register(
+        "api/v3/orders/",
+        removed,
+        source_version=1,
+        route_version=3,
+        logical_endpoint="orders",
+    )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is existing
+    assert ("orders", 3) in registry._removed_patterns
+
+
+def test_suppressed_urlpattern_does_not_remove_another_logical_endpoint(
+    clear_registry,
+):
+    def existing(request):
+        return None
+
+    def removed(request):
+        return None
+
+    registry.remove("orders", from_version=3)
+    registry.register_urlpattern(
+        path("api/v3/orders/", existing, name="existing-orders"),
+        source_version=1,
+        route_version=3,
+        logical_endpoint="other-orders",
+    )
+
+    registry.register_urlpattern(
+        path("api/v3/orders/", removed, name="removed-orders"),
+        source_version=1,
+        route_version=3,
+        logical_endpoint="orders",
+    )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is existing
+    assert ("orders", 3) in registry._removed_patterns

@@ -380,3 +380,112 @@ def test_versioning_adapter_does_not_allow_missing_version_when_allowlist_is_set
 
     with pytest.raises(NotFound, match="allowed API version"):
         versioning.determine_version(request)
+
+
+def test_router_rejects_invalid_constructor_and_registration_inputs():
+    with pytest.raises(VersioningError, match="app_name"):
+        VersionedRouter(app_name=" ")
+
+    router = VersionedRouter()
+    with pytest.raises(TypeError, match="prefix must be a string"):
+        router.register(1, PostViewSetV1)
+    with pytest.raises(VersioningError, match="relative path"):
+        router.register("/posts", PostViewSetV1)
+    with pytest.raises(VersionRangeError, match="either 'version' or 'versions'"):
+        router.register("posts", PostViewSetV1, version=1, versions=[1])
+    with pytest.raises(VersionTypeError, match="must be a list"):
+        router.register("posts", PostViewSetV1, versions=(1, 2))
+
+
+def test_router_skips_declarations_below_minimum_version(monkeypatch, caplog):
+    monkeypatch.setattr("django_api_versioning.routers.api_settings.API_MIN_VERSION", 2)
+    router = VersionedRouter()
+
+    with caplog.at_level("WARNING"):
+        router.register("old-posts", PostViewSetV1, version=1, basename="old-post")
+        router.register(
+            "selected-posts",
+            PostViewSetV1,
+            versions=[1, 2],
+            basename="selected-post",
+        )
+
+    assert router.urls
+    assert all(
+        "v1" not in str(pattern.pattern)
+        for pattern in router.urls
+        if hasattr(pattern, "pattern")
+    )
+    assert "No routes will be registered" in caplog.text
+    assert "Skipping this version" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("prefix", "route_name", "error", "message"),
+    [
+        (1, "post-list", TypeError, "prefix must be a string"),
+        ("/posts", "post-list", VersioningError, "relative path"),
+        ("posts", 1, TypeError, "route_name must be a string"),
+        ("posts", "", VersioningError, "route_name must be a non-empty"),
+    ],
+)
+def test_router_remove_validates_route_identity(prefix, route_name, error, message):
+    with pytest.raises(error, match=message):
+        VersionedRouter().remove(prefix, route_name, from_version=2)
+
+
+@pytest.mark.parametrize(
+    ("methods", "message"),
+    [
+        ([], "non-empty list"),
+        ([""], "non-empty HTTP method strings"),
+        (["GET", " get "], "must not contain duplicates"),
+        (["PATCH"], "is not registered"),
+    ],
+)
+def test_router_lifecycle_validates_http_method_mapping(methods, message):
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    with pytest.raises(VersioningError, match=message):
+        router.set_lifecycle(
+            "posts",
+            "post-list",
+            version=1,
+            methods=methods,
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
+
+
+def test_router_lifecycle_maps_head_to_get_action():
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    router.set_lifecycle(
+        "posts",
+        "post-list",
+        version=1,
+        action="list",
+        methods=["HEAD"],
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+
+    assert any(
+        key[0] == "posts:post-list" and key[2] == "HEAD" and key[3] == "list"
+        for key in registry._endpoint_lifecycle
+    )
+
+
+def test_router_lifecycle_rejects_method_action_mismatch():
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    with pytest.raises(VersioningError, match="maps to action"):
+        router.set_lifecycle(
+            "posts",
+            "post-status",
+            version=1,
+            action="status",
+            methods=["POST"],
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
