@@ -34,10 +34,37 @@ class EndpointLifecycleAutoSchema(AutoSchema):
 
         request = getattr(self.view, "request", None)
         resolver_match = getattr(request, "resolver_match", None)
-        if resolver_match is None:
-            return operation_schema
+        if resolver_match is not None:
+            resolved_operation = registry.resolve_operation(resolver_match, method)
+        else:
+            # drf-spectacular's URLPathVersioning branch injects the requested
+            # version into view.kwargs but does not create a ResolverMatch.
+            from rest_framework.versioning import URLPathVersioning
 
-        resolved_operation = registry.resolve_operation(resolver_match, method)
+            versioning_class = getattr(self.view, "versioning_class", None)
+            if (
+                not isinstance(versioning_class, type)
+                or not issubclass(versioning_class, URLPathVersioning)
+            ):
+                return operation_schema
+
+            logical_endpoint = getattr(
+                self.view, registry._LOGICAL_ENDPOINT_ATTR, None
+            )
+            version_param = getattr(versioning_class, "version_param", "version")
+            kwargs = getattr(self.view, "kwargs", {}) or {}
+            version = kwargs.get(version_param)
+            if isinstance(version, bool):
+                return operation_schema
+            if isinstance(version, str) and version.isdecimal():
+                version = int(version)
+            if not isinstance(version, int):
+                return operation_schema
+
+            resolved_operation = registry.resolve_registered_operation(
+                logical_endpoint, version, method
+            )
+
         if resolved_operation is None:
             return operation_schema
 
