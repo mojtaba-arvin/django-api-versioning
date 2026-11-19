@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Reject duplicate generated route patterns registered by different `VersionedRouter` instances instead of silently allowing the later router to replace the earlier ViewSet in the shared registry.
+- Validate non-string and unhashable `API_VERSION_LIFECYCLE` status values as `VersioningError` instead of leaking a raw `TypeError`.
 
 ## [1.1.0] - 2026-11-18
 
