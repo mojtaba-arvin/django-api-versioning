@@ -93,6 +93,7 @@ def test_endpoint_lifecycle_supports_app_name_and_all_methods(versions_1_to_5):
     assert lifecycle.deprecated_at is None
     assert lifecycle.sunset is not None
 
+
 class TestVerRange:
     def test_inclusive(self):
         assert ver_range(1, 3) == [1, 2, 3]
