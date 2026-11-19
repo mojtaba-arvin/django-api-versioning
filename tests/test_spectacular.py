@@ -12,6 +12,7 @@ from rest_framework.versioning import URLPathVersioning
 
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
 from django_api_versioning.registry import registry
+
 AutoSchema = pytest.importorskip("drf_spectacular.openapi").AutoSchema
 EndpointLifecycleAutoSchema = importlib.import_module(
     "django_api_versioning.spectacular"
