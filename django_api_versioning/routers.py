@@ -435,6 +435,11 @@ class VersionedRouter:
             route_key = str(pattern.pattern)
             setattr(pattern, registry._ROUTER_OWNER_ATTR, self._registry_owner)
             setattr(pattern, registry._ROUTER_PREFIX_ATTR, prefix)
+            setattr(
+                pattern,
+                registry._ROUTER_TRAILING_SLASH_ATTR,
+                self.trailing_slash,
+            )
             registry.register_urlpattern(
                 pattern,
                 source_version=source_version,
