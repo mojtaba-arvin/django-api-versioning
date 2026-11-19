@@ -31,3 +31,12 @@ repos:
     hooks:
       - id: mypy
         files: \.py$
+
+  - repo: local
+    hooks:
+      - id: agent-config-validate
+        name: Validate coding-agent configuration
+        entry: python scripts/agent.py validate
+        language: system
+        pass_filenames: false
+        files: ^(AGENTS\.md|CLAUDE\.md|\.agents/|\.claude/skills/|\.github/copilot-instructions\.md|\.github/skills/|scripts/agent\.py|scripts/agent_tests/)

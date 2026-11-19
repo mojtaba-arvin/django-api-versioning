@@ -63,7 +63,7 @@ exit "$TOX_EXIT"
 
 - Inspect the summary and logs for every configured environment. Failed, skipped, or NOT-RUN environments are not passes.
 - Confirm the real exit status; a summary count alone is insufficient.
-- Verify lint separately. For test environments, confirm both unit and integration invocations ran and passed.
+- Run `tox run -e lint` after the final Python edit and inspect the real exit code; a successful pytest run does not imply formatting or lint success. For test environments, confirm both unit and integration invocations ran and passed.
 - Classify interpreter/plugin/dependency failures as setup failures and pytest failures as test failures.
 - Do not overwrite historical compatibility reports. `docs/reports/compatibility-0.3.8.md` is immutable release evidence, not a current results file. Report current matrix results against the exact commit and workflow run; create a new versioned report only when the user explicitly requests one.
 - Never change compatibility claims based only on configured environments.
@@ -72,7 +72,7 @@ exit "$TOX_EXIT"
 
 | Change | Minimum verification |
 | --- | --- |
-| Package code or tests | Relevant unit tests; integration tests when framework wiring changes |
+| Package code or tests | Relevant unit tests; integration tests when framework wiring changes; `tox run -e lint` after the final Python edit |
 | Integration project | Integration pytest invocation with explicit config |
 | tox or compatibility workflow | Matrix validator, YAML validation, affected workflow |
 | Packaging metadata/build inputs | Build wheel and sdist; validate metadata and inspect both archives |
