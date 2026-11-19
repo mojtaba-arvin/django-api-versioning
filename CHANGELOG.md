@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add explicit endpoint removal through `remove_endpoint()` and `VersionedRouter.remove()`. Removed routes remain available in earlier API versions, disappear from runtime routing and URL reversal at the removal boundary, and may be explicitly reintroduced by a later version declaration.
 - Add endpoint-level lifecycle declarations for decorator endpoints and `VersionedRouter` operations. Matching requests receive version-scoped `Deprecation`/`Sunset` headers; optional drf-spectacular integration marks deprecated operations with the standard OpenAPI `deprecated: true` field. Endpoint Sunset remains headers-only, while version-wide retirement keeps its existing 410 behavior.
 
+### Fixed
+
+- Reject duplicate generated route patterns registered by different `VersionedRouter` instances instead of silently allowing the later router to replace the earlier ViewSet in the shared registry.
+
 ## [1.1.0] - 2026-11-18
 
 ### Added

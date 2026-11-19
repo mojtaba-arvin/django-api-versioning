@@ -400,6 +400,8 @@ A manually configured callable such as `MyViewSet.as_view({"get": "list"})` rema
 
 The router uses per-route inheritance: a later ViewSet replaces matching routes while earlier custom actions that are not redeclared remain inherited. Remove one generated route/action without removing the rest of the ViewSet by using its URL name:
 
+A single Django project may use multiple `VersionedRouter` instances when their generated route patterns are distinct. The package registry is shared across router instances; registering the same internal route pattern from two different routers is rejected with `VersioningError`, even if the routers are mounted under different outer Django namespaces. Use distinct route prefixes rather than relying on outer namespaces to disambiguate identical generated paths. This prevents one router from silently replacing another router's ViewSet or sharing its lifecycle metadata.
+
 ```python
 router.remove("orders", "order-archive", from_version=3)
 ```

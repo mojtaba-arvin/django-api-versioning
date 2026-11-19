@@ -42,6 +42,7 @@ class UrlRegistry:
     _SOURCE_VERSION_ATTR = "_django_api_versioning_source_version"
     _ROUTE_VERSION_ATTR = "_django_api_versioning_route_version"
     _LOGICAL_ENDPOINT_ATTR = "_django_api_versioning_logical_endpoint"
+    _ROUTER_OWNER_ATTR = "_django_api_versioning_router_owner"
 
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
@@ -187,6 +188,17 @@ class UrlRegistry:
 
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]
+            existing_router = getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None)
+            new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if (
+                existing_router is not None
+                and new_router is not None
+                and existing_router is not new_router
+            ):
+                raise VersioningError(
+                    f"Route pattern {route_key!r} is already registered by another "
+                    "VersionedRouter instance. Use a distinct route prefix for each router."
+                )
             if not self._should_replace(existing_pattern, source_version):
                 return
 
