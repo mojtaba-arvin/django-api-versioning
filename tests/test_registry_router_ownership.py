@@ -183,7 +183,7 @@ def test_multi_version_decorator_registration_rolls_back_after_late_router_colli
     def decorator_view(request):
         return HttpResponse("decorator")
 
-    with pytest.raises(VersioningError, match="different registration owner"):
+    with pytest.raises(VersioningError, match="owned by a VersionedRouter"):
         endpoint(
             "atomic-decorator-collision/",
             versions=[1, 2],
