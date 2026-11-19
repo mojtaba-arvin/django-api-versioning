@@ -16,10 +16,12 @@ ViewT = TypeVar("ViewT", bound=Callable)
 
 def _app_name_prefix(app_name: str | None) -> str:
     """Validate and format the optional relative application path prefix."""
-    if app_name is None or app_name == "":
+    if app_name is None:
         return ""
     if not isinstance(app_name, str):
         raise TypeError("app_name must be a string or None.")
+    if app_name == "":
+        return ""
     if app_name != app_name.strip():
         raise VersioningError("app_name must not have leading or trailing whitespace.")
     segments = app_name.split("/")
