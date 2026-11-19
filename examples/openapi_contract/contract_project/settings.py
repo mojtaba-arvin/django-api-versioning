@@ -40,7 +40,9 @@ API_VERSION_LIFECYCLE = {
 }
 
 REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": (\n        "django_api_versioning.spectacular.EndpointLifecycleAutoSchema"\n    ),
+    "DEFAULT_SCHEMA_CLASS": (
+        "django_api_versioning.spectacular.EndpointLifecycleAutoSchema"
+    ),
     "DEFAULT_VERSIONING_CLASS": "django_api_versioning.routers.VersionedRouterVersioning",
     "DEFAULT_VERSION": "1",
     "ALLOWED_VERSIONS": ["1", "2"],
