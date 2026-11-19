@@ -245,7 +245,9 @@ def test_endpoint_lifecycle_metadata_is_scoped_to_resolved_drf_action():
 
     with context:
         listed = Client().get("/api/v2/orders/")
-        created = Client().post("/api/v2/orders/", data="{}", content_type="application/json")
+        created = Client().post(
+            "/api/v2/orders/", data="{}", content_type="application/json"
+        )
 
     assert listed.status_code == 200
     assert listed["Deprecation"] == "@1893456000"
