@@ -7,9 +7,9 @@ from django.views import View
 
 from django_api_versioning.exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
-    VersioningError,
 )
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
 from django_api_versioning.registry import REMOVED_ROUTE, ResolvedOperation, registry
