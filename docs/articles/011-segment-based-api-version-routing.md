@@ -324,7 +324,7 @@ The project URLconf does not need a new router or another `path()` entry.
 
 ## Manual alternative: one router per version
 
-If the application relies heavily on `ModelViewSet` and DRF's `@action`, a router per version preserves that programming model.
+If the application relies heavily on `ModelViewSet` and DRF's `@action`, `VersionedRouter` preserves that programming model while adding package-managed per-route inheritance. Plain per-version routers remain a DRF-only alternative.
 
 Define separate ViewSet classes:
 
@@ -500,38 +500,39 @@ The package takes a different approach: instead of maintaining a separate regist
 
 ## ViewSet and Router boundary
 
-The manual approaches use `ModelViewSet` with DRF routers and `@action`. This is supported directly by DRF.
+The manual approach uses `ModelViewSet` with plain DRF routers and `@action`. For package-managed version-aware routing, the package provides a separate `VersionedRouter` integration that delegates to DRF's `SimpleRouter` and registers generated patterns in the package registry.
 
-The package approach uses Django class-based views and DRF `APIView` or generic views. A `ModelViewSet` class cannot be decorated directly with `@endpoint`, because the package calls `.as_view()` without the action mapping required by a ViewSet.
+A `ModelViewSet` class still cannot be decorated directly with `@endpoint`, because the decorator calls `.as_view()` without the action mapping required by a ViewSet.
 
-There are two ways to keep a ViewSet:
+There are three ways to keep a ViewSet:
 
-1. Use a DRF router per version, as in the manual approach.
-2. Pass a configured callable such as `UserViewSetV1.as_view({"get": "list"})` to `@endpoint` for one explicitly configured route.
-
-The second option registers one configured route. It is not a replacement for router-generated list, detail, and custom-action routes.
+1. Use `VersionedRouter` for package-managed route registration, per-route inheritance, and namespace-aware reversal.
+2. Use a plain DRF router per version when the application wants to manage URL prefixes and registrations manually, including `DefaultRouter` behavior.
+3. Pass a configured callable such as `UserViewSetV1.as_view({"get": "list"})` to `@endpoint` for one explicitly configured route. This registers one route only; it does not generate list, detail, and custom-action routes.
 
 The practical boundary is:
 
-- Use `ModelViewSet` and DRF routers for resource-shaped endpoints.
-- Use `APIView` or generic views with `@endpoint` for non-resource endpoints and supported class-based views.
-- Use a configured `ModelViewSet.as_view({...})` callable only when one explicitly configured route is appropriate.
+- Use `VersionedRouter` for package-managed resource-shaped ViewSets.
+- Use plain DRF routers for manual per-version URL management.
+- Use `APIView` or generic views with `@endpoint` for non-resource endpoints.
+- Use a configured `ModelViewSet.as_view({...})` callable only when one explicit route is appropriate.
 
-The package does not automatically integrate with or inherit DRF router registrations.
-
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) demonstrates router-based and decorator-based routing in the same project.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) demonstrates plain DRF routers and decorator-based routing in the same project. `VersionedRouter` is the package-managed alternative described in the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 ## Trade-offs and scope
 
-**Scope: routing only.** `django-api-versioning` generates versioned URL patterns and selects the registered view for each route. It does not perform DRF request-version negotiation, configure a DRF versioning class, or automatically populate DRF's `request.version`. If view code needs that attribute, configure DRF version identification separately and ensure its required URL keyword argument or namespace is present. The package also does not automatically integrate ViewSets with routers or guarantee semantic compatibility between API versions.
+**Scope: URL-path routing and view selection.** `VersionedRouterVersioning` exposes the selected router namespace through DRF's `request.version` for ViewSets. The package does not implement header/query/host-based request negotiation or guarantee semantic compatibility between API versions. Generic `@endpoint` views still need a matching DRF versioning class if they rely on `request.version`.
 
 | Approach | Registration model | View structure | Main maintenance cost |
 | --- | --- | --- | --- |
-| Per-version routers | Explicit `register()` calls | `ModelViewSet` | Repeated registrations |
+| Plain per-version routers | Explicit `register()` calls per version | `ModelViewSet` | Repeated registrations and URL-prefix management |
 | Dynamic router configuration | Configuration list | `ModelViewSet` | String imports and configuration maintenance |
-| `django-api-versioning` | Decorator declarations with version carry-forward and replacement | `APIView`, generic views, or configured callables | Import order and deliberate version-contract review |
+| `VersionedRouter` | DRF `SimpleRouter` patterns registered in the package registry | `ModelViewSet` | Explicit declarations for changed ViewSets and route-contract review |
+| `@endpoint` | Decorator declarations with version carry-forward and replacement | `APIView`, generic views, or configured callables | Import order and deliberate version-contract review |
 
-**Manual per-version routers:** useful when the application relies on `ModelViewSet`, CRUD actions, and `@action`. The cost is one router registration per resource per version.
+**Manual per-version routers:** useful when the application wants to keep URL-prefix management entirely in DRF or depends on `DefaultRouter` behavior. The cost is one router registration per resource per version.
+
+**`VersionedRouter`:** useful when the application uses ViewSets but wants package-managed version registration and per-route carry-forward through DRF's `SimpleRouter`.
 
 **Dynamic router registration:** useful when the registration list is easier to maintain as data than as repeated URLconf code. It centralizes construction but still requires a mapping for each endpoint/version pair.
 

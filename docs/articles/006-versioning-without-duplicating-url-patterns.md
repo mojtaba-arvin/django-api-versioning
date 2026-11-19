@@ -335,7 +335,7 @@ Declarative registration is a good fit when:
 
 `ModelViewSet` classes cannot be decorated directly with `@endpoint`. The decorator calls `.as_view()` without the action mapping required by DRF ViewSets.
 
-For resource-shaped endpoints, use DRF routers and mount their generated URL patterns under the appropriate versioned prefixes. This router configuration is separate from the package's endpoint registry; the package does not automatically register or inherit router-generated ViewSet actions.
+For package-managed resource ViewSets, use `VersionedRouter`, which delegates to DRF's `SimpleRouter` and registers its generated patterns in the package registry for per-route version inheritance. Plain per-version DRF routers remain a valid manual alternative.
 
 A manually configured callable such as:
 

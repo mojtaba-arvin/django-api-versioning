@@ -298,10 +298,11 @@ The package's `@endpoint` decorator accepts Django class-based views and DRF gen
 
 The reason is specific: the package calls `as_view()` without an action mapping, while DRF ViewSets require an action mapping to connect HTTP methods to actions.
 
-If you want to keep a ViewSet, you have two options:
+If you want to keep a ViewSet, choose among three approaches:
 
-1. **Use per-version routers**, as shown above. DRF handles the ViewSet routes and custom actions.
-2. **Register a configured `as_view()` callable** for an individual route:
+1. **Use `VersionedRouter`** for package-managed `SimpleRouter` route generation, per-route inheritance, and version-aware reversal.
+2. **Use plain per-version routers** when you want DRF-only URL management, including `DefaultRouter` behavior.
+3. **Register a configured `as_view()` callable** with `@endpoint` for an individual route:
 
    ```python
    from django_api_versioning import endpoint
@@ -316,21 +317,21 @@ If you want to keep a ViewSet, you have two options:
 
    This registers that configured callable for the specified route. It does not automatically register the ViewSet's detail routes or custom `@action` handlers.
 
-The package example uses generic views, not ViewSets. It demonstrates versioned endpoint registration and view inheritance, but it is not a drop-in replacement for all router-generated ViewSet functionality.
+The generic-view example in this article uses `@endpoint`; the package's separate `VersionedRouter` integration supports ViewSets. It does not claim `DefaultRouter` API-root or format-suffix parity.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) shows router-based ViewSet routes alongside decorator-based routes.
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows plain DRF routers mounted alongside decorator-based routes. This is the manual DRF-only alternative; the package-managed `VersionedRouter` pattern is documented in the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 ## Trade-offs and scope
 
 Python inheritance and routing inheritance solve different parts of version maintenance.
 
-| Scenario: 10 resources, two API versions | Per-version router registrations | `@endpoint` declarations |
-| --- | ---: | ---: |
-| No resources change in v2 | 20 | 10 |
-| 5 resources change in v2 | 20 | 15 |
-| All 10 resources change in v2 | 20 | 20 |
+| Scenario: 10 resources, two API versions | Plain per-version router registrations | `@endpoint` declarations | `VersionedRouter` registrations |
+| --- | ---: | ---: | ---: |
+| No resources change in v2 | 20 | 10 | 10 |
+| 5 resources change in v2 | 20 | 15 | 15 |
+| All 10 resources change in v2 | 20 | 20 | 20 |
 
-The counts assume one ViewSet registration per resource in each version router, and one package declaration for each unchanged resource plus a v2 declaration for each changed resource.
+The counts are registration calls, not generated URL counts. They assume one ViewSet registration per resource in each manual version router; for `@endpoint` and `VersionedRouter`, one initial declaration/registration per resource plus a v2 declaration/registration only when that resource changes. This is not a route-count or feature-parity comparison: one `VersionedRouter` registration expands to the applicable list, detail, and custom-action patterns, while one `@endpoint` declaration registers one configured view callable. Actual declaration counts depend on how many operations each resource exposes.
 
 The comparison shows the actual registration savings:
 
@@ -338,7 +339,7 @@ The comparison shows the actual registration savings:
 - **Half the resources change:** 15 declarations replace 20 router registrations, a 25% reduction.
 - **All resources change:** there is no reduction in registration count, although Python inheritance can still reduce duplicated view code.
 
-**When the benefit is smaller:** If nearly every resource changes at each version boundary, or if the versioned endpoint sets are substantially different, routing inheritance may save little. Per-version routers can be a reasonable fit, particularly when the project relies heavily on `ModelViewSet` and custom router actions.
+**When the benefit is smaller:** If nearly every resource changes at each version boundary, or if the versioned endpoint sets are substantially different, route inheritance may save little. Plain per-version routers can be a reasonable fit when the project intentionally manages each version's URL configuration or depends on `DefaultRouter` behavior. `VersionedRouter` is the package-managed option for `SimpleRouter` ViewSets.
 
 **When routing inheritance matters most:** When multiple API versions share a meaningful set of unchanged endpoint paths and you want those paths carried forward without maintaining a separate registration for every version.
 

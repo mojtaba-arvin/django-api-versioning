@@ -187,7 +187,7 @@ See the official [DRF versioning documentation](https://www.django-rest-framewor
 
 A third option is to keep version-specific view implementations while declaring their route registrations with `@endpoint`. The package builds the versioned URL patterns from those declarations.
 
-The example below uses DRF `APIView` classes, which the package supports. It deliberately does not use a `ViewSet`: direct decoration of DRF ViewSets is not supported because a ViewSet needs the action mapping normally supplied by a router.
+The example below uses DRF `APIView` classes, which the package supports through `@endpoint`. It deliberately does not decorate a `ViewSet` class: `@endpoint` does not infer the action mapping required by a ViewSet. For package-managed ViewSet routes, use `VersionedRouter`.
 
 ### Configure the package
 
@@ -319,7 +319,7 @@ That is an application organization choice, not a package requirement. The packa
 | Reuse unchanged endpoints | Reuse views and URL patterns manually | Share view logic or handlers | Earlier implementation carries forward through the configured range |
 | Version identifier | Whatever the URLconf defines | String from the configured URL parameter | Integer |
 | Works without DRF | Yes | No | Yes |
-| Direct DRF ViewSet registration | Use a DRF router | Use a DRF router | Not supported; mount router URLs separately |
+| Direct DRF ViewSet registration | Use a DRF router | Use a DRF router | Use `VersionedRouter`; direct `@endpoint` decoration remains unsupported |
 
 No approach is universally best. Explicit URL patterns are transparent and remain a strong choice when the route table is small or versions differ substantially. DRF's versioning classes are appropriate when a shared route and application-level version dispatch match the design. Declarative registration is useful when many endpoints remain unchanged across successive versions and maintaining each mapping by hand becomes repetitive.
 

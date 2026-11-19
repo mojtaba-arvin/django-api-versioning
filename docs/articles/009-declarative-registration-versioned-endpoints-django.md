@@ -1,7 +1,7 @@
 ---
 slug: "009-declarative-registration-versioned-endpoints-django"
 title: "Declarative registration of versioned endpoints in Django"
-description: "Compare DRF router configuration with decorator-based endpoint registration in Django, including version ranges, explicit versions, and ViewSet limitations."
+description: "Compare DRF routers and decorator-based endpoint registration, including version ranges, explicit versions, and VersionedRouter integration."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
@@ -19,7 +19,7 @@ keywords:
 
 In a versioned Django API, endpoint definitions and URL configuration can be maintained separately or declared together. The difference becomes important as an API evolves: unchanged endpoints should remain available in later versions, while changed endpoints need an explicit replacement.
 
-For DRF projects built around `ModelViewSet`, per-version routers are a natural way to organize resource routes. For class-based views such as `ListAPIView` and `RetrieveUpdateDestroyAPIView`, [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/) provides decorator-based registration: the version and endpoint path are declared alongside the view.
+For DRF projects built around `ModelViewSet`, `VersionedRouter` provides package-managed route registration and per-route inheritance through DRF's `SimpleRouter`. Plain per-version routers remain a DRF-only alternative. For class-based views such as `ListAPIView` and `RetrieveUpdateDestroyAPIView`, [`django-api-versioning` on PyPI](https://pypi.org/project/django-api-versioning/) provides decorator-based registration: the version and endpoint path are declared alongside the view.
 
 This article compares three approaches:
 
@@ -455,12 +455,13 @@ Likewise, `@endpoint` does not provide a per-registration kwargs mechanism. View
 
 ### ViewSet and router boundary
 
-The examples using `ListAPIView` and `RetrieveUpdateDestroyAPIView` work with `@endpoint`. A `ModelViewSet` class cannot be decorated directly because the package calls `.as_view()` without the action mapping required by DRF ViewSets.
+The examples using `ListAPIView` and `RetrieveUpdateDestroyAPIView` work with `@endpoint`. A `ModelViewSet` class cannot be decorated directly because `@endpoint` calls `.as_view()` without the action mapping required by DRF ViewSets. Use the separate `VersionedRouter` integration for package-managed ViewSet routes.
 
-There are two alternatives:
+There are three alternatives:
 
-1. Register ViewSets with DRF's `SimpleRouter` or `DefaultRouter` and mount the generated URLs under version-specific prefixes.
-2. Pass a configured `ModelViewSet.as_view({...})` callable to `@endpoint` for one specific route.
+1. Use `VersionedRouter` for package-managed version-aware `SimpleRouter` integration and per-route inheritance.
+2. Use plain DRF `SimpleRouter` or `DefaultRouter` instances for manually managed per-version URL prefixes.
+3. Pass a configured `ModelViewSet.as_view({...})` callable to `@endpoint` for one specific route.
 
 For example, a configured callable can expose the list and create actions:
 
@@ -480,9 +481,9 @@ endpoint("users/", version=1)(user_list_view)
 
 This callable can be registered as a route, but it does not generate the full set of router routes automatically. Detail routes and custom actions require their own configured callables and registrations.
 
-For resource-oriented ViewSets, use DRF routers. For generic views and individual endpoints, `@endpoint` provides version-based registration without a separate router configuration.
+For resource-oriented ViewSets, use `VersionedRouter` when you want package-managed route inheritance, or plain DRF routers when you prefer manual per-version routing. For generic views and individual endpoints, `@endpoint` provides version-based registration without a separate router configuration.
 
-The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/v1.0.0/integration_test_project/project/urls.py) shows router-based ViewSet registration alongside decorator-based endpoint registration. See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
+The [integration project's URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py) shows plain DRF routers mounted alongside decorator-based endpoint registration. For package-managed ViewSet routes, use `VersionedRouter` as described in the [dedicated integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/). See also the [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
 
 ## Trade-offs and scope
 
@@ -490,7 +491,7 @@ Scope: routing only. These approaches determine which view callable is attached 
 
 Manual declarative configuration is useful when the configuration genuinely carries information beyond the endpoint and version—for example, when a project needs a centralized inventory of ViewSets or custom route-generation rules. Its cost is maintaining the builder and explicitly registering unchanged endpoints in each version.
 
-Decorator-based registration is useful when the version, URL postfix, and view naturally belong together. Its costs are the import-order requirement and the inability to decorate `ModelViewSet` classes directly.
+Decorator-based registration is useful when the version, URL postfix, and view naturally belong together. Its costs are the import-order requirement and the fact that `@endpoint` does not decorate `ModelViewSet` classes directly; use `VersionedRouter` for those.
 
 When the benefit is smaller: if an API has only one version and there is no plan to introduce another, a plain `urlpatterns` list is simpler and easier to understand.
 
