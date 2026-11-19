@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django-api-versioning"
-version = "1.1.0"
+version = "1.2.0"
 description = "URL-path API versioning for Django and Django REST Framework with decorator-based endpoint registration and forward route inheritance."
 readme = "README.md"
 requires-python = ">=3.10"

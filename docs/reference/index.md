@@ -1,6 +1,6 @@
 # django-api-versioning reference
 
-This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The published PyPI package includes the VersionedRouter integration. The executable OpenAPI consumer example and its `oasdiff` gate were added to repository main after the published release; they are repository-level validation tooling, not part of the package wheel. Explicit endpoint removal and endpoint-level lifecycle declarations are also marked **unreleased on main** and are not available from the current published artifact. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The published PyPI package includes the VersionedRouter integration. The executable OpenAPI consumer example and its `oasdiff` gate were added to repository main after the published release; they are repository-level validation tooling, not part of the package wheel. Explicit endpoint removal and endpoint-level lifecycle declarations are included in the upcoming **1.2.0 release candidate**; they are not available from the currently published 1.1.0 artifact. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Installation
 
@@ -228,7 +228,7 @@ For a deprecated version with valid lifecycle dates, the middleware emits the da
 
 See [API lifecycle behavior in the routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#12-version-lifecycle-headers) and the [deprecation guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/018-deprecate-django-api-versioning-routes-sunset-headers/).
 
-### Endpoint-level lifecycle and OpenAPI (unreleased on main)
+### Endpoint-level lifecycle and OpenAPI (included in 1.2.0; publication pending)
 
 Use `set_endpoint_lifecycle()` for a concrete endpoint version, or
 `VersionedRouter.set_lifecycle()` for a generated ViewSet route. These
