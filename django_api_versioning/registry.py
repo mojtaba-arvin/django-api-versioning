@@ -43,6 +43,8 @@ class UrlRegistry:
     _ROUTE_VERSION_ATTR = "_django_api_versioning_route_version"
     _LOGICAL_ENDPOINT_ATTR = "_django_api_versioning_logical_endpoint"
     _ROUTER_OWNER_ATTR = "_django_api_versioning_router_owner"
+    _ROUTER_PREFIX_ATTR = "_django_api_versioning_router_prefix"
+    _ROUTER_TRAILING_SLASH_ATTR = "_django_api_versioning_router_trailing_slash"
 
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
@@ -91,6 +93,32 @@ class UrlRegistry:
             self._removed_patterns[(logical_endpoint, route_version)] = pattern
             del self.urlpatterns[index]
 
+        # Lifecycle metadata belongs to a concrete active declaration segment.
+        # A tombstone must not let metadata from the removed implementation leak
+        # into a later reintroduction at the same concrete API version. Preserve
+        # metadata only for versions that already have a newer active source.
+        preserved_versions = set()
+        for pattern in self.urlpatterns:
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
+                continue
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
+            if (
+                route_version is not None
+                and route_version >= from_version
+                and source_version is not None
+                and source_version > from_version
+            ):
+                preserved_versions.add(route_version)
+        for key in list(self._endpoint_lifecycle):
+            endpoint, version, _, _ = key
+            if (
+                endpoint == logical_endpoint
+                and version >= from_version
+                and version not in preserved_versions
+            ):
+                del self._endpoint_lifecycle[key]
+
     def _removal_boundary(
         self,
         logical_endpoint: str | None,
@@ -115,8 +143,20 @@ class UrlRegistry:
 
     def _record_removed(self, pattern: URLPattern, logical_endpoint: str) -> None:
         route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-        if route_version is not None:
-            self._removed_patterns[(logical_endpoint, route_version)] = pattern
+        if route_version is None:
+            return
+
+        key = (logical_endpoint, route_version)
+        existing = self._removed_patterns.get(key)
+        if existing is not None:
+            existing_owner = getattr(existing, self._ROUTER_OWNER_ATTR, None)
+            new_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if existing_owner is not new_owner:
+                # A suppressed re-registration must not transfer a tombstone
+                # to a different router (or from an unowned endpoint).
+                return
+
+        self._removed_patterns[key] = pattern
 
     def register(
         self,
@@ -185,6 +225,28 @@ class UrlRegistry:
 
         route_key = str(pattern.pattern)
         route_index = self._find_route_index(route_key)
+
+        if route_index is None:
+            new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            new_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
+            for existing in self.urlpatterns:
+                existing_router = getattr(existing, self._ROUTER_OWNER_ATTR, None)
+                existing_prefix = getattr(existing, self._ROUTER_PREFIX_ATTR, None)
+                if (
+                    new_router is not None
+                    and existing_router is not None
+                    and existing_router is not new_router
+                    and new_prefix is not None
+                    and existing_prefix == new_prefix
+                    and getattr(existing, self._ROUTER_TRAILING_SLASH_ATTR, None)
+                    == getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
+                    and getattr(existing, self._ROUTE_VERSION_ATTR, None)
+                    == route_version
+                ):
+                    raise VersioningError(
+                        f"Router prefix {new_prefix!r} in version {route_version} "
+                        "is already registered by another VersionedRouter instance."
+                    )
 
         if route_index is not None:
             existing_pattern = self.urlpatterns[route_index]

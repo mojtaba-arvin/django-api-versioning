@@ -169,6 +169,15 @@ class VersionedRouter:
             raise TypeError("route_name must be a string.")
         if not route_name:
             raise VersioningError("route_name must be a non-empty string.")
+        # Validate before comparing against registered route versions. Otherwise
+        # malformed values can raise incidental TypeError or mask the intended
+        # VersionTypeError with an ownership error.
+        self._validate_version(from_version)
+        if from_version < api_settings.API_MIN_VERSION:
+            raise VersionRangeError(
+                f"Removal version {from_version} is below API_MIN_VERSION "
+                f"{api_settings.API_MIN_VERSION}."
+            )
         logical_endpoint = f"{prefix}:{route_name}"
         affected_foreign_routes = [
             pattern
@@ -425,6 +434,12 @@ class VersionedRouter:
             logical_endpoint = f"{prefix}:{pattern.name}"
             route_key = str(pattern.pattern)
             setattr(pattern, registry._ROUTER_OWNER_ATTR, self._registry_owner)
+            setattr(pattern, registry._ROUTER_PREFIX_ATTR, route_prefix)
+            setattr(
+                pattern,
+                registry._ROUTER_TRAILING_SLASH_ATTR,
+                bool(self.trailing_slash),
+            )
             registry.register_urlpattern(
                 pattern,
                 source_version=source_version,

@@ -15,7 +15,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-from django_api_versioning.exceptions import VersioningError
+from django_api_versioning.exceptions import (
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
 from django_api_versioning.routers import (
     VersionedRouter,
     VersionedRouterVersioning,
@@ -356,3 +360,104 @@ def test_router_remove_remains_idempotent_for_its_own_tombstoned_route():
 
     router.remove("orders", "order-list", from_version=2)
     router.remove("orders", "order-list", from_version=2)
+
+
+@pytest.mark.parametrize("invalid_version", [True, "2", 2.0])
+def test_router_remove_validates_version_before_foreign_owner_checks(invalid_version):
+    """Invalid versions must fail validation before route ownership is inspected."""
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    owner = VersionedRouter()
+    owner.register("shared", OrdersViewSet, version=1, basename="shared")
+    unrelated = VersionedRouter()
+
+    with pytest.raises(VersionTypeError, match="Version must be an integer"):
+        unrelated.remove("shared", "shared-list", from_version=invalid_version)
+
+
+def test_suppressed_re_registration_cannot_steal_router_tombstone_ownership():
+    """A suppressed registration must not let another router claim a tombstone."""
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    owner = VersionedRouter()
+    owner.register("orders", OrdersViewSet, versions=[1, 2], basename="order")
+    owner.remove("orders", "order-list", from_version=2)
+
+    unrelated = VersionedRouter()
+    unrelated.register("orders", OrdersViewSet, versions=[2], basename="order")
+
+    with pytest.raises(VersioningError, match="does not own an active route"):
+        unrelated.remove("orders", "order-list", from_version=2)
+
+    # The original owner retains its tombstone and can repeat removal safely.
+    owner.remove("orders", "order-list", from_version=2)
+
+
+@pytest.mark.parametrize("versioned", [False, True])
+def test_routers_with_different_path_modes_cannot_register_same_route_prefix(versioned):
+    """Regex and path converters can overlap despite different pattern strings."""
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    regex_router = VersionedRouter(use_regex_path=True)
+    path_router = VersionedRouter(use_regex_path=False)
+    if versioned:
+        regex_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+    else:
+        regex_router.register("orders", OrdersViewSet, basename="order")
+
+    with pytest.raises(
+        VersioningError,
+        match="Router prefix .* already registered by another VersionedRouter",
+    ):
+        if versioned:
+            # Different basenames also produce different logical endpoint IDs;
+            # the shared route prefix is still a collision.
+            path_router.register(
+                "orders", OrdersViewSet, versions=[2], basename="orders"
+            )
+        else:
+            path_router.register("orders", OrdersViewSet, basename="orders")
+
+    assert path_router._route_keys == set()
+
+
+def test_router_remove_validates_minimum_version_before_ownership_checks():
+    """Out-of-range removal versions must fail before checking router ownership."""
+
+    unrelated = VersionedRouter()
+    with pytest.raises(VersionRangeError, match="below API_MIN_VERSION"):
+        unrelated.remove("orders", "order-list", from_version=0)
+
+
+def test_same_router_prefix_with_distinct_trailing_slash_modes_can_coexist():
+    """Distinct URL paths are not a collision merely because the prefix matches."""
+
+    from django_api_versioning.registry import registry
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
+    no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
+    slash_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+    no_slash_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+
+    patterns = [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "orders:order-list"
+        and getattr(pattern, registry._ROUTE_VERSION_ATTR, None) == 2
+    ]
+    assert len(patterns) == 2
+    assert str(patterns[0].pattern) != str(patterns[1].pattern)
