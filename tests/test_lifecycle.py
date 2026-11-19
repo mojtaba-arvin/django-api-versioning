@@ -146,6 +146,32 @@ def test_unknown_version_is_passthrough(monkeypatch):
     assert "Deprecation" not in response
 
 
+def test_unrelated_route_version_kwarg_does_not_enforce_retirement(monkeypatch):
+    """A non-API view with a version parameter must not receive API 410."""
+    from django.urls import ResolverMatch
+
+    monkeypatch.setitem(
+        settings.API_VERSION_LIFECYCLE,
+        2,
+        {"status": "retired", "sunset": PAST},
+    )
+    request = RequestFactory().get("/documents/2/")
+    request.version = None
+    request.resolver_match = ResolverMatch(
+        lambda req: HttpResponse("document"),
+        (),
+        {"version": "2"},
+        route="documents/<int:version>/",
+    )
+
+    middleware = LifecycleMiddleware(lambda req: HttpResponse("document"))
+    response = middleware(request)
+
+    assert response.status_code == 200
+    assert "Deprecation" not in response
+    assert "Sunset" not in response
+
+
 def test_request_without_version_is_passthrough():
     request = RequestFactory().get("/some/path")
     middleware = LifecycleMiddleware(lambda req: HttpResponse("ok"))
@@ -259,9 +285,24 @@ class TestVersionExtraction:
         request.version = None
         request.resolver_match = Mock()
         request.resolver_match.kwargs = {"version": "4"}
-        # resolver_match should be second priority
+        request.resolver_match.route = "api/v4/users/"
+        # The matched API route, not an unrelated request attribute, is authoritative.
         version = _extract_version(request)
         assert version == 4
+
+    def test_unrelated_route_version_kwarg_is_not_an_api_version(self):
+        """A generic Django version parameter must not trigger API lifecycle."""
+        from unittest.mock import Mock
+
+        from django_api_versioning.lifecycle import _extract_version
+
+        request = RequestFactory().get("/documents/2/")
+        request.version = None
+        request.resolver_match = Mock()
+        request.resolver_match.kwargs = {"version": "2"}
+        request.resolver_match.route = "documents/<int:version>/"
+
+        assert _extract_version(request) is None
 
     def test_extract_version_falls_back_to_path(self):
         """Version extraction falls back to URL path when others are unavailable."""
@@ -412,11 +453,13 @@ class TestVersionExtraction:
         request.version = "5"
         request.resolver_match = Mock()
         request.resolver_match.kwargs = {"version": "3"}
+        request.resolver_match.route = "api/v3/users/"
         version = _extract_version(request)
         assert version == 3
 
-        # Without resolver version metadata, request.version remains a fallback.
+        # An unrelated route has no API version metadata; request.version remains a fallback.
         request.resolver_match.kwargs = {}
+        request.resolver_match.route = "documents/<int:pk>/"
         version = _extract_version(request)
         assert version == 5
 

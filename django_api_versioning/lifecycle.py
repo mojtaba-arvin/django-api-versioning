@@ -208,11 +208,9 @@ def _extract_version(request: HttpRequest) -> int | None:
     """Prefer the actual matched route over request/path heuristics."""
     match = getattr(request, "resolver_match", None)
     if match:
-        kwargs = getattr(match, "kwargs", {}) or {}
-        version = _coerce_version(kwargs.get("version"))
-        if version is not None:
-            return version
-
+        # Resolver kwargs are application-defined. A parameter named
+        # "version" on an unrelated route must not activate API lifecycle
+        # policy; identify the API version from the actual matched route.
         route = getattr(match, "route", None)
         if isinstance(route, str):
             version = registry.get_resolved_route_version(route)
