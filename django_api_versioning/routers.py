@@ -451,26 +451,31 @@ class VersionedRouterVersioning(NamespaceVersioning):
 
         if isinstance(route, str):
             route_version = registry.get_resolved_route_version(route)
-            if route_version is not None:
-                # For ordinary requests the route and its VersionedRouter
-                # namespace agree. Schema generators can pair a target route
-                # with the requested schema-version namespace; in that case
-                # the namespace is the requested version, not the target route.
-                version = (
-                    namespace_version
-                    if namespace_version is not None
-                    and namespace_version != str(route_version)
-                    else str(route_version)
+            url_name = getattr(resolver_match, "url_name", None)
+            namespace_has_registered_route = (
+                namespace_version is not None
+                and isinstance(url_name, str)
+                and any(
+                    pattern.name == url_name
+                    and getattr(pattern, _ROUTE_VERSION_ATTR, None)
+                    == int(namespace_version)
+                    for pattern in registry.urlpatterns
                 )
-                print(
-                    "VERSIONED_ROUTER_DEBUG",
-                    getattr(request, "path", None),
-                    route,
-                    namespace,
-                    route_version,
-                    namespace_version,
-                    version,
-                )
+            )
+
+            # Regex-backed DRF routes do not expose the same textual route
+            # representation as Django's ResolverMatch, so the URL namespace
+            # is the reliable version identity when it names a registered
+            # route. This also supports schema generators that resolve a
+            # target route under the requested schema-version namespace.
+            if namespace_has_registered_route:
+                version = namespace_version
+            elif route_version is not None:
+                version = str(route_version)
+            else:
+                version = None
+
+            if version is not None:
                 if not self.is_allowed_version(version):
                     raise NotFound(self.invalid_version_message)
                 return version
