@@ -90,7 +90,7 @@ class LifecycleMiddleware:
                 request, "_django_api_version_lifecycle_sunset_enforced", False
             ):
                 sunset = meta.get("sunset")
-                return HttpResponseGone(
+                response = HttpResponseGone(
                     f"API version {version} has been retired as of {sunset}."
                 )
 
