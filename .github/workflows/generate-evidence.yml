@@ -142,14 +142,14 @@ jobs:
           git fetch origin main
           changed="$(git diff --name-only origin/main...HEAD)"
 
-          if printf '%s\\n' "$changed" | grep -Fxq 'pyproject.toml'; then
+          if printf '%s\n "$changed" | grep -Fxq 'pyproject.toml'; then
             uv lock
           fi
 
           if printf '%s\\n' "$changed" | grep -Fxq 'website/package.json'; then
             corepack enable
             corepack prepare pnpm@10.12.1 --activate
-            pnpm --dir website install --lockfile-only --ignore-scripts
+            (cd website && pnpm install --lockfile-only --ignore-scripts)
           fi
 
           mkdir -p "$RUNNER_TEMP/dependency-lockfiles/website"
