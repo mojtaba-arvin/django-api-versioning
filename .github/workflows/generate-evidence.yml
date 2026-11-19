@@ -2,6 +2,9 @@ name: Generate source-pinned website evidence
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "deps/**"
 
 permissions:
   contents: read
@@ -12,6 +15,7 @@ concurrency:
 
 jobs:
   generate-and-verify:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -113,14 +117,67 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  generate-dependency-locks:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - name: Check out the exact dependency branch commit without a persistent token
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node for the pinned pnpm toolchain
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.23.4"
+
+      - name: Regenerate lockfiles from dependency manifests only
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD)"
+
+          if printf '%s\\n' "$changed" | grep -Fxq 'pyproject.toml'; then
+            uv lock
+          fi
+
+          if printf '%s\\n' "$changed" | grep -Fxq 'website/package.json'; then
+            corepack enable
+            corepack prepare pnpm@10.12.1 --activate
+            pnpm --dir website install --lockfile-only --ignore-scripts
+          fi
+
+          mkdir -p "$RUNNER_TEMP/dependency-lockfiles/website"
+          cp uv.lock "$RUNNER_TEMP/dependency-lockfiles/uv.lock"
+          cp website/pnpm-lock.yaml "$RUNNER_TEMP/dependency-lockfiles/website/pnpm-lock.yaml"
+
+      - name: Upload generated lockfiles for the isolated commit job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-lockfiles
+          path: ${{ runner.temp }}/dependency-lockfiles/
+          if-no-files-found: error
+          retention-days: 1
+
   commit-evidence:
-    needs: generate-and-verify
+    needs: [generate-and-verify, generate-dependency-locks]
+    if: >-
+      always() &&
+      ((github.event_name == 'workflow_dispatch' && needs.generate-and-verify.result == 'success') ||
+       (github.event_name == 'push' && needs.generate-dependency-locks.result == 'success'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
     timeout-minutes: 5
     steps:
-      - name: Require the branch to remain at the dispatch commit
+      - name: Require the branch to remain at the triggering commit
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           case "$GITHUB_REF" in
             refs/heads/*) ;;
@@ -138,12 +195,22 @@ jobs:
           persist-credentials: true
 
       - name: Download verified evidence
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
         with:
           name: source-pinned-website-evidence
           path: generated-evidence
 
-      - name: Commit generated evidence with bot identity
+      - name: Download generated dependency lockfiles
+        if: github.event_name == 'push'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: dependency-lockfiles
+          path: generated-lockfiles
+
+      - name: Commit generated files with bot identity
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
 
@@ -154,20 +221,28 @@ jobs:
             exit 1
           fi
 
-          test -f generated-evidence/routes.json
-          test -f generated-evidence/check_versions_output.txt
-          mkdir -p website/src/data/generated
-          cp generated-evidence/routes.json website/src/data/generated/routes.json
-          cp generated-evidence/check_versions_output.txt website/src/data/generated/check_versions_output.txt
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            test -f generated-lockfiles/uv.lock
+            test -f generated-lockfiles/website/pnpm-lock.yaml
+            cp generated-lockfiles/uv.lock uv.lock
+            cp generated-lockfiles/website/pnpm-lock.yaml website/pnpm-lock.yaml
+            git add -- uv.lock website/pnpm-lock.yaml
+          else
+            test -f generated-evidence/routes.json
+            test -f generated-evidence/check_versions_output.txt
+            mkdir -p website/src/data/generated
+            cp generated-evidence/routes.json website/src/data/generated/routes.json
+            cp generated-evidence/check_versions_output.txt website/src/data/generated/check_versions_output.txt
+            git add -- website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
+          fi
 
           git diff --check
-          git add -- website/src/data/generated/routes.json website/src/data/generated/check_versions_output.txt
           if git diff --cached --quiet; then
-            echo "Generated evidence is already current at $GITHUB_SHA."
+            echo "Generated files are already current at $GITHUB_SHA."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "data: generate source-pinned Segment Lab evidence"
+          git commit -m "chore(deps): refresh dependency lockfiles"
           git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
