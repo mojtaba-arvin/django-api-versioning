@@ -347,10 +347,28 @@ class UrlRegistry:
             matrix.setdefault(logical_id, {})[route_version] = REMOVED_ROUTE
         return matrix
 
+    @staticmethod
+    def _canonical_route_key(route: str) -> str:
+        """Normalize simple anchored regex routes to their literal path form.
+
+        DRF regex routes use ^literal/path/$ while Django path() uses
+        literal/path/. Treat them as identical only for static literal paths.
+        """
+        if not (route.startswith("^") and route.endswith("$")):
+            return route
+
+        literal = route[1:-1]
+        if "<" in literal or ">" in literal:
+            return route
+        if any(character in literal for character in r".^$*+?{}[]\\|()"):
+            return route
+        return literal
+
     def _find_route_index(self, route: str) -> int | None:
         """Return the index of a registered route, or None if absent."""
+        route_key = self._canonical_route_key(route)
         for index, pattern in enumerate(self.urlpatterns):
-            if str(pattern.pattern) == route:
+            if self._canonical_route_key(str(pattern.pattern)) == route_key:
                 return index
 
         return None
