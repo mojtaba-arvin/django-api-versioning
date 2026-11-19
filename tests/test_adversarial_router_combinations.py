@@ -15,6 +15,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
+from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.routers import (
     VersionedRouter,
     VersionedRouterVersioning,
@@ -181,7 +182,7 @@ def test_failed_multi_version_registration_rolls_back_at_every_collision_positio
     baseline_removed = dict(registry._removed_patterns)
     candidate_router = VersionedRouter()
 
-    with pytest.raises(Exception, match="another VersionedRouter"):
+    with pytest.raises(VersioningError, match="another VersionedRouter"):
         candidate_router.register(
             "inventory",
             ExistingViewSet,
