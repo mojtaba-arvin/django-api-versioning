@@ -535,3 +535,23 @@ def test_multi_version_registration_is_atomic_when_a_later_version_collides():
         is candidate_router._registry_owner
     ]
     assert candidate_routes == []
+
+
+def test_separate_default_routers_keep_reverse_namespaces_isolated():
+    """Distinct routers must not alias the same default vN namespace."""
+    posts_router = VersionedRouter()
+    posts_router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    comments_router = VersionedRouter()
+    comments_router.register(
+        "comments", PostViewSetV1, version=1, basename="comment"
+    )
+
+    urlconf.urlpatterns = posts_router.urls + comments_router.urls
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        response = APIClient().get("/api/v1/posts/reverse-list/")
+
+    assert response.status_code == 200
+    assert response.json()["url"] == "/api/v1/posts/"
