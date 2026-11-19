@@ -165,11 +165,11 @@ For the exact behavior of version validation, route construction, collision prec
 
 ## When the project uses ModelViewSet
 
-The preceding example uses DRF generic views. This is an important boundary: `@endpoint` does not directly support decorating a `ModelViewSet` class.
+The preceding example uses DRF generic views. This is an important boundary: `@endpoint` does not directly support decorating a `ModelViewSet` class. The package does, however, provide the separate `VersionedRouter` integration for full router-managed ViewSet routes.
 
 A ViewSet requires an action mapping when converted into a Django view callable. The package's class-based view handling calls `as_view()` without that mapping, so decorating a ViewSet class directly does not work.
 
-For resource-oriented endpoints that rely on `ModelViewSet`, DRF routers remain the appropriate registration mechanism.
+For resource-oriented endpoints that rely on `ModelViewSet`, use `VersionedRouter` when you want the package's route-level inheritance and version-aware reversal. Plain DRF `SimpleRouter` instances mounted separately for each version remain a valid alternative when you prefer to manage version prefixes and route registrations yourself.
 
 For example, each API version can have its own ViewSet:
 
@@ -218,9 +218,24 @@ urlpatterns = [
 ]
 ```
 
-This is standard DRF router configuration. The router generates the list, detail, and applicable action routes for each ViewSet.
+This is standard DRF-only router configuration. The router generates the list, detail, and applicable action routes for each ViewSet, but the application must maintain each version's registrations and URL prefixes.
 
-The router-based configuration is separate from the package's endpoint registry. The package does not automatically discover, mount, or inherit router-generated routes.
+When you want the package registry to manage version-specific ViewSet routes, use `VersionedRouter` instead:
+
+```python
+# accounts/urls.py
+
+from django_api_versioning.routers import VersionedRouter
+from .views import UserViewSetV1, UserViewSetV2
+
+router = VersionedRouter()
+router.register("users", UserViewSetV1, version=1, basename="user")
+router.register("users", UserViewSetV2, version=2, basename="user")
+
+urlpatterns = router.urls
+```
+
+Configure `VersionedRouterVersioning` as DRF's `DEFAULT_VERSIONING_CLASS` (or on the selected ViewSets) when the views need `request.version` and version-aware reversal. See [Versioned DRF ViewSets with Route-Level Inheritance](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for the complete contract.
 
 ### A configured ViewSet callable is a narrower option
 
@@ -320,19 +335,19 @@ DRF routers discover the extra actions declared on the ViewSet, including inheri
 
 The approaches solve related but different problems:
 
-| Concern | `django-api-versioning` with generic views | Per-version ViewSets and routers | Mixin-based ViewSets |
-| --- | --- | --- | --- |
-| Main registration mechanism | `@endpoint` declarations | `SimpleRouter` registrations | `SimpleRouter` registrations |
-| Version-specific implementations | Separate decorated views | Separate ViewSet classes | Separate ViewSet classes |
-| Shared behavior | Python inheritance or shared helpers | Optional Python inheritance | Composed mixins and shared base classes |
-| Carry-forward of unchanged routes | Supported through `version=N` | Must be represented in router configuration | Must be represented in router configuration |
-| `ModelViewSet` and `@action` | Not supported by direct class decoration | Supported | Supported |
-| URLconf structure | One include for generated package routes | Router URLs mounted under each version | Router URLs mounted under each version |
-| Import requirement | Import decorated modules during URLconf initialization; exported urlpatterns is a shared list | Import ViewSets before router registration | Import ViewSets and mixins before router registration |
+| Concern | `django-api-versioning` with generic views | Per-version ViewSets and routers | Mixin-based ViewSets | `VersionedRouter` |
+| --- | --- | --- | --- | --- | --- |
+| Main registration mechanism | `@endpoint` declarations | `SimpleRouter` registrations | `SimpleRouter` registrations | `VersionedRouter` registrations |
+| Version-specific implementations | Separate decorated views | Separate ViewSet classes | Separate ViewSet classes | Separate ViewSet classes |
+| Shared behavior | Python inheritance or shared helpers | Optional Python inheritance | Composed mixins and shared base classes | Optional Python inheritance or mixins |
+| Carry-forward of unchanged routes | Supported through `version=N` | Must be represented in router configuration | Must be represented in router configuration | Supported per generated route through the package registry |
+| `ModelViewSet` and `@action` | Not supported by direct class decoration; use a configured callable only for one route | Supported | Supported | Supported through DRF `SimpleRouter` integration |
+| URLconf structure | One include for generated package routes | Router URLs mounted under each version | Router URLs mounted under each version | VersionedRouter-generated version namespaces |
+| Import requirement | Import decorated modules during URLconf initialization; exported urlpatterns is a shared list | Import ViewSets before router registration | Import ViewSets and mixins before router registration | Import ViewSets and configure the versioning adapter before requests |
 
 The package is most useful when the main maintenance problem is registering endpoint implementations across versions, particularly when many endpoints remain unchanged and only selected implementations need replacement.
 
-The router approaches are more appropriate when the API is organized around resource-oriented ViewSets and depends heavily on `ModelViewSet` and `@action`.
+Plain per-version routers are appropriate when the team wants to manage each version's URL configuration directly. `VersionedRouter` is the package-integrated option when the API uses resource-oriented ViewSets and benefits from per-route carry-forward and version-aware reversal.
 
 ## Trade-offs and scope
 
@@ -347,8 +362,8 @@ The package does not:
 - Create Python inheritance between view classes.
 - Merge serializers, permissions, or business logic.
 - Determine whether a response change is backward compatible.
-- Directly decorate `ModelViewSet` classes.
-- Automatically integrate DRF router-generated routes.
+- Allow `@endpoint` to decorate `ModelViewSet` classes directly.
+- Discover arbitrary `SimpleRouter` or `DefaultRouter` instances; use `VersionedRouter` for the supported `SimpleRouter` integration.
 - Generate or maintain version-specific OpenAPI schemas.
 
 For projects that only need a small number of version-specific ViewSets, per-version routers may be sufficient. For projects that use generic views and need a declarative mapping between endpoint implementations and versions, the package offers a different registration model.
@@ -359,7 +374,7 @@ The choice should follow the project's endpoint structure and the maintenance bu
 
 Different API versions can use separate view implementations without requiring every endpoint to be implemented from scratch.
 
-For generic views, `django-api-versioning` provides declarative endpoint registration and explicit carry-forward and replacement behavior. For resource-oriented ViewSets, DRF routers remain the appropriate mechanism, with mixins available when versions share behavior.
+For generic views, `django-api-versioning` provides declarative endpoint registration and explicit carry-forward and replacement behavior. For resource-oriented ViewSets, choose plain DRF routers for fully manual per-version routing or `VersionedRouter` for package-managed route inheritance. Mixins remain useful when ViewSet versions share implementation behavior.
 
 The important distinction is between selecting an implementation for a versioned route and composing the Python behavior of that implementation. Those responsibilities can be handled independently.
 

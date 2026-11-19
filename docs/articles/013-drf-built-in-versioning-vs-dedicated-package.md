@@ -281,7 +281,7 @@ Django passes the captured `version` keyword argument to the view, and DRF uses 
 
 A version-looking URL segment is not sufficient by itself: the URL pattern must capture the value under the configured `VERSION_PARAM` name.
 
-This distinction also matters when evaluating a separate route-registration package. `django-api-versioning` generates concrete versioned paths such as `/api/v2/users/`; those patterns do not capture a `version` keyword argument. Its generated routes therefore do not automatically provide the input expected by DRF's `URLPathVersioning`.
+This distinction also matters when evaluating a route-registration package. `django-api-versioning` generates concrete versioned paths such as `/api/v2/users/`; those patterns do not capture a `version` keyword argument, so DRF's `URLPathVersioning` is not the matching adapter. For its ViewSet integration, the package provides `VersionedRouterVersioning`, which reads the generated version namespace and exposes it through `request.version`.
 
 ## Comparing the responsibilities
 
@@ -294,11 +294,11 @@ The two mechanisms address different layers:
 | --- | --- | --- |
 | Primary responsibility | Determine the requested version | Register endpoint implementations |
 | Version source | Request header, URL, namespace, query parameter, or hostname | Decorator arguments and package settings |
-| `request.version` | Populated when DRF versioning is enabled | Not populated by the package itself |
+| `request.version` | Populated when DRF versioning is enabled | Populated for ViewSets through `VersionedRouterVersioning`; generic `@endpoint` views need a DRF versioning scheme when they use this attribute |
 | Route generation | Depends on the application's URL configuration and selected scheme | Generated from endpoint declarations |
 | Unchanged endpoint carry-forward | Application-defined through its views and routing design | Supported by `version=N` registration |
 | Endpoint replacement | Application-defined | Higher source-version declaration replaces a colliding route |
-| ViewSet routing | Supported through DRF routers | Separate from the package's endpoint registry |
+| ViewSet routing | Supported through DRF routers | Supported through the optional `VersionedRouter` integration, which registers DRF `SimpleRouter` patterns in the package registry |
 
 These mechanisms should not be treated as interchangeable versioning schemes. One negotiates the requested version; the other manages the registration of endpoint implementations against versioned routes.
 
@@ -338,7 +338,7 @@ urlpatterns = router.urls
 
 A router generates the list, detail, and applicable action routes from the ViewSet.
 
-`@endpoint` does not directly support decorating a `ModelViewSet` or another ViewSet class. A ViewSet requires an action mapping when converted into a callable, whereas the package's class-based view handling calls `as_view()` without that mapping.
+`@endpoint` does not directly support decorating a `ModelViewSet` or another ViewSet class. A ViewSet requires an action mapping when converted into a callable, whereas the decorator's class-based view handling calls `as_view()` without that mapping. Use the package's optional `VersionedRouter` for complete version-aware ViewSet route generation.
 
 A configured callable can be registered for one explicitly configured route:
 
@@ -358,11 +358,11 @@ This registers one route with a fixed action mapping. It is not a replacement fo
 
 For mixed projects, keep the responsibilities explicit:
 
-- Use DRF routers for resource-oriented ViewSets.
+- Use `VersionedRouter` for resource-oriented ViewSets when you want the package's per-route inheritance and version-aware reversal.
 - Use `@endpoint` for supported function-based views, `APIView` classes, and generic views.
-- Mount router-generated URL patterns under the desired versioned prefixes yourself.
+- Plain DRF `SimpleRouter` instances mounted under manually managed version prefixes remain a valid DRF-only alternative, but those arbitrary router URLs are not automatically registered in the package's endpoint registry.
 
-The package does not automatically integrate router-generated URLs into its endpoint registry. See the official [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
+See the dedicated [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) and the official [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/).
 
 ## Versioned project structure
 
@@ -381,7 +381,7 @@ This structure can make version-specific implementations easier to locate, but i
 
 With `django-api-versioning`, the version-specific modules can contain the endpoint declarations, while the URLconf imports those modules before including the generated patterns.
 
-The package therefore complements the organization of version-specific code: the directory structure organizes implementations, and endpoint declarations define their route registration. It does not automatically populate DRF's `request.version`; if view logic needs that attribute, configure a DRF versioning scheme separately and ensure its URL keyword argument or namespace is available.
+The package therefore complements the organization of version-specific code: the directory structure organizes implementations, while endpoint declarations or `VersionedRouter` define route registration. For ViewSets, configure `VersionedRouterVersioning` to populate `request.version`; for generic `@endpoint` views, configure a DRF versioning scheme that matches the URL configuration if the view needs that attribute.
 
 ## Trade-offs and scope
 
@@ -398,8 +398,8 @@ The package does not:
 - Create Python inheritance between view classes.
 - Merge serializers, permissions, or business logic.
 - Determine whether a change is backward compatible.
-- Populate DRF's `request.version`.
-- Automatically register DRF router-generated ViewSet routes.
+- Automatically populate `request.version` for arbitrary `@endpoint` views without a DRF versioning class.
+- Discover or integrate arbitrary `SimpleRouter` / `DefaultRouter` URL patterns automatically. Use `VersionedRouter` for the supported `SimpleRouter` integration.
 - Generate or maintain version-specific OpenAPI schemas.
 
 For applications that only need request-time version negotiation, a DRF built-in scheme may be sufficient. When the URL configuration is already small and stable, the benefit of adding another registration abstraction is smaller.
@@ -408,7 +408,7 @@ The decision should be based on the actual endpoint-change pattern and the maint
 
 ## Conclusion
 
-DRF's built-in versioning schemes identify the version requested by a client. `django-api-versioning` manages which endpoint implementation is registered for each supported version.
+DRF's built-in versioning schemes identify the version requested by a client. `django-api-versioning` manages which endpoint implementation is registered for each supported version and provides `VersionedRouter` to connect that registry to DRF ViewSets. The adapter and router boundaries are covered in the [dedicated ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
 For projects where endpoint implementations change incrementally across releases, the package's segment registration model makes carry-forward and replacement behavior explicit in the declarations rather than requiring the same mapping to be maintained separately in URL configuration.
 
