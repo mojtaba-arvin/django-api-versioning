@@ -279,10 +279,7 @@ def set_endpoint_lifecycle(
         raise TypeError("postfix must be a string.")
     if postfix.startswith("/"):
         raise VersioningError("postfix must be relative and must not start with '/'.")
-    if app_name is not None and not isinstance(app_name, str):
-        raise TypeError("app_name must be a string or None.")
-
-    app_name_part = f"{app_name}/" if app_name else ""
+    app_name_part = _app_name_prefix(app_name)
     logical_endpoint = f"{app_name_part}{postfix}"
 
     if methods is None:
