@@ -581,7 +581,114 @@ For a request that does not resolve to a view, the middleware retains path-based
 
 The middleware does not generate migration links or resource-specific successor URLs; applications must provide those when needed.
 
-## 13. Scope and known limitations
+## 13. Endpoint-level lifecycle and OpenAPI
+
+Version-wide lifecycle policy and endpoint lifecycle metadata are separate
+contracts. Keep `API_VERSION_LIFECYCLE` for version-wide deprecation,
+retirement, and the existing version-wide `410 Gone` behavior. Use
+`set_endpoint_lifecycle()` when one logical operation should advertise
+deprecation or sunset without retiring the entire API version.
+
+### Django decorator endpoints
+
+Declare lifecycle metadata for one concrete endpoint version. Unlike
+`@endpoint(version=N)`, which registers a forward segment, this declaration
+does not inherit into later route versions:
+
+```python
+from django_api_versioning import endpoint, set_endpoint_lifecycle
+
+@endpoint("orders/", version=1, view_name="orders-list")
+def orders(request):
+    ...
+
+set_endpoint_lifecycle(
+    "orders/",
+    version=1,
+    methods=["GET"],
+    deprecated_at="2026-11-01T00:00:00Z",
+    sunset="2027-06-30",
+)
+```
+
+The optional `methods` list narrows metadata to those HTTP methods. Omitting
+it applies to every method on that logical endpoint. The optional `app_name`
+argument must match the corresponding `@endpoint(app_name=...)` declaration.
+Dates are validated as ISO 8601 instants; `sunset` cannot precede
+`deprecated_at`.
+
+### DRF VersionedRouter operations
+
+Use the router's `set_lifecycle()` method with its prefix and generated route
+name. An optional action scopes the declaration to one ViewSet action:
+
+```python
+router.set_lifecycle(
+    "orders",
+    "order-list",
+    version=1,
+    action="list",
+    methods=["GET"],
+    deprecated_at="2026-11-01T00:00:00Z",
+    sunset="2027-06-30",
+)
+```
+
+The version is concrete. Action and method scopes compose monotonically:
+for each header, the earliest applicable date wins. A narrower declaration
+can add metadata but cannot postpone a broader declaration.
+
+### HTTP response behavior
+
+`LifecycleMiddleware` resolves the actual Django route and HTTP method. It
+combines version-wide and endpoint-level dates independently, using the
+earliest applicable `deprecated_at` for the RFC 9745 `Deprecation` header
+and the earliest applicable `sunset` for the RFC 8594 `Sunset` header.
+
+An endpoint-level sunset date in the past does **not** change the response
+status to 410. It remains a headers-only endpoint policy. The version-wide
+`API_VERSION_LIFECYCLE` sunset remains authoritative and can still return
+410 for the entire version, regardless of endpoint metadata.
+
+### Optional drf-spectacular integration
+
+The package does not depend on drf-spectacular at runtime. If your project
+already uses drf-spectacular, configure its optional schema adapter:
+
+```python
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": (
+        "django_api_versioning.spectacular.EndpointLifecycleAutoSchema"
+    ),
+}
+```
+
+The adapter adds the standard OpenAPI Operation Object field
+`deprecated: true` when the matching operation has a `deprecated_at`
+declaration. A sunset-only declaration does not mark an operation deprecated.
+Existing explicit `@extend_schema(deprecated=True)` values are not cleared.
+
+The adapter supports:
+
+- `VersionedRouter` operations resolved from the actual `ResolverMatch`,
+  HTTP method, and DRF action map.
+- DRF views registered through `@endpoint` when they use
+  `URLPathVersioning`; the decorator's stable logical identity and concrete
+  schema version are resolved through the active registry.
+
+Missing or ambiguous operation identity fails closed: the adapter leaves the
+schema operation unchanged. It never guesses from generated paths, regexes,
+callback identity, or `operationId`. Plain Django views that drf-spectacular
+does not discover as DRF operations are not made schema-visible by this
+adapter.
+
+The executable [OpenAPI consumer contract](../../examples/openapi_contract/README.md)
+tests action-scoped VersionedRouter deprecation and decorator endpoint
+version-scoped deprecation, including sibling-operation and cross-version
+isolation. The consumer example pins drf-spectacular; install and configure
+the optional dependency in your own project when using this integration.
+
+## 14. Scope and known limitations
 
 `django-api-versioning` focuses on version-aware endpoint registration and routing.
 
@@ -594,11 +701,11 @@ It does not:
 - Infer endpoint removal from an omitted import or missing ViewSet action; use remove_endpoint() or VersionedRouter.remove() to declare it explicitly.
 - Enable header, query-parameter, host, or tenant-based route negotiation. `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` remain reserved settings with no runtime effect.
 - Validate response payload compatibility through route-matrix checks.
-- Automatically generate versioned OpenAPI schemas or diff their compatibility; the optional drf-spectacular/oasdiff workflow is tracked in Issue #38.
+- Automatically generate or serve versioned OpenAPI schemas. Projects using drf-spectacular can opt into the endpoint lifecycle adapter documented in Section 13; schema compatibility still requires explicit baselines, diffs, and request-level contract tests.
 
 Your application remains responsible for API contract design, serializer selection, authentication, permissions, business logic, and request-level compatibility tests.
 
-## 14. Primary source files
+## 15. Primary source files
 
 The contract above is based on the following implementation and project files:
 
