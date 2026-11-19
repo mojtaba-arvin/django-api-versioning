@@ -103,24 +103,10 @@ def verify_schema(version: str) -> dict:
 
         baseline = ROOT / "schemas" / f"v{version}" / "openapi.yaml"
         assert baseline.is_file(), f"Missing released contract baseline: {baseline}"
-        baseline_bytes = baseline.read_bytes()
-        if first_bytes != baseline_bytes:
-            import difflib
-
-            print(
-                "".join(
-                    difflib.unified_diff(
-                        baseline_bytes.decode().splitlines(keepends=True),
-                        first_bytes.decode().splitlines(keepends=True),
-                        fromfile=f"baseline-v{version}",
-                        tofile=f"generated-v{version}",
-                    )
-                )
-            )
-            raise AssertionError(
-                f"Generated v{version} schema differs from its committed baseline. "
-                "Review the contract change and update the snapshot deliberately."
-            )
+        assert first_bytes == baseline.read_bytes(), (
+            f"Generated v{version} schema differs from its committed baseline. "
+            "Review the contract change and update the snapshot deliberately."
+        )
 
         document = yaml.safe_load(first_bytes)
         product_path = PRODUCT_PATHS[version]
