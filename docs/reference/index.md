@@ -143,6 +143,28 @@ The router constructor's `app_name` is Django URL resolver metadata; it is unrel
 
 The initial integration supports `SimpleRouter`, not `DefaultRouter` API-root or format-suffix behavior. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; declare removal explicitly with `VersionedRouter.remove()` (or `remove_endpoint()` for decorator endpoints). Removed routes are absent from runtime routing and URL reversal at the removal boundary, while earlier versions remain available; a later source declaration can explicitly reintroduce the route. See the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#4-registration-semantics) and [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for details.
 
+## Explicit endpoint removal (included in 1.2.0; publication pending)
+
+Use `remove_endpoint()` to stop decorator-based forward inheritance at an inclusive version boundary, while keeping earlier versions available:
+
+~~~python title="views.py"
+from django_api_versioning import endpoint, remove_endpoint
+
+@endpoint("orders/", version=1, view_name="orders-list")
+def orders_v1(request):
+    ...
+
+remove_endpoint("orders/", from_version=3)
+~~~
+
+For a generated DRF ViewSet action, use `VersionedRouter.remove()` with the route name generated from the registration basename and action:
+
+~~~python title="urls.py"
+router.remove("orders", "order-archive", from_version=3)
+~~~
+
+The removal boundary is inclusive. Removed routes return 404 and cannot be reversed in removed versions; a later declaration with a strictly higher source version can reintroduce the route. Removal does not emit 410 or lifecycle headers. See the [canonical removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#4-registration-semantics) and [endpoint-removal design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md).
+
 ## Exceptions
 
 | Exception | Raised when |

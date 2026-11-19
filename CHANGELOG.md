@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Compatibility
 
 - No migration is required for existing 1.1.0 users. The existing URL-path routing contract and the optional nature of Django REST Framework are unchanged.
+- Applications that registered colliding generated route patterns across independent `VersionedRouter` instances will now receive `VersioningError` instead of relying on last-writer replacement. Use distinct route prefixes and outer namespaces; duplicate generated patterns are not a supported dispatch contract.
 - Header/query/tenant-based version negotiation remains unsupported; reserved settings do not activate additional negotiation channels.
 
 ### Verification

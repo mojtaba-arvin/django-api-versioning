@@ -244,7 +244,7 @@ The route name is the name generated from the registration basename and ViewSet 
 
 The removal boundary is inclusive: earlier versions keep the route; v3 and later do not resolve or reverse it. A later declaration with a strictly higher source version can deliberately reintroduce the route. Removing one action does not remove the ViewSet's list, detail, or unrelated custom actions.
 
-This feature is implemented on the repository's current `main` branch but is not included in the published PyPI package yet. See the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md) for the full tombstone and reintroduction semantics.
+This feature is included in the upcoming 1.2.0 release candidate; PyPI publication is pending. See the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md) for the full tombstone and reintroduction semantics.
 
 ## 8. Endpoint-level lifecycle and OpenAPI (included in 1.2.0 release candidate; publication pending)
 
