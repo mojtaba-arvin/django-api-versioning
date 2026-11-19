@@ -1,5 +1,5 @@
-from itertools import permutations
 from io import StringIO
+from itertools import permutations
 from types import ModuleType
 
 import pytest
@@ -345,8 +345,8 @@ def test_removal_and_reintroduction_sequences_match_segment_reference_model(
                     == "shop/orders/"
                 )
             }
-            assert actual == expected, (
-                f"sequence={sequence!r}, after={(operation, version)!r}"
-            )
+            assert (
+                actual == expected
+            ), f"sequence={sequence!r}, after={(operation, version)!r}"
 
     registry.clear()
