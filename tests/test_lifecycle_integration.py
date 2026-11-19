@@ -9,7 +9,7 @@ from django.urls import clear_url_caches, include, path, resolve
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from django_api_versioning.decorators import endpoint, set_endpoint_lifecycle
+from django_api_versioning import endpoint, set_endpoint_lifecycle
 from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
 from django_api_versioning.settings import api_settings
