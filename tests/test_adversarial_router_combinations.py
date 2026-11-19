@@ -156,3 +156,41 @@ def test_nested_outer_v_namespace_does_not_override_actual_router_version():
 
     assert response.status_code == 200
     assert response.json() == {"version": "3"}
+
+
+@pytest.mark.parametrize("collision_version", [1, 2, 3])
+def test_failed_multi_version_registration_rolls_back_at_every_collision_position(
+    collision_version,
+):
+    """Failure at any generated route must restore all shared and local state."""
+    from django_api_versioning.registry import registry
+
+    class ExistingViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"owner": "existing"})
+
+    existing_router = VersionedRouter()
+    existing_router.register(
+        "inventory",
+        ExistingViewSet,
+        versions=[collision_version],
+        basename="inventory",
+    )
+
+    baseline_patterns = list(registry.urlpatterns)
+    baseline_removed = dict(registry._removed_patterns)
+    candidate_router = VersionedRouter()
+
+    with pytest.raises(Exception, match="another VersionedRouter"):
+        candidate_router.register(
+            "inventory",
+            ExistingViewSet,
+            versions=[1, 2, 3],
+            basename="inventory",
+        )
+
+    assert registry.urlpatterns == baseline_patterns
+    assert registry._removed_patterns == baseline_removed
+    assert candidate_router._route_keys == set()
+    assert candidate_router._basenames == {}
+    assert candidate_router._basename_prefixes == {}
