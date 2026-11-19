@@ -129,9 +129,11 @@ The same route-by-route mapping applies to detail routes. The V1 `archive` actio
 
 Use the same explicit `basename` for registrations of the same prefix across versions. This keeps generated URL names stable. The router rejects basename changes for one prefix and duplicate basenames across different prefixes within the same router.
 
-To register an operation only in selected versions, use `versions`:
+To register an operation only in selected versions, use `versions`. The example assumes `exports.views.ExportViewSet` is defined by the application:
 
 ```python
+from exports.views import ExportViewSet
+
 router.register(
     "exports",
     ExportViewSet,
