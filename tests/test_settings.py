@@ -116,6 +116,11 @@ class TestLifecycleValidation:
         with pytest.raises(VersioningError, match="Lifecycle status"):
             APISettings(API_VERSION_LIFECYCLE={1: {"status": "disabled"}})
 
+    @pytest.mark.parametrize("status", [[], {}, ["active"]])
+    def test_unhashable_lifecycle_status_raises(self, status):
+        with pytest.raises(VersioningError, match="Lifecycle status"):
+            APISettings(API_VERSION_LIFECYCLE={1: {"status": status}})
+
     @pytest.mark.parametrize(
         "field_name,value",
         [

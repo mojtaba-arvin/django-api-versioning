@@ -152,7 +152,11 @@ class APISettings:
                 )
 
             status = meta.get("status")
-            if status not in {"active", "deprecated", "retired"}:
+            if not isinstance(status, str) or status not in {
+                "active",
+                "deprecated",
+                "retired",
+            }:
                 raise VersioningError(
                     f"Lifecycle status for version {version} must be one of "
                     "'active', 'deprecated', or 'retired'."
