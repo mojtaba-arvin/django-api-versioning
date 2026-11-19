@@ -107,6 +107,15 @@ Follow `AGENTS.md` and the relevant canonical skill in `.agents/skills/`. The pa
 - Edit website articles only in `docs/articles/`; generated article copies and RSS output are build products and must not be committed.
 - Update `website/pnpm-lock.yaml` from `website/package.json` with the pinned pnpm version on the active topic branch. Do not use npm lockfiles or update dependency locks directly on `main`.
 
+## Dependency lockfiles
+
+- Treat `uv.lock` and `website/pnpm-lock.yaml` as generated artifacts. Never hand-edit either file.
+- When `pyproject.toml` changes, regenerate the Python lock with `uv lock` and verify it with `uv lock --check`. Use the same `uv` CLI provided by the repository's `tox-uv` toolchain.
+- When `website/package.json` changes, use Node `22.23.4`, Corepack, and the pinned `pnpm@10.12.1`; regenerate with `pnpm install --lockfile-only --ignore-scripts` from `website/`.
+- Dependency branches under `deps/` use the guarded lock-refresh path in `.github/workflows/generate-evidence.yml`: generation runs with read-only permissions, and only the isolated commit job can push the generated lockfiles. It does not execute package lifecycle scripts.
+- A generated lockfile is not sufficient validation. The PR gate must pass for the final branch head after the lockfile commit.
+
+
 
 ## Security and dependency policy
 
