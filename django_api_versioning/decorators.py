@@ -14,6 +14,22 @@ logger = logging.getLogger(__name__)
 ViewT = TypeVar("ViewT", bound=Callable)
 
 
+def _app_name_prefix(app_name: str | None) -> str:
+    """Validate and format the optional relative application path prefix."""
+    if app_name is None or app_name == "":
+        return ""
+    if not isinstance(app_name, str):
+        raise TypeError("app_name must be a string or None.")
+    if app_name != app_name.strip():
+        raise VersioningError("app_name must not have leading or trailing whitespace.")
+    segments = app_name.split("/")
+    if any(not segment or segment in {".", ".."} for segment in segments):
+        raise VersioningError(
+            "app_name must be a relative path without empty, '.' or '..' segments."
+        )
+    return f"{app_name}/"
+
+
 def ver_range(start: int, end: int) -> list[int]:
     """Inclusive range of API versions, e.g. ver_range(1, 3) -> [1, 2, 3]."""
     if isinstance(start, bool) or not isinstance(start, int):
@@ -22,6 +38,13 @@ def ver_range(start: int, end: int) -> list[int]:
         raise VersionTypeError("ver_range end must be an integer.")
     if start > end:
         raise VersionRangeError(f"ver_range start ({start}) must be <= end ({end}).")
+    if start < 1:
+        raise VersionRangeError("ver_range start must be a positive API version.")
+    if end > settings.API_MAX_VERSION:
+        raise InvalidVersionError(
+            f"Version {end} is above the maximum allowed version "
+            f"{settings.API_MAX_VERSION}."
+        )
     return list(range(start, end + 1))
 
 
@@ -126,7 +149,7 @@ def _register_endpoint_view(
         for concrete_version in versions:
             _validate_version(concrete_version, max_version)
 
-    app_name_part = f"{app_name}/" if app_name else ""
+    app_name_part = _app_name_prefix(app_name)
     logical_endpoint = f"{app_name_part}{postfix}"
     attribute_name = registry._LOGICAL_ENDPOINT_ATTR
     view_class = getattr(view, "cls", None)
@@ -214,6 +237,7 @@ def endpoint(
         raise TypeError("postfix must be a string.")
     if postfix.startswith("/"):
         raise VersioningError("postfix must be relative and must not start with '/'.")
+    _app_name_prefix(app_name)
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
     if versions is not None and not isinstance(versions, list):
@@ -323,5 +347,5 @@ def remove_endpoint(
         raise TypeError("postfix must be a string.")
     if postfix.startswith("/"):
         raise VersioningError("postfix must be relative and must not start with '/'.")
-    app_name_part = f"{app_name}/" if app_name else ""
+    app_name_part = _app_name_prefix(app_name)
     registry.remove(f"{app_name_part}{postfix}", from_version)
