@@ -224,3 +224,34 @@ def test_schema_version_namespace_wins_over_synthetic_target_route_version():
     )()
 
     assert VersionedRouterVersioning().determine_version(request) == "1"
+
+
+def test_registered_namespace_resolves_regex_route_when_route_text_is_not_matchable():
+    """A namespace can identify a regex route whose resolver text is synthetic."""
+
+    class DetailViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+        def retrieve(self, request, pk=None):
+            return Response({"pk": pk})
+
+    router = VersionedRouter()
+    router.register("orders", DetailViewSet, version=1, basename="order")
+    request = type(
+        "RegexRouteRequest",
+        (),
+        {
+            "resolver_match": type(
+                "ResolverMatch",
+                (),
+                {
+                    "route": "synthetic-regex-route",
+                    "url_name": "order-detail",
+                    "namespace": "v2",
+                },
+            )()
+        },
+    )()
+
+    assert VersionedRouterVersioning().determine_version(request) == "2"
