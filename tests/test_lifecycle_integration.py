@@ -2,6 +2,7 @@
 
 from types import ModuleType
 
+import pytest
 from asgiref.sync import async_to_sync
 from django.http import HttpResponse, HttpResponseNotFound
 from django.test import AsyncClient, Client, override_settings
@@ -10,6 +11,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 from django_api_versioning import endpoint, set_endpoint_lifecycle
+from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
 from django_api_versioning.settings import api_settings
@@ -442,3 +444,43 @@ def test_request_urlconf_override_controls_resolved_lifecycle_version():
     assert response.status_code == 200
     assert response.content == b"custom urlconf"
     assert response["Deprecation"] == "@1577836800"
+
+
+def test_versioned_routers_reject_duplicate_route_patterns_across_namespaces():
+    class PrimaryOrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"router": "primary"})
+
+    class SecondaryOrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"router": "secondary"})
+
+    primary_router = VersionedRouter(app_name="primary_api")
+    primary_router.register(
+        "orders", PrimaryOrderViewSet, versions=[2], basename="order"
+    )
+
+    secondary_router = VersionedRouter(app_name="secondary_api")
+    with pytest.raises(
+        VersioningError,
+        match="already registered by another VersionedRouter",
+    ):
+        secondary_router.register(
+            "orders", SecondaryOrderViewSet, versions=[2], basename="order"
+        )
+
+    context = _install(
+        [
+            path(
+                "primary/",
+                include((primary_router.urls, "primary_api"), namespace="primary"),
+            ),
+        ],
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        primary = Client().get("/primary/api/v2/orders/")
+
+    assert primary.status_code == 200
+    assert primary.json() == {"router": "primary"}
