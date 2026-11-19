@@ -438,7 +438,7 @@ class VersionedRouter:
             setattr(
                 pattern,
                 registry._ROUTER_TRAILING_SLASH_ATTR,
-                self.trailing_slash,
+                bool(self.trailing_slash),
             )
             registry.register_urlpattern(
                 pattern,
