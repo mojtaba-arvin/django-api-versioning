@@ -502,9 +502,7 @@ def test_failed_registration_does_not_reserve_prefix_or_basename():
 
     # The failed declaration did not become a registration. Reusing its
     # basename for a different prefix on the same router must remain valid.
-    retryable_router.register(
-        "comments", PostViewSetV2, version=1, basename="post"
-    )
+    retryable_router.register("comments", PostViewSetV2, version=1, basename="post")
     assert any(
         getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
         == "comments:post-list"
