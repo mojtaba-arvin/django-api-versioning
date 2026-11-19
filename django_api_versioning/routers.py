@@ -249,6 +249,27 @@ class VersionedRouter:
             )
             return
 
+        registrations = self._resolve_lifecycle_methods(
+            methods,
+            actions,
+            normalized_action,
+            logical_endpoint,
+        )
+        self._register_lifecycle_methods(
+            logical_endpoint,
+            version,
+            registrations,
+            deprecated_at,
+            sunset,
+        )
+
+    @staticmethod
+    def _resolve_lifecycle_methods(
+        methods: list[str],
+        actions: Mapping,
+        normalized_action: str | None,
+        logical_endpoint: str,
+    ) -> list[tuple[str, str]]:
         if not isinstance(methods, list) or not methods:
             raise VersioningError("methods must be a non-empty list of HTTP methods.")
         normalized_methods = [
@@ -278,10 +299,18 @@ class VersionedRouter:
                     f"not {normalized_action!r}."
                 )
             registrations.append((method, mapped_action))
+        return registrations
 
-        # Validate every mapping before mutating the global lifecycle registry.
-        # Conflicting existing declarations can still fail during insertion,
-        # so restore the previous state if any insertion fails.
+    @staticmethod
+    def _register_lifecycle_methods(
+        logical_endpoint: str,
+        version: int,
+        registrations: list[tuple[str, str]],
+        deprecated_at: str | None,
+        sunset: str | None,
+    ) -> None:
+        # Conflicting existing declarations can fail during insertion. Restore
+        # the prior registry state so multi-method declarations are atomic.
         previous_lifecycle = dict(registry._endpoint_lifecycle)
         try:
             for method, mapped_action in registrations:
