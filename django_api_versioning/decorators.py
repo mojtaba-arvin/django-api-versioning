@@ -37,8 +37,9 @@ def _register_endpoint_route(
     base_path = (
         settings.API_BASE_PATH.format(version=version) if version is not None else ""
     )
+    route = f"{base_path}{app_name_part}{postfix}"
     registry.register(
-        f"{base_path}{app_name_part}{postfix}",
+        route,
         view,
         view_name,
         source_version=source_version,
@@ -116,8 +117,8 @@ def _register_endpoint_view(
     view_name: str | None,
 ) -> None:
     """Register an endpoint view atomically and attach schema identity."""
-    min_version = settings.API_MIN_VERSION
-    max_version = settings.API_MAX_VERSION
+    min_version: int = settings.API_MIN_VERSION
+    max_version: int = settings.API_MAX_VERSION
 
     if version is not None:
         _validate_version(version, max_version)
@@ -227,6 +228,9 @@ def endpoint(
             app_name,
             view_name,
         )
+        if version is not None:
+            if version < settings.API_MIN_VERSION:
+                return view
         return view
 
     return decorator
