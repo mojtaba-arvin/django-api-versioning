@@ -22,3 +22,8 @@ if os.environ.get("ENDPOINT_LIFECYCLE_SCHEMA_TEST") == "1":
     )
 
 urlpatterns = router.urls
+
+if os.environ.get("ENDPOINT_LIFECYCLE_SCHEMA_TEST") == "1":
+    from contract_app import decorated_views
+
+    urlpatterns.extend(decorated_views.get_urlpatterns())
