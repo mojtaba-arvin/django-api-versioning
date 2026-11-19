@@ -555,3 +555,23 @@ def test_separate_default_routers_keep_reverse_namespaces_isolated():
 
     assert response.status_code == 200
     assert response.json()["url"].endswith("/api/v1/posts/")
+
+
+def test_failed_multi_method_lifecycle_declaration_is_atomic():
+    """An invalid later method must not leave lifecycle metadata for earlier ones."""
+    router = VersionedRouter()
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+
+    with pytest.raises(VersioningError, match="is not registered"):
+        router.set_lifecycle(
+            "posts",
+            "post-list",
+            version=1,
+            methods=["GET", "PATCH"],
+            deprecated_at="2030-01-01T00:00:00Z",
+        )
+
+    assert not any(
+        key[0] == "posts:post-list" and key[1] == 1
+        for key in registry._endpoint_lifecycle
+    )
