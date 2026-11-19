@@ -709,3 +709,68 @@ def test_reintroduced_endpoint_does_not_reuse_lifecycle_for_removed_concrete_ver
     assert response.content == b"reintroduced"
     assert "Deprecation" not in response
     assert "Sunset" not in response
+
+def test_lifecycle_declared_after_removal_applies_to_reintroduced_endpoint(
+    monkeypatch,
+):
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    @endpoint("explicit-reintroduction-lifecycle", version=1)
+    def original(request):
+        return HttpResponse("original")
+
+    registry.remove("explicit-reintroduction-lifecycle", from_version=2)
+    set_endpoint_lifecycle(
+        "explicit-reintroduction-lifecycle",
+        version=3,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+
+    @endpoint("explicit-reintroduction-lifecycle", version=3)
+    def reintroduced(request):
+        return HttpResponse("reintroduced")
+
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().get("/api/v3/explicit-reintroduction-lifecycle")
+
+    assert response.status_code == 200
+    assert response.content == b"reintroduced"
+    assert response["Deprecation"] == "@1893456000"
+
+
+def test_removal_preserves_lifecycle_for_an_already_reintroduced_newer_source(
+    monkeypatch,
+):
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 4)
+
+    @endpoint("newer-source-lifecycle", version=1)
+    def original(request):
+        return HttpResponse("original")
+
+    @endpoint("newer-source-lifecycle", version=4)
+    def reintroduced(request):
+        return HttpResponse("reintroduced")
+
+    set_endpoint_lifecycle(
+        "newer-source-lifecycle",
+        version=4,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    registry.remove("newer-source-lifecycle", from_version=3)
+
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().get("/api/v4/newer-source-lifecycle")
+
+    assert response.status_code == 200
+    assert response.content == b"reintroduced"
+    assert response["Deprecation"] == "@1893456000"
