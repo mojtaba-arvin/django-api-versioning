@@ -411,7 +411,11 @@ def test_router_skips_declarations_below_minimum_version(monkeypatch, caplog):
         )
 
     assert router.urls
-    assert all("v1" not in str(pattern.pattern) for pattern in router.urls if hasattr(pattern, "pattern"))
+    assert all(
+        "v1" not in str(pattern.pattern)
+        for pattern in router.urls
+        if hasattr(pattern, "pattern")
+    )
     assert "No routes will be registered" in caplog.text
     assert "Skipping this version" in caplog.text
 
