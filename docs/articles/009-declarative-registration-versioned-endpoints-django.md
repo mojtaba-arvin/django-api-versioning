@@ -1,7 +1,7 @@
 ---
 slug: "009-declarative-registration-versioned-endpoints-django"
 title: "Declarative registration of versioned endpoints in Django"
-description: "Compare DRF router configuration with decorator-based endpoint registration in Django, including version ranges, explicit versions, and VersionedRouter integration."
+description: "Compare DRF routers and decorator-based endpoint registration, including version ranges, explicit versions, and VersionedRouter integration."
 author:
   name: "Mojtaba Arvin"
   url: "https://www.linkedin.com/in/mojtabaarvin/"
