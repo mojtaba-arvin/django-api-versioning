@@ -1,5 +1,6 @@
-import pytest
 from urllib.parse import unquote
+
+import pytest
 from django.http import JsonResponse
 from django.urls import NoReverseMatch, re_path, register_converter, resolve
 
