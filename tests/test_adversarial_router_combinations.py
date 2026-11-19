@@ -15,7 +15,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-from django_api_versioning.exceptions import VersioningError, VersionTypeError
+from django_api_versioning.exceptions import VersionRangeError, VersioningError, VersionTypeError
 from django_api_versioning.routers import (
     VersionedRouter,
     VersionedRouterVersioning,
@@ -413,3 +413,11 @@ def test_routers_with_different_path_modes_cannot_register_same_logical_version(
         path_router.register("orders", OrdersViewSet, versions=[2], basename="order")
 
     assert path_router._route_keys == set()
+
+
+def test_router_remove_validates_minimum_version_before_ownership_checks():
+    """Out-of-range removal versions must fail before checking router ownership."""
+
+    unrelated = VersionedRouter()
+    with pytest.raises(VersionRangeError, match="below API_MIN_VERSION"):
+        unrelated.remove("orders", "order-list", from_version=0)
