@@ -1,13 +1,37 @@
+from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Callable
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
 from django.views import View
 
-from .exceptions import InvalidVersionError, VersionRangeError, VersionTypeError
+from .exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
+from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from .settings import api_settings
 
 REMOVED_ROUTE = object()
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedOperation:
+    """Stable identity for one operation resolved by Django's URL resolver."""
+
+    logical_endpoint: str
+    route_version: int
+    source_version: int | None
+    method: str
+    action: str | None
+    route_name: str | None
+    namespace: str
+    route: str
+    registered_route: str
+
 
 ViewType = Callable[..., HttpResponse] | type[View]
 
@@ -23,12 +47,16 @@ class UrlRegistry:
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
         self._removed_patterns: dict[tuple[str, int], URLPattern] = {}
+        self._endpoint_lifecycle: dict[
+            tuple[str, int, str | None, str | None], EndpointLifecycle
+        ] = {}
 
     def clear(self) -> None:
         """Clear active routes and removal declarations."""
         self.urlpatterns.clear()
         self._removal_boundaries.clear()
         self._removed_patterns.clear()
+        self._endpoint_lifecycle.clear()
 
     def remove(self, logical_endpoint: str, from_version: int) -> None:
         """Suppress an endpoint from a concrete version until reintroduced."""
@@ -250,6 +278,29 @@ class UrlRegistry:
 
         return None
 
+    @staticmethod
+    def _resolved_route_match_length(route: str, registered_route: str) -> int:
+        """Return the longest complete registered-route suffix match."""
+        route_variants = {
+            route,
+            route.removeprefix("^").removesuffix("$"),
+        }
+        pattern_variants = {
+            registered_route,
+            registered_route.removeprefix("^").removesuffix("$"),
+        }
+
+        matched_length = 0
+        for route_candidate in route_variants:
+            for pattern_candidate in pattern_variants:
+                start = len(route_candidate) - len(pattern_candidate)
+                if start < 0 or route_candidate[start:] != pattern_candidate:
+                    continue
+                if start and route_candidate[start - 1] != "/":
+                    continue
+                matched_length = max(matched_length, len(pattern_candidate))
+        return matched_length
+
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
 
@@ -259,27 +310,10 @@ class UrlRegistry:
         child endpoint's version.
         """
         matches: list[tuple[int, int]] = []
-        route_variants = {
-            route,
-            route.removeprefix("^").removesuffix("$"),
-        }
         for pattern in self.urlpatterns:
-            registered_pattern = str(pattern.pattern)
-            pattern_variants = {
-                registered_pattern,
-                registered_pattern.removeprefix("^").removesuffix("$"),
-            }
-
-            matched_length = 0
-            for route_candidate in route_variants:
-                for pattern_candidate in pattern_variants:
-                    start = len(route_candidate) - len(pattern_candidate)
-                    if start < 0 or route_candidate[start:] != pattern_candidate:
-                        continue
-                    if start and route_candidate[start - 1] != "/":
-                        continue
-                    matched_length = max(matched_length, len(pattern_candidate))
-
+            matched_length = self._resolved_route_match_length(
+                route, str(pattern.pattern)
+            )
             version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             if (
                 matched_length
@@ -294,6 +328,242 @@ class UrlRegistry:
         longest = max(length for length, _ in matches)
         versions = {version for length, version in matches if length == longest}
         return next(iter(versions)) if len(versions) == 1 else None
+
+    def resolve_operation(
+        self, resolver_match: object, method: str
+    ) -> ResolvedOperation | None:
+        """Resolve one registered logical operation from Django's ResolverMatch.
+
+        The resolver's route and URL name are matched against registered
+        URLPatterns. DRF's method-to-action map is used only to identify the
+        action selected for this HTTP method; callback identity is never used.
+        Ambiguous or incomplete matches fail closed.
+        """
+        route = getattr(resolver_match, "route", None)
+        if not isinstance(route, str) or not isinstance(method, str) or not method:
+            return None
+
+        normalized_method = method.upper()
+        url_name = getattr(resolver_match, "url_name", None)
+        namespaces = tuple(getattr(resolver_match, "namespaces", ()) or ())
+        namespace = getattr(resolver_match, "namespace", "") or ""
+
+        # VersionedRouter places the concrete API version in a vN namespace.
+        # If such a namespace is present, it must agree with the registry record.
+        version_namespaces = {
+            item
+            for item in namespaces
+            if isinstance(item, str) and item.startswith("v") and item[1:].isdecimal()
+        }
+
+        candidates: list[tuple[int, URLPattern, str, int, int | None]] = []
+        for pattern in self.urlpatterns:
+            if url_name is not None and pattern.name != url_name:
+                continue
+
+            logical_endpoint = getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            if not isinstance(logical_endpoint, str) or not logical_endpoint:
+                continue
+            if isinstance(route_version, bool) or not isinstance(route_version, int):
+                continue
+            if version_namespaces and f"v{route_version}" not in version_namespaces:
+                continue
+
+            matched_length = self._resolved_route_match_length(
+                route, str(pattern.pattern)
+            )
+            if not matched_length:
+                continue
+
+            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
+            candidates.append(
+                (
+                    matched_length,
+                    pattern,
+                    logical_endpoint,
+                    route_version,
+                    source_version,
+                )
+            )
+
+        if not candidates:
+            return None
+
+        longest = max(item[0] for item in candidates)
+        best = [item for item in candidates if item[0] == longest]
+        if len(best) != 1:
+            return None
+
+        _, pattern, logical_endpoint, route_version, source_version = best[0]
+        callback = getattr(resolver_match, "func", None)
+        actions = getattr(callback, "actions", None)
+        action = None
+        if isinstance(actions, Mapping):
+            action = actions.get(normalized_method.lower())
+            if action is None and normalized_method == "HEAD":
+                action = actions.get("get")
+            if not isinstance(action, str) or not action:
+                return None
+
+        return ResolvedOperation(
+            logical_endpoint=logical_endpoint,
+            route_version=route_version,
+            source_version=source_version,
+            method=normalized_method,
+            action=action,
+            route_name=pattern.name,
+            namespace=namespace,
+            route=route,
+            registered_route=str(pattern.pattern),
+        )
+
+    def resolve_registered_operation(
+        self, logical_endpoint: str, route_version: int, method: str
+    ) -> ResolvedOperation | None:
+        """Resolve decorator metadata from its declared identity and schema version.
+
+        This path is used only when a schema tool's URLPathVersioning adapter
+        supplies the concrete version kwarg but no Django ResolverMatch. The
+        decorator attaches the logical endpoint to the registered view class;
+        the registry then requires one active route for that identity/version.
+        """
+        if not isinstance(logical_endpoint, str) or not logical_endpoint:
+            return None
+        if isinstance(route_version, bool) or not isinstance(route_version, int):
+            return None
+        if not isinstance(method, str) or not method:
+            return None
+
+        candidates = [
+            pattern
+            for pattern in self.urlpatterns
+            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
+            and getattr(pattern, self._ROUTE_VERSION_ATTR, None) == route_version
+        ]
+        if len(candidates) != 1:
+            return None
+
+        pattern = candidates[0]
+        normalized_method = method.upper()
+        actions = getattr(pattern.callback, "actions", None)
+        action = None
+        if isinstance(actions, Mapping):
+            action = actions.get(normalized_method.lower())
+            if action is None and normalized_method == "HEAD":
+                action = actions.get("get")
+            if not isinstance(action, str) or not action:
+                return None
+
+        pattern_text = str(pattern.pattern)
+        return ResolvedOperation(
+            logical_endpoint=logical_endpoint,
+            route_version=route_version,
+            source_version=getattr(pattern, self._SOURCE_VERSION_ATTR, None),
+            method=normalized_method,
+            action=action,
+            route_name=pattern.name,
+            namespace="",
+            route=pattern_text,
+            registered_route=pattern_text,
+        )
+
+    def register_endpoint_lifecycle(
+        self,
+        logical_endpoint: str,
+        route_version: int,
+        *,
+        method: str | None = None,
+        action: str | None = None,
+        deprecated_at: str | None = None,
+        sunset: str | None = None,
+    ) -> None:
+        """Register lifecycle dates for a route, HTTP method, or DRF action."""
+        if not isinstance(logical_endpoint, str) or not logical_endpoint:
+            raise VersioningError("logical_endpoint must be a non-empty string.")
+        if isinstance(route_version, bool) or not isinstance(route_version, int):
+            raise VersionTypeError("Endpoint lifecycle version must be an integer.")
+        if route_version < api_settings.API_MIN_VERSION:
+            raise VersionRangeError(
+                f"Endpoint lifecycle version {route_version} is below "
+                f"API_MIN_VERSION {api_settings.API_MIN_VERSION}."
+            )
+        if route_version > api_settings.API_MAX_VERSION:
+            raise InvalidVersionError(
+                f"Endpoint lifecycle version {route_version} is above "
+                f"API_MAX_VERSION {api_settings.API_MAX_VERSION}."
+            )
+
+        normalized_method = None
+        if method is not None:
+            if not isinstance(method, str) or not method.strip():
+                raise VersioningError("Endpoint lifecycle method must be a string.")
+            normalized_method = method.strip().upper()
+
+        normalized_action = None
+        if action is not None:
+            if not isinstance(action, str) or not action.strip():
+                raise VersioningError("Endpoint lifecycle action must be a string.")
+            normalized_action = action.strip().lower()
+
+        lifecycle = parse_endpoint_lifecycle(deprecated_at, sunset)
+        key = (
+            logical_endpoint,
+            route_version,
+            normalized_method,
+            normalized_action,
+        )
+        existing = self._endpoint_lifecycle.get(key)
+        if existing is not None and existing != lifecycle:
+            raise VersioningError(
+                "Conflicting endpoint lifecycle declarations for "
+                f"{logical_endpoint!r} version {route_version}."
+            )
+        self._endpoint_lifecycle[key] = lifecycle
+
+    def get_endpoint_lifecycle(
+        self, operation: ResolvedOperation
+    ) -> EndpointLifecycle | None:
+        """Return the most conservative metadata applicable to an operation.
+
+        Route-wide, action-wide, method-wide, and exact method/action scopes
+        compose monotonically: the earliest configured instant wins for each
+        header. A narrower declaration can add metadata but cannot delay it.
+        """
+        scopes = (
+            (None, None),
+            (None, operation.action),
+            (operation.method, None),
+            (operation.method, operation.action),
+        )
+        records = []
+        for method, action in dict.fromkeys(scopes):
+            record = self._endpoint_lifecycle.get(
+                (
+                    operation.logical_endpoint,
+                    operation.route_version,
+                    method,
+                    action,
+                )
+            )
+            if record is not None:
+                records.append(record)
+
+        if not records:
+            return None
+
+        deprecation_dates = [
+            record.deprecated_at
+            for record in records
+            if record.deprecated_at is not None
+        ]
+        sunset_dates = [
+            record.sunset for record in records if record.sunset is not None
+        ]
+        return EndpointLifecycle(
+            deprecated_at=min(deprecation_dates) if deprecation_dates else None,
+            sunset=min(sunset_dates) if sunset_dates else None,
+        )
 
     def _should_replace(
         self,

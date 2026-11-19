@@ -9,6 +9,7 @@ from django.urls import clear_url_caches, include, path, resolve
 from rest_framework import viewsets
 from rest_framework.response import Response
 
+from django_api_versioning import endpoint, set_endpoint_lifecycle
 from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
 from django_api_versioning.settings import api_settings
@@ -185,6 +186,178 @@ def test_versioned_router_route_metadata_survives_nested_include(monkeypatch):
     assert response.status_code == 200
     assert response.json() == {"ok": True}
     assert response["Deprecation"] == "@1577836800"
+
+
+def test_decorator_endpoint_lifecycle_headers_are_concrete_version_scoped():
+    @endpoint("lifecycle-orders", versions=[2, 3])
+    def orders(request):
+        return HttpResponse("orders")
+
+    set_endpoint_lifecycle(
+        "lifecycle-orders",
+        version=2,
+        deprecated_at="2030-01-01T00:00:00Z",
+        sunset="2031-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        version_two = Client().get("/api/v2/lifecycle-orders")
+        version_three = Client().get("/api/v3/lifecycle-orders")
+
+    assert version_two.status_code == 200
+    assert version_two["Deprecation"] == "@1893456000"
+    assert version_two["Sunset"] == "Wed, 01 Jan 2031 00:00:00 GMT"
+    assert version_three.status_code == 200
+    assert "Deprecation" not in version_three
+    assert "Sunset" not in version_three
+
+
+def test_endpoint_lifecycle_metadata_is_scoped_to_resolved_drf_action():
+    calls = []
+
+    class OrderViewSet(viewsets.ViewSet):
+        def list(self, request):
+            calls.append("list")
+            return Response({"action": "list"})
+
+        def create(self, request):
+            calls.append("create")
+            return Response({"action": "create"}, status=201)
+
+    router = VersionedRouter()
+    router.register("orders", OrderViewSet, versions=[2], basename="order")
+    router.set_lifecycle(
+        "orders",
+        "order-list",
+        version=2,
+        action="list",
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(router.urls),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        listed = Client().get("/api/v2/orders/")
+        created = Client().post(
+            "/api/v2/orders/", data="{}", content_type="application/json"
+        )
+
+    assert listed.status_code == 200
+    assert listed["Deprecation"] == "@1893456000"
+    assert created.status_code == 201
+    assert "Deprecation" not in created
+    assert calls == ["list", "create"]
+
+
+def test_past_endpoint_sunset_emits_headers_without_returning_410():
+    @endpoint("past-endpoint", versions=[2])
+    def past_endpoint(request):
+        return HttpResponse("still available")
+
+    set_endpoint_lifecycle(
+        "past-endpoint",
+        version=2,
+        deprecated_at="2020-01-01T00:00:00Z",
+        sunset="2021-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().get("/api/v2/past-endpoint")
+
+    assert response.status_code == 200
+    assert response.content == b"still available"
+    assert response["Deprecation"] == "@1577836800"
+    assert response["Sunset"] == "Fri, 01 Jan 2021 00:00:00 GMT"
+
+
+def test_endpoint_sunset_without_deprecation_emits_only_sunset_header():
+    @endpoint("sunset-only", versions=[2])
+    def sunset_only(request):
+        return HttpResponse("sunset only")
+
+    set_endpoint_lifecycle(
+        "sunset-only",
+        version=2,
+        sunset="2031-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, {"status": "active"}),
+    )
+
+    with context:
+        response = Client().get("/api/v2/sunset-only")
+
+    assert response.status_code == 200
+    assert "Deprecation" not in response
+    assert response["Sunset"] == "Wed, 01 Jan 2031 00:00:00 GMT"
+
+
+def test_version_wide_sunset_410_takes_precedence_over_endpoint_lifecycle():
+    calls = []
+
+    @endpoint("version-retired", versions=[2])
+    def version_retired(request):
+        calls.append("called")
+        return HttpResponse("must not run")
+
+    set_endpoint_lifecycle(
+        "version-retired",
+        version=2,
+        deprecated_at="2030-01-01T00:00:00Z",
+        sunset="2031-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle({"status": "active"}, _retired()),
+    )
+
+    with context:
+        response = Client().get("/api/v2/version-retired")
+
+    assert response.status_code == 410
+    assert calls == []
+
+
+def test_endpoint_and_version_lifecycle_headers_choose_earliest_date():
+    @endpoint("combined-lifecycle", versions=[2])
+    def combined(request):
+        return HttpResponse("combined")
+
+    set_endpoint_lifecycle(
+        "combined-lifecycle",
+        version=2,
+        deprecated_at="2028-01-01T00:00:00Z",
+        sunset="2030-01-01T00:00:00Z",
+    )
+    context = _install(
+        list(registry.urlpatterns),
+        _lifecycle(
+            {"status": "active"},
+            {
+                "status": "deprecated",
+                "deprecated_at": "2029-01-01T00:00:00Z",
+                "sunset": "2031-01-01T00:00:00Z",
+            },
+        ),
+    )
+
+    with context:
+        response = Client().get("/api/v2/combined-lifecycle")
+
+    assert response.status_code == 200
+    assert response["Deprecation"] == "@1830297600"
+    assert response["Sunset"] == "Tue, 01 Jan 2030 00:00:00 GMT"
 
 
 def test_async_request_uses_resolved_route_lifecycle_policy():

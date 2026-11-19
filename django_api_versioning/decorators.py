@@ -84,6 +84,14 @@ def endpoint(
         # Calculate logical endpoint ID from unversioned path
         logical_endpoint = f"{app_name_part}{postfix}"
 
+        # The schema adapter for URLPathVersioning has no ResolverMatch. Carry
+        # the stable decorator identity on the view class, not on callback
+        # identity, so schema introspection can resolve it through the registry.
+        setattr(view, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+        view_class = getattr(view, "cls", None)
+        if isinstance(view_class, type):
+            setattr(view_class, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
+
         def _register_route(ver: int | None, source_version: int | None) -> None:
             """Helper function to register a route in the registry."""
             if ver is None:
@@ -130,6 +138,61 @@ def endpoint(
         return view
 
     return decorator
+
+
+def set_endpoint_lifecycle(
+    postfix: str,
+    *,
+    version: int,
+    app_name: str | None = None,
+    methods: list[str] | None = None,
+    deprecated_at: str | None = None,
+    sunset: str | None = None,
+) -> None:
+    """Declare lifecycle dates for one concrete decorator endpoint version.
+
+    Unlike ``endpoint(version=N)``, this declaration applies only to the
+    explicit concrete ``version``. Omitting ``methods`` applies to every
+    HTTP method on the logical endpoint; providing methods narrows the scope.
+    """
+    if not isinstance(postfix, str):
+        raise TypeError("postfix must be a string.")
+    if postfix.startswith("/"):
+        raise VersioningError("postfix must be relative and must not start with '/'.")
+    if app_name is not None and not isinstance(app_name, str):
+        raise TypeError("app_name must be a string or None.")
+
+    app_name_part = f"{app_name}/" if app_name else ""
+    logical_endpoint = f"{app_name_part}{postfix}"
+
+    if methods is None:
+        registry.register_endpoint_lifecycle(
+            logical_endpoint,
+            version,
+            deprecated_at=deprecated_at,
+            sunset=sunset,
+        )
+        return
+
+    if not isinstance(methods, list) or not methods:
+        raise VersioningError("methods must be a non-empty list of HTTP methods.")
+    normalized_methods = [
+        method.strip().upper() if isinstance(method, str) else method
+        for method in methods
+    ]
+    if any(not isinstance(method, str) or not method for method in normalized_methods):
+        raise VersioningError("methods must contain non-empty HTTP method strings.")
+    if len(set(normalized_methods)) != len(normalized_methods):
+        raise VersioningError("methods must not contain duplicates.")
+
+    for method in normalized_methods:
+        registry.register_endpoint_lifecycle(
+            logical_endpoint,
+            version,
+            method=method,
+            deprecated_at=deprecated_at,
+            sunset=sunset,
+        )
 
 
 def _validate_version(version: int, max_version: int) -> None:

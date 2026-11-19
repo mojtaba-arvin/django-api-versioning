@@ -1,8 +1,13 @@
+from datetime import datetime, timezone
+from types import ModuleType
+
 import pytest
-from django.urls import clear_url_caches, path, re_path, reverse
+from django.urls import clear_url_caches, include, path, re_path, resolve, reverse
 from django.views import View
 
-from django_api_versioning.registry import registry
+from django_api_versioning.exceptions import VersioningError
+from django_api_versioning.lifecycle_metadata import EndpointLifecycle
+from django_api_versioning.registry import ResolvedOperation, registry
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Optional DRF imports
@@ -608,6 +613,329 @@ def test_register_urlpattern_rejects_non_urlpattern(clear_registry):
         match="pattern must be a django.urls.URLPattern instance",
     ):
         registry.register_urlpattern("api/v1/orders/")
+
+
+def test_resolve_operation_uses_resolver_route_and_nested_namespace(clear_registry):
+    """Nested includes and path converters resolve through the actual URL match."""
+
+    def callback(request, order_id):
+        return None
+
+    pattern = path(
+        "api/v2/orders/<int:order_id>/",
+        callback,
+        name="order-detail",
+    )
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-detail",
+    )
+
+    urlconf = ModuleType("resolved_operation_nested_urls")
+    urlconf.urlpatterns = [
+        path(
+            "proxy/",
+            include((registry.urlpatterns, "orders"), namespace="outer"),
+        )
+    ]
+    match = resolve("/proxy/api/v2/orders/42/", urlconf=urlconf)
+
+    operation = registry.resolve_operation(match, "get")
+
+    assert operation is not None
+    assert operation.logical_endpoint == "orders:order-detail"
+    assert operation.route_version == 2
+    assert operation.source_version == 2
+    assert operation.method == "GET"
+    assert operation.action is None
+    assert operation.route_name == "order-detail"
+    assert operation.namespace == "outer"
+    assert operation.registered_route == "api/v2/orders/<int:order_id>/"
+
+
+def test_resolve_registered_operation_uses_decorator_identity_and_version(
+    clear_registry,
+):
+    """Decorator schema lookup uses declared identity, concrete version, and method."""
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/decorated-status/",
+        callback,
+        name="decorated-status",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="decorated-status/",
+    )
+
+    operation = registry.resolve_registered_operation("decorated-status/", 2, "get")
+
+    assert operation is not None
+    assert operation.logical_endpoint == "decorated-status/"
+    assert operation.route_version == 2
+    assert operation.source_version == 2
+    assert operation.method == "GET"
+    assert operation.action is None
+    assert registry.resolve_registered_operation("decorated-status/", 1, "GET") is None
+    assert registry.resolve_registered_operation("unknown/", 2, "GET") is None
+
+
+def test_resolve_registered_operation_fails_closed_for_duplicate_identity(
+    clear_registry,
+):
+    """Multiple active patterns cannot be guessed from a logical identity alone."""
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/decorated-status/",
+        callback,
+        name="decorated-status",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="decorated-status/",
+    )
+    registry.register(
+        "api/v2/decorated-status/alternate/",
+        callback,
+        name="decorated-status-alternate",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="decorated-status/",
+    )
+
+    assert registry.resolve_registered_operation("decorated-status/", 2, "GET") is None
+
+
+def test_resolve_operation_fails_closed_for_unregistered_or_mismatched_route(
+    clear_registry,
+):
+    """A route-name mismatch cannot borrow another endpoint's lifecycle identity."""
+
+    def callback(request):
+        return None
+
+    registered = path("api/v2/orders/", callback, name="registered-order-list")
+    registry.register_urlpattern(
+        registered,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:registered-order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_mismatch_urls")
+    urlconf.urlpatterns = [path("api/v2/orders/", callback, name="other-order-list")]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    assert registry.resolve_operation(match, "GET") is None
+
+
+def test_resolve_operation_fails_closed_when_registered_routes_are_ambiguous(
+    clear_registry,
+):
+    """Equivalent route suffixes with the same URL name are not guessed."""
+
+    def callback(request):
+        return None
+
+    registry.register_urlpattern(
+        path("api/v2/orders/", callback, name="order-list"),
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+    registry.register_urlpattern(
+        re_path(r"^api/v2/orders/$", callback, name="order-list"),
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:legacy-order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_ambiguous_urls")
+    urlconf.urlpatterns = [path("api/v2/orders/", callback, name="order-list")]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    assert registry.resolve_operation(match, "GET") is None
+
+
+@pytest.mark.skipif(not HAS_DRF, reason="DRF not installed")
+def test_resolve_operation_distinguishes_drf_methods_and_actions(clear_registry):
+    """A shared DRF URLPattern resolves each HTTP method to its own action."""
+
+    class OrderViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+        def create(self, request):
+            return None
+
+    callback = OrderViewSet.as_view({"get": "list", "post": "create"})
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_drf_urls")
+    urlconf.urlpatterns = [
+        path(
+            "",
+            include((registry.urlpatterns, "orders"), namespace="v2"),
+        )
+    ]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    get_operation = registry.resolve_operation(match, "GET")
+    post_operation = registry.resolve_operation(match, "POST")
+
+    assert get_operation is not None
+    assert get_operation.action == "list"
+    assert get_operation.method == "GET"
+    assert post_operation is not None
+    assert post_operation.action == "create"
+    assert post_operation.method == "POST"
+    assert registry.resolve_operation(match, "DELETE") is None
+
+
+def test_resolve_operation_rejects_conflicting_version_namespace(clear_registry):
+    """A vN namespace must agree with the registered concrete route version."""
+
+    def callback(request):
+        return None
+
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    registry.register_urlpattern(
+        pattern,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:order-list",
+    )
+
+    urlconf = ModuleType("resolved_operation_wrong_namespace_urls")
+    urlconf.urlpatterns = [
+        path(
+            "",
+            include((registry.urlpatterns, "orders"), namespace="v3"),
+        )
+    ]
+    match = resolve("/api/v2/orders/", urlconf=urlconf)
+
+    assert registry.resolve_operation(match, "GET") is None
+
+
+def _lifecycle_test_operation(
+    method="GET",
+    action="list",
+    logical_endpoint="orders:order-list",
+    route_version=2,
+):
+    return ResolvedOperation(
+        logical_endpoint=logical_endpoint,
+        route_version=route_version,
+        source_version=2,
+        method=method,
+        action=action,
+        route_name="order-list",
+        namespace=f"v{route_version}",
+        route=f"api/v{route_version}/orders/",
+        registered_route=f"api/v{route_version}/orders/",
+    )
+
+
+def test_endpoint_lifecycle_scopes_compose_using_earliest_dates(clear_registry):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+        sunset="2028-01-01T00:00:00Z",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        action="list",
+        deprecated_at="2026-06-01T00:00:00+02:00",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        method="GET",
+        action="list",
+        sunset="2027-01-01T00:00:00Z",
+    )
+
+    lifecycle = registry.get_endpoint_lifecycle(_lifecycle_test_operation())
+
+    assert lifecycle == EndpointLifecycle(
+        deprecated_at=datetime(2026, 5, 31, 22, tzinfo=timezone.utc),
+        sunset=datetime(2027, 1, 1, tzinfo=timezone.utc),
+    )
+    assert registry.get_endpoint_lifecycle(
+        _lifecycle_test_operation(method="POST", action="create")
+    ) == EndpointLifecycle(
+        deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
+        sunset=datetime(2028, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+def test_endpoint_lifecycle_declarations_are_idempotent_but_conflicts_fail(
+    clear_registry,
+):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00+00:00",
+    )
+
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        registry.register_endpoint_lifecycle(
+            "orders:order-list",
+            2,
+            deprecated_at="2026-01-01T00:00:00Z",
+        )
+
+
+@pytest.mark.parametrize(
+    ("deprecated_at", "sunset", "message"),
+    [
+        (None, None, "requires deprecated_at or sunset"),
+        ("not-a-date", None, "valid ISO 8601"),
+        ("2028-01-01T00:00:00Z", "2027-01-01T00:00:00Z", "must not be earlier"),
+    ],
+)
+def test_endpoint_lifecycle_rejects_invalid_date_contract(
+    clear_registry, deprecated_at, sunset, message
+):
+    with pytest.raises(VersioningError, match=message):
+        registry.register_endpoint_lifecycle(
+            "orders:order-list",
+            2,
+            deprecated_at=deprecated_at,
+            sunset=sunset,
+        )
+
+
+def test_clear_removes_endpoint_lifecycle_declarations(clear_registry):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+
+    registry.clear()
+
+    assert registry.get_endpoint_lifecycle(_lifecycle_test_operation()) is None
 
 
 def test_get_route_version_returns_registered_urlpattern_version(clear_registry):

@@ -134,8 +134,48 @@ def verify_schema(version: str) -> dict:
         return document
 
 
+def verify_endpoint_lifecycle_schema() -> None:
+    """Prove action-level deprecation changes only the matching schema operation."""
+    with tempfile.TemporaryDirectory(prefix="endpoint-lifecycle-schema-") as directory:
+        env = os.environ.copy()
+        env["DJANGO_SETTINGS_MODULE"] = "contract_project.settings"
+        env["ENDPOINT_LIFECYCLE_SCHEMA_TEST"] = "1"
+        documents = {}
+        for version in ("1", "2"):
+            output = Path(directory) / f"v{version}.yaml"
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(MANAGE),
+                    "spectacular",
+                    "--api-version",
+                    version,
+                    "--validate",
+                    "--fail-on-warn",
+                    "--file",
+                    str(output),
+                ],
+                cwd=ROOT,
+                env=env,
+                check=True,
+            )
+            documents[version] = yaml.safe_load(output.read_bytes())
+
+        v1 = documents["1"]["paths"]
+        assert v1["/api/v1/products/"]["get"].get("deprecated") is True
+        assert "deprecated" not in v1["/api/v1/products/{id}/"]["get"]
+        assert "deprecated" not in v1["/api/v1/products/availability/"]["get"]
+
+        v2 = documents["2"]["paths"]
+        assert "deprecated" not in v2["/api/v2/products/"]["get"]
+
+        assert v1["/api/v1/decorated-status/"]["get"].get("deprecated") is True
+        assert "deprecated" not in v2["/api/v2/decorated-status/"]["get"]
+
+
 def main() -> None:
     verify_runtime()
+    verify_endpoint_lifecycle_schema()
     documents = {v: verify_schema(v) for v in ("1", "2")}
     print(
         json.dumps(
@@ -146,6 +186,7 @@ def main() -> None:
                 "version_specific_serializers": True,
                 "inherited_custom_action": True,
                 "removed_action_absent_from_v2_runtime_and_schema": True,
+                "endpoint_lifecycle_openapi_action_scope": True,
             },
             indent=2,
         )
