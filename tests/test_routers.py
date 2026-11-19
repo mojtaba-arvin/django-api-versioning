@@ -209,8 +209,6 @@ class TestVersionedRouter:
         assert response.json()["url"].endswith("/api/v2/posts/1/")
 
 
-@pytest.mark.parametrize("invalid_version", [True, 1.0, "1"])
-
 def test_router_lifecycle_scopes_one_viewset_action():
     class LifecycleViewSet(viewsets.ViewSet):
         def list(self, request):
@@ -289,6 +287,7 @@ def test_router_lifecycle_rejects_unknown_action():
         )
 
 
+@pytest.mark.parametrize("invalid_version", [True, 1.0, "1"])
 def test_router_rejects_non_integer_version_values(invalid_version):
     router = VersionedRouter()
     with pytest.raises(VersionTypeError, match="Version must be an integer"):
