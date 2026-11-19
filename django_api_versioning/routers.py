@@ -434,6 +434,7 @@ class VersionedRouter:
             logical_endpoint = f"{prefix}:{pattern.name}"
             route_key = str(pattern.pattern)
             setattr(pattern, registry._ROUTER_OWNER_ATTR, self._registry_owner)
+            setattr(pattern, registry._ROUTER_PREFIX_ATTR, prefix)
             registry.register_urlpattern(
                 pattern,
                 source_version=source_version,
