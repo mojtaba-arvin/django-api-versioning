@@ -169,7 +169,39 @@ class VersionedRouter:
             raise TypeError("route_name must be a string.")
         if not route_name:
             raise VersioningError("route_name must be a non-empty string.")
-        registry.remove(f"{prefix}:{route_name}", from_version)
+        logical_endpoint = f"{prefix}:{route_name}"
+        affected_foreign_routes = [
+            pattern
+            for pattern in registry.urlpatterns
+            if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+            and getattr(pattern, registry._ROUTE_VERSION_ATTR, None) is not None
+            and getattr(pattern, registry._ROUTE_VERSION_ATTR) >= from_version
+            and getattr(pattern, registry._SOURCE_VERSION_ATTR, None) is not None
+            and getattr(pattern, registry._SOURCE_VERSION_ATTR) <= from_version
+            and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+            is not self._registry_owner
+        ]
+        if affected_foreign_routes:
+            raise VersioningError(
+                f"Cannot remove {logical_endpoint!r} from version {from_version}: "
+                "matching routes are owned by another VersionedRouter instance."
+            )
+
+        owned_routes = [
+            pattern
+            for pattern in registry.urlpatterns
+            if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+            and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+            is self._registry_owner
+        ]
+        if not owned_routes:
+            raise VersioningError(
+                f"Router does not own an active route for {logical_endpoint!r}."
+            )
+
+        registry.remove(logical_endpoint, from_version)
 
     def set_lifecycle(
         self,
