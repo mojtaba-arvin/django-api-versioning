@@ -169,13 +169,13 @@ class TestApiReverse:
         # Test various regex metacharacters
         test_cases = [
             ("(pattern)", "/api/v1/search/(pattern)/"),
-            ("[abc]", "/api/v1/search/[abc]/"),
+            ("[abc]", "/api/v1/search/%5Babc%5D/"),
             ("a.b", "/api/v1/search/a.b/"),
             ("a*b", "/api/v1/search/a*b/"),
             ("a+b", "/api/v1/search/a+b/"),
-            ("a?b", "/api/v1/search/a?b/"),
-            ("a|b", "/api/v1/search/a|b/"),
-            ("a{2}", "/api/v1/search/a{2}/"),
+            ("a?b", "/api/v1/search/a%3Fb/"),
+            ("a|b", "/api/v1/search/a%7Cb/"),
+            ("a{2}", "/api/v1/search/a%7B2%7D/"),
         ]
         for query, expected_url in test_cases:
             url = api_reverse("search-results", version=1, query=query)
