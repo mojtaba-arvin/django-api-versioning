@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -54,6 +55,21 @@ class AgentToolingTests(unittest.TestCase):
     def test_unknown_profile_is_rejected(self) -> None:
         with self.assertRaises(KeyError):
             agent.context_profile("everything")
+
+    def test_release_provenance_scenario_covers_tag_and_artifact_boundaries(self) -> None:
+        evaluation = json.loads(
+            (ROOT / ".agents/evals/scenarios.json").read_text(encoding="utf-8")
+        )
+        scenario = next(
+            item
+            for item in evaluation["scenarios"]
+            if item["id"] == "published-artifact-provenance"
+        )
+        checks = " ".join(scenario["checks"]).lower()
+        self.assertIn("annotated tag", checks)
+        self.assertIn("current main", checks)
+        self.assertIn("published", checks)
+        self.assertIn("repository-level", checks)
 
     def test_release_context_does_not_reference_the_old_report_path(self) -> None:
         profile = agent.context_profile("release")
