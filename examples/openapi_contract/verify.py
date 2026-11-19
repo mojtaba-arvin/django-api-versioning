@@ -169,6 +169,9 @@ def verify_endpoint_lifecycle_schema() -> None:
         v2 = documents["2"]["paths"]
         assert "deprecated" not in v2["/api/v2/products/"]["get"]
 
+        assert v1["/api/v1/decorated-status/"]["get"].get("deprecated") is True
+        assert "deprecated" not in v2["/api/v2/decorated-status/"]["get"]
+
 
 def main() -> None:
     verify_runtime()
