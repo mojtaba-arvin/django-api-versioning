@@ -451,24 +451,24 @@ class VersionedRouterVersioning(NamespaceVersioning):
 
         if isinstance(route, str):
             route_version = registry.get_resolved_route_version(route)
-            url_name = getattr(resolver_match, "url_name", None)
-            namespace_has_registered_route = (
-                namespace_version is not None
-                and isinstance(url_name, str)
-                and any(
-                    pattern.name == url_name
-                    and getattr(pattern, _ROUTE_VERSION_ATTR, None)
-                    == int(namespace_version)
-                    for pattern in registry.urlpatterns
+            namespace_matches_route = False
+            if namespace_version is not None:
+                configured_prefix = (
+                    api_settings.API_BASE_PATH.format(version=namespace_version)
+                    .strip("/")
                 )
-            )
+                route_path = route.strip("^$").strip("/")
+                namespace_matches_route = (
+                    f"/{configured_prefix}/" in f"/{route_path}/"
+                )
 
-            # Regex-backed DRF routes do not expose the same textual route
-            # representation as Django's ResolverMatch, so the URL namespace
-            # is the reliable version identity when it names a registered
-            # route. This also supports schema generators that resolve a
-            # target route under the requested schema-version namespace.
-            if namespace_has_registered_route:
+            # Namespaces are application-controlled, so a parent namespace
+            # named "v9" must not version an unversioned child route. Accept
+            # a namespace version only when its configured API path segment is
+            # also present in the resolved route. This preserves regex-backed
+            # DRF routes whose ResolverMatch text cannot be matched directly
+            # against the registry's regex pattern.
+            if namespace_matches_route:
                 version = namespace_version
             elif route_version is not None:
                 version = str(route_version)
