@@ -163,4 +163,16 @@ export const caveats = [
     title: 'ViewSet integration scope',
     body: 'VersionedRouter supports DRF SimpleRouter, not DefaultRouter API-root or format-suffix behavior. It selects route callbacks; it does not transform serializers or response payloads.',
   },
+  {
+    title: 'Path-based version selection',
+    body: 'The package selects implementations from concrete URL-path routes. Header, query-parameter, hostname, and tenant negotiation are not enabled by the reserved channel settings.',
+  },
+  {
+    title: 'Routing is not contract compatibility',
+    body: 'The registry selects the view callable for each route. Your application still owns serializer and response compatibility, permissions, business behavior, and contract tests.',
+  },
+  {
+    title: 'Explicit registration, not auto-discovery',
+    body: 'Import modules that declare @endpoint before the generated URL patterns are resolved. The package does not scan arbitrary application modules or provide a built-in version-discovery endpoint.',
+  },
 ]

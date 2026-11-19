@@ -29,8 +29,10 @@ The package provides:
 - Version-range registration and explicit version selection.
 - Route inheritance when a new API version is introduced.
 - Version-aware reverse lookup.
-- Routing inspection and snapshot-based regression protection.
-- Configurable lifecycle middleware for deprecation headers and sunset enforcement.
+- Routing inspection and strict snapshot-based regression protection.
+- Optional `VersionedRouter` integration for DRF `SimpleRouter` ViewSets, including per-generated-route inheritance and version-aware reversal.
+- Configurable version-wide lifecycle middleware for deprecation headers and sunset enforcement.
+- Explicit endpoint removal and endpoint-level lifecycle declarations in the 1.2.0 release candidate; PyPI publication is pending.
 
 **Scope: routing, ViewSet version selection, and lifecycle metadata.** The decorator-based `@endpoint` API does not configure a DRF versioning class or automatically populate DRF's `request.version`; the optional `VersionedRouterVersioning` adapter does so for ViewSets registered through `VersionedRouter`. The package does not enforce semantic backward compatibility, coordinate client migrations, or replace application-level contract tests.
 
@@ -250,7 +252,20 @@ The package supports function-based views and supported Django class-based views
 
 A DRF ViewSet class is different. It requires an action mapping when converted into a view callable. The package's registry calls `as_view()` on a class without supplying that mapping, so decorating a `ModelViewSet` class directly with `@endpoint` is not supported.
 
-For resource-oriented ViewSets, use DRF's [ViewSet documentation](https://www.django-rest-framework.org/api-guide/viewsets/) and [router documentation](https://www.django-rest-framework.org/api-guide/routers/). Register the ViewSet with a DRF router and mount the resulting router URLs under the appropriate versioned prefixes.
+For resource-oriented ViewSets, use the package's optional `VersionedRouter` integration when you want the package registry to manage version-specific implementations and inherit unchanged generated routes. It delegates URL generation to DRF's `SimpleRouter` and registers each generated pattern with the version registry:
+
+```python
+from django_api_versioning.routers import VersionedRouter
+from users.views import UserViewSetV1, UserViewSetV2
+
+router = VersionedRouter()
+router.register("users", UserViewSetV1, version=1, basename="user")
+router.register("users", UserViewSetV2, version=2, basename="user")
+
+urlpatterns = router.urls
+```
+
+Configure `VersionedRouterVersioning` as DRF's default versioning class, or on selected ViewSets, when the application needs `request.version`, `reverse_action()`, or version-aware hyperlinked serializer URLs. The adapter reads the concrete version namespace created by the router.
 
 A manually configured callable such as:
 
@@ -258,11 +273,11 @@ A manually configured callable such as:
 UserViewSet.as_view({"get": "list"})
 ```
 
-represents a specific route/action mapping. It is not automatic router integration and does not replace the router-generated list, detail, and custom-action routes.
+can still be registered for one individual route with `@endpoint`. It is not automatic router integration and does not replace the router-generated list, detail, and custom-action routes.
 
-Likewise, an `@action` method does not automatically become a version-specific endpoint through `@endpoint`.
+Plain DRF `SimpleRouter` and `DefaultRouter` instances remain valid alternatives when the application wants to manage each version's URL configuration itself. They remain outside this package's registry. `VersionedRouter` supports `SimpleRouter` behavior; it does not claim `DefaultRouter` API-root or format-suffix parity.
 
-These are concrete boundaries of the package's integration model. They are not a general incompatibility between DRF routers and versioned URLs. The [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#supported-view-types-and-the-viewsetrouter-boundary) describes the supported view types and the recommended boundary.
+These are deliberate boundaries of the integration model. See the [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) and the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#supported-view-types-and-the-viewsetrouter-boundary).
 
 ## 5. Reverse lookup and request version
 
@@ -316,9 +331,9 @@ It displays the registered routing matrix, including the route and the view call
 
 For example, an endpoint explicitly registered for v1 and v3 may produce a warning for v2. That warning is evidence to review, not necessarily a defect: the omission may be intentional.
 
-The command reads the live registry; it does not import `ROOT_URLCONF` or discover decorated view modules itself. If your project imports endpoint modules in an app's `AppConfig.ready()`, the command sees those declarations after Django startup. Otherwise it can print `No endpoints registered.` even though the URLconf imports views during normal request handling.
+The command resolves and imports the project's root URLconf before inspecting the registry. This executes endpoint-module imports referenced by that URLconf and includes routes registered through `VersionedRouter`. A forgotten import can therefore result in an incomplete matrix or an empty-registry failure when `--fail-on-empty` is used. The command does not discover arbitrary Python modules that are not imported by application startup or the URLconf.
 
-One project-level option is to import the declaration module from the relevant app config:
+If your application deliberately imports declaration modules from an app's `AppConfig.ready()`, that remains a valid project-level organization choice. Ensure those imports are safe during Django startup and do not perform database queries in `ready()`.
 
 ```python
 # api/apps.py
@@ -363,12 +378,12 @@ from django_api_versioning.testing import assert_version_matrix
 
 def test_version_matrix():
     import_module(settings.ROOT_URLCONF)
-    assert_version_matrix(snapshot=".version_matrix.json")
+    assert_version_matrix(snapshot=".version_matrix.json", strict=True)
 ```
 
 If the current routing matrix differs from the committed snapshot, the assertion raises `VersionMatrixError` and reports the differences.
 
-There is an important setup detail: if the snapshot does not exist, `assert_version_matrix()` creates it. Therefore, the first execution does not prove that a previously approved routing configuration has remained unchanged. Generate and commit the baseline before relying on the test as regression protection.
+For backward compatibility, the default non-strict mode can create a missing snapshot. In CI, use `strict=True` so an empty registry or missing committed baseline fails instead of silently creating one. Generate the initial snapshot deliberately with `update=True`, review and commit it, then keep `update=True` out of the regular test. The strict assertion protects the approved routing matrix; it does not prove response-schema or business compatibility.
 
 The snapshot protects route registration, not response semantics. It cannot prove that serializers, permissions, filtering, pagination, or business behavior remain compatible.
 
@@ -421,6 +436,11 @@ The lifecycle behavior has important details:
 
 The middleware implements technical lifecycle behavior. The application team still owns the retirement policy, date selection, client communication, usage monitoring, and migration plan.
 
+### Endpoint-level lifecycle (1.2.0 release candidate; publication pending)
+
+The 1.2.0 release candidate extends lifecycle metadata from whole API versions to individual registered endpoint versions. Use `set_endpoint_lifecycle()` with decorator-registered endpoints or `VersionedRouter.set_lifecycle()` for generated ViewSet operations. Declarations can be scoped to an HTTP method or DRF action. Matching responses receive the applicable RFC 9745 `Deprecation` and RFC 8594 `Sunset` headers; when an endpoint's sunset date passes, this endpoint-level policy remains headers-only and does not itself remove the route or return 410. Version-wide past-Sunset enforcement remains separate and continues to return 410 for the version.
+
+Projects using drf-spectacular can opt into `EndpointLifecycleAutoSchema` to mark the corresponding OpenAPI operation as deprecated. drf-spectacular is optional; neither it nor the repository's OpenAPI consumer example is a core runtime dependency. These 1.2.0 APIs are present on repository `main` but are not part of the published 1.1.0 wheel until the 1.2.0 release is published.
 ## 8. Version discovery and API documentation
 
 A versioned routing system should not make clients guess which versions or endpoints are available.
@@ -491,7 +511,7 @@ The package also does not:
 
 - Enforce backward compatibility between serializers, views, or database schemas.
 - Populate DRF's `request.version` for decorator-based `@endpoint` views without a separately configured DRF versioning class; use `VersionedRouterVersioning` for ViewSets.
-- Decorate DRF ViewSet classes directly with `@endpoint`; use `VersionedRouter` for DRF `SimpleRouter` route generation and `@action` integration. Arbitrary `SimpleRouter` and `DefaultRouter` instances are not auto-discovered.
+- Decorate DRF ViewSet classes directly with `@endpoint`; use `VersionedRouter` for package-managed DRF `SimpleRouter` route generation and `@action` integration. Plain DRF `SimpleRouter` and `DefaultRouter` instances remain manual alternatives outside the package registry.
 - Generate separate OpenAPI schemas for every API version.
 - Provide a built-in version-discovery endpoint.
 - Decide deprecation policy or coordinate client migration.
@@ -512,13 +532,13 @@ Use this checklist when integrating `django-api-versioning` into a production pr
 | Explicit versions | Endpoints are absent from versions not listed in `versions=[...]` |
 | Version boundaries | `API_MIN_VERSION` and `API_MAX_VERSION` match the intended release range |
 | View support | The registered callable is a supported function or class-based view |
-| ViewSet boundary | Router-generated ViewSet routes are mounted separately |
+| ViewSet boundary | Register through `VersionedRouter` for package-managed per-route inheritance, or use plain DRF routers for manual routing |
 | URL construction | The generated path matches `API_BASE_PATH`, `app_name`, and `postfix` |
 | Reverse lookup | `api_reverse()` generates the intended version-specific URL |
 | Request version | Any required `request.version` extraction is configured and tested |
 | Contract isolation | Each version returns the intended response fields and behavior |
-| Lifecycle headers | Deprecation behavior matches the application's requirements |
-| Sunset enforcement | Requests after the configured sunset date receive the expected response |
+| Lifecycle headers | Version-wide and endpoint-level lifecycle declarations produce the intended headers |
+| Sunset enforcement | Version-wide past-Sunset requests receive 410; endpoint-level past-Sunset policy is headers-only |
 | Routing inspection | `check_versions` output has been reviewed |
 | Routing regression | The approved version matrix snapshot is committed and checked in CI |
 | Documentation | Each published OpenAPI document describes the intended version |

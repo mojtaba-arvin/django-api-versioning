@@ -405,7 +405,7 @@ For a request whose version has matching lifecycle metadata, the middleware beha
 | `status="deprecated"` with `deprecated_at` | Adds the RFC 9745 date-valued `Deprecation` header |
 | `status="deprecated"` with `deprecated_at` and a future `sunset` | Adds `Deprecation` and a `Sunset` HTTP-date header |
 | Any valid lifecycle entry with a past `sunset` | Returns `410 Gone` before calling the downstream view |
-| `status="retired"` with a future `sunset` | Does not add deprecation headers or return `410 Gone` yet |
+| `status="retired"` with a future `sunset` | Continues serving the version and adds `Sunset`; also adds `Deprecation` when `deprecated_at` is configured |
 
 The middleware identifies the version using this priority:
 
