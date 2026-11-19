@@ -181,6 +181,12 @@ def test_router_removal_is_action_specific():
     router.register("orders", OrderViewSetV1, version=1, basename="order")
     router.remove("orders", "order-archive", from_version=3)
 
+    assert api_reverse("order-archive", version=2, pk=42) == (
+        "/api/v2/orders/42/archive/"
+    )
+    with pytest.raises(NoReverseMatch):
+        api_reverse("order-archive", version=3, pk=42)
+
     active = {
         pattern.name
         for pattern in registry.urlpatterns
