@@ -123,8 +123,8 @@ except ModuleNotFoundError:
     try:
         import tomli as tomllib
     except ModuleNotFoundError:
-        project = re.search(r"(?ms)^\\[project\\]\\s*$(.*?)(?=^\\[|\\Z)", source)
-        match = re.search(r"(?m)^version\\s*=\\s*['\\"]([^'\\"]+)['\\"]\\s*$", project.group(1) if project else "")
+        project = re.search(r"(?ms)^\[project\]\s*$(.*?)(?=^\[|\Z)", source)
+        match = re.search(r"(?m)^version\s*=\s*['\"]([^'\"]+)['\"]\s*$", project.group(1) if project else "")
         if not match:
             raise SystemExit("Could not read [project].version from pyproject.toml")
         print(match.group(1))
