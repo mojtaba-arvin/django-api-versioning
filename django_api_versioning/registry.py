@@ -117,8 +117,6 @@ class UrlRegistry:
         for pattern in self.urlpatterns:
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
                 continue
-            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
-                continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
             if (
