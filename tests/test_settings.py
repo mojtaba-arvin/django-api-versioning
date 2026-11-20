@@ -264,3 +264,7 @@ def test_path_only_versioning_channels_do_not_warn(caplog):
 
         with pytest.raises(VersioningError, match=field_name):
             APISettings(API_VERSION_LIFECYCLE={1: metadata})
+
+    def test_negative_lifecycle_key_raises(self):
+        with pytest.raises(VersionRangeError, match="non-negative"):
+            APISettings(API_VERSION_LIFECYCLE={-1: {"status": "active"}})
