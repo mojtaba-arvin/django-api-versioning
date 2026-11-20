@@ -23,6 +23,8 @@ on:
       - "scripts/verify_repository_policy.py"
       - "scripts/configure_github_repository.sh"
       - "scripts/maintain.sh"
+      - "scripts/release_tags.py"
+      - "scripts/test_release_tags.py"
       - "scripts/classify_pr_changes.py"
       - "scripts/test_classify_pr_changes.py"
       - "scripts/agent_tests/**"
@@ -58,6 +60,8 @@ jobs:
         run: python scripts/verify_repository_policy.py
       - name: Test pull-request path classification
         run: python -m unittest scripts.test_classify_pr_changes
+      - name: Test release tag detection and safety
+        run: python -m unittest scripts.test_release_tags
       - name: Validate shell helper syntax
         run: |
           while IFS= read -r -d '' script; do
