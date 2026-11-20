@@ -28,10 +28,12 @@ def format_negotiated_url(url: str, version: int | str | None) -> str:
     if scheme == "path" or version is None:
         return url
 
-    versioned_base = "/" + django_settings.API_BASE_PATH.format(
-        version=version
-    ).strip("/") + "/"
-    unversioned_base = "/" + django_settings.API_UNVERSIONED_BASE_PATH.strip("/") + "/"
+    api_base_path = getattr(django_settings, "API_BASE_PATH", api_settings.API_BASE_PATH)
+    unversioned_base_path = getattr(
+        django_settings, "API_UNVERSIONED_BASE_PATH", "api/"
+    )
+    versioned_base = "/" + api_base_path.format(version=version).strip("/") + "/"
+    unversioned_base = "/" + unversioned_base_path.strip("/") + "/"
 
     parts = urlsplit(url)
     path = parts.path
@@ -49,7 +51,9 @@ def format_negotiated_url(url: str, version: int | str | None) -> str:
     negotiated_path = unversioned_base + relative_path[len(versioned_base) :]
     query = parts.query
     if scheme == "query":
-        parameter = django_settings.API_VERSIONING_QUERY_PARAMETER
+        parameter = getattr(
+            django_settings, "API_VERSIONING_QUERY_PARAMETER", "version"
+        )
         pairs = [
             (key, value)
             for key, value in parse_qsl(query, keep_blank_values=True)
