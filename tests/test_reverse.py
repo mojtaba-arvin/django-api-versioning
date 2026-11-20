@@ -9,12 +9,16 @@ from django_api_versioning.exceptions import AmbiguousVersionError, VersionTypeE
 from django_api_versioning.registry import registry
 from django_api_versioning.settings import api_settings as settings
 
+
 @pytest.fixture
+
+
 def versions_1_to_5():
     old_min, old_max = settings.API_MIN_VERSION, settings.API_MAX_VERSION
     settings.API_MIN_VERSION, settings.API_MAX_VERSION = 1, 5
     yield
     settings.API_MIN_VERSION, settings.API_MAX_VERSION = old_min, old_max
+
 
 def _register_users():
     @endpoint("users", version=3, view_name="users")
@@ -24,6 +28,7 @@ def _register_users():
     @endpoint("users", version=5, view_name="users")
     def users_v5(request):
         return JsonResponse({})
+
 
 class TestApiReverse:
     def test_explicit_version(self, versions_1_to_5):
@@ -179,6 +184,7 @@ class TestApiReverse:
             url = api_reverse("search-results", version=1, query=query)
             assert url == expected_url, f"Failed for query={query!r}"
 
+
 def test_regex_backed_urlpattern_uses_django_reverse():
     """DRF-style RegexPattern routes can be reversed with named groups."""
 
@@ -201,6 +207,7 @@ def test_regex_backed_urlpattern_uses_django_reverse():
     with pytest.raises(NoReverseMatch):
         api_reverse("regex-order-detail", version=2, pk="not-an-integer")
 
+
 def test_explicit_version_rejects_duplicate_view_names():
     """Exact-version reversal must not silently pick an arbitrary route."""
 
@@ -221,6 +228,7 @@ def test_explicit_version_rejects_duplicate_view_names():
     with pytest.raises(NoReverseMatch, match="registered more than once"):
         api_reverse("duplicate-route", version=1)
 
+
 def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
     @endpoint("search/<str:query>/", version=1, view_name="search-query")
     def search(request, query):
@@ -231,6 +239,7 @@ def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
 
     assert response.status_code == 200
     assert response.json() == {"query": "a?b"}
+
 
 @pytest.mark.parametrize(
     ("scheme", "expected"),
