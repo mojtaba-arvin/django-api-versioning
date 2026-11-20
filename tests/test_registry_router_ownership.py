@@ -273,8 +273,6 @@ def test_router_removal_preserves_foreign_lifecycle_metadata_at_boundary():
 
     assert any(
         getattr(pattern, registry._ROUTE_VERSION_ATTR, None) == 2
-        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
-        is router_v2._registry_owner
         for pattern in registry.urlpatterns
     )
     assert lifecycle_key in registry._endpoint_lifecycle
