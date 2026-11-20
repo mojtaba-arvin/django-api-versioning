@@ -276,3 +276,20 @@ def test_negotiation_selects_the_matching_registered_view():
 
     assert response.status_code == 200
     assert response.json() == {"handler": "v2", "version": 2}
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_dedicated_and_accept_header_versions_must_agree():
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT_VERSION="2",
+        HTTP_ACCEPT="application/json; version=3",
+    )
+
+    assert response.status_code == 400
