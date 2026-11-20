@@ -10,7 +10,7 @@ from .registry import registry
 
 # Matches Django path parameters, with or without an explicit converter.
 _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
-_PATH_SAFE_CHARS = "/~:@!_CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")()*+,;=" + chr(39)
+_PATH_SAFE_CHARS = "/~:@!$&()*+,;=" + chr(39)
 
 
 def api_reverse(
