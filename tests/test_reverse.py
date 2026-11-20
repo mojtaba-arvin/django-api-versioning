@@ -147,7 +147,7 @@ class TestApiReverse:
 
         # Parameter containing backslash should be literal, not regex escape sequence
         url = api_reverse("doc-detail", version=1, slug=r"path\to\file")
-        assert url == r"/api/v1/docs/path\to\file/"
+        assert url == "/api/v1/docs/path%5Cto%5Cfile/"
 
     def test_kwarg_with_dollar_sign_not_treated_as_regex_group(self):
         """Ensure parameters with $ don't trigger regex group references."""
@@ -225,6 +225,7 @@ def test_explicit_version_rejects_duplicate_view_names():
 
     with pytest.raises(NoReverseMatch, match="registered more than once"):
         api_reverse("duplicate-route", version=1)
+
 
 def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
     @endpoint("search/<str:query>/", version=1, view_name="search-query")
