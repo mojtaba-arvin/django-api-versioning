@@ -69,7 +69,7 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
     # Accept: application/json; version=2. Reject conflicting values instead
     # of guessing which media range should control route dispatch.
     values = re.findall(
-        r'(?:^|[;,])\\s*version\\s*=\\s*(?:"([^"]+)"|([^;,\\s]+))',
+        r'(?:^|[;,])\s*version\s*=\s*(?:"([^"]+)"|([^;,\s]+))',
         request.headers.get("Accept", ""),
         flags=re.IGNORECASE,
     )
