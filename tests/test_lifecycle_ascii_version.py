@@ -37,3 +37,12 @@ def test_request_version_does_not_accept_non_ascii_decimal_digits(version_text):
     request.resolver_match = None
 
     assert _extract_version(request) is None
+
+
+def test_negative_integer_request_version_is_not_an_api_version():
+    """Integer request.version values must respect the non-negative contract."""
+    request = RequestFactory().get("/unrelated/")
+    request.version = -1
+    request.resolver_match = None
+
+    assert _extract_version(request) is None
