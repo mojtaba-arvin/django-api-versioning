@@ -169,11 +169,11 @@ def _validate_contents_write_grants(errors: list[str]) -> None:
         for line in workflow.read_text(encoding="utf-8").splitlines():
             if re.match(r"^\s*contents:\s*write\s*$", line):
                 write_grants.append((workflow.name, len(line) - len(line.lstrip())))
-    expected = [("generate-evidence.yml", 6), ("publish.yml", 6)]
+    expected = [("branch-cleanup.yml", 6), ("generate-evidence.yml", 6), ("publish.yml", 6)]
     if write_grants != expected:
         errors.append(
-            "Only the isolated evidence commit and post-publication GitHub Release "
-            "jobs may grant contents: write"
+            "Only the isolated branch cleanup, evidence commit, and post-publication "
+            "GitHub Release jobs may grant contents: write"
         )
 
 
