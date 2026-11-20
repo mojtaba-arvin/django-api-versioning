@@ -23,7 +23,7 @@ Django REST Framework (DRF) provides ViewSets, action mappings, and router-gener
 
 For Django-native function-based and class-based views, use `@endpoint`. For DRF ViewSets, use `VersionedRouter`. The two registration styles can coexist in one URL configuration.
 
-The package-specific behavior described here follows the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). The published 1.1.0 package includes the initial router integration. Explicit route removal and endpoint-level lifecycle declarations described later are included in the upcoming 1.2.0 release candidate; publication is pending.
+The package-specific behavior described here follows the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). The published 1.2.1 package includes the initial router integration and the endpoint-removal and endpoint-lifecycle APIs introduced in 1.2.0.
 
 ## 1. Install and configure the DRF adapter
 
@@ -225,9 +225,9 @@ This allows version-wide deprecation and sunset behavior to work with nested URL
 
 Version-wide lifecycle configuration is separate from the endpoint-level declarations described below. Add `django_api_versioning.lifecycle.LifecycleMiddleware` to Django's `MIDDLEWARE` setting when your application uses the package's lifecycle headers or version-wide sunset enforcement.
 
-## 7. Explicit route removal (included in 1.2.0 release candidate; publication pending)
+## 7. Explicit route removal (available since 1.2.0)
 
-A route that is inherited into later versions must be removed explicitly. The 1.2.0 release candidate adds `VersionedRouter.remove()`, which targets one generated route by its stable URL name:
+A route that is inherited into later versions must be removed explicitly. Version 1.2.0 added `VersionedRouter.remove()`, which targets one generated route by its stable URL name:
 
 ```python
 from django_api_versioning.routers import VersionedRouter
@@ -244,11 +244,11 @@ The route name is the name generated from the registration basename and ViewSet 
 
 The removal boundary is inclusive: earlier versions keep the route; v3 and later do not resolve or reverse it. A later declaration with a strictly higher source version can deliberately reintroduce the route. Removing one action does not remove the ViewSet's list, detail, or unrelated custom actions.
 
-This feature is included in the upcoming 1.2.0 release candidate; PyPI publication is pending. See the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md) for the full tombstone and reintroduction semantics.
+This feature is available in the published package since 1.2.0. See the [endpoint-removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md) for the full tombstone and reintroduction semantics.
 
-## 8. Endpoint-level lifecycle and OpenAPI (included in 1.2.0 release candidate; publication pending)
+## 8. Endpoint-level lifecycle and OpenAPI (available since 1.2.0)
 
-The 1.2.0 release candidate also adds `VersionedRouter.set_lifecycle()` for metadata attached to one route and concrete API version. Using a router registered as in section 2:
+Version 1.2.0 also added `VersionedRouter.set_lifecycle()` for metadata attached to one route and concrete API version. Using a router registered as in section 2:
 
 ```python
 router.set_lifecycle(
@@ -277,7 +277,7 @@ REST_FRAMEWORK = {
 
 This adapter marks the matching deprecated operation with OpenAPI's `deprecated: true` field. It requires `drf-spectacular` and is imported only by applications that configure it; it is not a core runtime dependency. Missing or ambiguous route identity fails closed, leaving the generated operation unchanged.
 
-The repository's [executable OpenAPI consumer example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract) demonstrates per-version schemas, committed baselines, request-level checks, deterministic generation, and an `oasdiff` breaking-change gate. This example and its CI gate are repository-level tooling and are not included in the published wheel. The endpoint-level lifecycle API and schema deprecation adapter described above are included in the 1.2.0 release candidate, pending publication.
+The repository's [executable OpenAPI consumer example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract) demonstrates per-version schemas, committed baselines, request-level checks, deterministic generation, and an `oasdiff` breaking-change gate. This example and its CI gate are repository-level tooling and are not included in the published wheel. The endpoint-level lifecycle API and schema deprecation adapter described above are included in the published 1.2.0 package.
 
 ## 9. Boundaries and non-goals
 
