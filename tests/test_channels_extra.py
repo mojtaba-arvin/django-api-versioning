@@ -1,5 +1,6 @@
 import pytest
 from django.test import RequestFactory
+from urllib.parse import urlencode
 
 from django_api_versioning.channels import extract_version
 
@@ -97,7 +98,7 @@ def test_version_channels_reject_non_decimal_integer_syntax(channel, value):
     elif channel == "header":
         request = RequestFactory().get("/users", HTTP_ACCEPT_VERSION=value)
     else:
-        request = RequestFactory().get(f"/users?version={value}")
+        request = RequestFactory().get("/users?" + urlencode({"version": value}))
 
     assert extract_version(request, [channel]) is None
 
