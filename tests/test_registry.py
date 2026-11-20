@@ -912,6 +912,26 @@ def test_endpoint_lifecycle_declarations_are_idempotent_but_conflicts_fail(
 
 
 @pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("deprecated_at", "0001-01-01T00:00:00+23:59"),
+        ("deprecated_at", "9999-12-31T23:59:59-23:59"),
+        ("sunset", "0001-01-01T00:00:00+23:59"),
+        ("sunset", "9999-12-31T23:59:59-23:59"),
+    ],
+)
+def test_endpoint_lifecycle_rejects_utc_normalization_overflow(
+    clear_registry, field_name, value
+):
+    with pytest.raises(VersioningError, match=f"Endpoint lifecycle {field_name}"):
+        registry.register_endpoint_lifecycle(
+            "orders:order-list",
+            2,
+            **{field_name: value},
+        )
+
+
+@pytest.mark.parametrize(
     ("deprecated_at", "sunset", "message"),
     [
         (None, None, "requires deprecated_at or sunset"),
