@@ -1,6 +1,6 @@
 # django-api-versioning reference
 
-This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The published PyPI package includes the VersionedRouter integration. The executable OpenAPI consumer example and its `oasdiff` gate were added to repository main after the published release; they are repository-level validation tooling, not part of the package wheel. Explicit endpoint removal and endpoint-level lifecycle declarations are included in the upcoming **1.2.0 release candidate**; they are not available from the currently published 1.1.0 artifact. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The latest published package release is **1.2.1**. It includes the VersionedRouter integration, explicit endpoint removal, and endpoint-level lifecycle declarations introduced in 1.2.0. The executable OpenAPI consumer example and its `oasdiff` gate are repository-level validation tooling, not package runtime features or wheel contents. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Installation
 
@@ -143,7 +143,7 @@ The router constructor's `app_name` is Django URL resolver metadata; it is unrel
 
 The initial integration supports `SimpleRouter`, not `DefaultRouter` API-root or format-suffix behavior. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; declare removal explicitly with `VersionedRouter.remove()` (or `remove_endpoint()` for decorator endpoints). Removed routes are absent from runtime routing and URL reversal at the removal boundary, while earlier versions remain available; a later source declaration can explicitly reintroduce the route. See the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#4-registration-semantics) and [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for details.
 
-## Explicit endpoint removal (included in 1.2.0; publication pending)
+## Explicit endpoint removal (available since 1.2.0)
 
 Use `remove_endpoint()` to stop decorator-based forward inheritance at an inclusive version boundary, while keeping earlier versions available:
 
@@ -250,7 +250,7 @@ For a deprecated version with valid lifecycle dates, the middleware emits the da
 
 See [API lifecycle behavior in the routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#12-version-lifecycle-headers) and the [deprecation guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/018-deprecate-django-api-versioning-routes-sunset-headers/).
 
-### Endpoint-level lifecycle and OpenAPI (included in 1.2.0; publication pending)
+### Endpoint-level lifecycle and OpenAPI (available since 1.2.0)
 
 Use `set_endpoint_lifecycle()` for a concrete endpoint version, or
 `VersionedRouter.set_lifecycle()` for a generated ViewSet route. These
