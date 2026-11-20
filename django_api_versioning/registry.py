@@ -485,7 +485,6 @@ class UrlRegistry:
                 if id(pattern) in matched_pattern_ids
                 and pattern.callback is callback
                 and (url_name is None or pattern.name == url_name)
-                and self._resolved_route_match_length(route, str(pattern.pattern))
             ]
             if not exact_matches:
                 return False, None
