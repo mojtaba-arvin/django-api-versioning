@@ -165,7 +165,7 @@ def assert_schema_snapshot(
             ensure_ascii=False,
             indent=2,
             sort_keys=True,
-        ) + "\\n"
+        ) + "\n"
     except (TypeError, ValueError) as exc:
         raise ContractSnapshotError(
             f"Schema cannot be serialized as deterministic JSON: {exc}"
@@ -197,5 +197,5 @@ def assert_schema_snapshot(
         )
         raise ContractSnapshotError(
             "Generated API schema differs from its reviewed contract snapshot. "
-            "Review the API change before refreshing the baseline.\\n" + diff
+            "Review the API change before refreshing the baseline.\n" + diff
         )
