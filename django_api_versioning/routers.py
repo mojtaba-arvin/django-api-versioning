@@ -27,6 +27,7 @@ from .exceptions import (
     VersionTypeError,
 )
 from .registry import registry
+from .reverse import format_negotiated_url
 from .settings import api_settings
 
 logger = logging.getLogger(__name__)
@@ -600,7 +601,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
     ) -> str:
         # NamespaceVersioning.reverse() calls our get_versioned_viewname().
         # Do not pre-qualify the name here or the namespace would be applied twice.
-        return super().reverse(
+        url = super().reverse(
             viewname,
             args=args,
             kwargs=kwargs,
@@ -608,3 +609,5 @@ class VersionedRouterVersioning(NamespaceVersioning):
             format=format,
             **extra,
         )
+        version = getattr(request, "version", None) if request is not None else None
+        return format_negotiated_url(url, version)
