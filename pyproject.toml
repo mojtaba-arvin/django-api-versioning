@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "django-api-versioning"
 version = "1.2.2"
-description = "URL-path API versioning for Django and Django REST Framework with decorator-based endpoint registration and forward route inheritance."
+description = "Version-aware endpoint routing and request-version negotiation for Django and Django REST Framework."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -17,7 +17,11 @@ keywords = [
     "django api versioning",
     "django rest framework api versioning",
     "drf versioning",
+    "request version negotiation",
     "url path api versioning",
+    "header api versioning",
+    "query api versioning",
+    "hostname api versioning",
     "versioned url routing",
     "endpoint registration",
     "version-specific django views",

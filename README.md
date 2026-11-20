@@ -76,17 +76,17 @@ DRF and this package solve related but different parts of API versioning:
 
 | Responsibility | Django REST Framework | django-api-versioning |
 |---|---|---|
-| Identify a requested version | Built-in schemes such as URL path, namespace, query parameter, hostname, and Accept header | Selects registered implementations through concrete URL-path routes; VersionedRouterVersioning exposes the matched ViewSet namespace as request.version |
+| Identify a requested version | Built-in schemes such as URL path, namespace, query parameter, hostname, and Accept header | Select one transport per deployment with `API_VERSIONING_SCHEME`; middleware resolves it before Django selects the registered view |
 | Generate ViewSet routes | SimpleRouter and DefaultRouter generate actions and URL patterns | VersionedRouter integrates DRF SimpleRouter patterns with the package registry |
 | Select a different implementation per version | Application code or separately maintained URL configurations | Declarative endpoint registration and per-generated-route inheritance/replacement |
 | Carry unchanged endpoints forward | Application-managed | Built in to the registry |
 | Inspect and guard the effective route matrix | Application-managed | check_versions and assert_version_matrix |
 
-Use DRF's own versioning schemes when request-version identification is all you need. Use ordinary DRF routers when you want to manage each version's URL configuration yourself. Choose this package when you want a central registry to map concrete URL routes to version-specific implementations and carry unchanged routes forward. For ViewSets, use VersionedRouter; for Django views, APIView, and GenericAPIView, use @endpoint.
+Use DRF's own versioning schemes when request-version identification is all you need. Use ordinary DRF routers when you want to manage each version's URL configuration yourself. Choose this package when you want a central registry to map each negotiated version to the correct endpoint implementation and carry unchanged routes forward. For ViewSets, use VersionedRouter; for Django views, APIView, and GenericAPIView, use @endpoint.
 
 ### What it does not do
 
-- It does not negotiate versions through request headers, query parameters, hostnames, or tenants. The related channel/resolver settings are reserved and do not activate dispatch.
+- It does not combine transports as a fallback chain. A deployment selects exactly one of `path`, `header`, `query`, or `hostname` with `API_VERSIONING_SCHEME`. Tenant-specific policy resolution remains outside the current contract.
 - It does not transform serializers or response payloads, guarantee semantic backward compatibility, or replace application contract tests.
 - It does not decorate DRF ViewSet classes directly with @endpoint; use VersionedRouter for package-managed SimpleRouter integration.
 - It does not provide DefaultRouter API-root/format-suffix parity, automatic endpoint-module discovery, or a built-in version-discovery endpoint.
@@ -94,6 +94,50 @@ Use DRF's own versioning schemes when request-version identification is all you 
 
 
 **Available since 1.2.0:** Explicit endpoint removal is supported through remove_endpoint() for decorator endpoints and VersionedRouter.remove() for generated DRF actions. Earlier versions retain the route, removed versions return 404, and a later declaration can explicitly reintroduce it. Version 1.2.0 also adds set_endpoint_lifecycle() for decorator endpoints and VersionedRouter.set_lifecycle() for DRF operations. The optional EndpointLifecycleAutoSchema integration marks matching deprecated OpenAPI operations. See the endpoint-removal and endpoint-lifecycle design documents.
+
+## Request version negotiation
+
+The default remains URL-path versioning. For deployments that need a versionless public URL, the development branch adds an optional middleware that selects one request transport **before Django resolves the URL**. It does not merely set request.version: it rewrites the internal path to the selected registered route so the registry and VersionedRouter still choose the actual view.
+
+Configure one scheme for the whole deployment; do not treat this setting as a priority or fallback list:
+
+| Scheme | Request | Required setting |
+| --- | --- | --- |
+| path | /api/v2/orders/ | API_VERSIONING_SCHEME = "path" (default) |
+| header | /api/orders/ plus Accept-Version: 2 | API_VERSIONING_SCHEME = "header" |
+| query | /api/orders/?version=2 | API_VERSIONING_SCHEME = "query" |
+| hostname | v2.api.example.com/api/orders/ | API_VERSIONING_SCHEME = "hostname" and an exact host map |
+
+For non-path schemes, install the middleware before components that depend on the resolved path:
+
+```python
+# settings.py
+API_VERSIONING_SCHEME = "header"
+API_VERSIONING_HEADER = "Accept-Version"  # default
+API_UNVERSIONED_BASE_PATH = "api/"       # default
+API_DEFAULT_VERSION = 1                  # optional; missing version is 400 otherwise
+
+MIDDLEWARE = [
+    "django_api_versioning.negotiation.VersionNegotiationMiddleware",
+    # CommonMiddleware, application middleware, then LifecycleMiddleware
+]
+```
+
+Header mode also accepts DRF's media-type form, such as Accept: application/json; version=2. If both it and Accept-Version are supplied, they must agree. Responses add Vary for the selected header fields; reverse proxies and CDNs must include those fields in their cache key.
+
+For query mode, set API_VERSIONING_QUERY_PARAMETER to change the default version parameter. For hostname mode, provide an explicit API_VERSIONING_HOSTS = {"v1.api.example.com": 1, "v2.api.example.com": 2} mapping and keep Django's ALLOWED_HOSTS configured. Wildcard hosts and tenant inference from client-controlled headers are not supported.
+
+Non-path inputs accept ASCII decimal integer values without a v prefix. Malformed or missing values without a default return 400; globally unsupported versions and unmapped hostnames return 406; valid versions without a registered endpoint remain 404. There is no fallback to the newest implementation. API_VERSIONING_CHANNELS is deprecated/inert; use API_VERSIONING_SCHEME.
+
+The feature is on the current development branch and is not part of the published 1.2.2 release. See the [request negotiation contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) for middleware ordering, reversal, lifecycle, caching, and error semantics.
+
+## Consumer-owned integration boundary
+
+In a consuming project, keep imports of django_api_versioning in one project-owned module, for example project/api_versioning.py. Make your views and root URLconf depend on your own get_urlpatterns() function. When replacing this package, rewrite only that module with ordinary Django path() declarations or DRF routers; business views and the root URLconf need not import package internals. The [executable OpenAPI consumer example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract) demonstrates this boundary.
+
+## Contract tests
+
+The package's development branch adds `assert_schema_snapshot()` alongside `assert_version_matrix()`. Generate and validate your OpenAPI document with your preferred schema tool, then compare it with a reviewed snapshot per API version. Pair exact snapshots with a semantic breaking-change tool such as oasdiff breaking when additive schema changes should be permitted. Continue to test business behavior, validation, authorization, and error bodies with real requests; schema comparison cannot prove semantic compatibility.
 
 ## Why use it with Django REST Framework?
 
@@ -186,7 +230,7 @@ For endpoints that should exist only in selected versions, pass `versions=[1, 3]
 
 The adapter is required when ViewSets need `request.version`, `reverse_action()`, or hyperlinked serializer support. You can configure it globally through `REST_FRAMEWORK` as shown above, or set `versioning_class = VersionedRouterVersioning` on selected ViewSets.
 
-**Scope:** the initial integration supports DRF SimpleRouter; it does not claim DefaultRouter API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with VersionedRouter.remove() (available since 1.2.0). Header/query/tenant negotiation is not enabled by the reserved settings and remains a separate design decision.
+**Scope:** the integration supports DRF SimpleRouter; it does not claim DefaultRouter API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with VersionedRouter.remove() (available since 1.2.0). Non-path negotiation requires `VersionNegotiationMiddleware`; configure one scheme per deployment as described below.
 
 For DRF installation, use a version compatible with your Django release:
 ```bash
@@ -232,7 +276,8 @@ For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/
 - [DRF integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/013-drf-version-negotiation-vs-endpoint-registration/).
 - [Python and Django compatibility guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/024-django-api-versioning-supported-django-python-versions/).
 - [Documentation source map](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
-- [Request version resolution decision](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-resolution.md) — why path-based handler selection remains the current contract and what a safe future negotiation design requires.
+- [Request version negotiation design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) — how the selected transport is dispatched, reversed, cached, and secured.
+- [Maintainer and ownership governance](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md) — maintainer progression, release handover, and project continuity.
 
 ## Contributing
 

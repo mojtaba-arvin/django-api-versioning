@@ -9,14 +9,14 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 - `tests/` contains package unit and regression tests.
 - `integration_test_project/` is the single Django integration/evidence project; extend it rather than duplicating it.
 - `docs/articles/` is the only editable article corpus.
-- `docs/reference/index.md` owns website Reference copy; `versioning-contract.md` defines routing behavior.
+- `docs/reference/index.md` owns website Reference copy; `versioning-contract.md` defines routing behavior; `GOVERNANCE.md` defines maintainer continuity and project handover.
 - `website/AGENTS.md` owns website-specific architecture and implementation constraints; it supplements, and cannot override, this shared contract.
 
 ## Non-negotiable invariants
 
 - Verify behavior against current source and executable tests, not article wording, old logs, generated data, or an agent's prior answer.
-- Separate import-time registration from per-request selection; reserved version channels are not dispatch.
-- `@endpoint` does not set DRF `request.version` or decorate ViewSet classes. Use `VersionedRouter` for DRF `SimpleRouter` routing and `VersionedRouterVersioning` for namespace-based `request.version` and reversal.
+- Separate import-time registration from per-request selection. The legacy `API_VERSIONING_CHANNELS` setting remains inert; non-path dispatch uses `VersionNegotiationMiddleware` and one `API_VERSIONING_SCHEME` per deployment.
+- `@endpoint` does not decorate ViewSet classes. Use `VersionedRouter` for DRF `SimpleRouter` routing. `VersionedRouterVersioning` resolves the concrete route namespace; `VersionNegotiationMiddleware` selects non-path transports before URL resolution.
 - For website tasks, read `website/AGENTS.md` for site-specific constraints. Shared repository and Git policy in this file always takes precedence.
 - Do not add model SDKs, agent frameworks, MCP servers, telemetry exporters, or LLM evaluation services to package runtime dependencies for repository automation.
 
@@ -48,12 +48,9 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 ## Git lifecycle
 
 - `main` is the only long-lived branch. Create short-lived branches from latest `origin/main`; merge by PR after latest `PR gate` passes. After PR closure, verify its same-repository head branch is gone; delete it if no open PR uses it. Never delete `main`, fork branches, or open-PR branches. See `CONTRIBUTING.md` for cleanup. Release tags must be annotated, target `main`, and follow the tag ruleset.
-- See `CONTRIBUTING.md`; do not duplicate the human workflow here.
 ## Commit and automation hygiene
 
 - Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.
-- Avoid duplicate roadmap, progress, implementation-status, or CI trackers; use canonical code, workflows, and docs. Keep transient progress in the task conversation.
-- Do not create commits solely to trigger CI or refresh volatile metadata. Use an existing run's rerun or an explicit workflow dispatch. When workflow behavior really changes, update related workflows in one logical commit.
 - GitHub Actions commits must use the `github-actions[bot]` identity, never the maintainer's personal identity. Manual commits use the repository's verified maintainer identity.
 
 ## Agent configuration ownership
@@ -61,6 +58,4 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 - This file owns shared repository policy. `CLAUDE.md` and `.github/copilot-instructions.md` are thin client adapters, not copies of this contract.
 - Canonical workflows live only in the repository-root `.agents/skills/`. Claude adapters under `.claude/skills/` and the Copilot review adapter under `.github/skills/` delegate to them. Scoped `AGENTS.md` files may add local constraints but cannot redefine shared policy; do not create nested skill registries under project directories.
 - Each skill needs a distinct trigger, bounded responsibility, inputs, verification criteria, and stop conditions. Put detailed reference material behind on-demand links; deterministic repeated work belongs in scripts.
-- Do not pin a model in shared project configuration. Model selection belongs to the user or execution environment.
-- Do not add MCP merely to make an agent appear more capable. Add external integrations only for a real need with justified permissions and maintenance cost.
 

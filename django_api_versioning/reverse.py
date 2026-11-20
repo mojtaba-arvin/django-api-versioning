@@ -1,16 +1,104 @@
 import re
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
+from django.conf import settings as django_settings
 from django.urls import NoReverseMatch, get_script_prefix
 from django.urls.resolvers import RegexPattern, URLResolver
 
 from .exceptions import AmbiguousVersionError, VersionTypeError
 from .registry import registry
+from .settings import api_settings
 
 # Matches Django path parameters, with or without an explicit converter.
 _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
 _PATH_SAFE_CHARS = "/~:@!$&()*+,;=" + chr(39)
+
+
+def format_negotiated_url(
+    url: str,
+    version: int | str | None,
+    *,
+    scheme: str | None = None,
+) -> str:
+    """Adapt an internally reversed versioned URL to the configured transport.
+
+    Header and hostname modes cannot encode a version in the URL. Query mode
+    appends the configured query parameter. Path mode preserves the existing
+    versioned URL contract.
+    """
+    if scheme is None:
+        scheme = getattr(
+            django_settings, "API_VERSIONING_SCHEME", api_settings.API_VERSIONING_SCHEME
+        )
+    if scheme == "path":
+        return url
+
+    api_base_path = getattr(
+        django_settings, "API_BASE_PATH", api_settings.API_BASE_PATH
+    )
+    unversioned_base_path = getattr(
+        django_settings, "API_UNVERSIONED_BASE_PATH", "api/"
+    )
+    parts = urlsplit(url)
+    path = parts.path
+
+    # DRF's NamespaceVersioning adapter can reverse the URL using the
+    # resolver namespace even when request.version is not forwarded to this
+    # method. In that case, recover the exact version from the concrete
+    # internal URL rather than guessing a default or latest version.
+    if version is None and api_base_path.count("{version}") == 1:
+        template_prefix, template_suffix = api_base_path.split("{version}")
+        route_pattern = (
+            r"(?:^|/)"
+            + re.escape(template_prefix.lstrip("/"))
+            + r"([0-9]+)"
+            + re.escape(template_suffix)
+        )
+        match = re.search(route_pattern, path)
+        if match is not None:
+            version = int(match.group(1))
+    if version is None:
+        return url
+
+    versioned_base = "/" + api_base_path.format(version=version).strip("/") + "/"
+    unversioned_base = "/" + unversioned_base_path.strip("/") + "/"
+    script_prefix = get_script_prefix()
+    if script_prefix != "/" and path.startswith(script_prefix):
+        relative_path = "/" + path[len(script_prefix) :].lstrip("/")
+        prefix = script_prefix.rstrip("/")
+    else:
+        relative_path = path
+        prefix = ""
+
+    if not relative_path.startswith(versioned_base):
+        return url
+
+    negotiated_path = unversioned_base + relative_path[len(versioned_base) :]
+    query = parts.query
+    if scheme == "query":
+        parameter = getattr(
+            django_settings, "API_VERSIONING_QUERY_PARAMETER", "version"
+        )
+        pairs = [
+            (key, value)
+            for key, value in parse_qsl(query, keep_blank_values=True)
+            if key != parameter
+        ]
+        pairs.append((parameter, str(version)))
+        query = urlencode(pairs)
+    elif scheme not in {"header", "hostname"}:
+        return url
+
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            prefix + negotiated_path,
+            query,
+            parts.fragment,
+        )
+    )
 
 
 def api_reverse(
@@ -55,7 +143,7 @@ def api_reverse(
             f"for version {version!r}."
         )
 
-    _, target_pattern = matches[0]
+    selected_version, target_pattern = matches[0]
     route_pattern = target_pattern.pattern
 
     if not hasattr(route_pattern, "_route"):
@@ -63,7 +151,8 @@ def api_reverse(
         # their reversal to Django's URLResolver rather than parsing regex
         # groups or interpolating user-provided values ourselves.
         resolver = URLResolver(RegexPattern(r"^"), [target_pattern])
-        return get_script_prefix() + resolver.reverse(view_name, **kwargs)
+        url = get_script_prefix() + resolver.reverse(view_name, **kwargs)
+        return format_negotiated_url(url, selected_version)
 
     route = route_pattern._route
     parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
@@ -100,7 +189,8 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    return get_script_prefix() + quote(
+    url = get_script_prefix() + quote(
         route.lstrip("/"),
         safe=_PATH_SAFE_CHARS,
     )
+    return format_negotiated_url(url, selected_version)

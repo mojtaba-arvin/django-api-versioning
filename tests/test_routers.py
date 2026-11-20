@@ -55,7 +55,13 @@ class PostViewSetV1(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="reverse-list")
     def reverse_list(self, request):
         return Response(
-            {"implementation": "v1-reverse", "url": self.reverse_action("list")}
+            {
+                "implementation": "v1-reverse",
+                "url": self.reverse_action("list"),
+                "request_version": request.version,
+                "versioning_scheme": type(request.versioning_scheme).__name__,
+                "transport": getattr(request._request, "api_versioning_scheme", None),
+            }
         )
 
     @action(detail=False, methods=["get"], url_path="status")
@@ -611,3 +617,44 @@ def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
         ].deprecated_at.year
         == 2030
     )
+
+
+@pytest.mark.parametrize(
+    ("scheme", "path", "headers", "expected_url"),
+    [
+        (
+            "header",
+            "/api/posts/reverse-list/",
+            {"HTTP_ACCEPT_VERSION": "2"},
+            "/api/posts/",
+        ),
+        (
+            "query",
+            "/api/posts/reverse-list/?version=2",
+            {},
+            "/api/posts/?version=2",
+        ),
+    ],
+)
+def test_router_dispatch_and_reverse_follow_non_path_transport(
+    versioned_router, scheme, path, headers, expected_url
+):
+    with override_settings(
+        ROOT_URLCONF=urlconf,
+        MIDDLEWARE=["django_api_versioning.negotiation.VersionNegotiationMiddleware"],
+        API_VERSIONING_SCHEME=scheme,
+        API_BASE_PATH="api/v{version}/",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        response = APIClient().get(path, **headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["implementation"] == "v1-reverse"
+    assert payload["request_version"] == "2", payload
+    assert payload["versioning_scheme"] == "VersionedRouterVersioning", payload
+    assert payload["transport"] == scheme, payload
+    assert payload["url"].endswith(expected_url), payload
+    assert "/api/v2/" not in payload["url"]

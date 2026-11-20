@@ -3,10 +3,14 @@ import json
 import pytest
 from django.views import View
 
-from django_api_versioning.exceptions import VersionMatrixError
+from django_api_versioning.exceptions import (
+    ContractSnapshotError,
+    VersionMatrixError,
+)
 from django_api_versioning.registry import registry
 from django_api_versioning.testing import (
     _diff,
+    assert_schema_snapshot,
     assert_version_matrix,
     build_version_matrix,
 )
@@ -146,3 +150,41 @@ def test_build_version_matrix_uses_class_name_for_class_based_views():
     registry.register("api/v1/items/", SampleView, route_version=1)
 
     assert build_version_matrix() == {"api/v1/items/": {"1": "SampleView"}}
+
+
+def test_schema_snapshot_is_created_and_verified(tmp_path):
+    schema = {
+        "openapi": "3.1.0",
+        "paths": {"/api/v1/users/": {"get": {"responses": {"200": {}}}}},
+    }
+    snapshot = tmp_path / "contracts" / "v1.json"
+
+    assert_schema_snapshot(schema, snapshot, update=True)
+    assert snapshot.is_file()
+    assert_schema_snapshot(schema, snapshot, strict=True)
+
+
+def test_schema_snapshot_strict_mode_requires_a_reviewed_baseline(tmp_path):
+    snapshot = tmp_path / "v1.json"
+
+    with pytest.raises(ContractSnapshotError, match="does not exist"):
+        assert_schema_snapshot({"openapi": "3.1.0"}, snapshot, strict=True)
+
+    assert not snapshot.exists()
+
+
+def test_schema_snapshot_detects_unreviewed_contract_drift(tmp_path):
+    snapshot = tmp_path / "v1.json"
+    assert_schema_snapshot({"openapi": "3.1.0"}, snapshot, update=True)
+
+    with pytest.raises(ContractSnapshotError, match="differs from its reviewed"):
+        assert_schema_snapshot(
+            {"openapi": "3.1.0", "paths": {"/api/v1/new/": {}}},
+            snapshot,
+            strict=True,
+        )
+
+
+def test_schema_snapshot_rejects_non_mapping_input(tmp_path):
+    with pytest.raises(ContractSnapshotError, match="must be a mapping"):
+        assert_schema_snapshot([], tmp_path / "v1.json")

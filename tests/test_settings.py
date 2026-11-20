@@ -240,7 +240,7 @@ def test_non_default_versioning_channels_warn_that_they_are_ignored(caplog):
     settings = APISettings(API_VERSIONING_CHANNELS=["header", "query"])
 
     assert settings.API_VERSIONING_CHANNELS == ["header", "query"]
-    assert "non-default channel values are ignored" in caplog.text
+    assert "values in API_VERSIONING_CHANNELS are ignored" in caplog.text
 
 
 def test_path_only_versioning_channels_do_not_warn(caplog):
@@ -268,3 +268,70 @@ def test_timezone_normalization_overflow_raises_versioning_error(field_name, val
 def test_negative_lifecycle_key_raises():
     with pytest.raises(VersionRangeError, match="non-negative"):
         APISettings(API_VERSION_LIFECYCLE={-1: {"status": "active"}})
+
+
+class TestNegotiationSettings:
+    def test_path_scheme_is_the_default(self):
+        settings = APISettings()
+        assert settings.API_VERSIONING_SCHEME == "path"
+        assert settings.API_UNVERSIONED_BASE_PATH == "api/"
+        assert settings.API_DEFAULT_VERSION is None
+
+    @pytest.mark.parametrize("scheme", ["path", "header", "query", "hostname"])
+    def test_supported_schemes(self, scheme):
+        settings = APISettings(
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+            API_VERSIONING_SCHEME=scheme,
+            API_VERSIONING_HOSTS=(
+                {"v2.example.com": 2} if scheme == "hostname" else {}
+            ),
+        )
+        assert settings.API_VERSIONING_SCHEME == scheme
+
+    @pytest.mark.parametrize("scheme", ["accept", "url", "tenant", None, 1, []])
+    def test_unknown_or_invalid_scheme_is_rejected(self, scheme):
+        with pytest.raises(VersioningError, match="API_VERSIONING_SCHEME"):
+            APISettings(API_VERSIONING_SCHEME=scheme)
+
+    def test_hostname_scheme_requires_explicit_mapping(self):
+        with pytest.raises(VersioningError, match="at least one mapping"):
+            APISettings(API_VERSIONING_SCHEME="hostname")
+
+    def test_hostname_map_requires_versions_within_global_range(self):
+        with pytest.raises(VersioningError, match="between 1 and 2"):
+            APISettings(
+                API_MIN_VERSION=1,
+                API_MAX_VERSION=2,
+                API_VERSIONING_SCHEME="hostname",
+                API_VERSIONING_HOSTS={"v3.example.com": 3},
+            )
+
+    def test_hostname_map_normalizes_case_and_trailing_dot_for_duplicates(self):
+        with pytest.raises(VersioningError, match="Duplicate"):
+            APISettings(
+                API_MIN_VERSION=1,
+                API_MAX_VERSION=2,
+                API_VERSIONING_HOSTS={
+                    "API.example.com": 1,
+                    "api.example.com.": 2,
+                },
+            )
+
+    def test_default_version_must_be_inside_global_range(self):
+        with pytest.raises(VersioningError, match="API_DEFAULT_VERSION"):
+            APISettings(
+                API_MIN_VERSION=1,
+                API_MAX_VERSION=2,
+                API_DEFAULT_VERSION=3,
+            )
+
+    def test_unversioned_base_path_must_be_relative_and_normalized(self):
+        with pytest.raises(VersioningError, match="API_UNVERSIONED_BASE_PATH"):
+            APISettings(API_UNVERSIONED_BASE_PATH="/api/")
+
+    def test_query_parameter_and_header_names_must_be_non_empty_tokens(self):
+        with pytest.raises(VersioningError, match="API_VERSIONING_HEADER"):
+            APISettings(API_VERSIONING_HEADER="Accept Version")
+        with pytest.raises(VersioningError, match="API_VERSIONING_QUERY_PARAMETER"):
+            APISettings(API_VERSIONING_QUERY_PARAMETER="")

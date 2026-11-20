@@ -27,6 +27,7 @@ from .exceptions import (
     VersionTypeError,
 )
 from .registry import registry
+from .reverse import format_negotiated_url
 from .settings import api_settings
 
 logger = logging.getLogger(__name__)
@@ -587,7 +588,14 @@ class VersionedRouterVersioning(NamespaceVersioning):
         """
         resolver_match = getattr(request, "resolver_match", None)
         namespace = getattr(resolver_match, "namespace", "") or ""
-        return f"{namespace}:{viewname}" if namespace else viewname
+        if not namespace:
+            return viewname
+        # ViewSet.reverse_action() already prefixes the active namespace
+        # before calling rest_framework.reverse.reverse(). NamespaceVersioning
+        # calls this method again, so avoid producing "v2:v2:post-list".
+        if viewname == namespace or viewname.startswith(f"{namespace}:"):
+            return viewname
+        return f"{namespace}:{viewname}"
 
     def reverse(
         self,
@@ -600,7 +608,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
     ) -> str:
         # NamespaceVersioning.reverse() calls our get_versioned_viewname().
         # Do not pre-qualify the name here or the namespace would be applied twice.
-        return super().reverse(
+        url = super().reverse(
             viewname,
             args=args,
             kwargs=kwargs,
@@ -608,3 +616,11 @@ class VersionedRouterVersioning(NamespaceVersioning):
             format=format,
             **extra,
         )
+        if request is None:
+            return url
+        django_request = getattr(request, "_request", request)
+        version = getattr(request, "version", None)
+        if version is None:
+            version = getattr(django_request, "api_version", None)
+        scheme = getattr(django_request, "api_versioning_scheme", None)
+        return format_negotiated_url(url, version, scheme=scheme)

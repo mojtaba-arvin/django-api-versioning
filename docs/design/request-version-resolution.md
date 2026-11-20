@@ -1,8 +1,8 @@
 # Request version resolution: research and architecture decision
 
-**Status:** Accepted decision for non-path negotiation; path-based ViewSet routing is implemented separately  
-**Target:** A future minor release for header/query/tenant negotiation, only after the implementation gates below pass  
-**Current behavior:** URL-path routing remains the only implemented route-selection mechanism in 1.x, including the optional DRF VersionedRouter
+**Status:** Historical design record; superseded by [request-version-negotiation.md](request-version-negotiation.md)  
+**Original target:** A future minor release for non-path negotiation  
+**Current branch status:** The development branch now contains header, query, and hostname request negotiation middleware. The new document is authoritative for its current implementation contract. The published 1.2.2 release remains path-only until a later release includes this work.
 
 ## 1. Decision summary
 
@@ -79,7 +79,7 @@ A callable alone does not define:
 
 Enabling the setting without answering these questions would create a false security and compatibility guarantee.
 
-## 4. Future negotiation contract
+## 4. Original negotiation proposal (historical)
 
 This section is the accepted direction for a future implementation. It is not a claim about the current package.
 
@@ -173,9 +173,11 @@ The package will not become a serializer transformation framework. It will not p
 
 The package will not silently rewrite arbitrary URLs, infer the tenant from untrusted request data, or perform authentication itself.
 
-## 6. Implementation gates
+## 6. Original implementation gates and current status
 
-Do not remove the reserved-setting warnings or advertise Header/Query/resolver support until all of the following exist:
+The following list was the acceptance gate for the original proposal. The development branch now implements the dispatcher, route rewrite, lifecycle version propagation, URL reversal, header cache variation, and exact hostname mapping described in [request-version-negotiation.md](request-version-negotiation.md). The release remains blocked until the final PR gate and full compatibility/packaging verification pass. Tenant policy resolution is still intentionally deferred.
+
+The original gates were:
 
 - one real dispatcher path for non-path modes, selecting the registered view (not merely parsing a value);
 - Django function-based and class-based view integration;
@@ -187,7 +189,7 @@ Do not remove the reserved-setting warnings or advertise Header/Query/resolver s
 - coverage for async/sync views, URLconf inclusion, middleware ordering, and route snapshots;
 - full supported Python/Django matrix and installed-wheel smoke tests.
 
-Until then, the warning is preferable to a partially functioning feature.
+At the time this ADR was written, keeping the warning was safer than enabling a parser without dispatch. The reserved channel list remains inert; the new single-value `API_VERSIONING_SCHEME` is the supported configuration.
 
 ## 7. Separate compatibility note: Django 4.2
 
@@ -221,14 +223,14 @@ urlpatterns = router.urls
 
 The implementation delegates route generation to DRF's `SimpleRouter`, preserves complete Django URLPattern objects and callback metadata, and applies version precedence independently to each generated route. Unchanged custom actions remain inherited. The adapter exposes the concrete path version as `request.version` and preserves namespaces for `reverse_action()` and hyperlinked serializers.
 
-This integration is path-based. It does not implement Accept-header, query-parameter, hostname, or tenant-based route negotiation. It also does not transform serializers or response payloads, and it does not claim `DefaultRouter` API-root or format-suffix parity.
+The VersionedRouter's namespace adapter continues to identify the concrete path selected by Django. The optional `VersionNegotiationMiddleware` can select an alternative transport before that same router resolves the request. It does not implement tenant-pinned policy or transform serializers/payloads, and it does not claim `DefaultRouter` API-root or format-suffix parity.
 
 References:
 - [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/)
 - [VersionedRouter implementation PR #37](https://github.com/mojtaba-arvin/django-api-versioning/pull/37)
 - [VersionedRouter implementation design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/versioned-drf-router.md)
 
-### Why non-path negotiation remains deferred
+### Why negotiation is implemented at the middleware boundary
 
 DRF already supplies common request-version schemes and a custom versioning-class extension point. Reimplementing those parsers provides little differentiation unless the package also solves view selection, cache variation, and tenant policy.
 

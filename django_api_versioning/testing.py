@@ -1,10 +1,12 @@
+import difflib
 import json
+from collections.abc import Mapping
 from pathlib import Path
 
 from django.urls import get_resolver
 from django.urls.resolvers import URLResolver
 
-from .exceptions import VersionMatrixError
+from .exceptions import ContractSnapshotError, VersionMatrixError
 from .registry import REMOVED_ROUTE, registry
 
 
@@ -135,3 +137,68 @@ def _diff(expected: dict, current: dict) -> str:
                 label = version if version == "unversioned" else f"v{version}"
                 lines.append(f"    {label}: {e} -> {c}")
     return "\n".join(lines)
+
+
+def assert_schema_snapshot(
+    schema: Mapping[str, object],
+    snapshot: str | Path,
+    *,
+    update: bool = False,
+    strict: bool = True,
+) -> None:
+    """Compare a generated OpenAPI document with a reviewed JSON snapshot.
+
+    The helper has no OpenAPI, YAML, DRF, or schema-validation dependency:
+    generate and validate the schema with the consumer's chosen tool, then
+    pass its Python mapping here. Use one snapshot per API version.
+
+    Bootstrap or deliberately accept a reviewed contract change with
+    update=True. In CI, use strict=True without update=True so missing
+    snapshots and unreviewed changes fail closed.
+    """
+    if not isinstance(schema, Mapping):
+        raise ContractSnapshotError("schema must be a mapping/object.")
+    path = Path(snapshot)
+    try:
+        rendered = (
+            json.dumps(
+                schema,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
+    except (TypeError, ValueError) as exc:
+        raise ContractSnapshotError(
+            f"Schema cannot be serialized as deterministic JSON: {exc}"
+        ) from exc
+
+    if update:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(rendered, encoding="utf-8")
+        return
+
+    if not path.is_file():
+        if strict:
+            raise ContractSnapshotError(
+                f"Contract snapshot {str(path)!r} does not exist. "
+                "Review the generated schema and create it explicitly with "
+                "update=True."
+            )
+        return
+
+    expected = path.read_text(encoding="utf-8")
+    if rendered != expected:
+        diff = "".join(
+            difflib.unified_diff(
+                expected.splitlines(keepends=True),
+                rendered.splitlines(keepends=True),
+                fromfile=str(path),
+                tofile="generated OpenAPI schema",
+            )
+        )
+        raise ContractSnapshotError(
+            "Generated API schema differs from its reviewed contract snapshot. "
+            "Review the API change before refreshing the baseline.\n" + diff
+        )

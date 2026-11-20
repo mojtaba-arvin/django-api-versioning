@@ -17,7 +17,9 @@ These documents have different responsibilities; do not maintain duplicate versi
 | [Package source and executable tests](../django_api_versioning/) | Actual runtime behavior and regressions | User onboarding or marketing copy |
 | [Root README](../README.md) | Package overview, install, Quick Start, high-level limitations | Complete API semantics |
 | [Reference page source](reference/index.md) | Human-facing settings, decorator, exceptions, commands, and public API summary for `/reference/` | Every routing edge case |
-| [Canonical routing contract](reference/versioning-contract.md) | Detailed URL construction, registration semantics, precedence, imports, reversal, DRF boundary, and lifecycle behavior | General Django/DRF tutorials |
+| [Canonical routing contract](reference/versioning-contract.md) | Detailed URL construction, registration semantics, precedence, imports, reversal, DRF boundary, lifecycle, and request negotiation | General Django/DRF tutorials |
+| [Request version negotiation design](design/request-version-negotiation.md) | One configured version transport per deployment, middleware ordering, dispatch, reversal, cache and host security | Tenant policy, serializer/payload transformation, or release evidence | 
+| [Governance](../GOVERNANCE.md) | Contributor-to-maintainer progression, release handover, and ownership continuity | A guarantee that a successor has already been appointed |
 | [Changelog](../CHANGELOG.md) | Versioned release notes and migration notes | Current compatibility results |
 | [Compatibility configuration](../tox.ini) | Exact configured Python/Django test environments | Proof that an environment passed |
 | [Compatibility workflow](../.github/workflows/compatibility.yml) | How the configured environments are executed in CI | Results for commits that have not run |
@@ -69,6 +71,10 @@ The files in `articles/` are the only editable article sources. Each article's f
 - [Production evaluation of django-api-versioning](articles/021-django-api-versioning-library-requirements.md)
 - [Installing and configuring django-api-versioning](articles/023-django-api-versioning-pypi-installation.md)
 - [Python and Django compatibility](articles/024-django-api-versioning-supported-versions.md)
+
+### Maintainer and ownership continuity
+
+- [Governance and maintenance continuity](../GOVERNANCE.md): how contributors become maintainers, how GitHub and PyPI ownership can be handed over safely, and what to do if active maintenance stops.
 
 ## Historical release evidence
 

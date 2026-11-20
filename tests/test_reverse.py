@@ -1,6 +1,6 @@
 import pytest
 from django.http import JsonResponse
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import NoReverseMatch, re_path, register_converter
 
 from django_api_versioning import api_reverse
@@ -237,3 +237,51 @@ def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
 
     assert response.status_code == 200
     assert response.json() == {"query": "a?b"}
+
+
+@pytest.mark.parametrize(
+    ("scheme", "expected"),
+    [
+        ("header", "/api/orders/"),
+        ("hostname", "/api/orders/"),
+        ("query", "/api/orders/?version=2"),
+    ],
+)
+def test_api_reverse_uses_the_selected_non_path_transport(scheme, expected):
+    @endpoint("orders/", versions=[2], view_name="negotiated-orders")
+    def orders(request):
+        return JsonResponse({})
+
+    with override_settings(
+        API_VERSIONING_SCHEME=scheme,
+        API_BASE_PATH="api/v{version}/",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_VERSIONING_QUERY_PARAMETER="version",
+    ):
+        assert api_reverse("negotiated-orders", version=2) == expected
+
+
+@pytest.mark.parametrize(
+    ("scheme", "expected"),
+    [
+        ("header", "https://api.example.com/api/posts/"),
+        ("hostname", "https://api.example.com/api/posts/"),
+        ("query", "https://api.example.com/api/posts/?version=2"),
+    ],
+)
+def test_format_negotiated_url_recovers_version_from_concrete_route(scheme, expected):
+    from django_api_versioning.reverse import format_negotiated_url
+
+    with override_settings(
+        API_VERSIONING_SCHEME=scheme,
+        API_BASE_PATH="api/v{version}/",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_VERSIONING_QUERY_PARAMETER="version",
+    ):
+        assert (
+            format_negotiated_url(
+                "https://api.example.com/api/v2/posts/",
+                version=None,
+            )
+            == expected
+        )

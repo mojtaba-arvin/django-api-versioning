@@ -19,7 +19,10 @@ INSTALLED_APPS = [
     "django_api_versioning",
     "contract_app",
 ]
-MIDDLEWARE = ["django_api_versioning.lifecycle.LifecycleMiddleware"]
+MIDDLEWARE = [
+    "django_api_versioning.negotiation.VersionNegotiationMiddleware",
+    "django_api_versioning.lifecycle.LifecycleMiddleware",
+]
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_TZ = True
@@ -28,6 +31,7 @@ TIME_ZONE = "UTC"
 TEMPLATES = []
 
 API_BASE_PATH = "api/v{version}/"
+API_VERSIONING_SCHEME = "path"
 API_MIN_VERSION = 1
 API_MAX_VERSION = 2
 API_VERSION_LIFECYCLE = {
