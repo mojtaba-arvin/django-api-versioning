@@ -171,10 +171,10 @@ def test_unversioned_default_router_api_root_is_supported():
     assert health.json() == {"status": "ok"}
 
 
-def test_api_root_and_format_suffixes_can_be_disabled_independently():
+def test_api_root_can_be_disabled_while_format_suffixes_remain_enabled():
     router = VersionedDefaultRouter(
         include_root_view=False,
-        include_format_suffixes=False,
+        include_format_suffixes=True,
     )
     router.register("posts", PostViewSetV1, version=1, basename="post")
     urlconf.urlpatterns = router.urls
@@ -183,6 +183,21 @@ def test_api_root_and_format_suffixes_can_be_disabled_independently():
     with override_settings(ROOT_URLCONF=urlconf):
         client = APIClient()
         assert client.get("/api/v1/").status_code == 404
+        assert client.get("/api/v1/posts.json").status_code == 200
+
+
+def test_format_suffixes_can_be_disabled_while_api_root_remains_enabled():
+    router = VersionedDefaultRouter(
+        include_root_view=True,
+        include_format_suffixes=False,
+    )
+    router.register("posts", PostViewSetV1, version=1, basename="post")
+    urlconf.urlpatterns = router.urls
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        client = APIClient()
+        assert client.get("/api/v1/").status_code == 200
         assert client.get("/api/v1/posts.json").status_code == 404
         assert client.get("/api/v1/posts/").status_code == 200
 
