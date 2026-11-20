@@ -20,18 +20,11 @@ version_check() {
   [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || die "Expected a SemVer version such as 1.3.0."
 }
 preflight() {
-  local v="$1" tag="v$1" actual
-  version_check "$v"; auth; need git; need python3
-  [[ "$(git branch --show-current)" == main ]] || die "Switch to main first."
-  [[ -z "$(git status --porcelain)" ]] || die "Working tree must be clean."
-  git fetch origin --prune
-  [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || die "Local main must exactly match origin/main."
-  actual="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
-  [[ "$actual" == "$v" ]] || die "pyproject.toml version is $actual, not $v."
-  grep -Eq "^## \[$v\] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
+  local v="$1" tag="v$1"
+  release_source_check "$v"
   ! git show-ref --verify --quiet "refs/tags/$tag" || die "Local tag $tag already exists."
   ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1 || die "Remote tag $tag already exists."
-  echo "PASS: clean main, package version, changelog entry, and unused tag."
+  echo "PASS: clean main, package version, changelog entry, current uv.lock, and unused tag."
 }
 create_github_release() {
   local v="$1" tag="v$1" tag_type published run_json notes_file
@@ -104,7 +97,7 @@ wait_for_workflow() {
 
 release_source_check() {
   local v="$1" actual
-  version_check "$v"; auth; need git; need python3; need jq
+  version_check "$v"; auth; need git; need python3; need jq; need uv
   [[ "$(git branch --show-current)" == main ]] || die "Switch to main first."
   [[ -z "$(git status --porcelain)" ]] || die "Working tree must be clean."
   git fetch origin --prune
@@ -112,6 +105,7 @@ release_source_check() {
   actual="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
   [[ "$actual" == "$v" ]] || die "pyproject.toml version is $actual, not $v."
   grep -Fq "## [$v] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
+  uv lock --check || die "uv.lock is stale or inconsistent; run uv lock, commit uv.lock, and retry."
 }
 
 release_finish() {
