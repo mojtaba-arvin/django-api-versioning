@@ -1,4 +1,4 @@
-"""Regression coverage for ASCII-only API version identifiers in lifecycle fallback."""
+"""Lifecycle fallback version grammar regression tests."""
 
 import pytest
 from django.http import HttpResponseNotFound
@@ -21,9 +21,10 @@ def test_unresolved_non_ascii_path_version_does_not_apply_ascii_lifecycle_policy
     request = RequestFactory().get(f"/api/v{version_text}/missing")
     request.version = None
 
-    response = LifecycleMiddleware(
-        lambda _request: HttpResponseNotFound("not found")
-    )(request)
+    def not_found(_request):
+        return HttpResponseNotFound("not found")
+
+    response = LifecycleMiddleware(not_found)(request)
 
     assert response.status_code == 404
     assert response.content == b"not found"
