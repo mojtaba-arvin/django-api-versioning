@@ -1,7 +1,7 @@
 """Regression coverage for ASCII-only API version identifiers in lifecycle fallback."""
 
 import pytest
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponseNotFound
 from django.test import RequestFactory
 
 from django_api_versioning.lifecycle import LifecycleMiddleware, _extract_version
