@@ -196,6 +196,7 @@ def test_multi_version_decorator_registration_rolls_back_after_late_router_colli
 
 def test_public_remove_endpoint_cannot_remove_router_owned_routes():
     """Decorator removal must not cross the VersionedRouter ownership boundary."""
+
     class OrdersViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
@@ -220,8 +221,7 @@ def test_public_remove_endpoint_cannot_remove_router_owned_routes():
         for child in getattr(container, "url_patterns", [container])
     )
     assert (
-        registry._removal_boundaries.get(logical_endpoint, set())
-        == removal_boundaries
+        registry._removal_boundaries.get(logical_endpoint, set()) == removal_boundaries
     )
 
 
@@ -246,6 +246,7 @@ def test_decorator_removal_boundary_does_not_suppress_router_registration():
 
 def test_removing_router_segment_preserves_newer_foreign_lifecycle_metadata():
     """An older router removal must not erase metadata for a newer route owner."""
+
     class OrdersV1ViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
