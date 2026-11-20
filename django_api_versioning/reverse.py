@@ -10,6 +10,7 @@ from .registry import registry
 
 # Matches Django path parameters, with or without an explicit converter.
 _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
+_PATH_SAFE_CHARS = "/~:@!_CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")()*+,;=" + chr(39)
 
 
 def api_reverse(
@@ -99,10 +100,7 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    # Match Django's URLResolver path quoting: retain path separators and
-    # RFC 3986 unreserved/sub-delimiter characters, but encode query/fragment
-    # delimiters and other characters that cannot appear raw in a path segment.
     return get_script_prefix() + quote(
         route.lstrip("/"),
-        safe="/~:@!    return get_script_prefix() + route.lstrip("/")'()*+,;=",
+        safe=_PATH_SAFE_CHARS,
     )
