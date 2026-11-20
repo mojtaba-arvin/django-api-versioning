@@ -562,18 +562,18 @@ class VersionedDefaultRouter(VersionedRouter):
         unversioned: list[URLPattern | URLResolver] = list(registered_unversioned)
 
         if self.include_root_view:
-            for route_version, patterns in versioned.items():
+            for route_version, registered_patterns in registered_versioned.items():
                 root_path = api_settings.API_BASE_PATH.format(
                     version=route_version
                 )
-                patterns.append(
+                versioned[route_version].append(
                     path(
                         root_path,
                         include(
                             [
                                 path(
                                     "",
-                                    self._create_api_root_view(patterns),
+                                    self._create_api_root_view(registered_patterns),
                                     name=self.root_view_name,
                                 )
                             ]
@@ -581,7 +581,7 @@ class VersionedDefaultRouter(VersionedRouter):
                     )
                 )
 
-            if unversioned:
+            if registered_unversioned:
                 unversioned.append(
                     path(
                         "",
@@ -589,7 +589,7 @@ class VersionedDefaultRouter(VersionedRouter):
                             [
                                 path(
                                     "",
-                                    self._create_api_root_view(unversioned),
+                                    self._create_api_root_view(registered_unversioned),
                                     name=self.root_view_name,
                                 )
                             ]
