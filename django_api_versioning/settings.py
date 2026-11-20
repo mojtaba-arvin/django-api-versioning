@@ -272,9 +272,9 @@ class APISettings:
 
         if self.API_VERSIONING_CHANNELS != ["path"]:
             logger.warning(
-                "API_VERSIONING_CHANNELS is reserved and does not affect route "
-                "selection. django-api-versioning currently generates URL-path "
-                "routes only; non-default channel values are ignored."
+                "API_VERSIONING_CHANNELS is deprecated and does not select a transport. "
+                "Configure exactly one transport with API_VERSIONING_SCHEME; "
+                "values in API_VERSIONING_CHANNELS are ignored."
             )
 
     def _validate_negotiation(self) -> None:
