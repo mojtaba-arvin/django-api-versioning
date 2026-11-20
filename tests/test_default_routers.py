@@ -22,26 +22,26 @@ urlconf.urlpatterns = []
 class PostViewSetV1(viewsets.ViewSet):
     versioning_class = VersionedRouterVersioning
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         return Response({"implementation": "v1", "version": request.version})
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk=None, *args, **kwargs):
         return Response(
             {"implementation": "v1", "version": request.version, "pk": pk}
         )
 
     @action(detail=False, methods=["get"])
-    def metadata(self, request):
+    def metadata(self, request, *args, **kwargs):
         return Response({"implementation": "v1-action", "version": request.version})
 
 
 class PostViewSetV2(viewsets.ViewSet):
     versioning_class = VersionedRouterVersioning
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         return Response({"implementation": "v2", "version": request.version})
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk=None, *args, **kwargs):
         return Response(
             {"implementation": "v2", "version": request.version, "pk": pk}
         )
@@ -50,7 +50,7 @@ class PostViewSetV2(viewsets.ViewSet):
 class CommentViewSet(viewsets.ViewSet):
     versioning_class = VersionedRouterVersioning
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         return Response({"resource": "comments", "version": request.version})
 
 
@@ -128,7 +128,7 @@ def test_format_suffixes_preserve_path_converters_and_trailing_slash_setting():
         versioning_class = VersionedRouterVersioning
         lookup_value_converter = "int"
 
-        def retrieve(self, request, pk=None):
+        def retrieve(self, request, pk=None, *args, **kwargs):
             return Response({"pk": pk, "version": request.version})
 
     router = VersionedDefaultRouter(use_regex_path=False, trailing_slash=False)
@@ -163,7 +163,7 @@ def test_nested_namespace_is_preserved_by_versioned_api_root():
 
 def test_unversioned_default_router_api_root_is_supported():
     class HealthViewSet(viewsets.ViewSet):
-        def list(self, request):
+        def list(self, request, *args, **kwargs):
             return Response({"status": "ok"})
 
     router = VersionedDefaultRouter()
