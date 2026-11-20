@@ -55,7 +55,13 @@ class PostViewSetV1(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="reverse-list")
     def reverse_list(self, request):
         return Response(
-            {"implementation": "v1-reverse", "url": self.reverse_action("list")}
+            {
+                "implementation": "v1-reverse",
+                "url": self.reverse_action("list"),
+                "request_version": request.version,
+                "versioning_scheme": type(request.versioning_scheme).__name__,
+                "transport": getattr(request._request, "api_versioning_scheme", None),
+            }
         )
 
     @action(detail=False, methods=["get"], url_path="status")
@@ -649,4 +655,7 @@ def test_router_dispatch_and_reverse_follow_non_path_transport(
     assert response.status_code == 200
     assert response.json()["url"].endswith(expected_url)
     assert response.json()["implementation"] == "v1-reverse"
+    assert response.json()["request_version"] == "2"
+    assert response.json()["versioning_scheme"] == "VersionedRouterVersioning"
+    assert response.json()["transport"] == scheme
     assert "/api/v2/" not in response.json()["url"]
