@@ -11,8 +11,6 @@ from django_api_versioning.settings import api_settings as settings
 
 
 @pytest.fixture
-
-
 def versions_1_to_5():
     old_min, old_max = settings.API_MIN_VERSION, settings.API_MAX_VERSION
     settings.API_MIN_VERSION, settings.API_MAX_VERSION = 1, 5
