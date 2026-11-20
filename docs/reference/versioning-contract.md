@@ -528,7 +528,7 @@ url = api_reverse(
 )
 ```
 
-The helper substitutes the parameter values into the registered route and returns a path under Django's configured script prefix:
+The helper substitutes the parameter values into the registered route, percent-encodes the completed path using the same path-safe character set as Django's `reverse()`, and returns it under Django's configured script prefix. Query/fragment delimiters and other characters that cannot safely appear raw in a path are encoded, so a value such as `"a?b"` remains one path parameter rather than starting a query string.
 
 ```text
 /api/v2/orders/42/

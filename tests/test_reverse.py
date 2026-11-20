@@ -1,5 +1,6 @@
 import pytest
 from django.http import JsonResponse
+from django.test import Client
 from django.urls import NoReverseMatch, re_path, register_converter
 
 from django_api_versioning import api_reverse
@@ -146,7 +147,7 @@ class TestApiReverse:
 
         # Parameter containing backslash should be literal, not regex escape sequence
         url = api_reverse("doc-detail", version=1, slug=r"path\to\file")
-        assert url == r"/api/v1/docs/path\to\file/"
+        assert url == "/api/v1/docs/path%5Cto%5Cfile/"
 
     def test_kwarg_with_dollar_sign_not_treated_as_regex_group(self):
         """Ensure parameters with $ don't trigger regex group references."""
@@ -169,13 +170,13 @@ class TestApiReverse:
         # Test various regex metacharacters
         test_cases = [
             ("(pattern)", "/api/v1/search/(pattern)/"),
-            ("[abc]", "/api/v1/search/[abc]/"),
+            ("[abc]", "/api/v1/search/%5Babc%5D/"),
             ("a.b", "/api/v1/search/a.b/"),
             ("a*b", "/api/v1/search/a*b/"),
             ("a+b", "/api/v1/search/a+b/"),
-            ("a?b", "/api/v1/search/a?b/"),
-            ("a|b", "/api/v1/search/a|b/"),
-            ("a{2}", "/api/v1/search/a{2}/"),
+            ("a?b", "/api/v1/search/a%3Fb/"),
+            ("a|b", "/api/v1/search/a%7Cb/"),
+            ("a{2}", "/api/v1/search/a%7B2%7D/"),
         ]
         for query, expected_url in test_cases:
             url = api_reverse("search-results", version=1, query=query)
@@ -224,3 +225,15 @@ def test_explicit_version_rejects_duplicate_view_names():
 
     with pytest.raises(NoReverseMatch, match="registered more than once"):
         api_reverse("duplicate-route", version=1)
+
+
+def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
+    @endpoint("search/<str:query>/", version=1, view_name="search-query")
+    def search(request, query):
+        return JsonResponse({"query": query})
+
+    url = api_reverse("search-query", version=1, query="a?b")
+    response = Client().get(url)
+
+    assert response.status_code == 200
+    assert response.json() == {"query": "a?b"}
