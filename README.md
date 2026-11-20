@@ -129,15 +129,15 @@ For query mode, set API_VERSIONING_QUERY_PARAMETER to change the default version
 
 Non-path inputs accept ASCII decimal integer values without a v prefix. Malformed or missing values without a default return 400; globally unsupported versions and unmapped hostnames return 406; valid versions without a registered endpoint remain 404. There is no fallback to the newest implementation. API_VERSIONING_CHANNELS is deprecated/inert; use API_VERSIONING_SCHEME.
 
-The feature is on the current development branch and is not part of the published 1.2.2 release. See the request negotiation contract for middleware ordering, reversal, lifecycle, caching, and error semantics.
+The feature is on the current development branch and is not part of the published 1.2.2 release. See the [request negotiation contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) for middleware ordering, reversal, lifecycle, caching, and error semantics.
 
 ## Consumer-owned integration boundary
 
-In a consuming project, keep imports of django_api_versioning in one project-owned module, for example project/api_versioning.py. Make your views and root URLconf depend on your own get_urlpatterns() function. When replacing this package, rewrite only that module with ordinary Django path() declarations or DRF routers; business views and the root URLconf need not import package internals. The executable OpenAPI consumer example demonstrates this boundary.
+In a consuming project, keep imports of django_api_versioning in one project-owned module, for example project/api_versioning.py. Make your views and root URLconf depend on your own get_urlpatterns() function. When replacing this package, rewrite only that module with ordinary Django path() declarations or DRF routers; business views and the root URLconf need not import package internals. The [executable OpenAPI consumer example](https://github.com/mojtaba-arvin/django-api-versioning/tree/main/examples/openapi_contract) demonstrates this boundary.
 
 ## Contract tests
 
-The package's development branch adds assert_schema_snapshot() alongside assert_version_matrix(). Generate and validate your OpenAPI document with your preferred schema tool, then compare it with a reviewed snapshot per API version. Pair exact snapshots with a semantic breaking-change tool such as oasdiff breaking when additive schema changes should be permitted. Continue to test business behavior, validation, authorization, and error bodies with real requests; schema comparison cannot prove semantic compatibility.
+The package's development branch adds `assert_schema_snapshot()` alongside `assert_version_matrix()`. Generate and validate your OpenAPI document with your preferred schema tool, then compare it with a reviewed snapshot per API version. Pair exact snapshots with a semantic breaking-change tool such as oasdiff breaking when additive schema changes should be permitted. Continue to test business behavior, validation, authorization, and error bodies with real requests; schema comparison cannot prove semantic compatibility.
 
 ## Why use it with Django REST Framework?
 
@@ -276,7 +276,8 @@ For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/
 - [DRF integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/013-drf-version-negotiation-vs-endpoint-registration/).
 - [Python and Django compatibility guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/024-django-api-versioning-supported-django-python-versions/).
 - [Documentation source map](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
-- [Request version resolution decision](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-resolution.md) — why path-based handler selection remains the current contract and what a safe future negotiation design requires.
+- [Request version negotiation design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) — how the selected transport is dispatched, reversed, cached, and secured.
+- [Maintainer and ownership governance](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md) — maintainer progression, release handover, and project continuity.
 
 ## Contributing
 
