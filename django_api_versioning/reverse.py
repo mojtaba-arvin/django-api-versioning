@@ -15,16 +15,22 @@ _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
 _PATH_SAFE_CHARS = "/~:@!$&()*+,;=" + chr(39)
 
 
-def format_negotiated_url(url: str, version: int | str | None) -> str:
+def format_negotiated_url(
+    url: str,
+    version: int | str | None,
+    *,
+    scheme: str | None = None,
+) -> str:
     """Adapt an internally reversed versioned URL to the configured transport.
 
     Header and hostname modes cannot encode a version in the URL. Query mode
     appends the configured query parameter. Path mode preserves the existing
     versioned URL contract.
     """
-    scheme = getattr(
-        django_settings, "API_VERSIONING_SCHEME", api_settings.API_VERSIONING_SCHEME
-    )
+    if scheme is None:
+        scheme = getattr(
+            django_settings, "API_VERSIONING_SCHEME", api_settings.API_VERSIONING_SCHEME
+        )
     if scheme == "path":
         return url
 
