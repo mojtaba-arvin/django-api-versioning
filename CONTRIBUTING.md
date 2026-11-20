@@ -78,7 +78,7 @@ Branches are disposable task workspaces, not records of completed work:
 - **No PR:** do not guess that the branch is disposable. Keep it until its owner/task is established; delete only after verifying it is stale and has no open PR or recovery purpose.
 - **Fork PR:** never delete a branch in another repository.
 
-The `.github/workflows/branch-cleanup.yml` workflow runs when a PR closes and on a weekly schedule. It also supports manual dispatch. It only deletes same-repository branches referenced by closed PRs, excludes `main`, and rechecks that no open PR uses the branch. Its cleanup job receives `contents: write`; no repository code is checked out or executed in that job.
+The `.github/workflows/branch-cleanup.yml` workflow runs when a PR closes, after every update to `main`, and on a weekly schedule. It also supports manual dispatch. It only deletes same-repository branches referenced by closed PRs, excludes `main`, and rechecks that no open PR uses the branch. Its cleanup job receives `contents: write`; no repository code is checked out or executed in that job.
 
 Agents must finish every task by checking the PR state and remote branch state. After merge or closure, verify deletion; if a branch remains and the workflow cannot delete it, report the exact permission or protection error and leave no silent cleanup TODO. Never ask the maintainer to delete a branch that the agent or workflow can safely remove. Do not keep long-lived audit, staging, integration, or release branches. A release branch exists only while its release PR is reviewed.
 
