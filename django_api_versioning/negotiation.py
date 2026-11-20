@@ -63,23 +63,30 @@ def _host_version(request: HttpRequest, host_map: dict[str, int]) -> int | None:
 
 def _header_version(request: HttpRequest, header_name: str) -> int | None:
     dedicated = request.headers.get(header_name)
-    if dedicated is not None:
-        return _parse_version(dedicated)
+    dedicated_version = _parse_version(dedicated) if dedicated is not None else None
 
     # Interoperate with DRF's AcceptHeaderVersioning wire format:
     # Accept: application/json; version=2. Reject conflicting values instead
     # of guessing which media range should control route dispatch.
     values = re.findall(
-        r'(?:^|;)\s*version\s*=\s*(?:"([^"]+)"|([^;,\s]+))',
+        r'(?:^|;)\\s*version\\s*=\\s*(?:"([^"]+)"|([^;,\\s]+))',
         request.headers.get("Accept", ""),
         flags=re.IGNORECASE,
     )
     versions = {quoted or bare for quoted, bare in values}
     if len(versions) > 1:
         raise ValueError("Accept contains conflicting API version parameters.")
-    if versions:
-        return _parse_version(next(iter(versions)))
-    return None
+    accept_version = _parse_version(next(iter(versions))) if versions else None
+
+    if (
+        dedicated_version is not None
+        and accept_version is not None
+        and dedicated_version != accept_version
+    ):
+        raise ValueError(
+            "Accept-Version and Accept media-type version parameters conflict."
+        )
+    return dedicated_version if dedicated_version is not None else accept_version
 
 
 class VersionNegotiationMiddleware:
