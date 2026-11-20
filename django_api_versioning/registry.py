@@ -558,13 +558,15 @@ class UrlRegistry:
         method: str,
         *,
         allow_unmapped_method: bool = False,
+        require_exact_pattern: bool = True,
     ) -> ResolvedOperation | None:
         """Resolve one registered logical operation from Django's ResolverMatch.
 
-        Django's resolver trace identifies the exact registered URLPattern
-        when it is available. Route/name suffix matching is retained only for
-        resolver-like objects that do not expose that trace. DRF's method-to-
-        action map identifies the action selected for this HTTP method.
+        Runtime callers require Django's resolver trace to identify the exact
+        registered URLPattern. Schema generators may opt into route/name
+        matching because their synthetic ResolverMatch can refer to a generated
+        operation rather than the original URLPattern. DRF's method-to-action
+        map identifies the action selected for this HTTP method.
         Ambiguous or incomplete matches fail closed.
         """
         route = getattr(resolver_match, "route", None)
@@ -580,7 +582,7 @@ class UrlRegistry:
         # when Django can identify the exact URLPattern selected by its resolver.
         tried = getattr(resolver_match, "tried", None)
         matched_pattern_ids = None
-        if isinstance(tried, (list, tuple)):
+        if require_exact_pattern and isinstance(tried, (list, tuple)):
             matched_pattern_ids = {
                 id(chain[-1])
                 for chain in tried
