@@ -461,3 +461,43 @@ def test_same_router_prefix_with_distinct_trailing_slash_modes_can_coexist():
     ]
     assert len(patterns) == 2
     assert str(patterns[0].pattern) != str(patterns[1].pattern)
+
+def test_manual_route_reusing_registered_route_suffix_does_not_inherit_request_version():
+    """A matching route suffix is not proof that the router registered this view."""
+
+    class RegisteredOrderViewSet(viewsets.ViewSet):
+        versioning_class = VersionedRouterVersioning
+
+        def list(self, request):
+            return Response({"source": "registered", "version": request.version})
+
+    class ManualOrderViewSet(viewsets.ViewSet):
+        versioning_class = VersionedRouterVersioning
+
+        def list(self, request):
+            return Response({"source": "manual", "version": request.version})
+
+    router = VersionedRouter()
+    router.register(
+        "orders",
+        RegisteredOrderViewSet,
+        version=2,
+        basename="order",
+    )
+
+    urlconf = ModuleType("manual_route_reusing_registered_suffix_urls")
+    urlconf.urlpatterns = [
+        *router.urls,
+        path(
+            "proxy/api/v2/orders/",
+            ManualOrderViewSet.as_view({"get": "list"}),
+            name="manual-order-list",
+        ),
+    ]
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        response = APIClient().get("/proxy/api/v2/orders/")
+
+    assert response.status_code == 200
+    assert response.json() == {"source": "manual", "version": None}
