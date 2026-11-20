@@ -35,7 +35,14 @@ class EndpointLifecycleAutoSchema(AutoSchema):
         request = getattr(self.view, "request", None)
         resolver_match = getattr(request, "resolver_match", None)
         if resolver_match is not None:
-            resolved_operation = registry.resolve_operation(resolver_match, method)
+            # drf-spectacular builds synthetic resolver metadata while walking
+            # operations. Its route/name identify the documented operation,
+            # but its resolver trace need not contain the registered URLPattern.
+            resolved_operation = registry.resolve_operation(
+                resolver_match,
+                method,
+                require_exact_pattern=False,
+            )
         else:
             # drf-spectacular's URLPathVersioning branch injects the requested
             # version into view.kwargs but does not create a ResolverMatch.
