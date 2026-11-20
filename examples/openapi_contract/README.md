@@ -1,7 +1,9 @@
 # Versioned OpenAPI contract example
 
-This executable consumer project uses the public VersionedRouter API and the
-same URLconf for runtime requests and drf-spectacular schema generation.
+This executable consumer project uses the public VersionedDefaultRouter API and
+the same URLconf for runtime requests and drf-spectacular schema generation.
+It verifies a per-version API root and DRF format-suffix URLs in addition to
+the inherited route behavior.
 
 The V1-only `legacy/export/` action is explicitly removed from V2. The verifier checks that it remains available and present in the V1 schema, while returning 404 and disappearing from the V2 schema.
 
@@ -11,6 +13,9 @@ It deliberately tests:
 - V1 and V2 implementations for the same list/detail routes.
 - Different serializer contracts for the two versions.
 - A V1-only custom action inherited by V2 because V2 does not redeclare it.
+- API-root links scoped to the effective route set for each version.
+- Unsuffixed and `.json` resource routes plus the suffixed API root.
+- Explicit action removal reflected in runtime routes and the matching schema.
 
 ## Consumer-owned adapter boundary
 
@@ -130,7 +135,9 @@ requests generate candidate schemas in a temporary directory and compare each
 version with its matching baseline using oasdiff breaking.
 
 Schema diffs, route-matrix checks, and request-level behavior tests are separate
-gates. Neither drf-spectacular nor oasdiff is a runtime dependency.
+gates. The API root is excluded from OpenAPI; format-suffix URLs are alternate
+forms of the same operations and do not create a second schema contract.
+Neither drf-spectacular nor oasdiff is a runtime dependency.
 
 ## Endpoint-level OpenAPI deprecation
 
