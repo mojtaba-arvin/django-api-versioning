@@ -183,7 +183,11 @@ class VersionNegotiationMiddleware:
         request.requested_api_version = version
         request.api_version = version
         request.version = str(version)
+        # Django stores PATH_INFO on request.path_info when constructing the
+        # HttpRequest. Update both representations so downstream middleware,
+        # URL resolution, and diagnostics observe the intended internal route.
         request.META["PATH_INFO"] = rewritten_path
+        request.path_info = rewritten_path
         request._django_api_version_negotiated = True
         return self.get_response(request)
 
