@@ -6,6 +6,7 @@ ordinary Django URL patterns or DRF routers to remove the package dependency.
 """
 
 import os
+from functools import lru_cache
 
 from django_api_versioning import endpoint, set_endpoint_lifecycle
 from django_api_versioning.registry import registry
@@ -15,6 +16,7 @@ from .decorated_views import decorated_status
 from .views import ProductViewSetV1, ProductViewSetV2
 
 
+@lru_cache(maxsize=1)
 def get_urlpatterns():
     """Build the application's API URL patterns through the selected adapter."""
     router = VersionedRouter()
