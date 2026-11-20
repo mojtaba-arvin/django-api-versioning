@@ -2,4 +2,4 @@
 
 # One-command, version-aware, interactive package release.
 release:
-	@bash scripts/maintain.sh release
+	@bash scripts/maintain.sh
