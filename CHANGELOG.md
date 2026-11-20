@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add one-scheme-per-deployment request negotiation for path, Accept/Accept-Version header, query parameter, and exact hostname mapping. Non-path versions are dispatched through the existing registered URL patterns by middleware before Django URL resolution.
+- Add `assert_schema_snapshot()` for reviewed, deterministic OpenAPI contract snapshots without adding schema tooling to runtime dependencies.
+- Add a consumer-owned versioning adapter example and project governance guidance for maintainer succession, PyPI ownership, and release continuity.
+
 ## [1.2.2] - 2026-11-20
 
 ### Fixed
