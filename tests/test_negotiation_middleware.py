@@ -293,3 +293,41 @@ def test_dedicated_and_accept_header_versions_must_agree():
     )
 
     assert response.status_code == 400
+
+
+@override_settings(
+    ROOT_URLCONF=__name__,
+    MIDDLEWARE=[
+        "django_api_versioning.negotiation.VersionNegotiationMiddleware",
+        "django_api_versioning.lifecycle.LifecycleMiddleware",
+    ],
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=2,
+    API_VERSION_LIFECYCLE={
+        1: {
+            "status": "deprecated",
+            "deprecated_at": "2020-01-01T00:00:00Z",
+            "sunset": "2030-01-01T00:00:00Z",
+        },
+        2: {"status": "active"},
+    },
+    ALLOWED_HOSTS=["testserver"],
+)
+def test_lifecycle_uses_the_effective_negotiated_version():
+    client = Client()
+
+    v1 = client.get("/api/orders/", HTTP_ACCEPT_VERSION="1")
+    v2 = client.get("/api/orders/", HTTP_ACCEPT_VERSION="2")
+
+    assert v1.status_code == 200
+    assert v1.json() == {"handler": "v1", "version": 1}
+    assert v1.headers["Deprecation"] == "@1577836800"
+    assert "Sunset" in v1.headers
+
+    assert v2.status_code == 200
+    assert v2.json() == {"handler": "v2", "version": 2}
+    assert "Deprecation" not in v2.headers
+    assert "Sunset" not in v2.headers
