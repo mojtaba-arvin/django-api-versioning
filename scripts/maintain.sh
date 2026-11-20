@@ -1,10 +1,36 @@
 #!/usr/bin/env bash
+#
+# Package release helper — intentionally supports one public command:
+#
+#   make release
+#
+# Run it from anywhere inside a clean clone of this repository. It reads the
+# version from pyproject.toml, safely switches to and updates main, checks the
+# changelog and uv.lock, shows a release preview, and asks before publishing.
+# After confirmation it creates (or resumes) the annotated Git tag, waits for
+# the GitHub Actions release workflow, and verifies the PyPI package and
+# GitHub Release.
+#
+# Requirements: git, make, Python 3, uv, GitHub CLI (gh, authenticated for
+# this repository), jq, and curl. Your GitHub account must be allowed by the
+# repository's protected v* tag ruleset.
+#
+# You do not need to remember or run version numbers, internal actions, tag
+# commands, or GitHub/PyPI publishing commands. Do not invoke this script
+# directly; use "make release".
+#
+# If checks fail, fix the reported issue and rerun "make release". If the
+# process is interrupted after the tag was pushed, rerunning the same command
+# safely resumes the release. No local changes are discarded.
+#
 set -Eeuo pipefail
 REPO="mojtaba-arvin/django-api-versioning"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "Run from a repository clone." >&2; exit 2; }
 cd "$ROOT"
+
 die() { echo "ERROR: $*" >&2; exit 2; }
 need() { command -v "$1" >/dev/null 2>&1 || die "Missing command: $1"; }
+
 auth() {
   need gh
   gh auth status >/dev/null 2>&1 || die "Run gh auth login first."
@@ -16,54 +42,9 @@ auth() {
     *) die "origin remote '$origin_url' is not the canonical repository $REPO." ;;
   esac
 }
+
 version_check() {
   [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || die "Expected a SemVer version such as 1.3.0."
-}
-preflight() {
-  local v="$1" tag="v$1"
-  release_source_check "$v"
-  ! git show-ref --verify --quiet "refs/tags/$tag" || die "Local tag $tag already exists."
-  ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1 || die "Remote tag $tag already exists."
-  echo "PASS: clean main, package version, changelog entry, current uv.lock, and unused tag."
-}
-create_github_release() {
-  local v="$1" tag="v$1" tag_type published run_json notes_file
-  version_check "$v"; auth; need curl; need jq; need python3
-  tag_type="$(gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object.type')" || die "Remote tag $tag does not exist."
-  [[ "$tag_type" == tag ]] || die "$tag is not an annotated tag."
-  run_json="$(gh run list --repo "$REPO" --workflow publish.yml --branch "$tag" --limit 10 --json status,conclusion)"
-  echo "$run_json" | jq -e 'any(.[]; .status == "completed" and .conclusion == "success")' >/dev/null ||
-    die "No successful Publish to PyPI workflow run found for $tag."
-  published="$(curl --fail --silent --show-error "https://pypi.org/pypi/django-api-versioning/$v/json" | jq -r '.info.version')"
-  [[ "$published" == "$v" ]] || die "PyPI does not report the requested version $v."
-  if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
-    echo "GitHub Release $tag already exists; leaving it unchanged."
-    return
-  fi
-  notes_file="$(mktemp)"
-  trap 'rm -f "$notes_file"' RETURN
-  RELEASE_VERSION="$v" NOTES_FILE="$notes_file" python3 - <<'PY'
-import os
-import re
-from pathlib import Path
-
-version = os.environ["RELEASE_VERSION"]
-lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
-heading = re.compile(rf"^## \[{re.escape(version)}\](?: - .*)?$")
-start = next((i for i, line in enumerate(lines) if heading.match(line)), None)
-if start is None:
-    raise SystemExit(f"No dated CHANGELOG.md section found for {version}.")
-end = next(
-    (i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")),
-    len(lines),
-)
-notes = "\n".join(lines[start + 1:end]).strip()
-if not notes:
-    raise SystemExit(f"CHANGELOG.md section for {version} is empty.")
-Path(os.environ["NOTES_FILE"]).write_text(notes + "\n", encoding="utf-8")
-PY
-  gh release create "$tag" --repo "$REPO" --verify-tag \
-    --title "django-api-versioning $v" --notes-file "$notes_file"
 }
 
 wait_for_workflow() {
@@ -215,72 +196,10 @@ release_finish() {
   echo "  PyPI:           https://pypi.org/project/django-api-versioning/$v/"
   echo "  GitHub Release: $release_url"
 }
+# This file is an implementation detail of "make release", not a general
+# repository maintenance command.
+if [[ "$#" -ne 0 ]]; then
+  die "No arguments are accepted. Run: make release"
+fi
+release_interactive
 
-release() {
-  local action="$1" v="$2" tag="v$2"
-  case "$action" in
-    preflight) preflight "$v" ;;
-    tag)
-      preflight "$v"
-      git tag -a "$tag" -m "Release $tag"
-      git push origin "refs/tags/$tag"
-      echo "Pushed $tag. Use 'release finish' to wait for and verify the complete publication."
-      ;;
-    finish) release_finish "$v" ;;
-    create) create_github_release "$v" ;;
-    status)
-      version_check "$v"; auth; need curl; need jq
-      echo "== Tag =="; gh api "repos/$REPO/git/ref/tags/$tag" --jq '.object | {type,sha}' || true
-      echo "== GitHub Release =="; gh api "repos/$REPO/releases/tags/$tag" --jq '{html_url,published_at}' || true
-      echo "== Publish workflow =="; gh run list --repo "$REPO" --workflow publish.yml --branch "$tag" --limit 3 --json databaseId,status,conclusion,url
-      echo "== PyPI =="
-      curl --fail --silent --show-error "https://pypi.org/pypi/django-api-versioning/$v/json" | jq -r '"PUBLISHED: " + .info.version'
-      ;;
-    *) die "Unknown release action: $action" ;;
-  esac
-}
-branches() {
-  local apply=false
-  [[ "$#" -eq 0 ]] || { [[ "$1" == --apply ]] || die "Only supported option: --apply"; apply=true; }
-  auth; need git; need jq
-  [[ "$(gh repo view "$REPO" --json defaultBranchRef --jq .defaultBranchRef.name)" == main ]] || die "Default branch is not main; refusing cleanup."
-  git fetch origin --prune
-  local open_file refs_file name protected ahead safe=0 kept=0
-  open_file="$(mktemp)"; refs_file="$(mktemp)"
-  trap 'rm -f "$open_file" "$refs_file"' RETURN
-  gh pr list --repo "$REPO" --state open --limit 1000 --json headRefName --jq '.[].headRefName' > "$open_file"
-  gh api --paginate "repos/$REPO/branches?per_page=100" --jq '.[] | [.name,(.protected|tostring)] | @tsv' > "$refs_file"
-  while IFS=$'\t' read -r name protected; do
-    [[ -n "$name" && "$name" != main ]] || continue
-    if [[ "$protected" == true ]] || grep -Fxq -- "$name" "$open_file"; then
-      printf 'KEEP protected/open PR: %s\n' "$name"; ((kept+=1)); continue
-    fi
-    if ! git show-ref --verify --quiet "refs/remotes/origin/$name"; then
-      printf 'KEEP unavailable locally: %s\n' "$name"; ((kept+=1)); continue
-    fi
-    if git merge-base --is-ancestor "origin/$name" origin/main; then
-      if [[ "$apply" == true ]]; then git push origin --delete "$name"; printf 'DELETED: %s\n' "$name"
-      else printf 'DELETE CANDIDATE (merged): %s\n' "$name"; fi
-      ((safe+=1))
-    else
-      ahead="$(git rev-list --count "origin/main..origin/$name")"
-      printf 'KEEP unmerged (%s unique commits): %s\n' "$ahead" "$name"; ((kept+=1))
-    fi
-  done < "$refs_file"
-  if [[ "$apply" == true ]]; then printf 'Cleanup complete: %s deleted, %s retained.\n' "$safe" "$kept"
-  else printf 'Dry run: %s candidate(s), %s retained. Use --apply to delete only merged branches.\n' "$safe" "$kept"; fi
-}
-case "${1:-}" in
-  release)
-    if [[ "$#" -eq 1 ]]; then
-      release_interactive
-    elif [[ "$#" -eq 3 ]]; then
-      release "$2" "$3"
-    else
-      die "Usage: make release (recommended), or scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION"
-    fi
-    ;;
-  branches) [[ "$#" -le 2 ]] || die "Usage: scripts/maintain.sh branches [--apply]"; if [[ "${2:-}" == --apply ]]; then branches --apply; else branches; fi ;;
-  -h|--help|help) echo "Recommended: make release (auto-detect version, sync main, confirm, publish, and verify)."; echo "Advanced: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION | branches [--apply]" ;;
-  *) die "Unknown command. Use --help." ;;
-esac
