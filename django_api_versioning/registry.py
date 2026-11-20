@@ -561,9 +561,10 @@ class UrlRegistry:
     ) -> ResolvedOperation | None:
         """Resolve one registered logical operation from Django's ResolverMatch.
 
-        The resolver's route and URL name are matched against registered
-        URLPatterns. DRF's method-to-action map is used only to identify the
-        action selected for this HTTP method; callback identity is never used.
+        Django's resolver trace identifies the exact registered URLPattern
+        when it is available. Route/name suffix matching is retained only for
+        resolver-like objects that do not expose that trace. DRF's method-to-
+        action map identifies the action selected for this HTTP method.
         Ambiguous or incomplete matches fail closed.
         """
         route = getattr(resolver_match, "route", None)
@@ -575,6 +576,17 @@ class UrlRegistry:
         namespaces = tuple(getattr(resolver_match, "namespaces", ()) or ())
         namespace = getattr(resolver_match, "namespace", "") or ""
 
+        # Do not infer endpoint metadata from a matching route suffix alone
+        # when Django can identify the exact URLPattern selected by its resolver.
+        tried = getattr(resolver_match, "tried", None)
+        matched_pattern_ids = None
+        if isinstance(tried, (list, tuple)):
+            matched_pattern_ids = {
+                id(chain[-1])
+                for chain in tried
+                if chain and isinstance(chain[-1], URLPattern)
+            }
+
         # VersionedRouter places the concrete API version in a vN namespace.
         # If such a namespace is present, it must agree with the registry record.
         version_namespaces = {
@@ -585,6 +597,11 @@ class UrlRegistry:
 
         candidates: list[tuple[int, URLPattern, str, int, int | None]] = []
         for pattern in self.urlpatterns:
+            if (
+                matched_pattern_ids is not None
+                and id(pattern) not in matched_pattern_ids
+            ):
+                continue
             if url_name is not None and pattern.name != url_name:
                 continue
 
