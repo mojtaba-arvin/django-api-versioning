@@ -120,6 +120,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "scripts/classify_pr_changes.py",
             "scripts/configure_github_repository.sh",
             "scripts/maintain.sh",
+            "scripts/release_bootstrap.sh",
             "scripts/release_tags.py",
             "scripts/test_release_tags.py",
             "docs/agent-engineering.md",
