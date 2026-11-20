@@ -1,5 +1,6 @@
-from django.http import HttpResponse
-from django.test import RequestFactory, override_settings
+from django.http import HttpResponse, JsonResponse
+from django.test import Client, RequestFactory, override_settings
+from django.urls import path
 
 from django_api_versioning.negotiation import VersionNegotiationMiddleware
 
@@ -243,3 +244,35 @@ def test_non_path_transports_reject_v_prefix_values():
     _, response = _dispatch("/api/orders/?version=v2")
 
     assert response.status_code == 400
+
+
+
+def _v1_order(request):
+    return JsonResponse({"handler": "v1", "version": request.api_version})
+
+
+def _v2_order(request):
+    return JsonResponse({"handler": "v2", "version": request.api_version})
+
+
+urlpatterns = [
+    path("api/v1/orders/", _v1_order),
+    path("api/v2/orders/", _v2_order),
+]
+
+
+@override_settings(
+    ROOT_URLCONF=__name__,
+    MIDDLEWARE=["django_api_versioning.negotiation.VersionNegotiationMiddleware"],
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=2,
+    ALLOWED_HOSTS=["testserver"],
+)
+def test_negotiation_selects_the_matching_registered_view():
+    response = Client().get("/api/orders/", HTTP_ACCEPT_VERSION="2")
+
+    assert response.status_code == 200
+    assert response.json() == {"handler": "v2", "version": 2}
