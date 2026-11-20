@@ -14,7 +14,6 @@ from django_api_versioning.routers import (
     VersionedRouterVersioning,
 )
 
-
 urlconf = ModuleType("versioned_default_router_test_urls")
 urlconf.urlpatterns = []
 
@@ -26,9 +25,7 @@ class PostViewSetV1(viewsets.ViewSet):
         return Response({"implementation": "v1", "version": request.version})
 
     def retrieve(self, request, pk=None, *args, **kwargs):
-        return Response(
-            {"implementation": "v1", "version": request.version, "pk": pk}
-        )
+        return Response({"implementation": "v1", "version": request.version, "pk": pk})
 
     @action(detail=False, methods=["get"])
     def metadata(self, request, *args, **kwargs):
@@ -42,9 +39,7 @@ class PostViewSetV2(viewsets.ViewSet):
         return Response({"implementation": "v2", "version": request.version})
 
     def retrieve(self, request, pk=None, *args, **kwargs):
-        return Response(
-            {"implementation": "v2", "version": request.version, "pk": pk}
-        )
+        return Response({"implementation": "v2", "version": request.version, "pk": pk})
 
 
 class CommentViewSet(viewsets.ViewSet):
