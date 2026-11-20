@@ -588,7 +588,14 @@ class VersionedRouterVersioning(NamespaceVersioning):
         """
         resolver_match = getattr(request, "resolver_match", None)
         namespace = getattr(resolver_match, "namespace", "") or ""
-        return f"{namespace}:{viewname}" if namespace else viewname
+        if not namespace:
+            return viewname
+        # ViewSet.reverse_action() already prefixes the active namespace
+        # before calling rest_framework.reverse.reverse(). NamespaceVersioning
+        # calls this method again, so avoid producing "v2:v2:post-list".
+        if viewname == namespace or viewname.startswith(f"{namespace}:"):
+            return viewname
+        return f"{namespace}:{viewname}"
 
     def reverse(
         self,
