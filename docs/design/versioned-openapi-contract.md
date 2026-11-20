@@ -1,6 +1,6 @@
 # Versioned OpenAPI contract integration
 
-**Status:** Executable repository integration and CI validation are included in the 1.2.0 release candidate. The consumer fixture and `oasdiff` gate are repository-level validation tooling, not part of the published wheel; the tag-based release workflow requires this gate before 1.2.0 publication.  
+**Status:** Executable consumer integration and CI validation are maintained in the repository mainline.  
 **Runtime dependencies:** None added
 
 ## Decision
@@ -27,14 +27,18 @@ tooling without changing runtime URL structure.
 
 ## Executable consumer example
 
-The example in examples/openapi_contract/ registers two unrelated ViewSets
-through the public router API. V2 replaces list/detail implementations and
-serializers, while a V1-only custom action remains inherited into V2.
+The example in `examples/openapi_contract/` registers two ViewSets
+through the public `VersionedDefaultRouter` API. V2 replaces list/detail
+implementations and serializers, while a V1-only custom action remains
+inherited into V2. Runtime verification also covers each version's API root,
+the `.json` resource and root suffixes, and explicit removal.
 
 Its verifier exercises real API requests and generates each schema in a fresh
 process. It checks route isolation, serializer fields, custom-action visibility,
-schema validation, byte-for-byte determinism, and equality with committed
-per-version baselines. CI runs oasdiff against each matching baseline.
+root/suffix routing, schema validation, byte-for-byte determinism, and equality
+with committed per-version baselines. CI runs oasdiff against each matching
+baseline. The API root is intentionally excluded from OpenAPI; format-suffix
+routes resolve to the same operations and do not define separate contracts.
 
 ## Released contract workflow
 
@@ -58,8 +62,22 @@ stable version must not be accepted merely because a new version was also added.
 
 ## Limits
 
+Route compatibility, representation compatibility, and runtime semantic
+compatibility are separate evidence categories:
+
+- The route matrix proves which registered view handles each URL/version.
+- OpenAPI snapshots and oasdiff detect documented request/response contract drift.
+- Request-level application tests verify validation, authorization, error bodies,
+  persistence, side effects, and business invariants.
+
 A schema diff cannot prove business semantics, authorization behavior, database
-invariants, or runtime response conformance. Keep request-level tests for
-representative responses, permissions, errors, and edge cases.
+invariants, or runtime response conformance. A route-matrix snapshot cannot prove
+that the selected view returns the expected representation. Keep request-level
+tests for representative responses, permissions, errors, and edge cases.
+
+The package intentionally does not infer semantic compatibility or transform
+serializers and responses. Consumers should follow the [API compatibility
+boundaries](api-compatibility-boundaries.md) guidance and retain a reviewed
+runtime contract suite.
 
 Neither drf-spectacular nor oasdiff is a package runtime dependency.
