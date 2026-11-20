@@ -12,6 +12,57 @@ It deliberately tests:
 - Different serializer contracts for the two versions.
 - A V1-only custom action inherited by V2 because V2 does not redeclare it.
 
+## Consumer-owned adapter boundary
+
+All imports from django-api-versioning are isolated in
+`contract_app/versioning.py`. Application ViewSets and function views do not
+import the package, and the root URLconf calls only
+`contract_app.versioning.get_urlpatterns()`.
+
+This is the intended dependency boundary for a real consumer project. To
+replace the package later, replace that adapter implementation with ordinary
+Django `path()`/URLconf declarations or DRF `SimpleRouter` registrations.
+The application view modules and root URLconf keep the same imports. The
+fallback implementation must preserve the route contracts that the application
+chooses to keep; it does not need to reproduce package-specific lifecycle or
+route-inheritance behavior.
+
+Do not import `django_api_versioning.registry` or package decorators from
+business views. Keep package-specific registration, reversal, and lifecycle
+integration inside the adapter.
+
+## Package-level contract snapshots
+
+The package also supplies dependency-free test helpers:
+
+```python
+from django_api_versioning.testing import (
+    assert_schema_snapshot,
+    assert_version_matrix,
+)
+
+# After importing the application's endpoint modules:
+assert_version_matrix(
+    snapshot=".contracts/route-matrix.json",
+    strict=True,
+)
+
+# Generate and validate the document with drf-spectacular (or another tool),
+# then compare one schema per API version:
+assert_schema_snapshot(
+    generated_openapi_schema,
+    ".contracts/openapi-v1.json",
+    strict=True,
+)
+```
+
+Create or deliberately refresh a reviewed snapshot with `update=True` in a
+developer-controlled workflow. CI must run with `strict=True` and without
+`update=True`. Exact snapshots detect any schema drift; pair them with a
+semantic breaking-change check such as `oasdiff breaking` when additive
+changes should be allowed. These helpers do not replace request-level tests
+for authorization, validation, business semantics, or error payloads.
+
 ## Install
 
 From the repository root:
