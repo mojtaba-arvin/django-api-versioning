@@ -269,9 +269,7 @@ def test_api_reverse_uses_the_selected_non_path_transport(scheme, expected):
         ("query", "https://api.example.com/api/posts/?version=2"),
     ],
 )
-def test_format_negotiated_url_recovers_version_from_concrete_route(
-    scheme, expected
-):
+def test_format_negotiated_url_recovers_version_from_concrete_route(scheme, expected):
     from django_api_versioning.reverse import format_negotiated_url
 
     with override_settings(
