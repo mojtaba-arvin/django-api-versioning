@@ -34,8 +34,7 @@ class ParseRemoteTagsTests(unittest.TestCase):
         object_sha = "a" * 40
         commit_sha = "b" * 40
         output = (
-            f"{object_sha} refs/tags/{tag}\n"
-            f"{commit_sha} refs/tags/{tag}^{{}}\n"
+            f"{object_sha} refs/tags/{tag}\n" f"{commit_sha} refs/tags/{tag}^{{}}\n"
         )
         self.assertEqual(
             parse_remote_tags(output, tag),
@@ -71,8 +70,7 @@ class ParseRemoteTagsTests(unittest.TestCase):
     def test_conflicting_duplicate_refs_are_rejected(self):
         with self.assertRaisesRegex(ReleaseTagError, "multiple objects"):
             parse_remote_tags(
-                "a" * 40 + " refs/tags/v1.3.0\n"
-                + "b" * 40 + " refs/tags/v1.3.0\n",
+                "a" * 40 + " refs/tags/v1.3.0\n" + "b" * 40 + " refs/tags/v1.3.0\n",
                 "v1.3.0",
             )
 
@@ -88,17 +86,14 @@ class EnsureReleaseTagTests(unittest.TestCase):
         tag_object = "a" * 40
         commit = "b" * 40
         advertised_after_push = (
-            f"{tag_object} refs/tags/{tag}\n"
-            f"{commit} refs/tags/{tag}^{{}}\n"
+            f"{tag_object} refs/tags/{tag}\n" f"{commit} refs/tags/{tag}^{{}}\n"
         )
         git.side_effect = ["", "", tag_object, "", advertised_after_push]
 
         ensure_release_tag(tag, commit, "mojtaba-arvin/django-api-versioning")
 
         git.assert_any_call("tag", "-a", tag, "-m", f"Release {tag}")
-        git.assert_any_call(
-            "push", "origin", f"refs/tags/{tag}:refs/tags/{tag}"
-        )
+        git.assert_any_call("push", "origin", f"refs/tags/{tag}:refs/tags/{tag}")
         self.assertEqual(git.call_count, 5)
 
     @patch("scripts.release_tags.verify_origin_urls")
@@ -111,9 +106,7 @@ class EnsureReleaseTagTests(unittest.TestCase):
         git.return_value = "a" * 40 + f" refs/tags/{tag}\n"
 
         with self.assertRaisesRegex(ReleaseTagError, "Remote v1.3.0 is lightweight"):
-            ensure_release_tag(
-                tag, "b" * 40, "mojtaba-arvin/django-api-versioning"
-            )
+            ensure_release_tag(tag, "b" * 40, "mojtaba-arvin/django-api-versioning")
 
         ref_exists.assert_not_called()
         git.assert_called_once_with("ls-remote", "--tags", "origin")
