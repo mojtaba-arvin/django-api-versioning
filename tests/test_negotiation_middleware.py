@@ -7,9 +7,7 @@ from django_api_versioning.negotiation import VersionNegotiationMiddleware
 
 def _dispatch(path, **headers):
     request = RequestFactory().get(path, **headers)
-    middleware = VersionNegotiationMiddleware(
-        lambda req: HttpResponse(req.path_info)
-    )
+    middleware = VersionNegotiationMiddleware(lambda req: HttpResponse(req.path_info))
     return request, middleware(request)
 
 
@@ -21,9 +19,7 @@ def _dispatch(path, **headers):
     API_MAX_VERSION=3,
 )
 def test_accept_version_header_rewrites_before_url_resolution():
-    request, response = _dispatch(
-        "/api/orders/", HTTP_ACCEPT_VERSION="2"
-    )
+    request, response = _dispatch("/api/orders/", HTTP_ACCEPT_VERSION="2")
 
     assert response.status_code == 200
     assert response.content == b"/api/v2/orders/"
@@ -106,9 +102,7 @@ def test_duplicate_query_version_parameter_is_rejected():
     ALLOWED_HOSTS=["v1.api.example.com", "v2.api.example.com"],
 )
 def test_hostname_mapping_rewrites_only_from_exact_allowed_hosts():
-    request, response = _dispatch(
-        "/api/orders/", HTTP_HOST="v2.api.example.com"
-    )
+    request, response = _dispatch("/api/orders/", HTTP_HOST="v2.api.example.com")
 
     assert response.status_code == 200
     assert response.content == b"/api/v2/orders/"
@@ -167,9 +161,7 @@ def test_configured_default_version_is_used_when_header_is_missing():
     API_MAX_VERSION=3,
 )
 def test_malformed_version_is_rejected():
-    _, response = _dispatch(
-        "/api/orders/", HTTP_ACCEPT_VERSION="2.5"
-    )
+    _, response = _dispatch("/api/orders/", HTTP_ACCEPT_VERSION="2.5")
 
     assert response.status_code == 400
 
@@ -195,9 +187,7 @@ def test_out_of_range_version_returns_not_acceptable():
     API_MAX_VERSION=3,
 )
 def test_non_api_paths_pass_through_unchanged():
-    request, response = _dispatch(
-        "/health/", HTTP_ACCEPT_VERSION="2"
-    )
+    request, response = _dispatch("/health/", HTTP_ACCEPT_VERSION="2")
 
     assert response.status_code == 200
     assert response.content == b"/health/"
@@ -212,9 +202,7 @@ def test_non_api_paths_pass_through_unchanged():
     API_MAX_VERSION=3,
 )
 def test_versioned_path_is_not_accepted_in_non_path_mode():
-    _, response = _dispatch(
-        "/api/v1/orders/", HTTP_ACCEPT_VERSION="2"
-    )
+    _, response = _dispatch("/api/v1/orders/", HTTP_ACCEPT_VERSION="2")
 
     assert response.status_code == 400
 
