@@ -240,7 +240,7 @@ def test_non_default_versioning_channels_warn_that_they_are_ignored(caplog):
     settings = APISettings(API_VERSIONING_CHANNELS=["header", "query"])
 
     assert settings.API_VERSIONING_CHANNELS == ["header", "query"]
-    assert "non-default channel values are ignored" in caplog.text
+    assert "values in API_VERSIONING_CHANNELS are ignored" in caplog.text
 
 
 def test_path_only_versioning_channels_do_not_warn(caplog):
