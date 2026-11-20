@@ -289,6 +289,7 @@ The published 1.3.0 integration uses DRF `SimpleRouter`; the `VersionedRouter` c
 - Its links come from the effective list routes after version inheritance and explicit removals, rather than the raw registration list.
 - DRF format-suffix patterns are enabled by default and can be disabled independently of the API root.
 - The suffixed API root is available at a path such as `/api/v2/.json`.
+- DRF passes the parsed suffix to the matched ViewSet action as the `format` keyword argument; custom actions should accept `*args, **kwargs` or an explicit `format` parameter.
 - It reuses DRF's API root view and suffix utility; it is not a full drop-in reimplementation of every `DefaultRouter` extension or third-party router hook.
 
 This `VersionedDefaultRouter` addition is not included in the published 1.3.0 wheel. Use it from repository source until a later package release includes it. See the [VersionedDefaultRouter design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/versioned-drf-router.md) for its exact contract and verification gates.
