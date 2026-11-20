@@ -101,9 +101,9 @@ No version number or subcommand is needed. The command reads the package version
 
 If the working tree is dirty, switching branches is not possible, or the required tools/authentication are missing, the command stops with a specific explanation without discarding local work. If interrupted after the tag is pushed, run `make release` again; the operation safely resumes. The default confirmation is **No**.
 
-The default workflow wait timeout is 60 minutes. Set `RELEASE_WAIT_TIMEOUT_SECONDS` to override it; `RELEASE_POLL_INTERVAL_SECONDS` controls polling frequency. If the command is interrupted after pushing the tag, rerun the same `release finish X.Y.Z` command to resume and verify the existing release rather than creating another tag.
+The default workflow wait timeout is 60 minutes. Set `RELEASE_WAIT_TIMEOUT_SECONDS` to override it; `RELEASE_POLL_INTERVAL_SECONDS` controls polling frequency. If the command is interrupted after pushing the tag, rerun `make release` to resume and verify the existing release rather than creating another tag.
 
-The lower-level `preflight`, `tag`, `create`, and `status` actions remain available for diagnosis and legacy recovery, but the supported human release path is `release finish`. GitHub Release creation is performed by `publish.yml` only after successful PyPI publication; do not manually create the Release during a normal release.
+The lower-level `preflight`, `tag`, `finish`, `create`, and `status` actions remain available for diagnosis and legacy recovery, but the supported human release path is `make release`. GitHub Release creation is performed by `publish.yml` only after successful PyPI publication; do not manually create the Release during a normal release.
 
 For branch hygiene, `bash scripts/maintain.sh branches` reports safe deletion candidates without changing anything. Add `--apply` to delete only unprotected branches whose commits are already reachable from `main` and which have no open PR. Unmerged branches are always retained for manual review.
 
