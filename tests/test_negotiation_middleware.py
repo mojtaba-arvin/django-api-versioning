@@ -253,6 +253,7 @@ def _v1_order(request):
 def _v2_order(request):
     return JsonResponse({"handler": "v2", "version": request.api_version})
 
+
 urlpatterns = [
     path("api/v1/orders/", _v1_order),
     path("api/v2/orders/", _v2_order),
