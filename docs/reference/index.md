@@ -193,6 +193,32 @@ router.remove("orders", "order-archive", from_version=3)
 
 The removal boundary is inclusive. Removed routes return 404 and cannot be reversed in removed versions; a later declaration with a strictly higher source version can reintroduce the route. Removal does not emit 410 or lifecycle headers. See the [canonical removal contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#4-registration-semantics) and [endpoint-removal design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/endpoint-removal.md).
 
+## Contract snapshots
+
+The development branch adds `assert_schema_snapshot()` in
+`django_api_versioning.testing`. It compares a generated OpenAPI mapping with
+a deterministic, reviewed JSON snapshot without adding DRF, OpenAPI, YAML, or
+oasdiff to package runtime dependencies.
+
+~~~python title="tests/test_api_contract.py"
+from django_api_versioning.testing import assert_schema_snapshot
+
+# Generate and validate this mapping with the project's chosen OpenAPI tool.
+assert_schema_snapshot(
+    generated_schema,
+    ".contracts/openapi-v2.json",
+    strict=True,
+)
+~~~
+
+Create or deliberately refresh a reviewed baseline with `update=True`; CI
+must use `strict=True` without update mode. Exact snapshots fail on any
+schema drift. Pair them with a semantic breaking-change tool such as
+`oasdiff breaking` when additive changes should be allowed. Snapshot
+comparison does not prove business semantics, authorization, validation, or
+error-payload compatibility; keep real request-level tests for those
+contracts.
+
 ## Exceptions
 
 | Exception | Raised when |
@@ -203,6 +229,7 @@ The removal boundary is inclusive. Removed routes return 404 and cannot be rever
 | `VersionTypeError` | A version value is not an integer; booleans are rejected. |
 | `AmbiguousVersionError` | `api_reverse()` has multiple matches and no version was supplied. |
 | `VersionMatrixError` | `assert_version_matrix()` detects a route-matrix difference or, with `strict=True`, a missing snapshot path, empty registry, or missing baseline. |
+| `ContractSnapshotError` | `assert_schema_snapshot()` receives an invalid schema mapping, cannot serialize it deterministically, or detects a missing/unreviewed contract snapshot. |
 
 ## Route-matrix tools
 
