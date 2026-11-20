@@ -160,12 +160,15 @@ def assert_schema_snapshot(
         raise ContractSnapshotError("schema must be a mapping/object.")
     path = Path(snapshot)
     try:
-        rendered = json.dumps(
-            schema,
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        ) + "\n"
+        rendered = (
+            json.dumps(
+                schema,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
     except (TypeError, ValueError) as exc:
         raise ContractSnapshotError(
             f"Schema cannot be serialized as deterministic JSON: {exc}"
