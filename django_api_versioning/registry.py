@@ -254,6 +254,7 @@ class UrlRegistry:
             raise TypeError("pattern must be a django.urls.URLPattern instance.")
 
         route_key = str(pattern.pattern)
+        pattern_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
         route_index = self._find_route_index(
             route_key,
             regex_route=isinstance(pattern.pattern, RegexPattern),
@@ -327,14 +328,19 @@ class UrlRegistry:
         if logical_endpoint is not None:
             setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
 
-        if self._is_suppressed(logical_endpoint, route_version, source_version):
+        if self._is_suppressed(
+            logical_endpoint, route_version, source_version, owner=pattern_owner
+        ):
             if route_index is not None:
                 existing = self.urlpatterns[route_index]
                 existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
                 existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
                 existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
                 if self._is_suppressed(
-                    existing_logical, existing_version, existing_source
+                    existing_logical,
+                    existing_version,
+                    existing_source,
+                    owner=getattr(existing, self._ROUTER_OWNER_ATTR, None),
                 ):
                     del self.urlpatterns[route_index]
             if logical_endpoint is not None:
