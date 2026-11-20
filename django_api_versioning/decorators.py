@@ -347,4 +347,24 @@ def remove_endpoint(
     if postfix.startswith("/"):
         raise VersioningError("postfix must be relative and must not start with '/'.")
     app_name_part = _app_name_prefix(app_name)
-    registry.remove(f"{app_name_part}{postfix}", from_version)
+    logical_endpoint = f"{app_name_part}{postfix}"
+
+    # The decorator removal API owns only decorator-registered routes. The
+    # registry is shared with VersionedRouter, so reject matching router-owned
+    # active routes and tombstones before creating a cross-owner boundary.
+    router_owned = any(
+        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
+        for pattern in registry.urlpatterns
+    ) or any(
+        endpoint == logical_endpoint
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
+        for (endpoint, _version), pattern in registry._removed_patterns.items()
+    )
+    if router_owned:
+        raise VersioningError(
+            f"Endpoint {logical_endpoint!r} is owned by a VersionedRouter; "
+            "use router.remove() instead."
+        )
+
+    registry.remove(logical_endpoint, from_version)
