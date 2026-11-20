@@ -1,16 +1,74 @@
 import re
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
+from django.conf import settings as django_settings
 from django.urls import NoReverseMatch, get_script_prefix
 from django.urls.resolvers import RegexPattern, URLResolver
 
 from .exceptions import AmbiguousVersionError, VersionTypeError
 from .registry import registry
+from .settings import api_settings
 
 # Matches Django path parameters, with or without an explicit converter.
 _CONVERTER_RE = re.compile(r"<(?:[^:<>]+:)?([^<>]+)>")
 _PATH_SAFE_CHARS = "/~:@!$&()*+,;=" + chr(39)
+
+
+def format_negotiated_url(url: str, version: int | str | None) -> str:
+    """Adapt an internally reversed versioned URL to the configured transport.
+
+    Header and hostname modes cannot encode a version in the URL. Query mode
+    appends the configured query parameter. Path mode preserves the existing
+    versioned URL contract.
+    """
+    scheme = getattr(
+        django_settings, "API_VERSIONING_SCHEME", api_settings.API_VERSIONING_SCHEME
+    )
+    if scheme == "path" or version is None:
+        return url
+
+    versioned_base = "/" + django_settings.API_BASE_PATH.format(
+        version=version
+    ).strip("/") + "/"
+    unversioned_base = "/" + django_settings.API_UNVERSIONED_BASE_PATH.strip("/") + "/"
+
+    parts = urlsplit(url)
+    path = parts.path
+    script_prefix = get_script_prefix()
+    if script_prefix != "/" and path.startswith(script_prefix):
+        relative_path = "/" + path[len(script_prefix) :].lstrip("/")
+        prefix = script_prefix.rstrip("/")
+    else:
+        relative_path = path
+        prefix = ""
+
+    if not relative_path.startswith(versioned_base):
+        return url
+
+    negotiated_path = unversioned_base + relative_path[len(versioned_base) :]
+    query = parts.query
+    if scheme == "query":
+        parameter = django_settings.API_VERSIONING_QUERY_PARAMETER
+        pairs = [
+            (key, value)
+            for key, value in parse_qsl(query, keep_blank_values=True)
+            if key != parameter
+        ]
+        pairs.append((parameter, str(version)))
+        query = urlencode(pairs)
+    elif scheme not in {"header", "hostname"}:
+        return url
+
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            prefix + negotiated_path,
+            query,
+            parts.fragment,
+        )
+    )
 
 
 def api_reverse(
@@ -55,7 +113,7 @@ def api_reverse(
             f"for version {version!r}."
         )
 
-    _, target_pattern = matches[0]
+    selected_version, target_pattern = matches[0]
     route_pattern = target_pattern.pattern
 
     if not hasattr(route_pattern, "_route"):
@@ -63,7 +121,8 @@ def api_reverse(
         # their reversal to Django's URLResolver rather than parsing regex
         # groups or interpolating user-provided values ourselves.
         resolver = URLResolver(RegexPattern(r"^"), [target_pattern])
-        return get_script_prefix() + resolver.reverse(view_name, **kwargs)
+        url = get_script_prefix() + resolver.reverse(view_name, **kwargs)
+        return format_negotiated_url(url, selected_version)
 
     route = route_pattern._route
     parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
@@ -100,7 +159,8 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    return get_script_prefix() + quote(
+    url = get_script_prefix() + quote(
         route.lstrip("/"),
         safe=_PATH_SAFE_CHARS,
     )
+    return format_negotiated_url(url, selected_version)
