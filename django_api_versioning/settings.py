@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from string import Formatter
@@ -331,7 +332,21 @@ class APISettings:
                     f"Invalid API_VERSIONING_HOSTS hostname: {hostname!r}."
                 )
             normalized = hostname.rstrip(".").encode("idna").decode("ascii").lower()
-            if not normalized or normalized in normalized_hosts:
+            labels = normalized.rstrip(".").split(".")
+            valid_labels = all(
+                len(label) <= 63
+                and re.fullmatch(
+                    r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
+                    label,
+                )
+                for label in labels
+            )
+            if (
+                not normalized
+                or len(normalized) > 253
+                or not valid_labels
+                or normalized in normalized_hosts
+            ):
                 raise VersioningError(
                     f"Duplicate or invalid normalized API hostname: {hostname!r}."
                 )
