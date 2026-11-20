@@ -426,7 +426,7 @@ urlpatterns = router.urls
 
 The API root is mounted at each concrete `API_BASE_PATH` (for example, `/api/v1/`) and uses that version's namespace-aware reversal. Its links are derived from the effective list routes after route inheritance and explicit removals; a removed list route is not advertised by the corresponding version's root. The API root is DRF's standard `DefaultRouter.APIRootView` and remains excluded from OpenAPI schema generation.
 
-Format suffixes are enabled by default and add forms such as `/api/v2/orders.json`; the suffixed API root is `/api/v2/.json`. Set `include_root_view=False` and/or `include_format_suffixes=False` to disable either feature independently. Suffix patterns are alternate URL forms for the same callbacks; they do not add separate logical route-matrix entries.
+Format suffixes are enabled by default and add forms such as `/api/v2/orders.json`; the suffixed API root is `/api/v2/.json`. Set `include_root_view=False` and/or `include_format_suffixes=False` to disable either feature independently. Suffix patterns are alternate URL forms for the same callbacks; they do not add separate logical route-matrix entries. DRF passes the resolved suffix to the ViewSet action using the `format` keyword argument. Custom actions must accept `*args, **kwargs` or an explicit `format` parameter, as with normal DRF format-suffix patterns.
 
 This is not a full drop-in subclass of DRF `DefaultRouter` and does not reproduce every third-party router extension or schema-view hook. Use one root-owning router per API root path; disable extra roots or mount additional routers under distinct URL prefixes/namespaces.
 
