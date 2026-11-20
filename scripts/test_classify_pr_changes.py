@@ -166,6 +166,11 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["agent"])
         self.assertFalse(result["python"])
 
+    def test_release_bootstrap_files_run_agent_validation(self):
+        result = classify_paths(["Makefile", "scripts/release_bootstrap.sh"])
+        self.assertTrue(result["agent"])
+        self.assertFalse(result["python"])
+
     def test_release_tag_helpers_run_agent_validation(self):
         result = classify_paths(
             ["scripts/release_tags.py", "scripts/test_release_tags.py"]
