@@ -104,7 +104,7 @@ release_source_check() {
   [[ -z "$(git status --porcelain)" ]] || die "Working tree must be clean."
   git fetch origin --prune
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || die "Local main must exactly match origin/main."
-  actual="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
+  actual="$(package_version)"
   [[ "$actual" == "$v" ]] || die "pyproject.toml version is $actual, not $v."
   grep -Fq "## [$v] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
   uv lock --check || die "uv.lock is stale or inconsistent; run uv lock, commit uv.lock, and retry."
@@ -112,7 +112,27 @@ release_source_check() {
 
 package_version() {
   need python3
-  python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])'
+  python3 - <<'PY'
+from pathlib import Path
+import re
+
+source = Path("pyproject.toml").read_text(encoding="utf-8")
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        project = re.search(r"(?ms)^\\[project\\]\\s*$(.*?)(?=^\\[|\\Z)", source)
+        match = re.search(r"(?m)^version\\s*=\\s*['\\"]([^'\\"]+)['\\"]\\s*$", project.group(1) if project else "")
+        if not match:
+            raise SystemExit("Could not read [project].version from pyproject.toml")
+        print(match.group(1))
+    else:
+        print(tomllib.loads(source)["project"]["version"])
+else:
+    print(tomllib.loads(source)["project"]["version"])
+PY
 }
 
 release_interactive() {
