@@ -35,11 +35,16 @@ auth() {
   need gh
   gh auth status >/dev/null 2>&1 || die "Run gh auth login first."
   [[ "$(gh repo view "$REPO" --json nameWithOwner --jq .nameWithOwner)" == "$REPO" ]] || die "Wrong GitHub repository context."
-  local origin_url
+  local origin_url push_url
   origin_url="$(git remote get-url origin)"
   case "$origin_url" in
     "https://github.com/$REPO"|"https://github.com/$REPO.git"|"git@github.com:$REPO"|"git@github.com:$REPO.git"|"ssh://git@github.com/$REPO"|"ssh://git@github.com/$REPO.git") ;;
-    *) die "origin remote '$origin_url' is not the canonical repository $REPO." ;;
+    *) die "origin fetch remote '$origin_url' is not the canonical repository $REPO." ;;
+  esac
+  push_url="$(git remote get-url --push origin)"
+  case "$push_url" in
+    "https://github.com/$REPO"|"https://github.com/$REPO.git"|"git@github.com:$REPO"|"git@github.com:$REPO.git"|"ssh://git@github.com/$REPO"|"ssh://git@github.com:$REPO.git") ;;
+    *) die "origin push remote '$push_url' is not the canonical repository $REPO. Check remote.origin.pushurl." ;;
   esac
 }
 
@@ -151,37 +156,15 @@ release_interactive() {
 }
 
 release_finish() {
-  local v="$1" tag="v$1" commit local_type remote_ref remote_type remote_tag_sha remote_commit
+  local v="$1" tag="v$1" commit
   version_check "$v"; auth; need git; need jq; need curl; need python3
   release_source_check "$v"
   commit="$(git rev-parse HEAD)"
 
-  # Resume safely if a previous attempt already created or pushed this exact tag.
-  if git show-ref --verify --quiet "refs/tags/$tag"; then
-    local_type="$(git cat-file -t "refs/tags/$tag")"
-    [[ "$local_type" == tag ]] || die "Local $tag is lightweight; refusing to publish."
-    [[ "$(git rev-parse "$tag^{commit}")" == "$commit" ]] || die "Local $tag does not point to current main."
-  fi
-  remote_ref="$(gh api "repos/$REPO/git/ref/tags/$tag" 2>/dev/null || true)"
-  if [[ -n "$remote_ref" ]]; then
-    remote_type="$(printf '%s' "$remote_ref" | jq -r '.object.type')"
-    remote_tag_sha="$(printf '%s' "$remote_ref" | jq -r '.object.sha')"
-    [[ "$remote_type" == tag ]] || die "Remote $tag is not annotated; refusing to publish."
-    remote_commit="$(gh api "repos/$REPO/git/tags/$remote_tag_sha" --jq '.object.sha')"
-    [[ "$remote_commit" == "$commit" ]] || die "Remote $tag points to $remote_commit, not current main $commit."
-    if ! git show-ref --verify --quiet "refs/tags/$tag"; then
-      git fetch origin "refs/tags/$tag:refs/tags/$tag"
-    fi
-    echo "Existing remote tag $tag is valid; resuming release."
-  else
-    if git show-ref --verify --quiet "refs/tags/$tag"; then
-      echo "Pushing existing local annotated tag $tag..."
-    else
-      ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1 || die "Tag $tag exists remotely but could not be resolved through GitHub API."
-      git tag -a "$tag" -m "Release $tag"
-    fi
-    git push origin "refs/tags/$tag" || die "Could not push $tag. Check the v* tag ruleset and your GitHub permissions; no PyPI publication was started."
-  fi
+  # Git transport is authoritative for remote tag existence/type. The helper
+  # verifies fetch and push URLs, rejects lightweight/mismatched tags, and
+  # safely creates or resumes only the exact annotated release tag.
+  python3 scripts/release_tags.py "$tag" "$commit" "$REPO"
 
   wait_for_workflow publish.yml "$commit" "the complete release workflow (build, PyPI publication, and GitHub Release)"
   local published release_url
