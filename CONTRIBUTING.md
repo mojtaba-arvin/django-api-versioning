@@ -80,6 +80,17 @@ A package release is separate from a website deployment. A website deployment do
 
 A release requires explicit authorization for a specific version. Prepare the version bump, dated `CHANGELOG.md` entry, and approved documentation changes on one short-lived `release/vX.Y.Z` branch. Open a PR to `main`; do not tag or publish from that branch.
 
+Before opening the release PR, regenerate and validate the Python lockfile—even when the only `pyproject.toml` change is the package version:
+
+```bash
+uv lock
+uv lock --check
+```
+
+Commit the generated `uv.lock` alongside the metadata change. Never hand-edit it. Confirm that its editable `django-api-versioning` package entry has the same version as `[project].version` in `pyproject.toml`. Also build and validate the wheel and sdist when package metadata or build configuration changes.
+
+A release PR is blocked until the required `PR gate` succeeds for its **latest head SHA**. Inspect actual failed job/step logs; fix failures on the release branch and wait for the new run to finish. A majority of green checks, skipped checks, a previous green run, or a mergeability hint does not override a failed/pending required gate. Do not use `--admin` or any other bypass to merge around branch protection. Merge only after the gate reports success.
+
 After the release PR is merged, update the local clone and run **one command**:
 
 ```bash
