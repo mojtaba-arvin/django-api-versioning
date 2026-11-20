@@ -19,11 +19,11 @@ keywords:
 
 Django REST Framework (DRF) provides ViewSets, action mappings, and router-generated URL patterns. It also provides versioning classes that expose the selected API version through `request.version`. These are separate responsibilities: a versioning class identifies a request's version, while a router maps URL patterns to view callables.
 
-[django-api-versioning](https://pypi.org/project/django-api-versioning/) adds an optional `VersionedRouter` integration for DRF's `SimpleRouter`. It registers the URL patterns generated for each ViewSet in the package's version registry. The registry then selects implementations per generated route, so unchanged actions can carry forward while changed actions are replaced.
+[django-api-versioning](https://pypi.org/project/django-api-versioning/) provides an optional `VersionedRouter` integration for DRF's `SimpleRouter`. It registers the URL patterns generated for each ViewSet in the package's version registry. The registry then selects implementations per generated route, so unchanged actions can carry forward while changed actions are replaced. The current repository mainline also adds an unreleased `VersionedDefaultRouter` with a version-specific API root and optional format-suffix URLs; this convenience is not part of the published 1.3.0 artifact.
 
 For Django-native function-based and class-based views, use `@endpoint`. For DRF ViewSets, use `VersionedRouter`. The two registration styles can coexist in one URL configuration.
 
-The package-specific behavior described here follows the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). The published 1.2.1 package includes the initial router integration and the endpoint-removal and endpoint-lifecycle APIs introduced in 1.2.0.
+The package-specific behavior described here follows the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md). The published 1.3.0 package includes the `VersionedRouter` integration and the endpoint-removal and endpoint-lifecycle APIs. The repository mainline contains an additional `VersionedDefaultRouter` API-root and format-suffix integration that is not yet part of the published wheel.
 
 ## 1. Install and configure the DRF adapter
 
@@ -281,23 +281,30 @@ The repository's [executable OpenAPI consumer example](https://github.com/mojtab
 
 ## 9. Boundaries and non-goals
 
-**Scope: routing only.** `VersionedRouter` registers DRF-generated routes, selects the applicable callback for each API version, and preserves version-aware reversal. The application remains responsible for serializer design, response compatibility, authentication, permissions, filtering, and pagination configuration on its ViewSets.
+**Scope: version-aware routing.** `VersionedRouter` registers DRF-generated routes, selects the applicable callback for each API version, and preserves version-aware reversal. The application remains responsible for serializer design, response compatibility, authentication, permissions, filtering, and pagination configuration on its ViewSets.
 
-The initial integration supports DRF `SimpleRouter`, not `DefaultRouter`; it does not claim API-root or format-suffix parity.
+The published 1.3.0 integration uses DRF `SimpleRouter`; the `VersionedRouter` class itself does not add a browsable API root or format-suffix patterns. The current repository mainline adds an optional `VersionedDefaultRouter` for those two conveniences:
+
+- A separate API root is mounted under each concrete version prefix.
+- Its links come from the effective list routes after version inheritance and explicit removals, rather than the raw registration list.
+- DRF format-suffix patterns are enabled by default and can be disabled independently of the API root.
+- The suffixed API root is available at a path such as `/api/v2/.json`.
+- It reuses DRF's API root view and suffix utility; it is not a full drop-in reimplementation of every `DefaultRouter` extension or third-party router hook.
+
+This `VersionedDefaultRouter` addition is not included in the published 1.3.0 wheel. Use it from repository source until a later package release includes it. See the [VersionedDefaultRouter design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/versioned-drf-router.md) for its exact contract and verification gates.
 
 The integration also does not:
 
 - Transform serializers or response payloads.
 - Infer whether a ViewSet implementation is backward-compatible.
 - Change authentication, permissions, throttling, filtering, pagination, or rendering.
-- Provide end-to-end header-, query-parameter-, host-, or tenant-based version negotiation.
+- Infer tenant-specific version policy.
 - Remove an inherited route merely because a later ViewSet omits its action.
 - Automatically remove a route when an endpoint Sunset date passes.
 
-The package's channel extraction utilities and reserved negotiation settings do not activate header/query-based request dispatch. Dispatching to a version-specific ViewSet through those channels requires a separate runtime contract, including cache behavior, reversal, and trusted version identity. See the [request-version-resolution design decision](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-resolution.md).
+The package manages route-to-view selection. It does not establish semantic backward compatibility. Route-matrix checks, OpenAPI snapshots/diffs, and application request-level tests provide separate evidence for routing, representation, and runtime behavior. See the [API compatibility boundaries](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/api-compatibility-boundaries.md).
 
 When the package's benefit is smaller: if every endpoint is resource-oriented, a single API version is maintained, and there is no need to inherit route implementations between versions, a plain DRF `SimpleRouter` may be simpler. `VersionedRouter` is most useful when endpoint implementations change incrementally and unchanged actions should remain available without repeating their registrations.
-
 ## 10. Verification and evidence
 
 The repository contains direct tests for router version registration, namespace-based version resolution, path-converter preservation, duplicate basename and route handling, and lifecycle action/method mapping. Endpoint-removal tests cover action-specific removal, earlier-version preservation, 404 behavior, URL reversal, and later reintroduction. The optional schema adapter has focused tests for resolver identity, version resolution, and fail-closed behavior.
@@ -306,6 +313,6 @@ The executable OpenAPI consumer example separately exercises real API requests, 
 
 ## Summary
 
-Use `VersionedRouter` for DRF ViewSets and `@endpoint` for Django-native views, including DRF `APIView` and `GenericAPIView` endpoints. The router delegates route generation to DRF, while the package manages version-specific implementation selection, per-route inheritance, namespace-aware reversal, and the route matrix. DRF remains responsible for ViewSet behavior and serializer contracts.
+Use `VersionedRouter` for published DRF ViewSet support and the repository's unreleased `VersionedDefaultRouter` when a version-specific API root and format-suffix URLs are also needed. Use `@endpoint` for Django-native views, including DRF `APIView` and `GenericAPIView` endpoints. The router delegates route generation to DRF, while the package manages version-specific implementation selection, per-route inheritance, namespace-aware reversal, and the route matrix. DRF remains responsible for ViewSet behavior and serializer contracts.
 
 To evaluate the implementation and its integration examples against your API, start with the [django-api-versioning source repository](https://github.com/mojtaba-arvin/django-api-versioning).
