@@ -25,18 +25,36 @@ def format_negotiated_url(url: str, version: int | str | None) -> str:
     scheme = getattr(
         django_settings, "API_VERSIONING_SCHEME", api_settings.API_VERSIONING_SCHEME
     )
-    if scheme == "path" or version is None:
+    if scheme == "path":
         return url
 
     api_base_path = getattr(django_settings, "API_BASE_PATH", api_settings.API_BASE_PATH)
     unversioned_base_path = getattr(
         django_settings, "API_UNVERSIONED_BASE_PATH", "api/"
     )
-    versioned_base = "/" + api_base_path.format(version=version).strip("/") + "/"
-    unversioned_base = "/" + unversioned_base_path.strip("/") + "/"
-
     parts = urlsplit(url)
     path = parts.path
+
+    # DRF's NamespaceVersioning adapter can reverse the URL using the
+    # resolver namespace even when request.version is not forwarded to this
+    # method. In that case, recover the exact version from the concrete
+    # internal URL rather than guessing a default or latest version.
+    if version is None and api_base_path.count("{version}") == 1:
+        template_prefix, template_suffix = api_base_path.split("{version}")
+        route_pattern = (
+            r"(?:^|/)"
+            + re.escape(template_prefix.lstrip("/"))
+            + r"([0-9]+)"
+            + re.escape(template_suffix)
+        )
+        match = re.search(route_pattern, path)
+        if match is not None:
+            version = int(match.group(1))
+    if version is None:
+        return url
+
+    versioned_base = "/" + api_base_path.format(version=version).strip("/") + "/"
+    unversioned_base = "/" + unversioned_base_path.strip("/") + "/"
     script_prefix = get_script_prefix()
     if script_prefix != "/" and path.startswith(script_prefix):
         relative_path = "/" + path[len(script_prefix) :].lstrip("/")
