@@ -562,8 +562,15 @@ class VersionedDefaultRouter(VersionedRouter):
                 patterns.append(
                     path(
                         root_path,
-                        self._create_api_root_view(patterns),
-                        name=self.root_view_name,
+                        include(
+                            [
+                                path(
+                                    "",
+                                    self._create_api_root_view(patterns),
+                                    name=self.root_view_name,
+                                )
+                            ]
+                        ),
                     )
                 )
 
@@ -571,8 +578,15 @@ class VersionedDefaultRouter(VersionedRouter):
                 unversioned.append(
                     path(
                         "",
-                        self._create_api_root_view(unversioned),
-                        name=self.root_view_name,
+                        include(
+                            [
+                                path(
+                                    "",
+                                    self._create_api_root_view(unversioned),
+                                    name=self.root_view_name,
+                                )
+                            ]
+                        ),
                     )
                 )
 
