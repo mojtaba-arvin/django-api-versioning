@@ -138,6 +138,10 @@ def verify_schema(version: str) -> dict:
         assert product_path in document["paths"]
         assert action_path in document["paths"]
         assert PRODUCT_PATHS[other_version] not in document["paths"]
+        # The API root is a navigation view, not a contract operation.
+        assert f"/api/v{version}/" not in document["paths"]
+        # Format suffixes are alternate URL forms for the same operations.
+        assert not any(path.endswith(".json") for path in document["paths"])
         legacy_path = LEGACY_EXPORT_PATHS[version]
         assert (legacy_path in document["paths"]) is (version == "1")
 
@@ -212,6 +216,8 @@ def main() -> None:
                 "endpoint_lifecycle_openapi_action_scope": True,
                 "versioned_default_router_api_root": True,
                 "versioned_format_suffixes": True,
+                "api_root_excluded_from_openapi": True,
+                "format_suffixes_do_not_duplicate_schema_operations": True,
             },
             indent=2,
         )
