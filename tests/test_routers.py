@@ -653,9 +653,10 @@ def test_router_dispatch_and_reverse_follow_non_path_transport(
         response = APIClient().get(path, **headers)
 
     assert response.status_code == 200
-    assert response.json()["url"].endswith(expected_url)
-    assert response.json()["implementation"] == "v1-reverse"
-    assert response.json()["request_version"] == "2"
-    assert response.json()["versioning_scheme"] == "VersionedRouterVersioning"
-    assert response.json()["transport"] == scheme
-    assert "/api/v2/" not in response.json()["url"]
+    payload = response.json()
+    assert payload["implementation"] == "v1-reverse"
+    assert payload["request_version"] == "2", payload
+    assert payload["versioning_scheme"] == "VersionedRouterVersioning", payload
+    assert payload["transport"] == scheme, payload
+    assert payload["url"].endswith(expected_url), payload
+    assert "/api/v2/" not in payload["url"]
