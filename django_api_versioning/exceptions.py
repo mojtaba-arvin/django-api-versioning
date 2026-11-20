@@ -20,3 +20,7 @@ class AmbiguousVersionError(VersioningError):
 
 class VersionMatrixError(VersioningError):
     """Raised when the version matrix has gaps or overlaps."""
+
+
+class ContractSnapshotError(VersioningError):
+    """Raised when an API schema differs from its reviewed contract snapshot."""
