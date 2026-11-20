@@ -4,8 +4,9 @@
 #
 #   make release
 #
-# Run it from anywhere inside a clean clone of this repository. It reads the
-# version from pyproject.toml, safely switches to and updates main, checks the
+# Run it from anywhere inside a clean clone of this repository. The Makefile
+# bootstrap synchronizes main before this script is loaded. It reads the
+# version from pyproject.toml, checks the
 # changelog and uv.lock, shows a release preview, and asks before publishing.
 # After confirmation it creates (or resumes) the annotated Git tag, waits for
 # the GitHub Actions release workflow, and verifies the PyPI package and
