@@ -1,9 +1,9 @@
 # Version-aware DRF ViewSet router
 
-**Status:** Initial `VersionedRouter` integration was merged in PR #37 and shipped in v1.1.0. Mainline follow-ups added explicit route removal (PR #58), endpoint lifecycle metadata (PR #71), and fail-closed cross-router collision handling (PR #83). These follow-ups are included in the 1.2.0 release candidate; publication is pending.  
-**Target API:** `VersionedRouter` and `VersionedRouterVersioning`  
+**Status:** Implemented in the mainline package. `VersionedRouter` provides version-aware SimpleRouter behavior; `VersionedDefaultRouter` adds the DRF API root and format-suffix patterns.  
+**Target API:** `VersionedRouter`, `VersionedDefaultRouter`, and `VersionedRouterVersioning`  
 **Runtime dependency:** Django REST Framework remains optional.  
-**Initial scope:** DRF `SimpleRouter` integration; no serializer or response transformation.
+**Boundary:** Route generation and version dispatch only; no serializer or response transformation.
 
 ## 1. Product problem and boundary
 
@@ -125,13 +125,36 @@ The adapter exposes the integer API version as a string through `request.version
 - `HyperlinkedIdentityField` and `HyperlinkedRelatedField`;
 - nested application namespaces around the router.
 
+### 4.4 VersionedDefaultRouter: API root and format suffixes
+
+Use `VersionedDefaultRouter` when an application needs the two user-facing conveniences of DRF's `DefaultRouter` in addition to version-aware route inheritance:
+
+```python
+from django_api_versioning.routers import VersionedDefaultRouter
+
+router = VersionedDefaultRouter()
+router.register("orders", OrderViewSetV1, version=1, basename="order")
+router.register("orders", OrderViewSetV2, version=2, basename="order")
+urlpatterns = router.urls
+```
+
+The class continues to delegate resource route generation to DRF's `SimpleRouter`. For each concrete version it adds a namespace-aware API root below that version's `API_BASE_PATH` (for example, `/api/v1/`) and applies DRF's `format_suffix_patterns()` to the effective patterns. The root response uses DRF's standard `DefaultRouter.APIRootView`.
+
+The API root is generated from the effective registered list routes for that version, after route inheritance and explicit removals have been resolved. It therefore does not advertise a list route removed from that version. An endpoint with no effective list route is not included as a root link. The root view itself is excluded from OpenAPI by DRF's standard `schema = None` behavior.
+
+Both features are enabled by default and can be disabled independently with `include_root_view=False` and `include_format_suffixes=False`. Format suffixes preserve the standard unsuffixed URLs and add forms such as `/api/v2/orders.json`; the suffixed API root is `/api/v2/.json`. The suffix patterns resolve to the same registered callbacks and do not create new logical route-matrix entries.
+
+The API root is namespaced with the same `vN` namespace as the corresponding resource routes, so its links and nested-namespace behavior follow the existing version-aware reversal contract. A project should have one root-owning router for a given API root path. When composing multiple routers under one version prefix, disable additional roots or mount them under distinct prefixes/namespaces.
+
+This is not a drop-in reimplementation of all DRF `DefaultRouter` internals or third-party router extensions. It deliberately uses the package's existing registry and DRF's public SimpleRouter, API root view, and format-suffix utilities.
+
 Mount independent router instances under distinct outer namespaces and give them distinct route prefixes. Identical generated internal route patterns owned by different router instances are rejected with `VersioningError` rather than allowing one router to replace another router's callback (PR #83).
 
-### 4.4 Lifecycle middleware
+### 4.5 Lifecycle middleware
 
 `LifecycleMiddleware` extracts the version from the configured `API_BASE_PATH` at a path-segment boundary. This supports APIs mounted below parent URL prefixes through nested `include()` calls without matching lookalike segments such as `notapi/v2/`.
 
-### 4.5 Optional dependency boundary
+### 4.6 Optional dependency boundary
 
 Importing the core package and using Django-native `@endpoint` routes does not import DRF. Importing `django_api_versioning.routers` without DRF raises an actionable optional-dependency error. Applications using `VersionedRouter` must install a DRF release compatible with their Django version.
 
@@ -151,7 +174,8 @@ There are two distinct reversal contracts:
 ## 6. Supported scope and non-goals
 
 Supported:
-- DRF `SimpleRouter` standard list/detail routes;
+- DRF `SimpleRouter` standard list/detail routes through `VersionedRouter`;
+- version-specific API roots and configurable format-suffix patterns through `VersionedDefaultRouter`;
 - `@action` routes and action method maps;
 - explicit basenames and per-version route inheritance;
 - explicit `versions=[...]` gaps;
@@ -161,14 +185,14 @@ Supported:
 - lifecycle headers for APIs mounted below parent URL prefixes.
 
 Not included in this integration:
-- DRF `DefaultRouter` API-root and format-suffix parity;
-- header, query-parameter, host, or tenant-based negotiation;
+- every internal extension point or schema-view behavior of DRF `DefaultRouter`; this class implements its API-root and format-suffix conveniences over the package registry, not a full drop-in subclass;
+- tenant-specific version policy or automatic tenant inference;
 - serializer or response-payload transformation;
-- automatic backward-compatibility inference;
+- automatic route, schema, or semantic backward-compatibility inference;
 - implicit removal by omission (removal must be declared explicitly; see [endpoint-removal.md](endpoint-removal.md));
 - a replacement OpenAPI generator or schema-diff engine.
 
-Header/query/tenant negotiation remains a separate design decision. DRF already provides version parsers for those channels; a safe implementation would still need a runtime dispatcher, correct cache variation, reverse semantics, and trusted tenant identity. See parent roadmap Issue #36.
+The `VersionNegotiationMiddleware` separately supports one configured transport per deployment: path, header, query, or hostname. Tenant-specific policy remains outside the current contract because it requires a trusted tenant identity, explicit conflict precedence, cache isolation, and well-defined reversal semantics. See parent roadmap Issue #36.
 
 The optional versioned OpenAPI integration is implemented separately: drf-spectacular generates each version's schema, the package adapter marks matching deprecated operations, and the consumer contract validates per-version snapshots with oasdiff. The package does not own a competing schema generator or semantic diff engine; see [Versioned OpenAPI contract integration](versioned-openapi-contract.md).
 
@@ -177,7 +201,9 @@ The optional versioned OpenAPI integration is implemented separately: drf-specta
 The implementation is not considered complete unless all of the following remain green:
 
 1. V1/V2 ViewSets with list/detail replacement and V1-only custom action inheritance.
-2. Actual HTTP requests proving dispatch and `request.version` for v1, v2, and inherited v3 routes.
+2. Version-specific API roots that include only effective list routes after explicit removals.
+3. Unsuffixed and `.json` routes for regex and path-converter patterns, including a suffixed API root.
+4. Actual HTTP requests proving dispatch and `request.version` for v1, v2, and inherited v3 routes.
 3. Explicit version gaps return 404.
 4. `reverse_action()` and hyperlinked fields resolve within the active version.
 5. Nested namespaces preserve version resolution and reversal.
@@ -188,4 +214,4 @@ The implementation is not considered complete unless all of the following remain
 10. Core package imports remain independent of DRF.
 11. Full package and integration tests, lint, distribution build, website verification, and the supported Python/Django/DRF matrix pass.
 
-The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal, endpoint-level lifecycle, and cross-router collision protection are included in the 1.2.0 release candidate. Do not treat the candidate as published until the tag-triggered workflow and PyPI artifact verification succeed. Compatibility evidence remains commit-specific and belongs to the corresponding GitHub Actions run.
+The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal, endpoint-level lifecycle, cross-router collision protection, and the `VersionedDefaultRouter` conveniences are maintained in the current mainline. Compatibility evidence remains commit-specific and belongs to the corresponding GitHub Actions run.
