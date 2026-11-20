@@ -64,6 +64,7 @@ Document audit findings in a clear, structured format. Populate all counts, vers
 
 **IMPLEMENTED CAPABILITIES**:
 - [ ] List only behavior verified in current source and tests.
+- Explicit endpoint removal and endpoint-level lifecycle declarations are published APIs, available since 1.2.0 and included in 1.2.1. Verify the exact annotated tag and version-specific PyPI endpoint before attributing any additional behavior to a published artifact.
 
 **PARTIAL CAPABILITIES**:
 - [ ] Version-channel parsing utility supports `path`, `header`, and `query` in `channels.py`; verify call sites before describing this as end-to-end request routing. In the current source tree, the utility is tested directly, but is not wired into the endpoint registry's request dispatch.
@@ -73,7 +74,6 @@ Document audit findings in a clear, structured format. Populate all counts, vers
 - Direct `@endpoint` decoration of ViewSet classes is not supported; use `VersionedRouter` for the package's supported DRF `SimpleRouter` integration.
 - `API_VERSIONING_CHANNELS` and `extract_version()` do not currently provide end-to-end header/query-based routing through the package registry.
 - Python versions below 3.10 are outside the declared package requirement.
-- Explicit endpoint removal and endpoint-level lifecycle declarations are included in the 1.2.0 release candidate; publication is pending. Verify the annotated release tag, tag-time workflow, and installed artifact before claiming they are available to PyPI consumers.
 - The executable versioned OpenAPI consumer example and `oasdiff` release gate were added to repository `main` after `v1.1.0`; they are repository-level validation tooling, not part of the published wheel. Verify the exact release tag and tag-time workflow before attributing them to a release.
 
 **RECOMMENDATIONS**:
