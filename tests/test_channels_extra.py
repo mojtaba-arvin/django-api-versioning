@@ -71,7 +71,6 @@ def test_invalid_header_falls_through_to_query_channel():
     assert extract_version(request, ["header", "query"]) == 5
 
 
-
 @pytest.mark.parametrize("channel,value", [
     ("path", "-1"),
     ("path", "v-1"),
