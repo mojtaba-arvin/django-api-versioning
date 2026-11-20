@@ -516,9 +516,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
                     version=namespace_version
                 ).strip("/")
                 route_path = route.strip("^$").strip("/")
-                namespace_matches_route = (
-                    f"/{configured_prefix}/" in f"/{route_path}/"
-                )
+                namespace_matches_route = f"/{configured_prefix}/" in f"/{route_path}/"
 
             tried = getattr(resolver_match, "tried", None)
             if isinstance(tried, (list, tuple)):
