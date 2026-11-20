@@ -108,6 +108,7 @@ class VersionNegotiationMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         scheme = _setting("API_VERSIONING_SCHEME", "path")
+        request.api_versioning_scheme = scheme
         vary_header = scheme == "header"
         if scheme == "path":
             version = _path_version(
