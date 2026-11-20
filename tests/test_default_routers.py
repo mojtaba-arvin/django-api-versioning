@@ -4,6 +4,7 @@ import pytest
 from django.test import override_settings
 from django.urls import clear_url_caches, include, path
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
@@ -28,6 +29,10 @@ class PostViewSetV1(viewsets.ViewSet):
         return Response(
             {"implementation": "v1", "version": request.version, "pk": pk}
         )
+
+    @action(detail=False, methods=["get"])
+    def metadata(self, request):
+        return Response({"implementation": "v1-action", "version": request.version})
 
 
 class PostViewSetV2(viewsets.ViewSet):
@@ -102,12 +107,18 @@ def test_format_suffixes_work_for_versioned_routes_and_api_roots():
 
         v1 = client.get("/api/v1/posts.json")
         v2 = client.get("/api/v2/posts.json")
+        inherited_action = client.get("/api/v2/posts/metadata.json")
         root = client.get("/api/v2/.json")
 
     assert v1.status_code == 200
     assert v1.json() == {"implementation": "v1", "version": "1"}
     assert v2.status_code == 200
     assert v2.json() == {"implementation": "v2", "version": "2"}
+    assert inherited_action.status_code == 200
+    assert inherited_action.json() == {
+        "implementation": "v1-action",
+        "version": "2",
+    }
     assert root.status_code == 200
     assert root.json()["posts"].endswith("/api/v2/posts.json")
 
