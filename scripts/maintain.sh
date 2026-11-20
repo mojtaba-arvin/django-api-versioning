@@ -126,12 +126,9 @@ release_interactive() {
   need git
   [[ -z "$(git status --porcelain)" ]] || die "Working tree is not clean. Commit or safely stash your changes before releasing."
   current_branch="$(git branch --show-current)"
-  if [[ "$current_branch" != main ]]; then
-    echo "Switching from $current_branch to main (working tree is clean)..."
-    git switch main
-  fi
-  echo "Updating main from origin..."
-  git pull --ff-only origin main
+  [[ "$current_branch" == main ]] || die "The release bootstrap must switch to main before running this script."
+  git fetch origin --prune
+  [[ "$(git rev-parse HEAD)" == "$(git rev-parse refs/remotes/origin/main)" ]] || die "Local main changed or is behind origin/main during release bootstrap. Rerun: make release"
   v="$(package_version)"
   version_check "$v"
   echo
