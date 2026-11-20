@@ -1,6 +1,7 @@
+from urllib.parse import urlencode
+
 import pytest
 from django.test import RequestFactory
-from urllib.parse import urlencode
 
 from django_api_versioning.channels import extract_version
 
