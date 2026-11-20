@@ -47,7 +47,7 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 
 ## Git lifecycle
 
-- `main` is the only long-lived branch; work on short-lived branches from the latest `origin/main`. Merge topic branches by PR only after the latest `PR gate` passes; delete completed branches. Release tags must be annotated, target `main` commits, and follow the tag ruleset.
+- `main` is the only long-lived branch; work on short-lived branches from the latest `origin/main`. Merge topic branches by PR only after the latest `PR gate` passes. A topic branch is disposable: after its PR is closed, do not leave it behind unless another open PR still uses it or a documented recovery need requires it. GitHub auto-deletes merged head branches; `.github/workflows/branch-cleanup.yml` deletes same-repository head branches after closed PRs and periodically reconciles older closed-PR branches. Never delete `main`, a branch used by an open PR, or a branch without verified ownership. Release tags must be annotated, target `main` commits, and follow the tag ruleset.
 - See `CONTRIBUTING.md`; do not duplicate the human workflow here.
 
 ## Commit and automation hygiene
