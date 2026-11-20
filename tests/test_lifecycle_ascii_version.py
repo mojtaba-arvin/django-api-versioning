@@ -47,3 +47,12 @@ def test_negative_integer_request_version_is_not_an_api_version():
     request.resolver_match = None
 
     assert _extract_version(request) is None
+
+
+def test_boolean_request_version_is_not_an_api_version():
+    """Boolean values must not pass the integer version coercion path."""
+    request = RequestFactory().get("/unrelated/")
+    request.version = True
+    request.resolver_match = None
+
+    assert _extract_version(request) is None
