@@ -192,3 +192,28 @@ def test_multi_version_decorator_registration_rolls_back_after_late_router_colli
 
     assert registry.urlpatterns == existing_patterns
     assert not hasattr(decorator_view, registry._LOGICAL_ENDPOINT_ATTR)
+
+
+def test_public_remove_endpoint_cannot_remove_router_owned_routes():
+    """The decorator removal API must not cross the router ownership boundary."""
+    from django_api_versioning import remove_endpoint
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+    logical_endpoint = "orders:order-list"
+    original = next(
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == logical_endpoint
+    )
+
+    with pytest.raises(VersioningError, match="VersionedRouter"):
+        remove_endpoint(logical_endpoint, from_version=1)
+
+    assert any(pattern is original for pattern in registry.urlpatterns)
+    assert any(pattern is original for pattern in router.urls)
