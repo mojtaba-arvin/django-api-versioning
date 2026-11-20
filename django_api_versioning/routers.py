@@ -524,8 +524,8 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 # by the resolver. Prefer a registered route whose callback,
                 # name, route and trace identify this request. In particular,
                 # do not infer a version from a matching suffix on another view.
-                matched, route_version = (
-                    registry.get_resolved_route_version_for_match(resolver_match)
+                matched, route_version = registry.get_resolved_route_version_for_match(
+                    resolver_match
                 )
                 if matched:
                     version = (
