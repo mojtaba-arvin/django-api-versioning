@@ -16,7 +16,9 @@ on:
       - "pytest.ini"
       - "scripts/check_tox_workflow_matrix.py"
       - "scripts/maintain.sh"
+      - "scripts/release_bootstrap.sh"
       - "scripts/release_tags.py"
+      - "Makefile"
       - ".github/workflows/compatibility.yml"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
