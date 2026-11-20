@@ -52,7 +52,9 @@ def _parse_version(value: object) -> int | None:
     if not raw:
         return None
 
-    try:
-        return int(raw)
-    except ValueError:
+    # API versions are non-negative ASCII decimal identifiers. Python's
+    # int() also accepts signs and underscores, which are not part of the
+    # documented channel grammar (for example, "-1", "+2", and "1_0").
+    if not raw.isascii() or not raw.isdecimal():
         return None
+    return int(raw)
