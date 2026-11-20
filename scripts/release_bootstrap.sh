@@ -13,7 +13,10 @@ die() {
   exit 2
 }
 
-if [[ "$#" -ne 0 ]]; then
+reexec_after_sync="yes"
+if [[ "$#" -eq 1 && "$1" == "--after-sync" ]]; then
+  reexec_after_sync="no"
+elif [[ "$#" -ne 0 ]]; then
   die "No arguments are accepted. Run: make release"
 fi
 
@@ -46,6 +49,10 @@ git fetch origin --prune
 echo "Fast-forwarding local main..."
 git merge --ff-only refs/remotes/origin/main
 
-# Start a fresh Bash process only after synchronization. It reads the current
-# maintain.sh from disk, never the old version that performed the update.
+# Re-execute the bootstrap after synchronization so even this launcher is
+# reloaded from the newly fetched checkout. The second pass then loads the
+# current maintain.sh, avoiding stale in-memory release code.
+if [[ "$reexec_after_sync" == yes ]]; then
+  exec bash scripts/release_bootstrap.sh --after-sync
+fi
 exec bash scripts/maintain.sh
