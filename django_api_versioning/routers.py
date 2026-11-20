@@ -474,8 +474,8 @@ class VersionedRouter:
 
     def _build_namespaced_urlpatterns(
         self,
-        versioned: dict[int, list[URLPattern]],
-        unversioned: list[URLPattern],
+        versioned: dict[int, list[URLPattern | URLResolver]],
+        unversioned: list[URLPattern | URLResolver],
     ) -> list[URLPattern | URLResolver]:
         """Wrap each concrete version in its namespace for DRF reversal."""
         urlpatterns: list[URLPattern | URLResolver] = list(unversioned)
@@ -552,7 +552,14 @@ class VersionedDefaultRouter(VersionedRouter):
     @property
     def urls(self) -> list[URLPattern | URLResolver]:
         """Return versioned URL patterns with optional roots and suffixes."""
-        versioned, unversioned = self._collect_registered_patterns()
+        registered_versioned, registered_unversioned = (
+            self._collect_registered_patterns()
+        )
+        versioned: dict[int, list[URLPattern | URLResolver]] = {
+            route_version: list(patterns)
+            for route_version, patterns in registered_versioned.items()
+        }
+        unversioned: list[URLPattern | URLResolver] = list(registered_unversioned)
 
         if self.include_root_view:
             for route_version, patterns in versioned.items():
