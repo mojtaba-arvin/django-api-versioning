@@ -244,31 +244,37 @@ def test_decorator_removal_boundary_does_not_suppress_router_registration():
     )
 
 
-def test_removing_router_segment_preserves_newer_foreign_lifecycle_metadata():
-    """An older router removal must not erase metadata for a newer route owner."""
+def test_router_removal_preserves_foreign_lifecycle_metadata_at_boundary():
+    """An owner's removal must not erase metadata for another active route."""
 
     class OrdersV1ViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
 
-    class OrdersV3ViewSet(viewsets.ViewSet):
+    class OrdersV2ViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
 
     router_v1 = VersionedRouter()
-    router_v3 = VersionedRouter()
+    router_v2 = VersionedRouter()
     router_v1.register("orders", OrdersV1ViewSet, versions=[1], basename="order")
-    router_v3.register("orders", OrdersV3ViewSet, versions=[3], basename="order")
-    router_v3.set_lifecycle(
+    router_v2.register("orders", OrdersV2ViewSet, versions=[2], basename="order")
+    router_v2.set_lifecycle(
         "orders",
         "order-list",
-        version=3,
+        version=2,
         deprecated_at="2027-06-30",
         sunset="2027-07-30",
     )
-    lifecycle_key = ("orders:order-list", 3, None, None)
+    lifecycle_key = ("orders:order-list", 2, None, None)
 
     assert lifecycle_key in registry._endpoint_lifecycle
     router_v1.remove("orders", "order-list", from_version=2)
 
+    assert any(
+        getattr(pattern, registry._ROUTE_VERSION_ATTR, None) == 2
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is router_v2._registry_owner
+        for pattern in registry.urlpatterns
+    )
     assert lifecycle_key in registry._endpoint_lifecycle
