@@ -48,7 +48,7 @@ def test_resolver_match_marks_only_deprecated_registered_operation(monkeypatch):
         deprecated_at=datetime(2030, 1, 1, tzinfo=timezone.utc),
         sunset=None,
     )
-    monkeypatch.setattr(registry, "resolve_operation", lambda match, method: operation)
+    monkeypatch.setattr(registry, "resolve_operation", lambda match, method, **kwargs: operation)
     monkeypatch.setattr(registry, "get_endpoint_lifecycle", lambda resolved: lifecycle)
 
     result = _schema(
@@ -61,7 +61,7 @@ def test_resolver_match_marks_only_deprecated_registered_operation(monkeypatch):
 
 def test_resolver_match_without_lifecycle_preserves_explicit_schema_flag(monkeypatch):
     operation = SimpleNamespace()
-    monkeypatch.setattr(registry, "resolve_operation", lambda *args: operation)
+    monkeypatch.setattr(registry, "resolve_operation", lambda *args, **kwargs: operation)
     monkeypatch.setattr(registry, "get_endpoint_lifecycle", lambda resolved: None)
     result = _schema(
         monkeypatch,
