@@ -232,7 +232,6 @@ def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
     assert response.status_code == 200
     assert response.json() == {"query": "a?b"}
 
-
 @pytest.mark.parametrize(
     ("scheme", "expected"),
     [
@@ -253,7 +252,6 @@ def test_api_reverse_uses_the_selected_non_path_transport(scheme, expected):
         API_VERSIONING_QUERY_PARAMETER="version",
     ):
         assert api_reverse("negotiated-orders", version=2) == expected
-
 
 
 @pytest.mark.parametrize(
