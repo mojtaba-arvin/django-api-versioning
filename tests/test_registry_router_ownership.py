@@ -261,12 +261,8 @@ def test_removing_router_segment_preserves_newer_foreign_lifecycle_metadata():
 
     router_v1 = VersionedRouter()
     router_v3 = VersionedRouter()
-    router_v1.register(
-        "orders", OrdersV1ViewSet, versions=[1], basename="order"
-    )
-    router_v3.register(
-        "orders", OrdersV3ViewSet, versions=[3], basename="order"
-    )
+    router_v1.register("orders", OrdersV1ViewSet, versions=[1], basename="order")
+    router_v3.register("orders", OrdersV3ViewSet, versions=[3], basename="order")
     router_v3.set_lifecycle(
         "orders",
         "order-list",
