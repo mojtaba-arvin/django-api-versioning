@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from django_api_versioning import endpoint
+from django_api_versioning import endpoint, remove_endpoint
 from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
@@ -192,3 +192,58 @@ def test_multi_version_decorator_registration_rolls_back_after_late_router_colli
 
     assert registry.urlpatterns == existing_patterns
     assert not hasattr(decorator_view, registry._LOGICAL_ENDPOINT_ATTR)
+
+
+def test_public_remove_endpoint_cannot_remove_router_owned_routes():
+    """Decorator removal must not cross the VersionedRouter ownership boundary."""
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+    logical_endpoint = "orders:order-list"
+    original = next(
+        pattern
+        for pattern in registry.urlpatterns
+        if (
+            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+        )
+    )
+    removal_boundaries = set(
+        registry._removal_boundaries.get(logical_endpoint, set())
+    )
+
+    with pytest.raises(VersioningError, match="VersionedRouter"):
+        remove_endpoint(logical_endpoint, from_version=1)
+
+    assert any(pattern is original for pattern in registry.urlpatterns)
+    assert any(
+        child is original
+        for container in router.urls
+        for child in getattr(container, "url_patterns", [container])
+    )
+    assert (
+        registry._removal_boundaries.get(logical_endpoint, set())
+        == removal_boundaries
+    )
+
+
+def test_decorator_removal_boundary_does_not_suppress_router_registration():
+    """A decorator tombstone must not preempt a later Router declaration."""
+    logical_endpoint = "orders:order-list"
+    remove_endpoint(logical_endpoint, from_version=1)
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+
+    assert any(
+        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
+        for pattern in registry.urlpatterns
+    )
