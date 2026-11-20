@@ -43,6 +43,8 @@ COMPATIBILITY_PATHS = {
     ".github/workflows/compatibility.yml",
     ".github/workflows/publish.yml",
     "scripts/check_tox_workflow_matrix.py",
+    "scripts/release_bootstrap.sh",
+    "Makefile",
 }
 OPENAPI_PATHS = (
     "django_api_versioning/",
