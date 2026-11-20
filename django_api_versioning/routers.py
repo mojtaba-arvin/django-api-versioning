@@ -510,7 +510,6 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 break
 
         if isinstance(route, str):
-            route_version = registry.get_resolved_route_version(route)
             namespace_matches_route = False
             if namespace_version is not None:
                 configured_prefix = api_settings.API_BASE_PATH.format(
@@ -519,30 +518,50 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 route_path = route.strip("^$").strip("/")
                 namespace_matches_route = f"/{configured_prefix}/" in f"/{route_path}/"
 
-            # Namespaces are application-controlled, so a parent namespace
-            # named "v9" must not version an unversioned child route. Accept
-            # a namespace version only when its configured API path segment is
-            # also present in the resolved route. This preserves regex-backed
-            # DRF routes whose ResolverMatch text cannot be matched directly
-            # against the registry's regex pattern.
-            if namespace_matches_route:
-                version = namespace_version
-            elif route_version is not None:
-                version = str(route_version)
+            tried = getattr(resolver_match, "tried", None)
+            if isinstance(tried, (list, tuple)):
+                # A real Django ResolverMatch carries the URLPatterns considered
+                # by the resolver. Prefer a registered route whose callback,
+                # name, route and trace identify this request. In particular,
+                # do not infer a version from a matching suffix on another view.
+                matched, route_version = registry.get_resolved_route_version_for_match(
+                    resolver_match
+                )
+                if matched:
+                    version = (
+                        str(route_version)
+                        if isinstance(route_version, int)
+                        and not isinstance(route_version, bool)
+                        else None
+                    )
+                else:
+                    # drf-spectacular creates synthetic resolver matches while
+                    # walking a versioned schema. It preserves the version
+                    # namespace and route prefix but may not preserve the
+                    # registered callback identity.
+                    version = namespace_version if namespace_matches_route else None
             else:
-                version = None
+                # Keep compatibility for lightweight resolver-like objects used
+                # by integrations that do not expose Django's resolver trace.
+                route_version = registry.get_resolved_route_version(route)
+                if namespace_matches_route:
+                    version = namespace_version
+                elif route_version is not None:
+                    version = str(route_version)
+                else:
+                    version = None
 
             if version is not None:
                 if not self.is_allowed_version(version):
                     raise NotFound(self.invalid_version_message)
                 return version
-        else:
+
+        elif namespace_version is not None:
             # Preserve compatibility for direct adapter use with lightweight
             # resolver-match objects that expose only a namespace.
-            if namespace_version is not None:
-                if not self.is_allowed_version(namespace_version):
-                    raise NotFound(self.invalid_version_message)
-                return namespace_version
+            if not self.is_allowed_version(namespace_version):
+                raise NotFound(self.invalid_version_message)
+            return namespace_version
 
         default_version = self.default_version
         if default_version is not None:
