@@ -19,6 +19,10 @@ from django.utils.cache import patch_vary_headers
 from .settings import api_settings
 
 
+class _UnsupportedVersion(Exception):
+    """The transport is valid, but the requested version is not available."""
+
+
 def _setting(name: str, default: Any = None) -> Any:
     if hasattr(django_settings, name):
         return getattr(django_settings, name)
@@ -29,8 +33,6 @@ def _parse_version(value: object) -> int:
     if isinstance(value, bool) or value is None:
         raise ValueError("A version must be an ASCII decimal integer.")
     raw = str(value).strip()
-    if raw[:1].lower() == "v":
-        raw = raw[1:]
     if not raw or not raw.isascii() or not raw.isdecimal():
         raise ValueError("A version must be an ASCII decimal integer.")
     return int(raw)
@@ -140,6 +142,11 @@ class VersionNegotiationMiddleware:
 
         try:
             version = self._requested_version(request, scheme)
+        except _UnsupportedVersion:
+            return HttpResponse(
+                "The requested API version is not available for this host.",
+                status=406,
+            )
         except (ValueError, KeyError):
             return HttpResponseBadRequest("Invalid API version value.")
 
@@ -190,6 +197,8 @@ class VersionNegotiationMiddleware:
                 request, _setting("API_VERSIONING_HOSTS", {})
             )
             if version is None:
-                raise ValueError("The request hostname has no API version mapping.")
+                raise _UnsupportedVersion(
+                    "The request hostname has no API version mapping."
+                )
             return version
         raise ValueError(f"Unsupported API versioning scheme: {scheme!r}.")
