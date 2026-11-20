@@ -84,7 +84,7 @@ jobs:
 
             if error="$(gh api --method DELETE "repos/$repository/git/refs/heads/$branch" 2>&1)"; then
               echo "Deleted obsolete branch: $branch"
-            elif grep -q "HTTP 404" <<< "$error"; then
+            elif grep -Eq "HTTP 404|Reference does not exist" <<< "$error"; then
               echo "Already absent: $branch"
             else
               echo "Could not delete $branch: $error" >&2
