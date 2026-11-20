@@ -45,14 +45,6 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 4. Read relevant source modules, callers, tests, and references only. Prefer targeted search over dumping large directories or documents.
 5. Prefer existing Python, pytest, tox/tox-uv, pre-commit, and GitHub Actions over new tools or services.
 
-## Release correctness gates
-
-- Any change to `pyproject.toml`, including a version-only release bump, requires regenerating the committed `uv.lock` with `uv lock`. Never edit the generated lockfile by hand.
-- Before opening or updating a release PR, run `uv lock --check` and confirm the locked editable package version matches `[project].version` in `pyproject.toml`. Treat a lock mismatch as a release-blocking failure.
-- A release PR is not mergeable merely because most checks pass. Inspect check results for the exact current PR head SHA; wait for the required `PR gate` to finish successfully. A failed or pending required check blocks merge. Never use administrator bypass flags.
-- After the release PR is merged, the maintainer runs only `make release` from the repository directory. The command reads the version from `pyproject.toml`, safely switches to and fast-forwards `main` when the worktree is clean, validates source/changelog/lockfile, shows a preview, and requires explicit confirmation before creating or resuming the annotated tag. It then waits for exact-commit compatibility and the complete PyPI/GitHub Release workflow, and verifies both publication endpoints. Never require the maintainer to remember a version number, subcommand, or lower-level release step.
-- If a check fails, inspect the failing job and step logs, fix the underlying cause on the same topic branch, and wait for a fresh successful gate on the new head SHA. Do not treat a rerun or an older green run for a previous SHA as proof for the current commit.
-
 ## Git lifecycle
 
 - `main` is the only long-lived branch; work on short-lived branches from the latest `origin/main`. Merge topic branches by PR only after the latest `PR gate` passes; delete completed branches. Release tags must be annotated, target `main` commits, and follow the tag ruleset.
