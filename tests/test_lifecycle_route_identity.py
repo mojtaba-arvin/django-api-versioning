@@ -7,8 +7,6 @@ from django.test import Client, override_settings
 from django.urls import clear_url_caches, include, path
 
 from django_api_versioning import endpoint, set_endpoint_lifecycle
-from django_api_versioning.registry import registry
-
 
 def test_manual_route_with_matching_suffix_and_name_does_not_inherit_endpoint_lifecycle():
     """A route outside the registry must not inherit metadata by suffix alone."""
