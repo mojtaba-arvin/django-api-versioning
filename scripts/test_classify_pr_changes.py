@@ -141,6 +141,8 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ".github/workflows/website-data-preflight.yml": "website",
             ".github/workflows/openapi-contract.yml": "openapi",
             ".github/workflows/publish.yml": "openapi",
+            "scripts/release_bootstrap.sh": "compatibility",
+            "Makefile": "compatibility",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
@@ -163,6 +165,11 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
 
     def test_maintainer_helper_runs_agent_validation(self):
         result = classify_paths(["scripts/maintain.sh"])
+        self.assertTrue(result["agent"])
+        self.assertFalse(result["python"])
+
+    def test_release_bootstrap_files_run_agent_validation(self):
+        result = classify_paths(["Makefile", "scripts/release_bootstrap.sh"])
         self.assertTrue(result["agent"])
         self.assertFalse(result["python"])
 

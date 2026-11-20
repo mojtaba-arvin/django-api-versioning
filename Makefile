@@ -1,5 +1,6 @@
 .PHONY: release
 
-# One-command, version-aware, interactive package release.
+# Bootstrap the repository before loading the release implementation. This
+# prevents Bash from continuing with an outdated maintain.sh after a self-update.
 release:
-	@bash scripts/maintain.sh
+	@bash scripts/release_bootstrap.sh

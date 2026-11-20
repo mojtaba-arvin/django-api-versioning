@@ -43,6 +43,8 @@ COMPATIBILITY_PATHS = {
     ".github/workflows/compatibility.yml",
     ".github/workflows/publish.yml",
     "scripts/check_tox_workflow_matrix.py",
+    "scripts/release_bootstrap.sh",
+    "Makefile",
 }
 OPENAPI_PATHS = (
     "django_api_versioning/",
@@ -120,6 +122,8 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "scripts/classify_pr_changes.py",
             "scripts/configure_github_repository.sh",
             "scripts/maintain.sh",
+            "scripts/release_bootstrap.sh",
+            "Makefile",
             "scripts/release_tags.py",
             "scripts/test_release_tags.py",
             "docs/agent-engineering.md",
