@@ -1,5 +1,6 @@
 import re
 from typing import Any
+from urllib.parse import quote
 
 from django.urls import NoReverseMatch, get_script_prefix
 from django.urls.resolvers import RegexPattern, URLResolver
@@ -98,4 +99,10 @@ def api_reverse(
             f"the generated path does not match {route_pattern!r}."
         )
 
-    return get_script_prefix() + route.lstrip("/")
+    # Match Django's URLResolver path quoting: retain path separators and
+    # RFC 3986 unreserved/sub-delimiter characters, but encode query/fragment
+    # delimiters and other characters that cannot appear raw in a path segment.
+    return get_script_prefix() + quote(
+        route.lstrip("/"),
+        safe="/~:@!    return get_script_prefix() + route.lstrip("/")'()*+,;=",
+    )
