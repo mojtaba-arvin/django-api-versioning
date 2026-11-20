@@ -129,12 +129,10 @@ class VersionNegotiationMiddleware:
             )
         return response
 
-    def _dispatch_negotiated(
-        self, request: HttpRequest, scheme: str
-    ) -> HttpResponse:
-        unversioned_base = "/" + _setting(
-            "API_UNVERSIONED_BASE_PATH", "api/"
-        ).strip("/") + "/"
+    def _dispatch_negotiated(self, request: HttpRequest, scheme: str) -> HttpResponse:
+        unversioned_base = (
+            "/" + _setting("API_UNVERSIONED_BASE_PATH", "api/").strip("/") + "/"
+        )
         path_info = request.path_info or "/"
 
         # This middleware is global; unrelated application URLs pass through.
@@ -174,9 +172,13 @@ class VersionNegotiationMiddleware:
                 "The requested API version is not supported.", status=406
             )
 
-        versioned_base = "/" + _setting(
-            "API_BASE_PATH", "api/v{version}/"
-        ).format(version=version).strip("/") + "/"
+        versioned_base = (
+            "/"
+            + _setting("API_BASE_PATH", "api/v{version}/")
+            .format(version=version)
+            .strip("/")
+            + "/"
+        )
         remainder = path_info[len(unversioned_base) :]
         rewritten_path = versioned_base + remainder
 
@@ -205,9 +207,7 @@ class VersionNegotiationMiddleware:
                 raise ValueError("The API version query parameter must appear once.")
             return _parse_version(values[0]) if values else None
         if scheme == "hostname":
-            version = _host_version(
-                request, _setting("API_VERSIONING_HOSTS", {})
-            )
+            version = _host_version(request, _setting("API_VERSIONING_HOSTS", {}))
             if version is None:
                 raise _UnsupportedVersion(
                     "The request hostname has no API version mapping."
