@@ -641,9 +641,7 @@ def test_router_dispatch_and_reverse_follow_non_path_transport(
 ):
     with override_settings(
         ROOT_URLCONF=urlconf,
-        MIDDLEWARE=[
-            "django_api_versioning.negotiation.VersionNegotiationMiddleware"
-        ],
+        MIDDLEWARE=["django_api_versioning.negotiation.VersionNegotiationMiddleware"],
         API_VERSIONING_SCHEME=scheme,
         API_BASE_PATH="api/v{version}/",
         API_UNVERSIONED_BASE_PATH="api/",
