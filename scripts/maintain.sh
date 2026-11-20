@@ -110,6 +110,45 @@ release_source_check() {
   uv lock --check || die "uv.lock is stale or inconsistent; run uv lock, commit uv.lock, and retry."
 }
 
+package_version() {
+  need python3
+  python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])'
+}
+
+release_interactive() {
+  local v current_branch answer
+  need git
+  [[ -z "$(git status --porcelain)" ]] || die "Working tree is not clean. Commit or safely stash your changes before releasing."
+  current_branch="$(git branch --show-current)"
+  if [[ "$current_branch" != main ]]; then
+    echo "Switching from $current_branch to main (working tree is clean)..."
+    git switch main
+  fi
+  echo "Updating main from origin..."
+  git pull --ff-only origin main
+  v="$(package_version)"
+  version_check "$v"
+  echo
+  echo "Release preview"
+  echo "  Package: django-api-versioning"
+  echo "  Version: $v (read automatically from pyproject.toml)"
+  echo "  Tag:     v$v"
+  echo "  Source:  $(git rev-parse --short HEAD) on main"
+  echo "  Changelog: $(grep -F "## [$v] - " CHANGELOG.md | head -n 1 || true)"
+  echo
+  release_source_check "$v"
+  echo "Pre-release checks passed."
+  if [[ ! -t 0 ]]; then
+    die "Interactive confirmation is required. Run 'make release' in a terminal."
+  fi
+  read -r -p "Publish version $v to PyPI and create its GitHub Release? [y/N] " answer
+  case "$answer" in
+    y|Y|yes|YES) ;;
+    *) echo "Release cancelled; no tag was created and nothing was published."; return 0 ;;
+  esac
+  release_finish "$v"
+}
+
 release_finish() {
   local v="$1" tag="v$1" commit local_type remote_ref remote_type remote_tag_sha remote_commit
   version_check "$v"; auth; need git; need jq; need curl; need python3
@@ -212,8 +251,16 @@ branches() {
   else printf 'Dry run: %s candidate(s), %s retained. Use --apply to delete only merged branches.\n' "$safe" "$kept"; fi
 }
 case "${1:-}" in
-  release) [[ "$#" -eq 3 ]] || die "Usage: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION"; release "$2" "$3" ;;
+  release)
+    if [[ "$#" -eq 1 ]]; then
+      release_interactive
+    elif [[ "$#" -eq 3 ]]; then
+      release "$2" "$3"
+    else
+      die "Usage: make release (recommended), or scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION"
+    fi
+    ;;
   branches) [[ "$#" -le 2 ]] || die "Usage: scripts/maintain.sh branches [--apply]"; if [[ "${2:-}" == --apply ]]; then branches --apply; else branches; fi ;;
-  -h|--help|help) echo "Usage: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION | branches [--apply]" ;;
+  -h|--help|help) echo "Recommended: make release (auto-detect version, sync main, confirm, publish, and verify)."; echo "Advanced: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION | branches [--apply]" ;;
   *) die "Unknown command. Use --help." ;;
 esac
