@@ -200,7 +200,7 @@ def _coerce_version(value: Any) -> int | None:
         return None
     if isinstance(value, int):
         return value
-    if isinstance(value, str) and value.isdecimal():
+    if isinstance(value, str) and value.isascii() and value.isdecimal():
         return int(value)
     return None
 
@@ -254,7 +254,7 @@ def _extract_version_from_value(value: str) -> int | None:
     parts = api_base_path.split("{version}")
     prefix = re.escape(parts[0].lstrip("/"))
     suffix = re.escape(parts[1])
-    pattern = f"(?:^|/){prefix}(\\d+){suffix}"
+    pattern = f"(?:^|/){prefix}([0-9]+){suffix}"
 
     try:
         versions = {int(match.group(1)) for match in re.finditer(pattern, value)}
