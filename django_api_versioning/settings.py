@@ -24,6 +24,12 @@ _DEFAULT_API_MIN_VERSION = 1
 _DEFAULT_ROOT_URLCONF = "django_api_versioning.urls"
 _DEFAULT_LIFECYCLE: dict[int, dict[str, Any]] = {}
 _DEFAULT_CHANNELS: list[str] = ["path"]
+_DEFAULT_VERSIONING_SCHEME = "path"
+_DEFAULT_HEADER = "Accept-Version"
+_DEFAULT_QUERY_PARAMETER = "version"
+_DEFAULT_UNVERSIONED_BASE_PATH = "api/"
+_DEFAULT_HOSTS: dict[str, int] = {}
+_DEFAULT_API_DEFAULT_VERSION: int | None = None
 _DEFAULT_RESOLVER: Callable | None = None
 
 
@@ -41,6 +47,14 @@ class APISettings:
     API_VERSIONING_CHANNELS: list[str] = field(
         default_factory=lambda: list(_DEFAULT_CHANNELS)
     )
+    API_VERSIONING_SCHEME: str = _DEFAULT_VERSIONING_SCHEME
+    API_VERSIONING_HEADER: str = _DEFAULT_HEADER
+    API_VERSIONING_QUERY_PARAMETER: str = _DEFAULT_QUERY_PARAMETER
+    API_UNVERSIONED_BASE_PATH: str = _DEFAULT_UNVERSIONED_BASE_PATH
+    API_VERSIONING_HOSTS: dict[str, int] = field(
+        default_factory=lambda: dict(_DEFAULT_HOSTS)
+    )
+    API_DEFAULT_VERSION: int | None = _DEFAULT_API_DEFAULT_VERSION
     API_EFFECTIVE_VERSION_RESOLVER: Callable | None = _DEFAULT_RESOLVER
 
     def __post_init__(self) -> None:
@@ -49,6 +63,7 @@ class APISettings:
         self._validate_root_urlconf()
         self._validate_lifecycle()
         self._validate_channels()
+        self._validate_negotiation()
         self._validate_resolver()
 
     @staticmethod
@@ -75,6 +90,24 @@ class APISettings:
             ),
             API_VERSIONING_CHANNELS=cls.get_setting(
                 "API_VERSIONING_CHANNELS", list(_DEFAULT_CHANNELS)
+            ),
+            API_VERSIONING_SCHEME=cls.get_setting(
+                "API_VERSIONING_SCHEME", _DEFAULT_VERSIONING_SCHEME
+            ),
+            API_VERSIONING_HEADER=cls.get_setting(
+                "API_VERSIONING_HEADER", _DEFAULT_HEADER
+            ),
+            API_VERSIONING_QUERY_PARAMETER=cls.get_setting(
+                "API_VERSIONING_QUERY_PARAMETER", _DEFAULT_QUERY_PARAMETER
+            ),
+            API_UNVERSIONED_BASE_PATH=cls.get_setting(
+                "API_UNVERSIONED_BASE_PATH", _DEFAULT_UNVERSIONED_BASE_PATH
+            ),
+            API_VERSIONING_HOSTS=cls.get_setting(
+                "API_VERSIONING_HOSTS", dict(_DEFAULT_HOSTS)
+            ),
+            API_DEFAULT_VERSION=cls.get_setting(
+                "API_DEFAULT_VERSION", _DEFAULT_API_DEFAULT_VERSION
             ),
             API_EFFECTIVE_VERSION_RESOLVER=cls.get_setting(
                 "API_EFFECTIVE_VERSION_RESOLVER", _DEFAULT_RESOLVER
@@ -242,6 +275,91 @@ class APISettings:
                 "API_VERSIONING_CHANNELS is reserved and does not affect route "
                 "selection. django-api-versioning currently generates URL-path "
                 "routes only; non-default channel values are ignored."
+            )
+
+    def _validate_negotiation(self) -> None:
+        """Validate the selected request-version transport and its inputs."""
+        allowed_schemes = {"path", "header", "query", "hostname"}
+        if self.API_VERSIONING_SCHEME not in allowed_schemes:
+            raise VersioningError(
+                "API_VERSIONING_SCHEME must be one of "
+                f"{sorted(allowed_schemes)}."
+            )
+
+        for setting_name, value in (
+            ("API_VERSIONING_HEADER", self.API_VERSIONING_HEADER),
+            ("API_VERSIONING_QUERY_PARAMETER", self.API_VERSIONING_QUERY_PARAMETER),
+        ):
+            if (
+                not isinstance(value, str)
+                or not value
+                or value != value.strip()
+                or any(char.isspace() for char in value)
+            ):
+                raise VersioningError(f"{setting_name} must be a non-empty token.")
+
+        if not isinstance(self.API_UNVERSIONED_BASE_PATH, str):
+            raise VersioningError("API_UNVERSIONED_BASE_PATH must be a string.")
+        if (
+            not self.API_UNVERSIONED_BASE_PATH
+            or self.API_UNVERSIONED_BASE_PATH.startswith("/")
+            or not self.API_UNVERSIONED_BASE_PATH.endswith("/")
+            or "{" in self.API_UNVERSIONED_BASE_PATH
+            or "}" in self.API_UNVERSIONED_BASE_PATH
+            or "//" in self.API_UNVERSIONED_BASE_PATH
+        ):
+            raise VersioningError(
+                "API_UNVERSIONED_BASE_PATH must be a relative path ending in "
+                "'/' and must not contain format fields or doubled slashes."
+            )
+
+        if not isinstance(self.API_VERSIONING_HOSTS, dict):
+            raise VersioningError("API_VERSIONING_HOSTS must be a hostname-to-version dict.")
+        normalized_hosts: dict[str, int] = {}
+        for hostname, version in self.API_VERSIONING_HOSTS.items():
+            if (
+                not isinstance(hostname, str)
+                or not hostname
+                or hostname != hostname.strip()
+                or any(char in hostname for char in "/:@*\\\\")
+                or any(char.isspace() for char in hostname)
+            ):
+                raise VersioningError(
+                    f"Invalid API_VERSIONING_HOSTS hostname: {hostname!r}."
+                )
+            normalized = hostname.rstrip(".").encode("idna").decode("ascii").lower()
+            if not normalized or normalized in normalized_hosts:
+                raise VersioningError(
+                    f"Duplicate or invalid normalized API hostname: {hostname!r}."
+                )
+            if (
+                isinstance(version, bool)
+                or not isinstance(version, int)
+                or version < self.API_MIN_VERSION
+                or version > self.API_MAX_VERSION
+            ):
+                raise VersioningError(
+                    f"Hostname {hostname!r} must map to an integer version "
+                    f"between {self.API_MIN_VERSION} and {self.API_MAX_VERSION}."
+                )
+            normalized_hosts[normalized] = version
+
+        if self.API_VERSIONING_SCHEME == "hostname" and not normalized_hosts:
+            raise VersioningError(
+                "API_VERSIONING_HOSTS must contain at least one mapping when "
+                "API_VERSIONING_SCHEME='hostname'."
+            )
+
+        if self.API_DEFAULT_VERSION is not None and (
+            isinstance(self.API_DEFAULT_VERSION, bool)
+            or not isinstance(self.API_DEFAULT_VERSION, int)
+            or not self.API_MIN_VERSION
+            <= self.API_DEFAULT_VERSION
+            <= self.API_MAX_VERSION
+        ):
+            raise VersioningError(
+                "API_DEFAULT_VERSION must be None or an integer within the "
+                "configured API_MIN_VERSION/API_MAX_VERSION range."
             )
 
     def _validate_resolver(self) -> None:
