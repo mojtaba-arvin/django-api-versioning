@@ -1,3 +1,4 @@
+import pytest
 from django.test import RequestFactory
 
 from django_api_versioning.channels import extract_version
@@ -67,3 +68,41 @@ def test_invalid_header_falls_through_to_query_channel():
     )
 
     assert extract_version(request, ["header", "query"]) == 5
+
+
+
+@pytest.mark.parametrize("channel,value", [
+    ("path", "-1"),
+    ("path", "v-1"),
+    ("path", "+2"),
+    ("path", "1_0"),
+    ("header", "-1"),
+    ("header", "v-1"),
+    ("header", "+2"),
+    ("header", "v+2"),
+    ("header", "1_0"),
+    ("query", "-1"),
+    ("query", "v-1"),
+    ("query", "+2"),
+    ("query", "1_0"),
+])
+def test_version_channels_reject_non_decimal_integer_syntax(channel, value):
+    """Channel values must follow the documented non-negative decimal grammar."""
+    if channel == "path":
+        request = RequestFactory().get("/users")
+        request.resolver_match = type(
+            "M", (), {"kwargs": {"version": value}}
+        )()
+        request.version = None
+    elif channel == "header":
+        request = RequestFactory().get("/users", HTTP_ACCEPT_VERSION=value)
+    else:
+        request = RequestFactory().get(f"/users?version={value}")
+
+    assert extract_version(request, [channel]) is None
+
+
+def test_version_channels_reject_non_ascii_decimal_digits():
+    request = RequestFactory().get("/users", HTTP_ACCEPT_VERSION="v٣")
+
+    assert extract_version(request, ["header"]) is None
