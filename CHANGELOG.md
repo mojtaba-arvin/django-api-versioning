@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-20
+
+### Fixed
+
+- Isolate decorator and router route ownership so removal operations preserve unrelated registrations and newer lifecycle metadata.
+- Bind endpoint lifecycle metadata to the exact resolved URL pattern and keep lifecycle headers consistent for retired responses and unmapped DRF methods.
+- Normalize lifecycle timestamps safely, including timezone-offset overflow, and reject invalid negative or non-ASCII version values.
+- Validate decorator version ranges and application path prefixes before registration.
+- Match router request versions to the registered route and encode dynamic URL path parameters during reversal.
+
+### Testing
+
+- Expand adversarial router, lifecycle, route-removal, version-grammar, and URL-reversal regression coverage.
+
 ## [1.2.1] - 2026-11-19
 
 ### Documentation
