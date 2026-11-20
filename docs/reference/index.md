@@ -185,7 +185,7 @@ router.register("orders", OrderViewSetV2, version=2, basename="order")
 urlpatterns = router.urls
 ~~~
 
-Each version receives its own root (for example, `/api/v1/` and `/api/v2/`). Its links reflect the effective route set for that version, not raw registrations. Format suffixes are enabled by default; disable the API root with `include_root_view=False` or suffixes with `include_format_suffixes=False`. The suffixed root uses `/api/v2/.json`. This is a mainline addition and is not importable from the published 1.3.0 wheel until a release containing it is published.
+Each version receives its own root (for example, `/api/v1/` and `/api/v2/`). Its links reflect the effective route set for that version, not raw registrations. Format suffixes are enabled by default; disable the API root with `include_root_view=False` or suffixes with `include_format_suffixes=False`. The suffixed root uses `/api/v2/.json`. DRF passes the suffix as the `format` keyword argument to the action, so custom actions should accept `*args, **kwargs` or an explicit `format` parameter. This is a mainline addition and is not importable from the published 1.3.0 wheel until a release containing it is published.
 
 ## Explicit endpoint removal (available since 1.2.0)
 
