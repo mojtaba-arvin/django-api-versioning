@@ -113,7 +113,10 @@ class VersionNegotiationMiddleware:
             response = self._dispatch_negotiated(request, scheme)
 
         if vary_header:
-            patch_vary_headers(response, ["Accept-Version", "Accept"])
+            patch_vary_headers(
+                response,
+                [_setting("API_VERSIONING_HEADER", "Accept-Version"), "Accept"],
+            )
         return response
 
     def _dispatch_negotiated(
@@ -125,14 +128,14 @@ class VersionNegotiationMiddleware:
         path_info = request.path_info or "/"
 
         # This middleware is global; unrelated application URLs pass through.
-        if not path_info.startswith(unversioned_base):
-            versioned_path = _path_version(
-                path_info, _setting("API_BASE_PATH", "api/v{version}/")
+        versioned_path = _path_version(
+            path_info, _setting("API_BASE_PATH", "api/v{version}/")
+        )
+        if versioned_path is not None:
+            return HttpResponseBadRequest(
+                "This deployment does not accept URL-path API versions."
             )
-            if versioned_path is not None:
-                return HttpResponseBadRequest(
-                    "This deployment does not accept URL-path API versions."
-                )
+        if not path_info.startswith(unversioned_base):
             return self.get_response(request)
 
         try:
