@@ -10,8 +10,8 @@ from django_api_versioning.exceptions import (
 from django_api_versioning.registry import registry
 from django_api_versioning.testing import (
     _diff,
-    assert_version_matrix,
     assert_schema_snapshot,
+    assert_version_matrix,
     build_version_matrix,
 )
 
