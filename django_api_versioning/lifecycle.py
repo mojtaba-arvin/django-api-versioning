@@ -199,7 +199,7 @@ def _coerce_version(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
-        return value
+        return value if value >= 0 else None
     if isinstance(value, str) and value.isascii() and value.isdecimal():
         return int(value)
     return None
