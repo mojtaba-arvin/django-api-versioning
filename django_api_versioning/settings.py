@@ -151,6 +151,12 @@ class APISettings:
                 raise VersionTypeError(
                     f"Lifecycle key must be an integer version, got {version!r}."
                 )
+            if version < 0:
+                raise VersionRangeError(
+                    "API_VERSION_LIFECYCLE keys must be non-negative integers; "
+                    f"got {version}."
+                )
+
             if not isinstance(meta, dict):
                 raise VersioningError(
                     f"Lifecycle metadata for version {version} must be a dict."
