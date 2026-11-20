@@ -141,6 +141,8 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ".github/workflows/website-data-preflight.yml": "website",
             ".github/workflows/openapi-contract.yml": "openapi",
             ".github/workflows/publish.yml": "openapi",
+            "scripts/release_bootstrap.sh": "compatibility",
+            "Makefile": "compatibility",
         }
         for path, expected in cases.items():
             with self.subTest(path=path):
