@@ -280,7 +280,10 @@ class APISettings:
     def _validate_negotiation(self) -> None:
         """Validate the selected request-version transport and its inputs."""
         allowed_schemes = {"path", "header", "query", "hostname"}
-        if self.API_VERSIONING_SCHEME not in allowed_schemes:
+        if (
+            not isinstance(self.API_VERSIONING_SCHEME, str)
+            or self.API_VERSIONING_SCHEME not in allowed_schemes
+        ):
             raise VersioningError(
                 "API_VERSIONING_SCHEME must be one of "
                 f"{sorted(allowed_schemes)}."
