@@ -449,13 +449,10 @@ class VersionedRouter:
             )
             self._route_keys.add(route_key)
 
-    @property
-    def urls(self) -> list[URLPattern | URLResolver]:
-        """Return URL patterns grouped into per-version namespaces.
-
-        The URL path itself includes API_BASE_PATH. The namespace is used by
-        DRF's version-aware reverse implementation, including nested includes.
-        """
+    def _collect_registered_patterns(
+        self,
+    ) -> tuple[dict[int, list[URLPattern]], list[URLPattern]]:
+        """Return the effective URL patterns owned by this router instance."""
         versioned: dict[int, list[URLPattern]] = defaultdict(list)
         unversioned: list[URLPattern] = []
 
@@ -473,6 +470,14 @@ class VersionedRouter:
             else:
                 versioned[route_version].append(pattern)
 
+        return dict(versioned), unversioned
+
+    def _build_namespaced_urlpatterns(
+        self,
+        versioned: dict[int, list[URLPattern | URLResolver]],
+        unversioned: list[URLPattern | URLResolver],
+    ) -> list[URLPattern | URLResolver]:
+        """Wrap each concrete version in its namespace for DRF reversal."""
         urlpatterns: list[URLPattern | URLResolver] = list(unversioned)
         for route_version in sorted(versioned):
             urlpatterns.append(
@@ -485,6 +490,121 @@ class VersionedRouter:
                 )
             )
         return urlpatterns
+
+    @property
+    def urls(self) -> list[URLPattern | URLResolver]:
+        """Return URL patterns grouped into per-version namespaces.
+
+        The URL path itself includes API_BASE_PATH. The namespace is used by
+        DRF's version-aware reverse implementation, including nested includes.
+        """
+        versioned, unversioned = self._collect_registered_patterns()
+        return self._build_namespaced_urlpatterns(versioned, unversioned)
+
+
+class VersionedDefaultRouter(VersionedRouter):
+    """VersionedRouter with a version-specific API root and format suffixes.
+
+    The API root is built from the effective list routes for each concrete
+    version, after registry inheritance and explicit removals have resolved.
+    DRF remains responsible for rendering the root response and applying
+    format-suffix URL patterns.
+    """
+
+    def __init__(
+        self,
+        trailing_slash: bool = True,
+        use_regex_path: bool = True,
+        app_name: str = "django_api_versioning",
+        *,
+        include_root_view: bool = True,
+        include_format_suffixes: bool = True,
+        root_view_name: str = "api-root",
+    ) -> None:
+        super().__init__(
+            trailing_slash=trailing_slash,
+            use_regex_path=use_regex_path,
+            app_name=app_name,
+        )
+        if not isinstance(include_root_view, bool):
+            raise TypeError("include_root_view must be a bool.")
+        if not isinstance(include_format_suffixes, bool):
+            raise TypeError("include_format_suffixes must be a bool.")
+        if not isinstance(root_view_name, str) or not root_view_name.strip():
+            raise VersioningError("root_view_name must be a non-empty string.")
+
+        self.include_root_view = include_root_view
+        self.include_format_suffixes = include_format_suffixes
+        self.root_view_name = root_view_name
+
+    def _create_api_root_view(self, patterns: list[URLPattern]):
+        """Create DRF's standard API root view for the effective routes."""
+        from rest_framework.routers import DefaultRouter
+
+        available_names = {pattern.name for pattern in patterns}
+        api_root_dict = {
+            prefix: f"{basename}-list"
+            for prefix, basename in self._basenames.items()
+            if f"{basename}-list" in available_names
+        }
+        return DefaultRouter.APIRootView.as_view(api_root_dict=api_root_dict)
+
+    @property
+    def urls(self) -> list[URLPattern | URLResolver]:
+        """Return versioned URL patterns with optional roots and suffixes."""
+        registered_versioned, registered_unversioned = (
+            self._collect_registered_patterns()
+        )
+        versioned: dict[int, list[URLPattern | URLResolver]] = {
+            route_version: list(patterns)
+            for route_version, patterns in registered_versioned.items()
+        }
+        unversioned: list[URLPattern | URLResolver] = list(registered_unversioned)
+
+        if self.include_root_view:
+            for route_version, registered_patterns in registered_versioned.items():
+                root_path = api_settings.API_BASE_PATH.format(version=route_version)
+                versioned[route_version].append(
+                    path(
+                        root_path,
+                        include(
+                            [
+                                path(
+                                    "",
+                                    self._create_api_root_view(registered_patterns),
+                                    name=self.root_view_name,
+                                )
+                            ]
+                        ),
+                    )
+                )
+
+            if registered_unversioned:
+                unversioned.append(
+                    path(
+                        "",
+                        include(
+                            [
+                                path(
+                                    "",
+                                    self._create_api_root_view(registered_unversioned),
+                                    name=self.root_view_name,
+                                )
+                            ]
+                        ),
+                    )
+                )
+
+        if self.include_format_suffixes:
+            from rest_framework.urlpatterns import format_suffix_patterns
+
+            versioned = {
+                route_version: format_suffix_patterns(patterns)
+                for route_version, patterns in versioned.items()
+            }
+            unversioned = format_suffix_patterns(unversioned)
+
+        return self._build_namespaced_urlpatterns(versioned, unversioned)
 
 
 class VersionedRouterVersioning(NamespaceVersioning):

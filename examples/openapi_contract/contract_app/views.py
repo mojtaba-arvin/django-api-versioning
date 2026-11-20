@@ -20,7 +20,7 @@ class ProductViewSetV1(viewsets.GenericViewSet):
     serializer_class = ProductV1Serializer
 
     @extend_schema(responses=ProductV1Serializer(many=True))
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         payload = [{"id": 1, "name": "Desk lamp", "price": "12.50"}]
         return Response(self.get_serializer(payload, many=True).data)
 
@@ -28,13 +28,13 @@ class ProductViewSetV1(viewsets.GenericViewSet):
         parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
         responses=ProductV1Serializer,
     )
-    def retrieve(self, request, pk: int | None = None):
+    def retrieve(self, request, pk: int | None = None, *args, **kwargs):
         payload = {"id": int(pk or 1), "name": "Desk lamp", "price": "12.50"}
         return Response(self.get_serializer(payload).data)
 
     @extend_schema(responses=AvailabilitySerializer)
     @action(detail=False, methods=["get"], url_path="legacy/export")
-    def legacy_export(self, request):
+    def legacy_export(self, request, *args, **kwargs):
         payload = {
             "available": True,
             "checked_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
@@ -43,7 +43,7 @@ class ProductViewSetV1(viewsets.GenericViewSet):
 
     @extend_schema(responses=AvailabilitySerializer)
     @action(detail=False, methods=["get"])
-    def availability(self, request):
+    def availability(self, request, *args, **kwargs):
         payload = {
             "available": True,
             "checked_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
@@ -58,7 +58,7 @@ class ProductViewSetV2(viewsets.GenericViewSet):
     serializer_class = ProductV2Serializer
 
     @extend_schema(responses=ProductV2Serializer(many=True))
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
         payload = [
             {
                 "id": 1,
@@ -73,7 +73,7 @@ class ProductViewSetV2(viewsets.GenericViewSet):
         parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
         responses=ProductV2Serializer,
     )
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk=None, *args, **kwargs):
         payload = {
             "id": int(pk or 1),
             "name": "Desk lamp",

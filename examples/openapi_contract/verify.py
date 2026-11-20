@@ -89,6 +89,29 @@ legacy_v1 = client.get("/api/v1/products/legacy/export/")
 assert legacy_v1.status_code == 200, legacy_v1.content
 legacy_v2 = client.get("/api/v2/products/legacy/export/")
 assert legacy_v2.status_code == 404, legacy_v2.content
+
+# DefaultRouter conveniences remain version-aware and use the effective routes.
+root_v1 = client.get("/api/v1/")
+assert root_v1.status_code == 200, root_v1.content
+assert set(root_v1.json()) == {"products"}
+assert root_v1.json()["products"].endswith("/api/v1/products/")
+
+root_v2 = client.get("/api/v2/")
+assert root_v2.status_code == 200, root_v2.content
+assert set(root_v2.json()) == {"products"}
+assert root_v2.json()["products"].endswith("/api/v2/products/")
+
+root_v2_json = client.get("/api/v2/.json")
+assert root_v2_json.status_code == 200, root_v2_json.content
+assert root_v2_json.json()["products"].endswith("/api/v2/products.json")
+
+suffixed_v1 = client.get("/api/v1/products.json")
+assert suffixed_v1.status_code == 200, suffixed_v1.content
+assert suffixed_v1.json()[0]["price"] == "12.50"
+
+suffixed_v2 = client.get("/api/v2/products.json")
+assert suffixed_v2.status_code == 200, suffixed_v2.content
+assert suffixed_v2.json()[0]["currency"] == "USD"
 """
     subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, check=True)
 
@@ -115,6 +138,10 @@ def verify_schema(version: str) -> dict:
         assert product_path in document["paths"]
         assert action_path in document["paths"]
         assert PRODUCT_PATHS[other_version] not in document["paths"]
+        # The API root is a navigation view, not a contract operation.
+        assert f"/api/v{version}/" not in document["paths"]
+        # Format suffixes are alternate URL forms for the same operations.
+        assert not any(path.endswith(".json") for path in document["paths"])
         legacy_path = LEGACY_EXPORT_PATHS[version]
         assert (legacy_path in document["paths"]) is (version == "1")
 
@@ -187,6 +214,10 @@ def main() -> None:
                 "inherited_custom_action": True,
                 "removed_action_absent_from_v2_runtime_and_schema": True,
                 "endpoint_lifecycle_openapi_action_scope": True,
+                "versioned_default_router_api_root": True,
+                "versioned_format_suffixes": True,
+                "api_root_excluded_from_openapi": True,
+                "format_suffixes_do_not_duplicate_schema_operations": True,
             },
             indent=2,
         )

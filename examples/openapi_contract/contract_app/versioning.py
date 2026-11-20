@@ -10,7 +10,7 @@ from functools import lru_cache
 
 from django_api_versioning import endpoint, set_endpoint_lifecycle
 from django_api_versioning.registry import registry
-from django_api_versioning.routers import VersionedRouter
+from django_api_versioning.routers import VersionedDefaultRouter
 
 from .decorated_views import decorated_status
 from .views import ProductViewSetV1, ProductViewSetV2
@@ -19,7 +19,7 @@ from .views import ProductViewSetV1, ProductViewSetV2
 @lru_cache(maxsize=1)
 def get_urlpatterns():
     """Build the application's API URL patterns through the selected adapter."""
-    router = VersionedRouter()
+    router = VersionedDefaultRouter()
     router.register("products", ProductViewSetV1, version=1, basename="product")
     router.register("products", ProductViewSetV2, version=2, basename="product")
     router.remove("products", "product-legacy-export", from_version=2)

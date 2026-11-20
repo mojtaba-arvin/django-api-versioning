@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `VersionedDefaultRouter` with a version-specific API root and optional DRF format-suffix routes. API root links are derived from the effective route set for each version after inheritance and explicit removal.
+
+### Testing
+
+- Extend the executable OpenAPI consumer contract to exercise versioned API roots and format suffixes alongside per-version schemas, serializer contracts, route removal, and runtime behavior.
+
+### Documentation
+
+- Define route, schema, and semantic compatibility as separate contracts, with consumer-owned guardrails for each.
+
 ## [1.3.0] - 2026-11-21
 
 ### Added
