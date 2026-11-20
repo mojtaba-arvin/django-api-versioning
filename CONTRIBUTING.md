@@ -80,22 +80,30 @@ A package release is separate from a website deployment. A website deployment do
 
 A release requires explicit authorization for a specific version. Prepare the version bump, dated `CHANGELOG.md` entry, and approved documentation changes on one short-lived `release/vX.Y.Z` branch. Open a PR to `main`; do not tag or publish from that branch.
 
-After the PR is merged, update the local clone and run the repository maintainer helper:
+Before opening the release PR, regenerate and validate the Python lockfile—even when the only `pyproject.toml` change is the package version:
 
 ```bash
-git switch main
-git pull --ff-only origin main
-bash scripts/maintain.sh release preflight X.Y.Z
-bash scripts/maintain.sh release tag X.Y.Z
+uv lock
+uv lock --check
 ```
 
-Replace `X.Y.Z` with the exact version in `pyproject.toml`. The preflight requires a clean working tree, local `main` exactly equal to `origin/main`, matching package metadata, a dated changelog section, and an unused tag. The tag command creates an annotated tag and pushes only that tag. The protected `v*` tag ruleset still restricts tag creation to repository administrators.
+Commit the generated `uv.lock` alongside the metadata change. Never hand-edit it. Confirm that its editable `django-api-versioning` package entry has the same version as `[project].version` in `pyproject.toml`. Also build and validate the wheel and sdist when package metadata or build configuration changes.
 
-The tag workflow verifies the annotated tag and main ancestry, runs the full compatibility and OpenAPI contract gates, builds and validates the distributions, and publishes to PyPI. Only after PyPI publication succeeds, a separate least-privilege job creates the GitHub Release using that version's changelog entry. For a tag published before this automation is merged, create its GitHub Release once with `bash scripts/maintain.sh release create X.Y.Z`. This command requires an annotated remote tag, a successful PyPI publish workflow run, the matching version on PyPI, and a dated changelog entry. Future releases create the GitHub Release automatically. Check the complete outcome with:
+A release PR is blocked until the required `PR gate` succeeds for its **latest head SHA**. Inspect actual failed job/step logs; fix failures on the release branch and wait for the new run to finish. A majority of green checks, skipped checks, a previous green run, or a mergeability hint does not override a failed/pending required gate. Do not use `--admin` or any other bypass to merge around branch protection. Merge only after the gate reports success.
+
+After the release PR is merged, open a terminal in the repository directory and run this single, memorable command:
 
 ```bash
-bash scripts/maintain.sh release status X.Y.Z
+make release
 ```
+
+No version number or subcommand is needed. The command reads the package version directly from `pyproject.toml`, checks that the working tree is clean, switches to `main` when safe, fast-forwards it from `origin`, validates the changelog and lockfile, and displays a release preview. It asks for explicit confirmation before creating or pushing a tag. After confirmation it waits for the exact-commit compatibility workflow, creates or safely resumes the annotated tag, waits for the tag-triggered `publish.yml` workflow, and verifies both the PyPI version and GitHub Release URL. It stops on any failed gate and never bypasses repository rulesets. The protected `v*` tag ruleset still requires an account authorized to create tags.
+
+If the working tree is dirty, switching branches is not possible, or the required tools/authentication are missing, the command stops with a specific explanation without discarding local work. If interrupted after the tag is pushed, run `make release` again; the operation safely resumes. The default confirmation is **No**.
+
+The default workflow wait timeout is 60 minutes. Set `RELEASE_WAIT_TIMEOUT_SECONDS` to override it; `RELEASE_POLL_INTERVAL_SECONDS` controls polling frequency. If the command is interrupted after pushing the tag, rerun `make release` to resume and verify the existing release rather than creating another tag.
+
+The lower-level `preflight`, `tag`, `finish`, `create`, and `status` actions remain available for diagnosis and legacy recovery, but the supported human release path is `make release`. GitHub Release creation is performed by `publish.yml` only after successful PyPI publication; do not manually create the Release during a normal release.
 
 For branch hygiene, `bash scripts/maintain.sh branches` reports safe deletion candidates without changing anything. Add `--apply` to delete only unprotected branches whose commits are already reachable from `main` and which have no open PR. Unmerged branches are always retained for manual review.
 
