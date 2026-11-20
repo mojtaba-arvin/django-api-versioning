@@ -100,8 +100,7 @@ def _ref_exists(ref: str) -> bool:
         return False
     detail = (completed.stderr or completed.stdout).strip()
     raise ReleaseTagError(
-        f"Could not inspect local Git ref {ref}"
-        + (f": {detail}" if detail else ".")
+        f"Could not inspect local Git ref {ref}" + (f": {detail}" if detail else ".")
     )
 
 
@@ -199,9 +198,7 @@ def _verify_remote_tag_object(
             )
 
         try:
-            target_commit = _git(
-                "rev-parse", "--verify", f"{temporary_ref}^{{commit}}"
-            )
+            target_commit = _git("rev-parse", "--verify", f"{temporary_ref}^{{commit}}")
         except ReleaseTagError as exc:
             raise ReleaseTagError(
                 f"Remote {tag} is annotated but does not ultimately point to "
