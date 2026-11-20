@@ -215,7 +215,7 @@ jobs:
         if: always() && inputs.scope == 'pull-request' && matrix.env == 'lint'
         run: |
           if test -x .tox/lint/bin/black; then
-            .tox/lint/bin/black --diff --color never scripts/release_tags.py scripts/test_release_tags.py || true
+            .tox/lint/bin/black --diff --no-color scripts/release_tags.py scripts/test_release_tags.py || true
           else
             echo "Black environment was not created; no formatter diff available."
           fi
