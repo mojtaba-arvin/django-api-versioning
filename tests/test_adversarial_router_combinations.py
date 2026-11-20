@@ -462,6 +462,7 @@ def test_same_router_prefix_with_distinct_trailing_slash_modes_can_coexist():
     assert len(patterns) == 2
     assert str(patterns[0].pattern) != str(patterns[1].pattern)
 
+
 def test_manual_route_reusing_registered_route_suffix_does_not_inherit_request_version():
     """A matching route suffix is not proof that the router registered this view."""
 
