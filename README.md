@@ -245,13 +245,13 @@ router.register("orders", OrderViewSetV2, version=2, basename="order")
 urlpatterns = router.urls
 ```
 
-Each concrete version gets its own API root (for example, `GET /api/v1/` and `GET /api/v2/`). The root links are built from the effective routes after version inheritance and explicit removals, so a route removed from v3 is not advertised by the v3 root. Format suffixes are enabled by default; set `include_root_view=False` or `include_format_suffixes=False` to disable either feature independently. The root's `.json` URL is available at `/api/v1/.json`.
+Each concrete version gets its own API root (for example, `GET /api/v1/` and `GET /api/v2/`). The root links are built from the effective routes after version inheritance and explicit removals, so a route removed from v3 is not advertised by the v3 root. Format suffixes are enabled by default; set `include_root_view=False` or `include_format_suffixes=False` to disable either feature independently. The root's `.json` URL is available at `/api/v1/.json`. DRF passes the parsed suffix to the action as the `format` keyword argument, so custom ViewSet actions should accept `*args, **kwargs` or an explicit `format` parameter.
 
 This class reuses DRF's `DefaultRouter.APIRootView` and `format_suffix_patterns`; it does not create a parallel route generator. Use one root-owning router per API root path. When combining router instances under the same version prefix, disable extra roots or mount them beneath distinct URL prefixes/namespaces.
 
 For the complete supported boundary and test matrix, see the [version-aware DRF router design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/versioned-drf-router.md).
 
-**Scope:** the integration supports DRF SimpleRouter; it does not claim DefaultRouter API-root or format-suffix parity. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with VersionedRouter.remove() (available since 1.2.0). Non-path negotiation requires `VersionNegotiationMiddleware`; configure one scheme per deployment as described below.
+**Scope:** `VersionedRouter` delegates to DRF SimpleRouter; `VersionedDefaultRouter` additionally provides a version-specific API root and optional format-suffix routes. It does not reproduce every DefaultRouter extension or transform serializers and response payloads. A route omitted from a later ViewSet remains inherited; remove it explicitly with VersionedRouter.remove() (available since 1.2.0). Non-path negotiation requires `VersionNegotiationMiddleware`; configure one scheme per deployment as described below.
 
 For DRF installation, use a version compatible with your Django release:
 ```bash
