@@ -2,7 +2,7 @@
 
 This repository follows a **main-based, short-lived-branch workflow**. `main` is the only long-lived development and release line. There is no permanent `develop`, audit, staging, integration, or release branch.
 
-The goals are to keep `main` releasable, make every change reviewable, and avoid long-lived branches that drift away from the current source of truth.
+The goals are to keep `main` releasable, make every change reviewable, and avoid long-lived branches that drift away from the current source of truth. Project ownership, maintainer progression, and handover procedures are defined in [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Start from the latest main
 
@@ -83,6 +83,10 @@ The `.github/workflows/branch-cleanup.yml` workflow runs when a PR closes, after
 Agents must finish every task by checking the PR state and remote branch state. After merge or closure, verify deletion; if a branch remains and the workflow cannot delete it, report the exact permission or protection error and leave no silent cleanup TODO. Never ask the maintainer to delete a branch that the agent or workflow can safely remove. Do not keep long-lived audit, staging, integration, or release branches. A release branch exists only while its release PR is reviewed.
 
 Review Dependabot PRs promptly; merge useful dependency updates or close obsolete PRs. Their closed-PR branches are cleaned by the same workflow.
+
+## Maintainer continuity
+
+Read [GOVERNANCE.md](GOVERNANCE.md) before granting repository administration, PyPI Owner privileges, or Trusted Publisher access. Regular contributions do not require privileged account access. Do not exchange personal account passwords, recovery codes, or long-lived API tokens. A release maintainer should be added through PyPI's project collaborator roles and verified against the protected `pypi` environment; a PyPI Owner role is reserved for a fully trusted successor.
 
 ## Package release
 
