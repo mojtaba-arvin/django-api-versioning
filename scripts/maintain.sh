@@ -111,7 +111,7 @@ release_source_check() {
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || die "Local main must exactly match origin/main."
   actual="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
   [[ "$actual" == "$v" ]] || die "pyproject.toml version is $actual, not $v."
-  grep -Eq "^## [$v] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
+  grep -Fq "## [$v] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
 }
 
 release_finish() {
@@ -218,6 +218,6 @@ branches() {
 case "${1:-}" in
   release) [[ "$#" -eq 3 ]] || die "Usage: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION"; release "$2" "$3" ;;
   branches) [[ "$#" -le 2 ]] || die "Usage: scripts/maintain.sh branches [--apply]"; if [[ "${2:-}" == --apply ]]; then branches --apply; else branches; fi ;;
-  -h|--help|help) echo "Usage: scripts/maintain.sh release {preflight|tag|create|status} VERSION | branches [--apply]" ;;
+  -h|--help|help) echo "Usage: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION | branches [--apply]" ;;
   *) die "Unknown command. Use --help." ;;
 esac
