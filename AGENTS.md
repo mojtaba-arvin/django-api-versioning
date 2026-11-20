@@ -9,14 +9,14 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 - `tests/` contains package unit and regression tests.
 - `integration_test_project/` is the single Django integration/evidence project; extend it rather than duplicating it.
 - `docs/articles/` is the only editable article corpus.
-- `docs/reference/index.md` owns website Reference copy; `versioning-contract.md` defines routing behavior.
+- `docs/reference/index.md` owns website Reference copy; `versioning-contract.md` defines routing behavior; `GOVERNANCE.md` defines maintainer continuity and project handover.
 - `website/AGENTS.md` owns website-specific architecture and implementation constraints; it supplements, and cannot override, this shared contract.
 
 ## Non-negotiable invariants
 
 - Verify behavior against current source and executable tests, not article wording, old logs, generated data, or an agent's prior answer.
-- Separate import-time registration from per-request selection; reserved version channels are not dispatch.
-- `@endpoint` does not set DRF `request.version` or decorate ViewSet classes. Use `VersionedRouter` for DRF `SimpleRouter` routing and `VersionedRouterVersioning` for namespace-based `request.version` and reversal.
+- Separate import-time registration from per-request selection. The legacy `API_VERSIONING_CHANNELS` setting remains inert; non-path dispatch uses `VersionNegotiationMiddleware` and one `API_VERSIONING_SCHEME` per deployment.
+- `@endpoint` does not decorate ViewSet classes. Use `VersionedRouter` for DRF `SimpleRouter` routing. `VersionedRouterVersioning` resolves the concrete route namespace; `VersionNegotiationMiddleware` selects non-path transports before URL resolution.
 - For website tasks, read `website/AGENTS.md` for site-specific constraints. Shared repository and Git policy in this file always takes precedence.
 - Do not add model SDKs, agent frameworks, MCP servers, telemetry exporters, or LLM evaluation services to package runtime dependencies for repository automation.
 
