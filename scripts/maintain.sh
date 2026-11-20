@@ -69,9 +69,11 @@ PY
 wait_for_workflow() {
   local workflow="$1" commit="$2" description="$3"
   local timeout="${RELEASE_WAIT_TIMEOUT_SECONDS:-3600}" interval="${RELEASE_POLL_INTERVAL_SECONDS:-15}"
-  local deadline=$((SECONDS + timeout)) runs run_id status conclusion run_url
+  local deadline runs run_id status conclusion run_url
 
   [[ "$timeout" =~ ^[0-9]+$ && "$interval" =~ ^[0-9]+$ ]] || die "Release wait timeout and poll interval must be integers."
+  (( timeout > 0 && interval > 0 )) || die "Release wait timeout and poll interval must be greater than zero."
+  deadline=$((SECONDS + timeout))
   echo "Waiting for $description (timeout: ${timeout}s)..."
   while (( SECONDS < deadline )); do
     runs="$(gh run list --repo "$REPO" --workflow "$workflow" --commit "$commit" --limit 20 --json databaseId,status,conclusion,event,headSha,url)"
@@ -86,13 +88,13 @@ wait_for_workflow() {
         return 0
       fi
       echo "Workflow run #$run_id is $status: $run_url"
-      gh run watch "$run_id" --repo "$REPO" --exit-status || die "$description failed. Inspect: $run_url"
+      sleep "$interval"
     else
       echo "No $description run found yet for commit $commit; checking again..."
       sleep "$interval"
     fi
   done
-  die "Timed out waiting for $description after ${timeout}s. No tag or publication rollback was attempted."
+  die "Timed out waiting for $description after ${timeout}s. Existing release state was left intact; rerun the same command to resume."
 }
 
 release_source_check() {
