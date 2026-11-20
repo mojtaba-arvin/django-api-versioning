@@ -166,6 +166,13 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["agent"])
         self.assertFalse(result["python"])
 
+    def test_release_tag_helpers_run_agent_validation(self):
+        result = classify_paths(
+            ["scripts/release_tags.py", "scripts/test_release_tags.py"]
+        )
+        self.assertTrue(result["agent"])
+        self.assertFalse(result["python"])
+
     def test_unknown_markdown_does_not_trigger_unrelated_workflows(self):
         result = classify_paths(["docs/notes/internal-design.md"])
         self.assertFalse(any(result.values()))
