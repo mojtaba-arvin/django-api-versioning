@@ -73,6 +73,94 @@ PY
     --title "django-api-versioning $v" --notes-file "$notes_file"
 }
 
+wait_for_workflow() {
+  local workflow="$1" commit="$2" description="$3"
+  local timeout="${RELEASE_WAIT_TIMEOUT_SECONDS:-3600}" interval="${RELEASE_POLL_INTERVAL_SECONDS:-15}"
+  local deadline=$((SECONDS + timeout)) runs run_id status conclusion run_url
+
+  [[ "$timeout" =~ ^[0-9]+$ && "$interval" =~ ^[0-9]+$ ]] || die "Release wait timeout and poll interval must be integers."
+  echo "Waiting for $description (timeout: ${timeout}s)..."
+  while (( SECONDS < deadline )); do
+    runs="$(gh run list --repo "$REPO" --workflow "$workflow" --commit "$commit" --limit 20 --json databaseId,status,conclusion,event,headSha,url)"
+    run_id="$(printf '%s' "$runs" | jq -r --arg sha "$commit" '[.[] | select(.headSha == $sha and .event == "push")][0].databaseId // empty')"
+    if [[ -n "$run_id" ]]; then
+      status="$(printf '%s' "$runs" | jq -r --argjson id "$run_id" '.[] | select(.databaseId == $id) | .status')"
+      conclusion="$(printf '%s' "$runs" | jq -r --argjson id "$run_id" '.[] | select(.databaseId == $id) | .conclusion // empty')"
+      run_url="$(printf '%s' "$runs" | jq -r --argjson id "$run_id" '.[] | select(.databaseId == $id) | .url')"
+      if [[ "$status" == completed ]]; then
+        [[ "$conclusion" == success ]] || die "$description failed ($conclusion): $run_url"
+        echo "PASS: $description ($run_url)"
+        return 0
+      fi
+      echo "Workflow run #$run_id is $status: $run_url"
+      gh run watch "$run_id" --repo "$REPO" --exit-status || die "$description failed. Inspect: $run_url"
+    else
+      echo "No $description run found yet for commit $commit; checking again..."
+      sleep "$interval"
+    fi
+  done
+  die "Timed out waiting for $description after ${timeout}s. No tag or publication rollback was attempted."
+}
+
+release_source_check() {
+  local v="$1" actual
+  version_check "$v"; auth; need git; need python3; need jq
+  [[ "$(git branch --show-current)" == main ]] || die "Switch to main first."
+  [[ -z "$(git status --porcelain)" ]] || die "Working tree must be clean."
+  git fetch origin --prune
+  [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || die "Local main must exactly match origin/main."
+  actual="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"])')"
+  [[ "$actual" == "$v" ]] || die "pyproject.toml version is $actual, not $v."
+  grep -Eq "^## [$v] - " CHANGELOG.md || die "Missing dated CHANGELOG.md section for [$v]."
+}
+
+release_finish() {
+  local v="$1" tag="v$1" commit local_type remote_ref remote_type remote_tag_sha remote_commit
+  version_check "$v"; auth; need git; need jq; need curl; need python3
+  release_source_check "$v"
+  commit="$(git rev-parse HEAD)"
+
+  # Resume safely if a previous attempt already created or pushed this exact tag.
+  if git show-ref --verify --quiet "refs/tags/$tag"; then
+    local_type="$(git cat-file -t "refs/tags/$tag")"
+    [[ "$local_type" == tag ]] || die "Local $tag is lightweight; refusing to publish."
+    [[ "$(git rev-parse "$tag^{commit}")" == "$commit" ]] || die "Local $tag does not point to current main."
+  fi
+  remote_ref="$(gh api "repos/$REPO/git/ref/tags/$tag" 2>/dev/null || true)"
+  if [[ -n "$remote_ref" ]]; then
+    remote_type="$(printf '%s' "$remote_ref" | jq -r '.object.type')"
+    remote_tag_sha="$(printf '%s' "$remote_ref" | jq -r '.object.sha')"
+    [[ "$remote_type" == tag ]] || die "Remote $tag is not annotated; refusing to publish."
+    remote_commit="$(gh api "repos/$REPO/git/tags/$remote_tag_sha" --jq '.object.sha')"
+    [[ "$remote_commit" == "$commit" ]] || die "Remote $tag points to $remote_commit, not current main $commit."
+    if ! git show-ref --verify --quiet "refs/tags/$tag"; then
+      git fetch origin "refs/tags/$tag:refs/tags/$tag"
+    fi
+    echo "Existing remote tag $tag is valid; resuming release."
+  else
+    if git show-ref --verify --quiet "refs/tags/$tag"; then
+      echo "Pushing existing local annotated tag $tag..."
+    else
+      ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1 || die "Tag $tag exists remotely but could not be resolved through GitHub API."
+      git tag -a "$tag" -m "Release $tag"
+    fi
+    git push origin "refs/tags/$tag" || die "Could not push $tag. Check the v* tag ruleset and your GitHub permissions; no PyPI publication was started."
+  fi
+
+  wait_for_workflow publish.yml "$commit" "the complete release workflow (build, PyPI publication, and GitHub Release)"
+  local published release_url
+  published="$(curl --fail --silent --show-error "https://pypi.org/pypi/django-api-versioning/$v/json" | jq -r '.info.version')"
+  [[ "$published" == "$v" ]] || die "Release workflow succeeded but PyPI does not report version $v."
+  release_url="$(gh release view "$tag" --repo "$REPO" --json url --jq .url)" || die "PyPI publication succeeded, but GitHub Release $tag is not visible yet."
+  echo
+  echo "RELEASE COMPLETE"
+  echo "  Version:        $v"
+  echo "  Commit:         $commit"
+  echo "  Git tag:        $tag"
+  echo "  PyPI:           https://pypi.org/project/django-api-versioning/$v/"
+  echo "  GitHub Release: $release_url"
+}
+
 release() {
   local action="$1" v="$2" tag="v$2"
   case "$action" in
@@ -81,8 +169,9 @@ release() {
       preflight "$v"
       git tag -a "$tag" -m "Release $tag"
       git push origin "refs/tags/$tag"
-      echo "Pushed $tag. GitHub Actions will publish to PyPI and create the GitHub Release."
+      echo "Pushed $tag. Use 'release finish' to wait for and verify the complete publication."
       ;;
+    finish) release_finish "$v" ;;
     create) create_github_release "$v" ;;
     status)
       version_check "$v"; auth; need curl; need jq
@@ -127,7 +216,7 @@ branches() {
   else printf 'Dry run: %s candidate(s), %s retained. Use --apply to delete only merged branches.\n' "$safe" "$kept"; fi
 }
 case "${1:-}" in
-  release) [[ "$#" -eq 3 ]] || die "Usage: scripts/maintain.sh release {preflight|tag|create|status} VERSION"; release "$2" "$3" ;;
+  release) [[ "$#" -eq 3 ]] || die "Usage: scripts/maintain.sh release {preflight|tag|finish|create|status} VERSION"; release "$2" "$3" ;;
   branches) [[ "$#" -le 2 ]] || die "Usage: scripts/maintain.sh branches [--apply]"; if [[ "${2:-}" == --apply ]]; then branches --apply; else branches; fi ;;
   -h|--help|help) echo "Usage: scripts/maintain.sh release {preflight|tag|create|status} VERSION | branches [--apply]" ;;
   *) die "Unknown command. Use --help." ;;
