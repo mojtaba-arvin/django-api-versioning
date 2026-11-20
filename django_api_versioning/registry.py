@@ -50,6 +50,7 @@ class UrlRegistry:
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
+        self._router_removal_boundaries: dict[str, set[int]] = {}
         self._removed_patterns: dict[tuple[str, int], URLPattern] = {}
         self._endpoint_lifecycle: dict[
             tuple[str, int, str | None, str | None], EndpointLifecycle
@@ -59,10 +60,17 @@ class UrlRegistry:
         """Clear active routes and removal declarations."""
         self.urlpatterns.clear()
         self._removal_boundaries.clear()
+        self._router_removal_boundaries.clear()
         self._removed_patterns.clear()
         self._endpoint_lifecycle.clear()
 
-    def remove(self, logical_endpoint: str, from_version: int) -> None:
+    def remove(
+        self,
+        logical_endpoint: str,
+        from_version: int,
+        *,
+        owner: object | None = None,
+    ) -> None:
         """Suppress an endpoint from a concrete version until reintroduced."""
         if not isinstance(logical_endpoint, str) or not logical_endpoint:
             raise TypeError("logical_endpoint must be a non-empty string.")
@@ -79,11 +87,18 @@ class UrlRegistry:
                 f"version {api_settings.API_MIN_VERSION}."
             )
 
-        self._removal_boundaries.setdefault(logical_endpoint, set()).add(from_version)
+        boundaries = (
+            self._removal_boundaries
+            if owner is None
+            else self._router_removal_boundaries
+        )
+        boundaries.setdefault(logical_endpoint, set()).add(from_version)
 
         for index in range(len(self.urlpatterns) - 1, -1, -1):
             pattern = self.urlpatterns[index]
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
+                continue
+            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
                 continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
@@ -101,6 +116,8 @@ class UrlRegistry:
         preserved_versions = set()
         for pattern in self.urlpatterns:
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
+                continue
+            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
                 continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
@@ -124,10 +141,16 @@ class UrlRegistry:
         self,
         logical_endpoint: str | None,
         route_version: int | None,
+        owner: object | None = None,
     ) -> int | None:
         if logical_endpoint is None or route_version is None:
             return None
-        boundaries = self._removal_boundaries.get(logical_endpoint, set())
+        boundary_registry = (
+            self._removal_boundaries
+            if owner is None
+            else self._router_removal_boundaries
+        )
+        boundaries = boundary_registry.get(logical_endpoint, set())
         applicable = [boundary for boundary in boundaries if boundary <= route_version]
         return max(applicable) if applicable else None
 
@@ -136,8 +159,9 @@ class UrlRegistry:
         logical_endpoint: str | None,
         route_version: int | None,
         source_version: int | None,
+        owner: object | None = None,
     ) -> bool:
-        boundary = self._removal_boundary(logical_endpoint, route_version)
+        boundary = self._removal_boundary(logical_endpoint, route_version, owner)
         return boundary is not None and (
             source_version is None or source_version <= boundary
         )
