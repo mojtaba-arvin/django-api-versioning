@@ -119,12 +119,7 @@ class UrlRegistry:
                 continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
-            if (
-                route_version is not None
-                and route_version >= from_version
-                and source_version is not None
-                and source_version > from_version
-            ):
+            if route_version is not None and route_version >= from_version:
                 preserved_versions.add(route_version)
         for key in list(self._endpoint_lifecycle):
             endpoint, version, _, _ = key
