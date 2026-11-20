@@ -286,8 +286,7 @@ class APISettings:
             or self.API_VERSIONING_SCHEME not in allowed_schemes
         ):
             raise VersioningError(
-                "API_VERSIONING_SCHEME must be one of "
-                f"{sorted(allowed_schemes)}."
+                "API_VERSIONING_SCHEME must be one of " f"{sorted(allowed_schemes)}."
             )
 
         for setting_name, value in (
@@ -318,7 +317,9 @@ class APISettings:
             )
 
         if not isinstance(self.API_VERSIONING_HOSTS, dict):
-            raise VersioningError("API_VERSIONING_HOSTS must be a hostname-to-version dict.")
+            raise VersioningError(
+                "API_VERSIONING_HOSTS must be a hostname-to-version dict."
+            )
         normalized_hosts: dict[str, int] = {}
         for hostname, version in self.API_VERSIONING_HOSTS.items():
             if (
