@@ -9,6 +9,8 @@
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
 >
+> **Unreleased mainline addition:** `VersionedDefaultRouter` adds version-specific API roots and optional format-suffix routes on top of the existing `VersionedRouter` registry. This addition is not part of the published 1.3.0 artifact until a later release is published.
+>
 > It is the canonical reference for technical claims about these behaviors. If another package document conflicts with this contract, verify the implementation and tests before changing either document.
 
 ## 1. Version identifiers
@@ -49,8 +51,14 @@ For application code and documentation examples, prefer the top-level import pat
 The optional DRF integration is deliberately imported from its own module so Django-only installations do not need DRF:
 
 ```python
-from django_api_versioning.routers import VersionedRouter, VersionedRouterVersioning
+from django_api_versioning.routers import (
+    VersionedDefaultRouter,
+    VersionedRouter,
+    VersionedRouterVersioning,
+)
 ```
+
+`VersionedDefaultRouter` is an unreleased mainline addition; use it after the version that includes it is published, or from the current repository source.
 
 Import the generated URL patterns from:
 
@@ -395,13 +403,32 @@ router.register("orders", OrderViewSetV2, version=2, basename="order")
 urlpatterns = router.urls
 ```
 
-The router delegates route generation to DRF's `SimpleRouter`, preserves the generated URLPattern objects, and registers each concrete route version in the package registry. It supports standard list/detail routes, custom `@action` routes, path converters, regex routes, and trailing-slash configuration. `DefaultRouter` API-root and format-suffix parity are not part of this integration.
+The router delegates route generation to DRF's `SimpleRouter`, preserves the generated URLPattern objects, and registers each concrete route version in the package registry. It supports standard list/detail routes, custom `@action` routes, path converters, regex routes, and trailing-slash configuration. The base `VersionedRouter` does not add an API root or format-suffix patterns.
 
 Configure `VersionedRouterVersioning` as DRF's `DEFAULT_VERSIONING_CLASS` or on the relevant ViewSet when you need `request.version`, `reverse_action()`, or version-aware hyperlinked fields. The adapter returns the numeric version as a string (for example, `"2"`) and preserves nested URL namespaces during reversal.
 
 A manually configured callable such as `MyViewSet.as_view({"get": "list"})` remains valid for a single route, but it does not provide the complete router-generated route set.
 
 The router uses per-route inheritance: a later ViewSet replaces matching routes while earlier custom actions that are not redeclared remain inherited. Remove one generated route/action without removing the rest of the ViewSet by using its URL name:
+
+### VersionedDefaultRouter (unreleased mainline addition)
+
+Use `VersionedDefaultRouter` when a ViewSet API also needs a version-specific API root and DRF format suffixes:
+
+```python
+from django_api_versioning.routers import VersionedDefaultRouter
+
+router = VersionedDefaultRouter()
+router.register("orders", OrderViewSetV1, version=1, basename="order")
+router.register("orders", OrderViewSetV2, version=2, basename="order")
+urlpatterns = router.urls
+```
+
+The API root is mounted at each concrete `API_BASE_PATH` (for example, `/api/v1/`) and uses that version's namespace-aware reversal. Its links are derived from the effective list routes after route inheritance and explicit removals; a removed list route is not advertised by the corresponding version's root. The API root is DRF's standard `DefaultRouter.APIRootView` and remains excluded from OpenAPI schema generation.
+
+Format suffixes are enabled by default and add forms such as `/api/v2/orders.json`; the suffixed API root is `/api/v2/.json`. Set `include_root_view=False` and/or `include_format_suffixes=False` to disable either feature independently. Suffix patterns are alternate URL forms for the same callbacks; they do not add separate logical route-matrix entries.
+
+This is not a full drop-in subclass of DRF `DefaultRouter` and does not reproduce every third-party router extension or schema-view hook. Use one root-owning router per API root path; disable extra roots or mount additional routers under distinct URL prefixes/namespaces.
 
 A single Django project may use multiple `VersionedRouter` instances when their generated route patterns are distinct. The package registry is shared across router instances; registering the same internal route pattern from two different routers is rejected with `VersioningError`, even if the routers are mounted under different outer Django namespaces. Use distinct route prefixes rather than relying on outer namespaces to disambiguate identical generated paths. This prevents one router from silently replacing another router's ViewSet or sharing its lifecycle metadata.
 
@@ -438,7 +465,7 @@ Relevant request-level compatibility tests may need to cover:
 - Error responses.
 - Schema output.
 
-The package manages routing. It does not decide whether a change is backward compatible, maintain a semantic API contract, or automatically version OpenAPI schemas.
+The package manages routing. It does not decide whether a change is semantically backward compatible, transform serializer or response payloads, or automatically generate OpenAPI schemas. Treat routing, representation/schema, and runtime semantics as separate contracts; see [API compatibility boundaries](../design/api-compatibility-boundaries.md) for the corresponding guardrails.
 
 ## 9. Function names and URL names
 
@@ -702,7 +729,7 @@ It does not:
 - Automatically make response schemas backward-compatible or transform serializers and response payloads.
 - Select serializers based on a request version.
 - Replace DRF authentication, permission, throttle, filter, pagination, or renderer behavior.
-- Provide `DefaultRouter` API-root or format-suffix behavior; the current integration targets `SimpleRouter`.
+- Make `VersionedRouter` itself add an API root or format-suffix routes. The unreleased mainline `VersionedDefaultRouter` adds those two conveniences, but is not a full drop-in reimplementation of every DRF `DefaultRouter` extension.
 - Infer endpoint removal from an omitted import or missing ViewSet action; use remove_endpoint() or VersionedRouter.remove() to declare it explicitly.
 - Combine multiple request-version transports as a fallback chain. A deployment selects exactly one `API_VERSIONING_SCHEME`; `API_VERSIONING_CHANNELS` remains deprecated and inert. Tenant-pinned policy through `API_EFFECTIVE_VERSION_RESOLVER` is not implemented.
 - Validate response payload compatibility through route-matrix checks.
@@ -727,6 +754,7 @@ The contract above is based on the following implementation and project files:
 - [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/README.md)
 - [DRF ViewSets documentation](https://www.django-rest-framework.org/api-guide/viewsets/)
 - [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/)
+- [API compatibility boundaries](../design/api-compatibility-boundaries.md)
 - [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/)
 
 
