@@ -217,7 +217,7 @@ class VersionedRouter:
                 f"Router does not own an active route for {logical_endpoint!r}."
             )
 
-        registry.remove(logical_endpoint, from_version)
+        registry.remove(logical_endpoint, from_version, owner=self._registry_owner)
 
     def set_lifecycle(
         self,
