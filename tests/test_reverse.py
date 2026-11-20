@@ -1,5 +1,6 @@
 import pytest
 from django.http import JsonResponse
+from django.test import Client
 from django.urls import NoReverseMatch, re_path, register_converter
 
 from django_api_versioning import api_reverse
@@ -224,3 +225,14 @@ def test_explicit_version_rejects_duplicate_view_names():
 
     with pytest.raises(NoReverseMatch, match="registered more than once"):
         api_reverse("duplicate-route", version=1)
+
+def test_api_reverse_percent_encodes_reserved_path_characters_for_round_trip():
+    @endpoint("search/<str:query>/", version=1, view_name="search-query")
+    def search(request, query):
+        return JsonResponse({"query": query})
+
+    url = api_reverse("search-query", version=1, query="a?b")
+    response = Client().get(url)
+
+    assert response.status_code == 200
+    assert response.json() == {"query": "a?b"}
