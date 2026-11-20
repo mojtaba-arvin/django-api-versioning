@@ -80,22 +80,19 @@ A package release is separate from a website deployment. A website deployment do
 
 A release requires explicit authorization for a specific version. Prepare the version bump, dated `CHANGELOG.md` entry, and approved documentation changes on one short-lived `release/vX.Y.Z` branch. Open a PR to `main`; do not tag or publish from that branch.
 
-After the PR is merged, update the local clone and run the repository maintainer helper:
+After the release PR is merged, update the local clone and run **one command**:
 
 ```bash
 git switch main
 git pull --ff-only origin main
-bash scripts/maintain.sh release preflight X.Y.Z
-bash scripts/maintain.sh release tag X.Y.Z
+bash scripts/maintain.sh release finish X.Y.Z
 ```
 
-Replace `X.Y.Z` with the exact version in `pyproject.toml`. The preflight requires a clean working tree, local `main` exactly equal to `origin/main`, matching package metadata, a dated changelog section, and an unused tag. The tag command creates an annotated tag and pushes only that tag. The protected `v*` tag ruleset still restricts tag creation to repository administrators.
+Replace `X.Y.Z` with the exact version in `pyproject.toml`. The `finish` command performs the complete release transaction: validates the clean, up-to-date main checkout and version/changelog metadata; waits for a successful full compatibility workflow on that exact commit; creates and pushes the annotated `vX.Y.Z` tag (or safely resumes an already-pushed matching tag); waits for the tag-triggered `publish.yml` workflow to finish; and verifies both the PyPI version and GitHub Release URL before reporting success. It stops on any failed gate and never bypasses repository rulesets. The protected `v*` tag ruleset still requires an account authorized to create release tags.
 
-The tag workflow verifies the annotated tag and main ancestry, runs the full compatibility and OpenAPI contract gates, builds and validates the distributions, and publishes to PyPI. Only after PyPI publication succeeds, a separate least-privilege job creates the GitHub Release using that version's changelog entry. For a tag published before this automation is merged, create its GitHub Release once with `bash scripts/maintain.sh release create X.Y.Z`. This command requires an annotated remote tag, a successful PyPI publish workflow run, the matching version on PyPI, and a dated changelog entry. Future releases create the GitHub Release automatically. Check the complete outcome with:
+The default workflow wait timeout is 60 minutes. Set `RELEASE_WAIT_TIMEOUT_SECONDS` to override it; `RELEASE_POLL_INTERVAL_SECONDS` controls polling frequency. If the command is interrupted after pushing the tag, rerun the same `release finish X.Y.Z` command to resume and verify the existing release rather than creating another tag.
 
-```bash
-bash scripts/maintain.sh release status X.Y.Z
-```
+The lower-level `preflight`, `tag`, `create`, and `status` actions remain available for diagnosis and legacy recovery, but the supported human release path is `release finish`. GitHub Release creation is performed by `publish.yml` only after successful PyPI publication; do not manually create the Release during a normal release.
 
 For branch hygiene, `bash scripts/maintain.sh branches` reports safe deletion candidates without changing anything. Add `--apply` to delete only unprotected branches whose commits are already reachable from `main` and which have no open PR. Unmerged branches are always retained for manual review.
 
