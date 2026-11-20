@@ -34,7 +34,9 @@ def format_negotiated_url(
     if scheme == "path":
         return url
 
-    api_base_path = getattr(django_settings, "API_BASE_PATH", api_settings.API_BASE_PATH)
+    api_base_path = getattr(
+        django_settings, "API_BASE_PATH", api_settings.API_BASE_PATH
+    )
     unversioned_base_path = getattr(
         django_settings, "API_UNVERSIONED_BASE_PATH", "api/"
     )
