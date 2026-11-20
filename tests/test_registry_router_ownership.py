@@ -206,9 +206,14 @@ def test_public_remove_endpoint_cannot_remove_router_owned_routes():
     original = next(
         pattern
         for pattern in registry.urlpatterns
-        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
+        if (
+            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+            == logical_endpoint
+        )
     )
-    removal_boundaries = set(registry._removal_boundaries.get(logical_endpoint, set()))
+    removal_boundaries = set(
+        registry._removal_boundaries.get(logical_endpoint, set())
+    )
 
     with pytest.raises(VersioningError, match="VersionedRouter"):
         remove_endpoint(logical_endpoint, from_version=1)
@@ -219,4 +224,7 @@ def test_public_remove_endpoint_cannot_remove_router_owned_routes():
         for container in router.urls
         for child in getattr(container, "url_patterns", [container])
     )
-    assert registry._removal_boundaries.get(logical_endpoint, set()) == removal_boundaries
+    assert (
+        registry._removal_boundaries.get(logical_endpoint, set())
+        == removal_boundaries
+    )
