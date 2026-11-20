@@ -9,7 +9,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from django_api_versioning import endpoint
+from django_api_versioning import endpoint, remove_endpoint
 from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
@@ -195,9 +195,7 @@ def test_multi_version_decorator_registration_rolls_back_after_late_router_colli
 
 
 def test_public_remove_endpoint_cannot_remove_router_owned_routes():
-    """The decorator removal API must not cross the router ownership boundary."""
-    from django_api_versioning import remove_endpoint
-
+    """Decorator removal must not cross the VersionedRouter ownership boundary."""
     class OrdersViewSet(viewsets.ViewSet):
         def list(self, request):
             return Response([])
@@ -208,12 +206,17 @@ def test_public_remove_endpoint_cannot_remove_router_owned_routes():
     original = next(
         pattern
         for pattern in registry.urlpatterns
-        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
-        == logical_endpoint
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
     )
+    removal_boundaries = set(registry._removal_boundaries.get(logical_endpoint, set()))
 
     with pytest.raises(VersioningError, match="VersionedRouter"):
         remove_endpoint(logical_endpoint, from_version=1)
 
     assert any(pattern is original for pattern in registry.urlpatterns)
-    assert any(pattern is original for pattern in router.urls)
+    assert any(
+        child is original
+        for container in router.urls
+        for child in getattr(container, "url_patterns", [container])
+    )
+    assert registry._removal_boundaries.get(logical_endpoint, set()) == removal_boundaries
