@@ -1,9 +1,9 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Latest published release:** `django-api-versioning` `1.2.2`, from the annotated `v1.2.2` tag. See the [v1.2.2 GitHub Release](https://github.com/mojtaba-arvin/django-api-versioning/releases/tag/v1.2.2) for the published artifact and release evidence.
+> **Latest published release:** `django-api-versioning` `1.3.0`, from the annotated `v1.3.0` tag. See the [v1.3.0 GitHub Release](https://github.com/mojtaba-arvin/django-api-versioning/releases/tag/v1.3.0) for the published artifact and release evidence.
 >
-> **Published feature baseline:** Explicit endpoint removal (`remove_endpoint()` / `VersionedRouter.remove()`) and endpoint-level lifecycle metadata (`set_endpoint_lifecycle()` / `VersionedRouter.set_lifecycle()`, including `EndpointLifecycleAutoSchema`) have been available since `1.2.0` and remain part of `1.2.2`. The executable OpenAPI consumer example, its `oasdiff` CI gate, the new schema snapshot helper, and the request-negotiation middleware are repository-level changes until included in a published release; do not attribute unreleased APIs to the PyPI `1.2.2` wheel.
+> **Published feature baseline:** The `1.3.0` release includes multi-transport request-version negotiation through `VersionNegotiationMiddleware`, the `assert_schema_snapshot()` contract-test helper, the `VersionedRouter` integration, explicit endpoint removal, and endpoint-level lifecycle metadata (including `EndpointLifecycleAutoSchema`). The executable OpenAPI consumer example, its `oasdiff` CI gate, and the consumer-owned adapter example remain repository-level adoption and validation resources rather than package runtime dependencies.
 >
 > The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
@@ -556,7 +556,7 @@ Django REST Framework provides versioning schemes such as:
 
 The package does not reimplement these general parsers. Its path-based `VersionedRouter` uses `VersionedRouterVersioning`, which reads the concrete `vN` namespace emitted by the router and exposes that numeric version as `request.version`. The adapter also preserves the full resolver namespace for `reverse_action()` and hyperlinked serializers.
 
-This does not activate header, query-parameter, host, or tenant-based route negotiation. Those channels require a separate runtime-dispatch contract, cache behavior, and reversal semantics; the reserved `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` settings still have no runtime effect. See the product roadmap in Issue #36.
+For request negotiation, the package's `VersionNegotiationMiddleware` supports one configured transport per deployment: path, header, query parameter, or exact hostname. It resolves the selected version before Django URL resolution and preserves the registered callback as the dispatch source of truth. `API_VERSIONING_CHANNELS` remains deprecated and inert; `API_EFFECTIVE_VERSION_RESOLVER` remains a reserved policy hook, so tenant-pinned version policy is not implemented.
 
 Do not configure DRF's `URLPathVersioning` as a substitute for `VersionedRouterVersioning`: the former expects a version value in a URL resolver keyword argument, while this package's router uses literal version path segments and version namespaces.
 
@@ -704,7 +704,7 @@ It does not:
 - Replace DRF authentication, permission, throttle, filter, pagination, or renderer behavior.
 - Provide `DefaultRouter` API-root or format-suffix behavior; the current integration targets `SimpleRouter`.
 - Infer endpoint removal from an omitted import or missing ViewSet action; use remove_endpoint() or VersionedRouter.remove() to declare it explicitly.
-- Enable header, query-parameter, host, or tenant-based route negotiation. `API_VERSIONING_CHANNELS` and `API_EFFECTIVE_VERSION_RESOLVER` remain reserved settings with no runtime effect.
+- Combine multiple request-version transports as a fallback chain. A deployment selects exactly one `API_VERSIONING_SCHEME`; `API_VERSIONING_CHANNELS` remains deprecated and inert. Tenant-pinned policy through `API_EFFECTIVE_VERSION_RESOLVER` is not implemented.
 - Validate response payload compatibility through route-matrix checks.
 - Automatically generate or serve versioned OpenAPI schemas. Projects using drf-spectacular can opt into the endpoint lifecycle adapter documented in Section 13; schema compatibility still requires explicit baselines, diffs, and request-level contract tests.
 
@@ -721,6 +721,8 @@ The contract above is based on the following implementation and project files:
 - [lifecycle.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py)
 - [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/urls.py)
 - [settings.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/settings.py)
+- [negotiation.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/negotiation.py)
+- [testing.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/testing.py)
 - [integration URLconf](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/integration_test_project/project/urls.py)
 - [README and installation requirements](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/README.md)
 - [DRF ViewSets documentation](https://www.django-rest-framework.org/api-guide/viewsets/)
@@ -728,10 +730,10 @@ The contract above is based on the following implementation and project files:
 - [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/)
 
 
-## 16. Request-version negotiation (development-branch feature)
+## 16. Request-version negotiation (available since 1.3.0)
 
-The published `1.2.2` contract is URL-path routing only. The development branch adds
-`VersionNegotiationMiddleware` for deployments that need a versionless URL.
+The package supports `VersionNegotiationMiddleware` for deployments that need a
+versionless public URL or a request-version transport other than the URL path.
 It selects one transport for the deployment and internally rewrites the
 unversioned API path to the package's existing versioned path **before Django's
 URL resolver runs**. The registry and the existing `VersionedRouter` still

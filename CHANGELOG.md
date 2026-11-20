@@ -7,11 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-21
+
 ### Added
 
-- Add one-scheme-per-deployment request negotiation for path, Accept/Accept-Version header, query parameter, and exact hostname mapping. Non-path versions are dispatched through the existing registered URL patterns by middleware before Django URL resolution.
-- Add `assert_schema_snapshot()` for reviewed, deterministic OpenAPI contract snapshots without adding schema tooling to runtime dependencies.
-- Add a consumer-owned versioning adapter example and project governance guidance for maintainer succession, PyPI ownership, and release continuity.
+- Add one-scheme-per-deployment request negotiation for URL paths, `Accept-Version` / DRF `Accept` headers, query parameters, and exact hostname mappings. Non-path versions are dispatched through the existing registered URL patterns before Django URL resolution.
+- Add `assert_schema_snapshot()` for deterministic, reviewed OpenAPI schema snapshots without adding schema tooling to runtime dependencies.
+- Add a consumer-owned versioning adapter example so applications can isolate package imports and later replace the routing layer with Django URLConf declarations or DRF routers.
+- Add maintainer succession, PyPI ownership, and release-continuity guidance in `GOVERNANCE.md`.
+
+### Compatibility
+
+- Keep URL-path versioning as the default. Non-path negotiation is opt-in and selects exactly one transport per deployment; it does not introduce a fallback chain or tenant-specific version policy.
+- Keep Django REST Framework optional at runtime. The OpenAPI consumer example, its `oasdiff` gate, and the consumer adapter example remain repository-level adoption and validation resources rather than package runtime dependencies.
+
+### Verification
+
+- Gate release publication on the exact tagged commit's full Python/Django compatibility matrix, versioned OpenAPI consumer contract, strict distribution metadata checks, isolated installed-wheel smoke test, and package-content validation.
 
 ## [1.2.2] - 2026-11-20
 
