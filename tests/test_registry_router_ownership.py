@@ -228,3 +228,22 @@ def test_public_remove_endpoint_cannot_remove_router_owned_routes():
         registry._removal_boundaries.get(logical_endpoint, set())
         == removal_boundaries
     )
+
+
+def test_decorator_removal_boundary_does_not_suppress_router_registration():
+    """A decorator tombstone must not preempt a later Router declaration."""
+    logical_endpoint = "orders:order-list"
+    remove_endpoint(logical_endpoint, from_version=1)
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+
+    assert any(
+        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
+        for pattern in registry.urlpatterns
+    )
