@@ -1,6 +1,6 @@
 # django-api-versioning reference
 
-This page summarizes the public settings, endpoint decorator, DRF `VersionedRouter` integration, request-version negotiation, exceptions, and management tools for `django-api-versioning`. The latest published package release is **1.3.0**. It includes the `VersionNegotiationMiddleware` and `assert_schema_snapshot()` additions alongside the `VersionedRouter`, explicit endpoint removal, and endpoint-level lifecycle declarations. The executable OpenAPI consumer example, its `oasdiff` gate, and the consumer-owned adapter example are repository-level adoption and validation resources, not package runtime dependencies. For exact routing semantics and compatibility boundaries, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+This page summarizes the public settings, endpoint decorator, DRF `VersionedRouter` and `VersionedDefaultRouter` integrations, request-version negotiation, exceptions, and management tools for `django-api-versioning`. The latest published package release is **1.3.0**. It includes the `VersionNegotiationMiddleware` and `assert_schema_snapshot()` additions alongside the `VersionedRouter`, explicit endpoint removal, and endpoint-level lifecycle declarations. The executable OpenAPI consumer example, its `oasdiff` gate, and the consumer-owned adapter example are repository-level adoption and validation resources, not package runtime dependencies. For exact routing semantics and compatibility boundaries, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Installation
 
@@ -169,7 +169,23 @@ A later ViewSet replaces only matching generated routes. A custom action that ex
 
 The router constructor's `app_name` is Django URL resolver metadata; it is unrelated to the `app_name` path-segment argument accepted by `@endpoint`. If multiple router instances are mounted in one URLconf, include each under a distinct outer namespace so their per-version namespaces do not collide.
 
-The initial integration supports `SimpleRouter`, not `DefaultRouter` API-root or format-suffix behavior. It does not transform serializers or response payloads. A route omitted from a later ViewSet remains inherited; declare removal explicitly with `VersionedRouter.remove()` (or `remove_endpoint()` for decorator endpoints). Removed routes are absent from runtime routing and URL reversal at the removal boundary, while earlier versions remain available; a later source declaration can explicitly reintroduce the route. See the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#4-registration-semantics) and [Versioned DRF ViewSet guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for details.
+The published `VersionedRouter` integration targets `SimpleRouter`; it does not add an API root or format-suffix patterns. The unreleased mainline `VersionedDefaultRouter` adds a version-specific API root and optional DRF format-suffix routes on top of the same registry. Its API root lists only effective list routes for that version after inheritance and explicit removals. It is not a full drop-in reimplementation of every DRF `DefaultRouter` extension. These new conveniences are not included in the published 1.3.0 artifact until a later release is published. Neither router transforms serializers or response payloads. A route omitted from a later ViewSet remains inherited; declare removal explicitly with `VersionedRouter.remove()` (or `remove_endpoint()` for decorator endpoints). Removed routes are absent from runtime routing and URL reversal at the removal boundary, while earlier versions remain available; a later source declaration can explicitly reintroduce the route. See the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md#4-registration-semantics), [Versioned DRF router design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/versioned-drf-router.md), and [API compatibility boundaries](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/api-compatibility-boundaries.md) for details.
+
+### VersionedDefaultRouter (unreleased mainline addition)
+
+When a DRF ViewSet API also needs a browsable API root and `.json` routes, use the new router from the current repository source:
+
+~~~python title="project/urls.py"
+from django_api_versioning.routers import VersionedDefaultRouter
+from orders.views import OrderViewSetV1, OrderViewSetV2
+
+router = VersionedDefaultRouter()
+router.register("orders", OrderViewSetV1, version=1, basename="order")
+router.register("orders", OrderViewSetV2, version=2, basename="order")
+urlpatterns = router.urls
+~~~
+
+Each version receives its own root (for example, `/api/v1/` and `/api/v2/`). Its links reflect the effective route set for that version, not raw registrations. Format suffixes are enabled by default; disable the API root with `include_root_view=False` or suffixes with `include_format_suffixes=False`. The suffixed root uses `/api/v2/.json`. This is a mainline addition and is not importable from the published 1.3.0 wheel until a release containing it is published.
 
 ## Explicit endpoint removal (available since 1.2.0)
 
