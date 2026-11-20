@@ -91,15 +91,15 @@ Commit the generated `uv.lock` alongside the metadata change. Never hand-edit it
 
 A release PR is blocked until the required `PR gate` succeeds for its **latest head SHA**. Inspect actual failed job/step logs; fix failures on the release branch and wait for the new run to finish. A majority of green checks, skipped checks, a previous green run, or a mergeability hint does not override a failed/pending required gate. Do not use `--admin` or any other bypass to merge around branch protection. Merge only after the gate reports success.
 
-After the release PR is merged, update the local clone and run **one command**:
+After the release PR is merged, open a terminal in the repository directory and run this single, memorable command:
 
 ```bash
-git switch main
-git pull --ff-only origin main
-bash scripts/maintain.sh release finish X.Y.Z
+make release
 ```
 
-Replace `X.Y.Z` with the exact version in `pyproject.toml`. The `finish` command performs the complete release transaction: validates the clean, up-to-date main checkout and version/changelog metadata; waits for a successful full compatibility workflow on that exact commit; creates and pushes the annotated `vX.Y.Z` tag (or safely resumes an already-pushed matching tag); waits for the tag-triggered `publish.yml` workflow to finish; and verifies both the PyPI version and GitHub Release URL before reporting success. It stops on any failed gate and never bypasses repository rulesets. The protected `v*` tag ruleset still requires an account authorized to create release tags.
+No version number or subcommand is needed. The command reads the package version directly from `pyproject.toml`, checks that the working tree is clean, switches to `main` when safe, fast-forwards it from `origin`, validates the changelog and lockfile, and displays a release preview. It asks for explicit confirmation before creating or pushing a tag. After confirmation it waits for the exact-commit compatibility workflow, creates or safely resumes the annotated tag, waits for the tag-triggered `publish.yml` workflow, and verifies both the PyPI version and GitHub Release URL. It stops on any failed gate and never bypasses repository rulesets. The protected `v*` tag ruleset still requires an account authorized to create tags.
+
+If the working tree is dirty, switching branches is not possible, or the required tools/authentication are missing, the command stops with a specific explanation without discarding local work. If interrupted after the tag is pushed, run `make release` again; the operation safely resumes. The default confirmation is **No**.
 
 The default workflow wait timeout is 60 minutes. Set `RELEASE_WAIT_TIMEOUT_SECONDS` to override it; `RELEASE_POLL_INTERVAL_SECONDS` controls polling frequency. If the command is interrupted after pushing the tag, rerun the same `release finish X.Y.Z` command to resume and verify the existing release rather than creating another tag.
 
