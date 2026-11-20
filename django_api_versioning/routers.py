@@ -501,44 +501,51 @@ class VersionedRouterVersioning(NamespaceVersioning):
     def determine_version(self, request: Any, *args: Any, **kwargs: Any) -> str | None:
         resolver_match = getattr(request, "resolver_match", None)
         route = getattr(resolver_match, "route", None)
+        namespace = getattr(resolver_match, "namespace", "") or ""
+        namespace_version = None
+
+        for component in reversed(namespace.split(":")):
+            if component.startswith("v") and component[1:].isdigit():
+                namespace_version = component[1:]
+                break
 
         if isinstance(route, str):
+            namespace_matches_route = False
+            if namespace_version is not None:
+                configured_prefix = api_settings.API_BASE_PATH.format(
+                    version=namespace_version
+                ).strip("/")
+                route_path = route.strip("^$").strip("/")
+                namespace_matches_route = (
+                    f"/{configured_prefix}/" in f"/{route_path}/"
+                )
+
             tried = getattr(resolver_match, "tried", None)
             if isinstance(tried, (list, tuple)):
-                # A real Django ResolverMatch includes the exact URLPattern
-                # objects considered by the resolver. Do not infer request.version
-                # from a route suffix or a parent namespace when that trace exists.
+                # A real Django ResolverMatch carries the URLPatterns considered
+                # by the resolver. Prefer a registered route whose callback,
+                # name, route and trace identify this request. In particular,
+                # do not infer a version from a matching suffix on another view.
                 matched, route_version = registry.get_resolved_route_version_for_match(
                     resolver_match
                 )
-                version = (
-                    str(route_version)
-                    if matched
-                    and isinstance(route_version, int)
-                    and not isinstance(route_version, bool)
-                    else None
-                )
+                if matched:
+                    version = (
+                        str(route_version)
+                        if isinstance(route_version, int)
+                        and not isinstance(route_version, bool)
+                        else None
+                    )
+                else:
+                    # drf-spectacular creates synthetic resolver matches while
+                    # walking a versioned schema. It preserves the version
+                    # namespace and route prefix but may not preserve the
+                    # registered callback identity.
+                    version = namespace_version if namespace_matches_route else None
             else:
                 # Keep compatibility for lightweight resolver-like objects used
                 # by integrations that do not expose Django's resolver trace.
-                namespace = getattr(resolver_match, "namespace", "") or ""
-                namespace_version = None
-                for component in reversed(namespace.split(":")):
-                    if component.startswith("v") and component[1:].isdigit():
-                        namespace_version = component[1:]
-                        break
-
                 route_version = registry.get_resolved_route_version(route)
-                namespace_matches_route = False
-                if namespace_version is not None:
-                    configured_prefix = api_settings.API_BASE_PATH.format(
-                        version=namespace_version
-                    ).strip("/")
-                    route_path = route.strip("^$").strip("/")
-                    namespace_matches_route = (
-                        f"/{configured_prefix}/" in f"/{route_path}/"
-                    )
-
                 if namespace_matches_route:
                     version = namespace_version
                 elif route_version is not None:
@@ -550,16 +557,13 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 if not self.is_allowed_version(version):
                     raise NotFound(self.invalid_version_message)
                 return version
-        else:
+
+        elif namespace_version is not None:
             # Preserve compatibility for direct adapter use with lightweight
             # resolver-match objects that expose only a namespace.
-            namespace = getattr(resolver_match, "namespace", "") or ""
-            for component in reversed(namespace.split(":")):
-                if component.startswith("v") and component[1:].isdigit():
-                    namespace_version = component[1:]
-                    if not self.is_allowed_version(namespace_version):
-                        raise NotFound(self.invalid_version_message)
-                    return namespace_version
+            if not self.is_allowed_version(namespace_version):
+                raise NotFound(self.invalid_version_message)
+            return namespace_version
 
         default_version = self.default_version
         if default_version is not None:
