@@ -1,9 +1,9 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Latest published release:** `django-api-versioning` `1.2.1`, from the annotated `v1.2.1` tag. The tag object is `effad88ef9231de77b29385bffe6bed09f51a0b6` and points to commit `6187ad490e37708c4eab97db7cbb1b73dbc619d8`. The GitHub Release was created by the tag workflow after its PyPI publish job completed successfully.
+> **Latest published release:** `django-api-versioning` `1.2.2`, from the annotated `v1.2.2` tag. See the [v1.2.2 GitHub Release](https://github.com/mojtaba-arvin/django-api-versioning/releases/tag/v1.2.2) for the published artifact and release evidence.
 >
-> **Published feature baseline:** Explicit endpoint removal (`remove_endpoint()` / `VersionedRouter.remove()`) and endpoint-level lifecycle metadata (`set_endpoint_lifecycle()` / `VersionedRouter.set_lifecycle()`, including `EndpointLifecycleAutoSchema`) have been available since `1.2.0` and are included in `1.2.1`. The executable OpenAPI consumer example and its `oasdiff` CI gate are repository-level validation tooling, not package runtime APIs or wheel contents.
+> **Published feature baseline:** Explicit endpoint removal (`remove_endpoint()` / `VersionedRouter.remove()`) and endpoint-level lifecycle metadata (`set_endpoint_lifecycle()` / `VersionedRouter.set_lifecycle()`, including `EndpointLifecycleAutoSchema`) have been available since `1.2.0` and remain part of `1.2.2`. The executable OpenAPI consumer example, its `oasdiff` CI gate, the new schema snapshot helper, and the request-negotiation middleware are repository-level changes until included in a published release; do not attribute unreleased APIs to the PyPI `1.2.2` wheel.
 >
 > The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
@@ -726,3 +726,73 @@ The contract above is based on the following implementation and project files:
 - [DRF ViewSets documentation](https://www.django-rest-framework.org/api-guide/viewsets/)
 - [DRF routers documentation](https://www.django-rest-framework.org/api-guide/routers/)
 - [DRF versioning documentation](https://www.django-rest-framework.org/api-guide/versioning/)
+
+
+## 16. Request-version negotiation (development-branch feature)
+
+The published `1.2.2` contract is URL-path routing only. The development branch adds
+`VersionNegotiationMiddleware` for deployments that need a versionless URL.
+It selects one transport for the deployment and internally rewrites the
+unversioned API path to the package's existing versioned path **before Django's
+URL resolver runs**. The registry and the existing `VersionedRouter` still
+select the concrete registered view; this is not merely a parser that changes
+`request.version`.
+
+The supported setting is `API_VERSIONING_SCHEME`:
+
+| Value | Wire format | Required companion configuration |
+| --- | --- | --- |
+| `path` (default) | `/api/v2/orders/` | Existing `API_BASE_PATH` |
+| `header` | `Accept-Version: 2`, or `Accept: application/json; version=2` | Optional `API_VERSIONING_HEADER` |
+| `query` | `?version=2` | Optional `API_VERSIONING_QUERY_PARAMETER` |
+| `hostname` | `v2.api.example.com/api/orders/` | Exact `API_VERSIONING_HOSTS` map |
+
+Exactly one scheme is active per deployment. This is not a precedence list or
+fallback chain. The legacy `API_VERSIONING_CHANNELS` setting remains
+deprecated/inert and does not enable or select a transport.
+
+For `header`, `query`, and `hostname`, the client uses an unversioned URL
+below `API_UNVERSIONED_BASE_PATH` (default `api/`). The middleware rewrites
+only Django's internal `PATH_INFO`; it does not issue a redirect. Install it
+before middleware that depends on the resolved path, including the lifecycle
+middleware:
+
+```python
+MIDDLEWARE = [
+    "django_api_versioning.negotiation.VersionNegotiationMiddleware",
+    # CommonMiddleware and other path-dependent middleware
+    "django_api_versioning.lifecycle.LifecycleMiddleware",
+]
+```
+
+The middleware exposes the effective version as `request.api_version` and
+`request.version`, while `request.requested_api_version` records the selected
+transport value. For path mode, the URL version remains authoritative. For
+DRF ViewSets, `VersionedRouterVersioning` continues to read the matched
+namespace and uses the same version.
+
+Non-path values are ASCII decimal integers with no `v` prefix. Duplicate
+query values, malformed values, and conflicting `Accept-Version` /
+`Accept` version parameters return 400. A missing version returns 400 unless
+`API_DEFAULT_VERSION` is configured (for header and query modes). A version
+outside the global range, or a hostname absent from the exact host map, returns
+406. A valid version with no registration for that endpoint remains 404; the
+package does not silently choose the newest available handler.
+
+Header-mode responses include `Vary` for the configured version header and
+`Accept`. Query-mode deployments must include the configured version
+parameter in shared-cache keys. Hostname mode uses `request.get_host()` and
+Django's `ALLOWED_HOSTS` validation; wildcard matching and tenant inference
+from client-controlled headers are not supported. CDN/proxy cache configuration
+remains a deployment responsibility.
+
+URL reversal follows the same transport: path mode returns a versioned URL;
+query mode returns an unversioned URL with a `version` query parameter; header
+and hostname modes return an unversioned path, because a URL alone cannot
+encode the required header or choose the caller's hostname.
+
+This middleware does not activate `API_EFFECTIVE_VERSION_RESOLVER` or
+tenant-pinned versions. It does not transform serializers or payloads and does
+not replace consumer-owned contract tests. The standalone implementation
+contract and deployment examples are maintained in
+[request-version-negotiation.md](../design/request-version-negotiation.md).
