@@ -1,0 +1,93 @@
+name: Clean up closed pull request branches
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: branch-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete obsolete same-repository PR branches
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Delete closed-PR branches that no open PR still uses
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_PROMPT_DISABLED: "1"
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          repository="$GITHUB_REPOSITORY"
+          default_branch="$(
+            gh api "repos/$repository" --jq '.default_branch'
+          )"
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            if [[ "$PR_HEAD_REPO" != "$repository" ]]; then
+              echo "PR head belongs to another repository; leaving it untouched."
+              exit 0
+            fi
+            candidates="$PR_HEAD_REF"
+          else
+            # Reconcile historical closed PRs as well as branches left behind
+            # when the close-event workflow was not yet installed.
+            candidates="$(
+              gh api --paginate "repos/$repository/pulls?state=closed&per_page=100" \
+                --jq '.[] | select(.head.repo.full_name == env.GITHUB_REPOSITORY) | .head.ref' \
+                | sort -u
+            )"
+          fi
+
+          if [[ -z "$candidates" ]]; then
+            echo "No closed-PR branches need cleanup."
+            exit 0
+          fi
+
+          while IFS= read -r branch; do
+            [[ -n "$branch" ]] || continue
+            if [[ "$branch" == "$default_branch" ]]; then
+              echo "Keeping default branch: $branch"
+              continue
+            fi
+
+            # Refresh this immediately before deletion so a branch reused by a
+            # newly opened PR is not removed based on a stale initial listing.
+            open_refs="$(
+              gh api --paginate "repos/$repository/pulls?state=open&per_page=100" \
+                --jq '.[] | select(.head.repo.full_name == env.GITHUB_REPOSITORY) | .head.ref'
+            )"
+            if grep -Fqx -- "$branch" <<< "$open_refs"; then
+              echo "Keeping $branch: an open PR still uses it."
+              continue
+            fi
+
+            if error="$(gh api --method DELETE "repos/$repository/git/refs/heads/$branch" 2>&1)"; then
+              echo "Deleted obsolete branch: $branch"
+            elif grep -q "HTTP 404" <<< "$error"; then
+              echo "Already absent: $branch"
+            else
+              echo "Could not delete $branch: $error" >&2
+              exit 1
+            fi
+          done <<< "$candidates"
