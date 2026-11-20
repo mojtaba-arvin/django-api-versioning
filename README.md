@@ -97,7 +97,7 @@ Use DRF's own versioning schemes when request-version identification is all you 
 
 ## Request version negotiation
 
-The default remains URL-path versioning. For deployments that need a versionless public URL, the development branch adds an optional middleware that selects one request transport **before Django resolves the URL**. It does not merely set request.version: it rewrites the internal path to the selected registered route so the registry and VersionedRouter still choose the actual view.
+The default remains URL-path versioning. For deployments that need a versionless public URL, `VersionNegotiationMiddleware` selects one configured request transport **before Django resolves the URL**. It does not merely set `request.version`: it rewrites the internal path to the selected registered route so the registry and `VersionedRouter` still choose the actual view. This request-negotiation feature is available since `1.3.0`.
 
 Configure one scheme for the whole deployment; do not treat this setting as a priority or fallback list:
 
@@ -129,7 +129,7 @@ For query mode, set API_VERSIONING_QUERY_PARAMETER to change the default version
 
 Non-path inputs accept ASCII decimal integer values without a v prefix. Malformed or missing values without a default return 400; globally unsupported versions and unmapped hostnames return 406; valid versions without a registered endpoint remain 404. There is no fallback to the newest implementation. API_VERSIONING_CHANNELS is deprecated/inert; use API_VERSIONING_SCHEME.
 
-The feature is on the current development branch and is not part of the published 1.2.2 release. See the [request negotiation contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) for middleware ordering, reversal, lifecycle, caching, and error semantics.
+Request-version negotiation is available in the published `1.3.0` release. See the [request negotiation contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) for middleware ordering, reversal, lifecycle, caching, and error semantics.
 
 ## Consumer-owned integration boundary
 
@@ -137,7 +137,7 @@ In a consuming project, keep imports of django_api_versioning in one project-own
 
 ## Contract tests
 
-The package's development branch adds `assert_schema_snapshot()` alongside `assert_version_matrix()`. Generate and validate your OpenAPI document with your preferred schema tool, then compare it with a reviewed snapshot per API version. Pair exact snapshots with a semantic breaking-change tool such as oasdiff breaking when additive schema changes should be permitted. Continue to test business behavior, validation, authorization, and error bodies with real requests; schema comparison cannot prove semantic compatibility.
+Since `1.3.0`, the package provides `assert_schema_snapshot()` alongside `assert_version_matrix()`. Generate and validate your OpenAPI document with your preferred schema tool, then compare it with a reviewed snapshot per API version. Pair exact snapshots with a semantic breaking-change tool such as oasdiff breaking when additive schema changes should be permitted. Continue to test business behavior, validation, authorization, and error bodies with real requests; schema comparison cannot prove semantic compatibility.
 
 ## Why use it with Django REST Framework?
 

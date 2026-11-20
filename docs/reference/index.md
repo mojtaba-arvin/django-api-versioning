@@ -1,6 +1,6 @@
 # django-api-versioning reference
 
-This page summarizes the public settings, endpoint decorator, DRF VersionedRouter integration, exceptions, and management tools for `django-api-versioning`. The latest published package release is **1.2.2**. It includes the VersionedRouter integration, explicit endpoint removal, and endpoint-level lifecycle declarations introduced in 1.2.0. The request-negotiation middleware and schema snapshot helper described below are present on the development branch but are not part of the published 1.2.2 wheel. The executable OpenAPI consumer example and its `oasdiff` gate are repository-level validation tooling, not package runtime dependencies. For exact release boundaries and routing semantics, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
+This page summarizes the public settings, endpoint decorator, DRF `VersionedRouter` integration, request-version negotiation, exceptions, and management tools for `django-api-versioning`. The latest published package release is **1.3.0**. It includes the `VersionNegotiationMiddleware` and `assert_schema_snapshot()` additions alongside the `VersionedRouter`, explicit endpoint removal, and endpoint-level lifecycle declarations. The executable OpenAPI consumer example, its `oasdiff` gate, and the consumer-owned adapter example are repository-level adoption and validation resources, not package runtime dependencies. For exact routing semantics and compatibility boundaries, see the [canonical routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md).
 
 ## Installation
 
@@ -18,13 +18,13 @@ Requires Python `>=3.10` and Django `>=4.2`. Django REST Framework is optional; 
 | `API_MIN_VERSION` | `1` | Lowest version that can be registered. Segment declarations below it register no routes; lower explicit versions are skipped with a warning. |
 | `API_MAX_VERSION` | `1` | Highest route version. A declaration above it raises `InvalidVersionError`. |
 | `API_VERSION_LIFECYCLE` | `{}` | Per-version lifecycle metadata consumed by `LifecycleMiddleware`. |
-| `API_VERSIONING_CHANNELS` | `["path"]` | Deprecated/inert compatibility setting. It does not select a transport or act as a fallback list. Use `API_VERSIONING_SCHEME` on the development branch. |
+| `API_VERSIONING_CHANNELS` | `["path"]` | Deprecated/inert compatibility setting. It does not select a transport or act as a fallback list. Use `API_VERSIONING_SCHEME` to select the request-version transport. |
 | `API_EFFECTIVE_VERSION_RESOLVER` | `None` | Reserved policy hook. It is not invoked by the current routing or lifecycle implementation; tenant-pinned version policy is not included in the negotiation middleware. |
 
 
-### Request-version negotiation (development branch; not in PyPI 1.2.2)
+### Request-version negotiation (available since 1.3.0)
 
-The development branch adds an optional `VersionNegotiationMiddleware`. It selects one of the following schemes per deployment, then rewrites the internal path before Django resolves the actual registered callback:
+The package provides an optional `VersionNegotiationMiddleware`. It selects one of the following schemes per deployment, then rewrites the internal path before Django resolves the actual registered callback:
 
 | Setting | Default | Description |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ MIDDLEWARE = [
 
 Header/query inputs are ASCII decimal integers without a `v` prefix. Malformed or conflicting values return 400; unsupported versions and unmapped hosts return 406; missing endpoint registrations remain 404. Header mode emits `Vary` for the version header and `Accept`. Query mode requires the configured parameter in shared-cache keys. Header/hostname reversal returns an unversioned path; a URL alone cannot encode the selected header or host.
 
-See the [request-negotiation contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) for full semantics and current development status.
+See the [request-negotiation contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) for middleware ordering, dispatch, reversal, cache behavior, security boundaries, and deployment guidance.
 
 Route-registration settings are read when the package settings and endpoint declarations are imported. Configure them before importing modules decorated with `@endpoint`; changing them later does not rebuild the registered URL patterns.
 
@@ -114,7 +114,7 @@ When a name is registered for multiple versions, pass `version`. If multiple rou
 - A segment declaration below `API_MIN_VERSION` registers no routes after a warning. Explicit versions below the minimum are skipped individually.
 - On a route collision, the higher integer `source_version` wins. If source versions are equal, or either is `None`, the last registration wins.
 - The `@endpoint` decorator still does not accept DRF ViewSet classes directly. Use `VersionedRouter` for complete version-aware ViewSet route generation; it preserves DRF-generated patterns and provides a `VersionedRouterVersioning` adapter for `request.version` and version-aware reversal. A configured `as_view(actions)` callable remains available for an individual route.
-- The published 1.2.2 package selects routes through URL-path versioning. The development-branch middleware supports one configured transport per deployment; it does not combine schemes or infer tenant policy. `API_VERSIONING_CHANNELS` remains inert.
+- The package supports path, header, query-parameter, and exact-hostname request-version negotiation through one selected `API_VERSIONING_SCHEME` per deployment. It does not combine schemes or infer tenant policy; `API_VERSIONING_CHANNELS` remains deprecated and inert.
 
 ### Register a configured ViewSet callable
 
@@ -195,7 +195,7 @@ The removal boundary is inclusive. Removed routes return 404 and cannot be rever
 
 ## Contract snapshots
 
-The development branch adds `assert_schema_snapshot()` in
+`assert_schema_snapshot()` is available in the package since `1.3.0`. It is defined in
 `django_api_versioning.testing`. It compares a generated OpenAPI mapping with
 a deterministic, reviewed JSON snapshot without adding DRF, OpenAPI, YAML, or
 oasdiff to package runtime dependencies.

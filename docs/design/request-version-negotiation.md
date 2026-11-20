@@ -1,6 +1,6 @@
 # Request version negotiation
 
-**Status:** Implemented on the current development branch; not part of a published release yet.  
+**Status:** Supported and included in the published `1.3.0` release.  
 **Scope:** Select one API version transport per deployment and dispatch the request to the matching registered Django view or DRF ViewSet.
 
 ## Decision
@@ -150,9 +150,9 @@ replace consumer-owned OpenAPI and request-level contract tests. The
 reviewed schema baseline; use a semantic breaking-change tool alongside it
 when additive schema evolution is allowed.
 
-## Verification requirements
+## Verification and release gates
 
-Before release, the branch must pass:
+The implementation is covered by transport-specific middleware tests, malformed and missing-value cases, actual Django callback selection, DRF version exposure and reversal, cache variation, and lifecycle propagation. The protected release workflow also requires the following checks for the exact tagged commit:
 
 - middleware tests for each transport, malformed/missing/unsupported versions, default version, hostname allowlist, and real Django callback selection;
 - DRF tests for `request.version`, `reverse_action()`, and hyperlinked serializer reversal in header and query modes;
@@ -160,5 +160,4 @@ Before release, the branch must pass:
 - lifecycle tests proving deprecation and sunset use the effective version;
 - Django/Python compatibility matrix, lint, installed-wheel smoke, distribution-content, and existing OpenAPI contract workflows.
 
-The settings and middleware are not considered published support until these
-checks pass for the final commit and a package release includes the code.
+The `publish.yml` workflow blocks PyPI publication unless the annotated tag targets a commit reachable from `main`, the full compatibility matrix has succeeded for that exact commit, the OpenAPI consumer contract passes, and the source and wheel distributions pass strict metadata, isolated-install smoke, and package-content checks. These requirements protect each published version; they do not turn tenant-specific policy or multi-scheme fallback into supported behavior.
