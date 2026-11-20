@@ -609,5 +609,11 @@ class VersionedRouterVersioning(NamespaceVersioning):
             format=format,
             **extra,
         )
-        version = getattr(request, "version", None) if request is not None else None
-        return format_negotiated_url(url, version)
+        if request is None:
+            return url
+        django_request = getattr(request, "_request", request)
+        version = getattr(request, "version", None)
+        if version is None:
+            version = getattr(django_request, "api_version", None)
+        scheme = getattr(django_request, "api_versioning_scheme", None)
+        return format_negotiated_url(url, version, scheme=scheme)
