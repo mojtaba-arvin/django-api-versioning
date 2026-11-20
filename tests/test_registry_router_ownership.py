@@ -193,6 +193,7 @@ def test_multi_version_decorator_registration_rolls_back_after_late_router_colli
     assert registry.urlpatterns == existing_patterns
     assert not hasattr(decorator_view, registry._LOGICAL_ENDPOINT_ATTR)
 
+
 def test_public_remove_endpoint_cannot_remove_router_owned_routes():
     """Decorator removal must not cross the VersionedRouter ownership boundary."""
     class OrdersViewSet(viewsets.ViewSet):
