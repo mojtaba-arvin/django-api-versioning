@@ -563,9 +563,7 @@ class VersionedDefaultRouter(VersionedRouter):
 
         if self.include_root_view:
             for route_version, registered_patterns in registered_versioned.items():
-                root_path = api_settings.API_BASE_PATH.format(
-                    version=route_version
-                )
+                root_path = api_settings.API_BASE_PATH.format(version=route_version)
                 versioned[route_version].append(
                     path(
                         root_path,
