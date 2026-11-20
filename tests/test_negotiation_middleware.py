@@ -123,10 +123,10 @@ def test_hostname_mapping_rewrites_only_from_exact_allowed_hosts():
     API_MAX_VERSION=3,
     ALLOWED_HOSTS=["v1.api.example.com", "other.example.com"],
 )
-def test_unmapped_hostname_is_rejected():
+def test_unmapped_hostname_is_not_acceptable():
     _, response = _dispatch("/api/orders/", HTTP_HOST="other.example.com")
 
-    assert response.status_code == 400
+    assert response.status_code == 406
 
 
 @override_settings(
@@ -230,3 +230,16 @@ def test_path_mode_exposes_the_route_version_to_django_views():
     assert response.status_code == 200
     assert request.api_version == 2
     assert request.version == "2"
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="query",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_non_path_transports_reject_v_prefix_values():
+    _, response = _dispatch("/api/orders/?version=v2")
+
+    assert response.status_code == 400
