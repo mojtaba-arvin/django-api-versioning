@@ -548,9 +548,32 @@ class UrlRegistry:
         literal = route[1:-1]
         if "<" in literal or ">" in literal:
             return route
-        if any(character in literal for character in r".^$*+?{}[]\\|()"):
+
+        normalized = []
+        escaped = False
+        for character in literal:
+            if escaped:
+                # Escaped punctuation is literal; alphanumeric escapes such
+                # as \\d and \\w are regex classes, not static path text.
+                if character.isalnum():
+                    return route
+                normalized.append(character)
+                escaped = False
+                if character == "\\":
+                    if index + 1 < len(source) and source[index + 1].isalnum():
+                        dynamic_start = index
+                        break
+                    escaped = True
+                    continue
+                escaped = True
+            elif character in ".^$*+?{}[]|()":
+                return route
+            else:
+                normalized.append(character)
+
+        if escaped:
             return route
-        return literal
+        return "".join(normalized)
 
     def _find_route_index(
         self,
