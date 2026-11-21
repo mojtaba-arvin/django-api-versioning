@@ -103,3 +103,86 @@ jobs:
             examples/openapi_contract/schemas/v2/openapi.yaml \
             "$RUNNER_TEMP/openapi-contract-schemas/v2/openapi.yaml"
 
+
+  adversarial-input-testing:
+    name: Mutation, coverage-guided fuzzing, and OpenAPI property testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install isolated adversarial test tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+          python -m pip install -r requirements-ci.txt
+          python -m pip install -r examples/openapi_contract/requirements.txt
+          python -m pip install "mutmut==3.5.0" "atheris>=2.3,<3" "schemathesis>=4,<5"
+
+      - name: Run mutation testing against negotiation parser
+        run: |
+          mutmut run
+          mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
+          test -s "$RUNNER_TEMP/mutmut-results.txt"
+
+      - name: Upload mutation testing results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutmut-negotiation-results
+          path: "$RUNNER_TEMP/mutmut-results.txt"
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Run Atheris against hostile and long negotiation inputs
+        run: |
+          python examples/openapi_contract/fuzz_negotiation.py \
+            examples/openapi_contract/fuzz_corpus \
+            -max_total_time=120 -timeout=5 -max_len=65536
+
+      - name: Generate versioned OpenAPI schemas
+        run: |
+          python examples/openapi_contract/generate_schemas.py \
+            --output-dir "$RUNNER_TEMP/adversarial-openapi"
+
+      - name: Start the real Django consumer application
+        working-directory: examples/openapi_contract
+        run: |
+          python manage.py runserver 127.0.0.1:8000 --noreload \
+            > "$RUNNER_TEMP/openapi-server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/openapi-server.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/api/v1/products/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/openapi-server.log"
+          exit 1
+
+      - name: Generate hostile OpenAPI requests with Schemathesis
+        run: |
+          set -euo pipefail
+          trap 'kill "$(cat "$RUNNER_TEMP/openapi-server.pid")" 2>/dev/null || true' EXIT
+          for version in 1 2; do
+            st run "$RUNNER_TEMP/adversarial-openapi/v${version}/openapi.yaml" \
+              --url http://127.0.0.1:8000 \
+              --mode all --checks all --max-time 90 \
+              --max-examples 100 --seed 20261121
+          done
+
+      - name: Upload Django server diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: adversarial-openapi-server-log
+          path: "$RUNNER_TEMP/openapi-server.log"
+          if-no-files-found: ignore
+          retention-days: 7

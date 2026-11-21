@@ -136,3 +136,14 @@ exclude_lines = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
 ]
+
+# Mutation testing is deliberately limited to the untrusted-input negotiation
+# parser and its directly exercising unit tests. It is CI tooling, not a runtime
+# or developer-install dependency.
+[tool.mutmut]
+source_paths = ["django_api_versioning/negotiation.py"]
+pytest_add_cli_args_test_selection = [
+    "tests/test_negotiation_middleware.py",
+    "tests/test_negotiation_properties.py",
+]
+pytest_add_cli_args = ["-q", "--no-cov"]
