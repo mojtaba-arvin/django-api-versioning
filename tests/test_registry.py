@@ -1240,7 +1240,9 @@ def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
 
 
 
-def test_concurrent_registration_of_same_route_is_serialized(clear_registry, monkeypatch):
+def test_concurrent_registration_of_same_route_is_serialized(
+    clear_registry, monkeypatch
+):
     """A racing registration cannot append duplicate URLPatterns."""
 
     def view(request):
