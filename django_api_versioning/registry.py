@@ -1064,12 +1064,12 @@ class UrlRegistry:
     @staticmethod
     def _route_specificity_key(pattern: URLPattern) -> tuple[int, bool, int]:
         """Prefer longer literal prefixes before generic converter/regex routes."""
-        pattern_route = str(pattern.pattern)
+        route_text = str(pattern.pattern)
         if isinstance(pattern.pattern, RegexPattern):
             source = (
-                pattern_route[1:]
-                if pattern_route.startswith("^")
-                else pattern_route
+                route_text[1:]
+                if route_text.startswith("^")
+                else route_text
             )
             source = (
                 source[:-1]
@@ -1091,13 +1091,13 @@ class UrlRegistry:
             literal_prefix = source[:dynamic_start]
             has_dynamic = dynamic_start < len(source)
         else:
-            dynamic_start = pattern_route.find("<")
+            dynamic_start = route_text.find("<")
             literal_prefix = (
-                pattern_route if dynamic_start < 0 else pattern_route[:dynamic_start]
+                route_text if dynamic_start < 0 else route_text[:dynamic_start]
             )
             has_dynamic = dynamic_start >= 0
 
-        return (-len(literal_prefix), has_dynamic, -len(pattern_route))
+        return (-len(literal_prefix), has_dynamic, -len(route_text))
 
     def _sort_urlpatterns(self) -> None:
         """Order versions first and more-specific URL patterns before catch-alls."""
