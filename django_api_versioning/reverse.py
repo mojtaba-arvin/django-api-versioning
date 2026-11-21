@@ -166,8 +166,8 @@ def api_reverse(
         )
 
     # Match Django's reverse() semantics: URLPattern defaults can satisfy an
-    # omitted path converter, but callers cannot override a declared default
-    # with a conflicting value.
+    # omitted path converter. Defaults for non-path kwargs remain fixed, while
+    # a supplied path parameter may override its fallback default.
     conflicting_defaults = sorted(
         name
         for name, default_value in default_args.items()
