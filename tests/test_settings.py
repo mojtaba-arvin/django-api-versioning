@@ -336,7 +336,6 @@ class TestNegotiationSettings:
         with pytest.raises(VersioningError, match="API_VERSIONING_QUERY_PARAMETER"):
             APISettings(API_VERSIONING_QUERY_PARAMETER="")
 
-
     @pytest.mark.parametrize("hostname", ["api.example.com..", "api..example.com"])
     def test_hostname_map_rejects_invalid_dot_structure(self, hostname):
         with pytest.raises(VersioningError):
