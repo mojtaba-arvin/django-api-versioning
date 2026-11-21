@@ -306,14 +306,10 @@ def test_api_reverse_uses_urlpattern_defaults_for_missing_path_parameters():
         logical_endpoint="orders:default-order-detail",
     )
 
-    assert api_reverse("default-order-detail", version=1) == (
-        "/api/v1/orders/42/"
-    )
+    assert api_reverse("default-order-detail", version=1) == "/api/v1/orders/42/"
 
     # A path parameter can override its URLPattern default, as in Django reverse().
-    assert api_reverse("default-order-detail", version=1, pk=43) == (
-        "/api/v1/orders/43/"
-    )
+    assert api_reverse("default-order-detail", version=1, pk=43) == "/api/v1/orders/43/"
 
     # Non-path default kwargs must still match the URLPattern defaults.
     with pytest.raises(NoReverseMatch, match="conflict with URL defaults"):
