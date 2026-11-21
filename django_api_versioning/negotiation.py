@@ -133,8 +133,7 @@ def _parse_accept_parameter_value(raw_value: str) -> tuple[str, bool]:
             or not value.startswith('"')
             or not value.endswith('"')
             or any(
-                (ord(character) < 32 and character != "\t")
-                or ord(character) == 127
+                (ord(character) < 32 and character != "\t") or ord(character) == 127
                 for character in value[1:-1]
             )
         ):
@@ -209,7 +208,9 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
             version for quality, version in candidates if quality == highest_quality
         }
         if len(preferred_versions) != 1:
-            raise ValueError("Accept contains equally preferred conflicting API versions.")
+            raise ValueError(
+                "Accept contains equally preferred conflicting API versions."
+            )
         accept_version = next(iter(preferred_versions))
 
     if (
