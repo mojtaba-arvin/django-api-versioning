@@ -127,8 +127,20 @@ def test_router_lifecycle_metadata_is_scoped_to_router_owner():
         slash_response = Client().get("/slash/api/v2/shared-orders/")
         no_slash_response = Client().get("/no-slash/api/v2/shared-orders")
 
+        # Removing one router's lifecycle segment must not erase the sibling's.
+        no_slash_router.set_lifecycle(
+            "shared-orders",
+            "shared-list",
+            version=2,
+            deprecated_at="2031-01-01T00:00:00Z",
+        )
+        slash_router.remove("shared-orders", "shared-list", from_version=2)
+        surviving_response = Client().get("/no-slash/api/v2/shared-orders")
+
     assert slash_response.status_code == 200
     assert slash_response["Deprecation"] == "@1893456000"
     assert no_slash_response.status_code == 200
     assert "Deprecation" not in no_slash_response
     assert "Sunset" not in no_slash_response
+    assert surviving_response.status_code == 200
+    assert surviving_response["Deprecation"] == "@1924992000"
