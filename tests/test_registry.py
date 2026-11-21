@@ -1175,3 +1175,63 @@ def test_literal_path_with_regex_anchor_characters_does_not_collide_with_regex_r
     assert len(registry.urlpatterns) == 2
     assert registry.urlpatterns[0].callback is regex_view
     assert registry.urlpatterns[1].callback is literal_path_view
+
+
+
+@pytest.mark.parametrize("regex_first", [True, False])
+def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
+    clear_registry, regex_first
+):
+    """Static path() and anchored literal re_path() forms must collide consistently."""
+
+    def first_view(request):
+        return None
+
+    def second_view(request):
+        return None
+
+    regex_pattern = re_path(
+        r"^api/v1/static-users/$",
+        first_view,
+        name="static-users",
+    )
+    path_route = "api/v1/static-users/"
+
+    if regex_first:
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register(
+            path_route,
+            second_view,
+            name="static-users",
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+    else:
+        registry.register(
+            path_route,
+            first_view,
+            name="static-users",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is (
+        second_view if regex_first else regex_pattern.callback
+    )
+    assert getattr(
+        registry.urlpatterns[0], registry._ROUTE_VERSION_ATTR
+    ) == 2
