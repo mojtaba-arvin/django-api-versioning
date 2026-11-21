@@ -29,6 +29,7 @@ def _app_name_prefix(app_name: str | None) -> str:
         raise VersioningError(
             "app_name must be a relative path without empty, '.' or '..' segments."
         )
+    settings._validate_url_prefix(app_name, "app_name")
     return f"{app_name}/"
 
 
@@ -239,6 +240,8 @@ def endpoint(
         raise TypeError("postfix must be a string.")
     if postfix.startswith("/"):
         raise VersioningError("postfix must be relative and must not start with '/'.")
+    if postfix:
+        settings._validate_url_prefix(postfix, "postfix")
     _app_name_prefix(app_name)
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
