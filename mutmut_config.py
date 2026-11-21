@@ -13,6 +13,7 @@ TESTS_BY_SOURCE = {
         "tests/test_decorators.py",
         "tests/test_route_removal.py",
         "tests/test_routers.py",
+        "tests/test_segment_model.py",
         "tests/test_adversarial_router_combinations.py",
     ),
     "lifecycle.py": (
@@ -38,6 +39,8 @@ TESTS_BY_SOURCE = {
     "routers.py": (
         "tests/test_routers.py",
         "tests/test_default_routers.py",
+        "tests/test_registry_router_ownership.py",
+        "tests/test_lifecycle_integration.py",
         "tests/test_reverse.py",
         "tests/test_urls.py",
         "tests/test_route_removal.py",
