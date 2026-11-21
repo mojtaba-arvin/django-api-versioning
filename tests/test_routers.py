@@ -677,6 +677,7 @@ def test_router_removal_boundaries_do_not_leak_between_router_owners():
         basename="widget",
     )
     second_router.remove("widgets", "widget-list", from_version=3)
+    second_router.remove("widgets", "widget-detail", from_version=3)
 
     # The first router owns a different version segment. Its later v3
     # declaration must not inherit the second router's removal boundary.
