@@ -119,11 +119,35 @@ class APISettings:
     @staticmethod
     def _validate_url_prefix(path: str, setting_name: str) -> None:
         """Reject URL prefixes that browsers or proxies can normalize ambiguously."""
+        # Encoded separators are interpreted inconsistently by browsers,
+        # reverse proxies, and application servers. Reject them even when a
+        # single decode would make the resulting path look structurally valid.
+        if re.search(r"%(?:2f|5c|3f|23)", path, flags=re.IGNORECASE):
+            raise VersioningError(
+                f"{setting_name} must not contain percent-encoded path separators "
+                "or query/fragment delimiters."
+            )
+
         decoded = unquote(path)
-        if any(character in decoded for character in "\\?#") or "//" in decoded:
+        # A remaining percent sign indicates malformed or multiply encoded
+        # input (for example, %252e%252e -> %2e%2e after one decode).
+        if "%" in decoded:
+            raise VersioningError(
+                f"{setting_name} must not contain malformed or nested percent escapes."
+            )
+        if (
+            any(character in decoded for character in "\\?#")
+            or "//" in decoded
+            or any(
+                character.isspace()
+                or ord(character) < 32
+                or ord(character) == 127
+                for character in decoded
+            )
+        ):
             raise VersioningError(
                 f"{setting_name} must not contain query/fragment delimiters, "
-                "backslashes, or doubled path separators."
+                "whitespace, control characters, backslashes, or doubled path separators."
             )
         segments = decoded.rstrip("/").split("/")
         if any(segment in {"", ".", ".."} for segment in segments):
