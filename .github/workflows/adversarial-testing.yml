@@ -28,7 +28,32 @@ jobs:
           python -m pip install -e . -r requirements-ci.txt
       - name: Collect test-to-source coverage once
         run: |
-          coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
+          python -m pytest --cov=django_api_versioning --cov-context=test --cov-report= -q -o addopts= tests
+      - name: Validate per-test coverage contexts
+        run: |
+          python - <<'PY'
+          from coverage import CoverageData
+
+          data = CoverageData()
+          data.read()
+          context_count = 0
+          node_ids = set()
+          for filename in data.measured_files():
+              for contexts in data.contexts_by_lineno(filename).values():
+                  for context in contexts:
+                      if not context:
+                          continue
+                      context_count += 1
+                      node_ids.add(context.split("|", 1)[0])
+
+          if not context_count or not node_ids:
+              raise SystemExit("Coverage did not record pytest test contexts")
+          print(
+              f"Recorded {context_count} line-context entries across "
+              f"{len(node_ids)} pytest test node IDs"
+          )
+          print("Sample node IDs:", *sorted(node_ids)[:5], sep="\\n  ")
+          PY
       - name: Stage coverage data for artifact upload
         run: cp .coverage coverage.data
       - name: Share coverage data with mutation shards
@@ -74,7 +99,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ github.event_name }}-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ github.event_name }}-contexts-v1-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
       - name: Install test and mutation dependencies
         run: |
           python -m pip install -e . -r requirements-ci.txt "mutmut==2.5.1"
