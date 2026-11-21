@@ -406,3 +406,19 @@ def test_extremely_long_path_version_does_not_crash_middleware():
     response = Client().get(requested_path)
 
     assert response.status_code == 404
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_oversized_explicit_path_is_rejected_in_non_path_mode():
+    _, response = _dispatch(
+        "/api/v" + ("9" * 5000) + "/orders/",
+        HTTP_ACCEPT_VERSION="2",
+    )
+
+    assert response.status_code == 400
