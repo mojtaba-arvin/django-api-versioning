@@ -748,6 +748,7 @@ class TestEndpointPathValidation:
 
     def test_duplicate_explicit_versions_are_rejected_atomically(self, versions_1_to_5):
         with pytest.raises(VersionRangeError, match="must not contain duplicates"):
+
             @endpoint("duplicate-versions", versions=[1, 2, 1])
             def duplicate_versions(request):
                 return JsonResponse({})
