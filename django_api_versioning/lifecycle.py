@@ -1,7 +1,7 @@
 import logging
-from email.utils import format_datetime
 import re
 from datetime import datetime, timezone
+from email.utils import format_datetime
 from typing import Any, Callable
 
 from django.conf import settings as django_settings
