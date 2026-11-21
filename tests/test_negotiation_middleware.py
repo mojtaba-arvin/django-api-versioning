@@ -585,7 +585,6 @@ def test_version_parameter_after_accept_quality_is_still_processed():
     assert request.api_version == 2
 
 
-
 @override_settings(
     API_VERSIONING_SCHEME="query",
     API_BASE_PATH="api/v{version}/",
