@@ -326,6 +326,8 @@ def set_endpoint_lifecycle(
 def _validate_version(version: int, max_version: int) -> None:
     if isinstance(version, bool) or not isinstance(version, int):
         raise VersionTypeError("Version must be an integer.")
+    if version < 0:
+        raise VersionRangeError("Version must be a non-negative API version.")
     if version > max_version:
         raise InvalidVersionError(
             f"Version {version} is above the maximum allowed version {max_version}."
