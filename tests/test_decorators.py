@@ -690,12 +690,14 @@ class TestDecoratorInputHardening:
 
     def test_negative_version_is_rejected(self):
         with pytest.raises(VersionRangeError, match="non-negative"):
+
             @endpoint("negative", version=-1)
             def negative(request):
                 return JsonResponse({})
 
     def test_negative_explicit_version_is_rejected_atomically(self, versions_1_to_5):
         with pytest.raises(VersionRangeError, match="non-negative"):
+
             @endpoint("negative-list", versions=[1, -1, 2])
             def negative_list(request):
                 return JsonResponse({})
