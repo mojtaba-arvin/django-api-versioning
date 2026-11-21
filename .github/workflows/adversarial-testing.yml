@@ -25,9 +25,7 @@ jobs:
           cache-dependency-path: requirements-ci.txt
       - name: Install test dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-          python -m pip install -r requirements-ci.txt
+          python -m pip install -e . -r requirements-ci.txt
       - name: Collect test-to-source coverage once
         run: |
           coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
@@ -45,7 +43,7 @@ jobs:
     name: Mutation shard (${{ matrix.id }})
     needs: mutation-coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 45 || 60 }}
     strategy:
       fail-fast: false
       max-parallel: 5
@@ -252,7 +250,7 @@ jobs:
   atheris:
     name: Coverage-guided parser fuzzing (Atheris)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 20 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -286,7 +284,7 @@ jobs:
   schemathesis:
     name: OpenAPI-generated adversarial API tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 15 || 30 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
