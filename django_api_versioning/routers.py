@@ -180,6 +180,7 @@ class VersionedRouter:
                 f"{api_settings.API_MIN_VERSION}."
             )
         logical_endpoint = f"{prefix}:{route_name}"
+
         def _matches_generated_prefix(pattern: URLPattern) -> bool:
             route_version = getattr(pattern, registry._ROUTE_VERSION_ATTR, None)
             expected_prefix = (
