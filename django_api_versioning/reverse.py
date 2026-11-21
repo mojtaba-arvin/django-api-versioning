@@ -156,22 +156,43 @@ def api_reverse(
 
     route = route_pattern._route
     parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
-    unexpected_parameters = sorted(set(kwargs) - parameter_names)
+    default_args = getattr(target_pattern, "default_args", None) or {}
+    unexpected_parameters = sorted(
+        set(kwargs) - parameter_names - set(default_args)
+    )
     if unexpected_parameters:
         raise NoReverseMatch(
             f"Unexpected parameter(s) {unexpected_parameters!r} for {view_name!r}."
         )
 
+    # Match Django's reverse() semantics: URLPattern defaults can satisfy an
+    # omitted path converter, but callers cannot override a declared default
+    # with a conflicting value.
+    conflicting_defaults = sorted(
+        name
+        for name, default_value in default_args.items()
+        if name in kwargs and kwargs[name] != default_value
+    )
+    if conflicting_defaults:
+        raise NoReverseMatch(
+            f"Parameter(s) {conflicting_defaults!r} conflict with URL defaults "
+            f"for {view_name!r}."
+        )
+
     def _substitute(match: re.Match) -> str:
         name = match.group(1)
-        if name not in kwargs:
+        if name in kwargs:
+            value = kwargs[name]
+        elif name in default_args:
+            value = default_args[name]
+        else:
             raise NoReverseMatch(
                 f"Missing required parameter {name!r} for {view_name!r}."
             )
 
         converter = route_pattern.converters.get(name)
         try:
-            value = converter.to_url(kwargs[name]) if converter else kwargs[name]
+            value = converter.to_url(value) if converter else value
         except (TypeError, ValueError) as exc:
             raise NoReverseMatch(
                 f"Invalid value for parameter {name!r} in {view_name!r}: {exc}"
