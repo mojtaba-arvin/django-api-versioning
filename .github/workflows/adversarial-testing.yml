@@ -99,7 +99,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ github.event_name }}-contexts-v1-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ github.event_name }}-contexts-v2-sample3-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
       - name: Install test and mutation dependencies
         run: |
           python -m pip install -e . -r requirements-ci.txt "mutmut==2.5.1"
