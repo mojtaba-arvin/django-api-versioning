@@ -339,6 +339,11 @@ class VersionNegotiationMiddleware:
         # URL resolution, and diagnostics observe the intended internal route.
         request.META["PATH_INFO"] = rewritten_path
         request.path_info = rewritten_path
+        original_path = request.path
+        if path_info and original_path.endswith(path_info):
+            request.path = original_path[: -len(path_info)] + rewritten_path
+        else:
+            request.path = rewritten_path
         request._django_api_version_negotiated = True
         return self.get_response(request)
 
