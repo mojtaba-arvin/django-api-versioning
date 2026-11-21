@@ -33,7 +33,9 @@ jobs:
       - name: Run mutation analysis
         run: |
           mutmut run --use-coverage
-          mutmut show | tee "$RUNNER_TEMP/mutmut-results.txt"
+          # "show" requires a mutant identifier; "results" is the non-interactive
+          # summary command and is suitable for CI logs and retained artifacts.
+          mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
           killed=$(mutmut result-ids killed | wc -l | tr -d ' ')
           survived=$(mutmut result-ids survived | wc -l | tr -d ' ')
           timed_out=$(mutmut result-ids timeout | wc -l | tr -d ' ')
@@ -42,9 +44,19 @@ jobs:
             echo "No scoreable mutants were produced" >&2
             exit 1
           fi
-          awk -v killed="$killed" -v survived="$survived" -v timed_out="$timed_out" -v total="$total" \
-            'BEGIN { printf "Mutation score: %.2f%% (%d killed, %d survived, %d timed out; %d total)\n", 100 * (killed + timed_out) / total, killed, survived, timed_out, total }' \
-            | tee -a "$RUNNER_TEMP/mutmut-results.txt"
+          # Initial regression floor: 70%. This is a minimum guardrail, not a
+          # claim that surviving mutants are acceptable or that 70% is sufficient.
+          min_score=70
+          awk -v killed="$killed" -v survived="$survived" -v timed_out="$timed_out" -v total="$total" -v min_score="$min_score" \
+            'BEGIN {
+              score = 100 * (killed + timed_out) / total
+              printf "Mutation score: %.2f%% (%d killed, %d survived, %d timed out; %d total; minimum %.2f%%)\\n", score, killed, survived, timed_out, total, min_score
+              if (score < min_score) exit 1
+            }' | tee -a "$RUNNER_TEMP/mutmut-results.txt"
+          if [ "$timed_out" -gt 0 ]; then
+            echo "Timed-out mutants require review; do not treat them as proven kills." >&2
+            exit 1
+          fi
       - name: Preserve mutation report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
