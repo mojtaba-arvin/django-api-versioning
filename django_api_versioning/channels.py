@@ -1,7 +1,5 @@
 from django.http import HttpRequest
 
-from .settings import api_settings
-
 
 def extract_version(request: HttpRequest, channels: list[str]) -> int | None:
     """
@@ -60,20 +58,13 @@ def _parse_version(value: object) -> int | None:
     if not raw.isascii() or not raw.isdecimal():
         return None
 
-    # Reject unsupported versions before converting attacker-controlled,
-    # arbitrarily long decimal strings to Python integers. Comparing the
-    # normalized decimal representation avoids Python's int digit limit and
-    # behaves consistently across supported Python versions.
-    normalized = raw.lstrip("0") or "0"
-    maximum = str(api_settings.API_MAX_VERSION)
-    if len(normalized) > len(maximum) or (
-        len(normalized) == len(maximum) and normalized > maximum
-    ):
+    # Python 3.11+ limits decimal-to-int conversion to 4,300 digits by
+    # default. Keep the channel parser consistent across supported Python
+    # versions and avoid converting unbounded attacker-controlled input.
+    if len(raw) > 4300:
         return None
     try:
-        return int(normalized)
+        return int(raw)
     except ValueError:
-        # Keep malformed/oversized values on the documented non-match path,
-        # including when the interpreter's integer-string limit is configured
-        # more restrictively than the default.
+        # Also respect a stricter interpreter-level integer-string limit.
         return None
