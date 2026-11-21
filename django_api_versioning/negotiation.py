@@ -208,6 +208,7 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
         )
     return dedicated_version if dedicated_version is not None else accept_version
 
+
 class VersionNegotiationMiddleware:
     """Select the effective API version before URL resolution.
 
