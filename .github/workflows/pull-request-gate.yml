@@ -55,7 +55,7 @@ jobs:
         run: |
           gh api --paginate \
             "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/commits?per_page=100" \
-            --jq '.[].commit.message | split("\\n")[0]' > "$RUNNER_TEMP/commit-subjects.txt"
+            --jq '.[].commit.message | split("\n")[0]' > "$RUNNER_TEMP/commit-subjects.txt"
           python scripts/check_commit_message.py --subjects-file "$RUNNER_TEMP/commit-subjects.txt"
       - name: Classify checks required by the changed files
         id: classify

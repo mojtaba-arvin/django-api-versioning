@@ -25,7 +25,7 @@ def validate_commit_message(message: str) -> list[str]:
 
     subject = lines[0]
     if not subject.strip():
-        return ["commit subject must be the first non-empty line"]
+        return ["commit subject must be the first line"]
 
     if len(subject) > MAX_SUBJECT_LENGTH:
         errors.append(
@@ -69,7 +69,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--message", help="commit subject/message text")
-    source.add_argument("--subjects-file", type=Path, help="file containing one commit subject per line")
+    source.add_argument(
+        "--subjects-file",
+        type=Path,
+        help="file containing one commit subject per line",
+    )
     source.add_argument("message_file", nargs="?", type=Path)
     args = parser.parse_args()
 
