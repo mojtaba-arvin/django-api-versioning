@@ -1125,3 +1125,6 @@ class UrlRegistry:
             )
 
         self.urlpatterns.sort(key=sort_key)
+
+
+registry = UrlRegistry()
