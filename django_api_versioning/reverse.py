@@ -157,9 +157,7 @@ def api_reverse(
     route = route_pattern._route
     parameter_names = {match.group(1) for match in _CONVERTER_RE.finditer(route)}
     default_args = getattr(target_pattern, "default_args", None) or {}
-    unexpected_parameters = sorted(
-        set(kwargs) - parameter_names - set(default_args)
-    )
+    unexpected_parameters = sorted(set(kwargs) - parameter_names - set(default_args))
     if unexpected_parameters:
         raise NoReverseMatch(
             f"Unexpected parameter(s) {unexpected_parameters!r} for {view_name!r}."

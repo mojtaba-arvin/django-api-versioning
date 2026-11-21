@@ -263,17 +263,23 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
             return Response({"version": 3})
 
     slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
-    slash_router.register("shared-orders", V1Orders, versions=[1], basename="shared-order")
+    slash_router.register(
+        "shared-orders", V1Orders, versions=[1], basename="shared-order"
+    )
 
     no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
-    no_slash_router.register("shared-orders", V3Orders, versions=[3], basename="shared-order")
+    no_slash_router.register(
+        "shared-orders", V3Orders, versions=[3], basename="shared-order"
+    )
 
     # These routers intentionally coexist because their generated URL patterns
     # differ by trailing-slash policy, while their logical endpoint is equal.
     slash_router.remove("shared-orders", "shared-order-list", from_version=2)
 
     # The second owner is allowed to introduce its own v2 implementation.
-    no_slash_router.register("shared-orders", V2Orders, versions=[2], basename="shared-order")
+    no_slash_router.register(
+        "shared-orders", V2Orders, versions=[2], basename="shared-order"
+    )
 
     owned_v2 = [
         pattern for pattern in registry.urlpatterns
