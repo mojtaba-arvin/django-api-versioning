@@ -537,11 +537,7 @@ class UrlRegistry:
 
     @staticmethod
     def _canonical_route_key(route: str) -> str:
-        """Normalize simple anchored regex routes to their literal path form.
-
-        DRF regex routes use ^literal/path/$ while Django path() uses
-        literal/path/. Treat them as identical only for static literal paths.
-        """
+        """Normalize anchored regexes containing only literal path text."""
         if not (route.startswith("^") and route.endswith("$")):
             return route
 
@@ -559,12 +555,7 @@ class UrlRegistry:
                     return route
                 normalized.append(character)
                 escaped = False
-                if character == "\\":
-                    if index + 1 < len(source) and source[index + 1].isalnum():
-                        dynamic_start = index
-                        break
-                    escaped = True
-                    continue
+            elif character == "\\":
                 escaped = True
             elif character in ".^$*+?{}[]|()":
                 return route
@@ -1089,16 +1080,8 @@ class UrlRegistry:
         """Prefer longer literal prefixes before generic converter/regex routes."""
         route_text = str(pattern.pattern)
         if isinstance(pattern.pattern, RegexPattern):
-            source = (
-                route_text[1:]
-                if route_text.startswith("^")
-                else route_text
-            )
-            source = (
-                source[:-1]
-                if source.endswith("$")
-                else source
-            )
+            source = route_text[1:] if route_text.startswith("^") else route_text
+            source = source[:-1] if source.endswith("$") else source
             escaped = False
             dynamic_start = len(source)
             for index, character in enumerate(source):
@@ -1106,6 +1089,9 @@ class UrlRegistry:
                     escaped = False
                     continue
                 if character == "\\":
+                    if index + 1 < len(source) and source[index + 1].isalnum():
+                        dynamic_start = index
+                        break
                     escaped = True
                     continue
                 if character in "([?*+{.^$|)]}":
@@ -1121,23 +1107,3 @@ class UrlRegistry:
             has_dynamic = dynamic_start >= 0
 
         return (-len(literal_prefix), has_dynamic, -len(route_text))
-
-    def _sort_urlpatterns(self) -> None:
-        """Order versions first and more-specific URL patterns before catch-alls."""
-
-        def sort_key(pattern: URLPattern) -> tuple[bool, int, bool, int, int]:
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            specificity = self._route_specificity_key(pattern)
-            has_dynamic = specificity[1]
-            return (
-                route_version is not None,
-                route_version if route_version is not None else -1,
-                has_dynamic,
-                specificity[0] if has_dynamic else 0,
-                specificity[2] if has_dynamic else 0,
-            )
-
-        self.urlpatterns.sort(key=sort_key)
-
-
-registry = UrlRegistry()
