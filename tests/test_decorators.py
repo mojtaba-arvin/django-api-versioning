@@ -744,3 +744,12 @@ class TestEndpointPathValidation:
     def test_rejects_ambiguous_or_unsafe_app_name_paths(self, app_name):
         with pytest.raises(VersioningError, match="app_name"):
             endpoint("orders", version=1, app_name=app_name)
+
+
+    def test_duplicate_explicit_versions_are_rejected_atomically(self, versions_1_to_5):
+        with pytest.raises(VersionRangeError, match="must not contain duplicates"):
+            @endpoint("duplicate-versions", versions=[1, 2, 1])
+            def duplicate_versions(request):
+                return JsonResponse({})
+
+        assert _routes() == set()
