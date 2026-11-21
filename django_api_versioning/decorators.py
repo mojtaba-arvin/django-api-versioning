@@ -17,6 +17,7 @@ ViewT = TypeVar("ViewT", bound=Callable)
 
 def _registry_transaction(function):
     """Keep multi-route decorator registration atomic across threads."""
+
     @wraps(function)
     def wrapper(*args, **kwargs):
         with registry.transaction():
