@@ -1,6 +1,7 @@
 name: Adversarial quality gates
 
 on:
+  workflow_call:
   push:
     branches: ["audit/**"]
   pull_request:
