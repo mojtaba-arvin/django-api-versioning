@@ -1,10 +1,12 @@
-"""Targeted test selection for mutmut, with a full-suite safety net.
+"""Line-level test selection for mutmut, with a full-suite safety net.
 
-The focused files exercise each module's public and internal contracts on
-pull requests. The scheduled full campaign adds --rerun-all so surviving
-mutants are rechecked against the complete test suite before classification.
+Pytest-cov contexts identify the exact test node IDs that executed each
+mutated line. Static per-module test lists remain a conservative fallback.
+The scheduled full campaign adds --rerun-all to verify surviving mutants.
 """
 
+import os
+import shlex
 from pathlib import Path
 
 TESTS_BY_SOURCE = {
@@ -61,12 +63,30 @@ def init():
 
 
 def pre_mutation(context):
-    """Run focused tests; the scheduled campaign verifies survivors fully."""
+    """Run tests that executed this exact line; fall back to module-level tests."""
     source_name = Path(context.filename).name
+    coverage_data = context.config.coverage_data or {}
+    source_path = os.path.abspath(context.filename)
+    contexts_by_line = coverage_data.get(source_path, {})
+    line_contexts = contexts_by_line.get(context.current_line_index, [])
+
+    node_ids = sorted(
+        {
+            context_name.split("|", 1)[0]
+            for context_name in line_contexts
+            if context_name
+        }
+    )
+    if node_ids:
+        context.config.test_command = (
+            "python -m pytest -x -q -p no:pytest_cov -o addopts= "
+            + " ".join(shlex.quote(node_id) for node_id in node_ids)
+        )
+        return
+
     test_paths = TESTS_BY_SOURCE.get(source_name)
     if not test_paths:
         return
-
     context.config.test_command = (
         "python -m pytest -x -q -p no:pytest_cov -o addopts= " + " ".join(test_paths)
     )
