@@ -462,6 +462,15 @@ def test_same_router_prefix_with_distinct_trailing_slash_modes_can_coexist():
     assert len(patterns) == 2
     assert str(patterns[0].pattern) != str(patterns[1].pattern)
 
+    matrix = registry.get_logical_version_matrix()
+    route_variants = [
+        versions
+        for logical_id, versions in matrix.items()
+        if logical_id.startswith("orders:order-list")
+    ]
+    assert len(route_variants) == 2
+    assert all(2 in versions for versions in route_variants)
+
 
 def test_manual_route_reusing_registered_route_suffix_does_not_inherit_request_version():
     """A matching route suffix is not proof that the router registered this view."""
@@ -502,3 +511,37 @@ def test_manual_route_reusing_registered_route_suffix_does_not_inherit_request_v
 
     assert response.status_code == 200
     assert response.json() == {"source": "manual", "version": None}
+
+
+
+@pytest.mark.parametrize("archive_first", [False, True])
+def test_static_nested_route_precedes_parent_dynamic_detail_route(archive_first):
+    """A static child prefix must not be captured by a parent's detail converter."""
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def retrieve(self, request, pk=None):
+            return Response({"handler": "order-detail", "pk": pk})
+
+    class ArchiveViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"handler": "archive-list"})
+
+    router = VersionedRouter()
+    registrations = [
+        ("orders", OrdersViewSet, "order"),
+        ("orders/archive", ArchiveViewSet, "archive"),
+    ]
+    if archive_first:
+        registrations.reverse()
+    for prefix, viewset, basename in registrations:
+        router.register(prefix, viewset, version=2, basename=basename)
+
+    urlconf = ModuleType(f"nested_static_route_{archive_first}_urls")
+    urlconf.urlpatterns = router.urls
+    clear_url_caches()
+
+    with override_settings(ROOT_URLCONF=urlconf):
+        response = APIClient().get("/api/v2/orders/archive/")
+
+    assert response.status_code == 200
+    assert response.json() == {"handler": "archive-list"}
