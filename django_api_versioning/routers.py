@@ -52,6 +52,10 @@ class VersionedRouter:
     ) -> None:
         if not isinstance(app_name, str) or not app_name.strip():
             raise VersioningError("app_name must be a non-empty string.")
+        if not isinstance(trailing_slash, bool):
+            raise TypeError("trailing_slash must be a bool.")
+        if not isinstance(use_regex_path, bool):
+            raise TypeError("use_regex_path must be a bool.")
 
         self.trailing_slash = trailing_slash
         self.use_regex_path = use_regex_path
@@ -83,6 +87,8 @@ class VersionedRouter:
                 "prefix must be a non-empty relative path without leading "
                 "or trailing '/'."
             )
+        if not self.use_regex_path:
+            api_settings._validate_url_prefix(prefix, "prefix")
         if version is not None and versions is not None:
             raise VersionRangeError("Use either 'version' or 'versions', not both.")
         if versions is not None and not isinstance(versions, list):
