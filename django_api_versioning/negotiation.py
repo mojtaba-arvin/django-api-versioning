@@ -139,7 +139,6 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
         quality = 1.0
         saw_quality = False
         version_value: str | None = None
-        after_quality = False
 
         for parameter in parameters[1:]:
             name, separator, raw_value = parameter.partition("=")
@@ -173,9 +172,8 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
                 ):
                     raise ValueError("Accept contains an invalid quality value.")
                 saw_quality = True
-                after_quality = True
                 quality = float(raw_value)
-            elif folded_name == "version" and not after_quality:
+            elif folded_name == "version":
                 if version_value is not None:
                     raise ValueError("Accept contains duplicate version parameters.")
                 version_value = parsed_value
