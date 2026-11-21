@@ -546,7 +546,6 @@ def test_static_nested_route_precedes_parent_dynamic_detail_route(archive_first)
     assert response.json() == {"handler": "archive-list"}
 
 
-
 def test_logical_matrix_separates_router_owners_with_disjoint_versions():
     """Different trailing-slash routers must not masquerade as one version span."""
 
