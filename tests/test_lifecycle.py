@@ -803,7 +803,6 @@ def test_structured_field_date_floors_fractional_pre_epoch_seconds():
     assert _to_structured_field_date(post_epoch) == "@0"
 
 
-
 def test_http_date_uses_locale_independent_gmt_format():
     value = datetime(2031, 1, 1, 3, 0, tzinfo=timezone(timedelta(hours=3)))
 
