@@ -2,7 +2,10 @@ from django.http import HttpResponse, JsonResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 
-from django_api_versioning.negotiation import VersionNegotiationMiddleware, _host_version
+from django_api_versioning.negotiation import (
+    _host_version,
+    VersionNegotiationMiddleware,
+)
 
 
 def _dispatch(path, **headers):
