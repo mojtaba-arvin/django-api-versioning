@@ -33,7 +33,18 @@ jobs:
       - name: Run mutation analysis
         run: |
           mutmut run --use-coverage
-          mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
+          mutmut show | tee "$RUNNER_TEMP/mutmut-results.txt"
+          killed=$(mutmut result-ids killed | wc -l | tr -d ' ')
+          survived=$(mutmut result-ids survived | wc -l | tr -d ' ')
+          timed_out=$(mutmut result-ids timeout | wc -l | tr -d ' ')
+          total=$((killed + survived + timed_out))
+          if [ "$total" -eq 0 ]; then
+            echo "No scoreable mutants were produced" >&2
+            exit 1
+          fi
+          awk -v killed="$killed" -v survived="$survived" -v timed_out="$timed_out" -v total="$total" \
+            'BEGIN { printf "Mutation score: %.2f%% (%d killed, %d survived, %d timed out; %d total)\n", 100 * (killed + timed_out) / total, killed, survived, timed_out, total }' \
+            | tee -a "$RUNNER_TEMP/mutmut-results.txt"
       - name: Preserve mutation report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
