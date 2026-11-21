@@ -61,19 +61,68 @@ def _host_version(request: HttpRequest, host_map: dict[str, int]) -> int | None:
     return None
 
 
+def _split_quoted_header(value: str, delimiter: str) -> list[str]:
+    """Split an HTTP header outside quoted strings.
+
+    Accept media parameters may contain commas and semicolons inside quoted
+    values. Treating those characters as delimiters without tracking quoted
+    strings can mistake arbitrary profile text for an API version parameter.
+    """
+    parts: list[str] = []
+    start = 0
+    quoted = False
+    escaped = False
+
+    for index, character in enumerate(value):
+        if quoted and escaped:
+            escaped = False
+            continue
+        if quoted and character == "\\\\":
+            escaped = True
+            continue
+        if character == '"':
+            quoted = not quoted
+            continue
+        if character == delimiter and not quoted:
+            parts.append(value[start:index])
+            start = index + 1
+
+    if quoted or escaped:
+        raise ValueError("Accept contains an unterminated quoted parameter.")
+
+    parts.append(value[start:])
+    return parts
+
+
 def _header_version(request: HttpRequest, header_name: str) -> int | None:
     dedicated = request.headers.get(header_name)
     dedicated_version = _parse_version(dedicated) if dedicated is not None else None
 
     # Interoperate with DRF's AcceptHeaderVersioning wire format:
-    # Accept: application/json; version=2. Reject conflicting values instead
-    # of guessing which media range should control route dispatch.
-    values = re.findall(
-        r'(?:^|[;,])\s*version\s*=\s*(?:"([^"]+)"|([^;,\s]+))',
-        request.headers.get("Accept", ""),
-        flags=re.IGNORECASE,
-    )
-    versions = {quoted or bare for quoted, bare in values}
+    # Accept: application/json; version=2. Split only outside quoted strings;
+    # semicolons inside profile/extension values are ordinary data.
+    versions: set[str] = set()
+    accept = request.headers.get("Accept", "")
+    for media_range in _split_quoted_header(accept, ","):
+        parameters = _split_quoted_header(media_range, ";")
+        for parameter in parameters[1:]:
+            name, separator, raw_value = parameter.partition("=")
+            if name.strip().casefold() != "version":
+                continue
+            if not separator:
+                raise ValueError("Accept version parameter requires a value.")
+
+            raw_value = raw_value.strip()
+            if raw_value.startswith('"') or raw_value.endswith('"'):
+                if (
+                    len(raw_value) < 2
+                    or not raw_value.startswith('"')
+                    or not raw_value.endswith('"')
+                ):
+                    raise ValueError("Accept contains an invalid quoted version.")
+                raw_value = raw_value[1:-1]
+            versions.add(raw_value)
+
     if len(versions) > 1:
         raise ValueError("Accept contains conflicting API version parameters.")
     accept_version = _parse_version(next(iter(versions))) if versions else None
