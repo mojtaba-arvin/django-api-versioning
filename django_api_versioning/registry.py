@@ -1107,3 +1107,21 @@ class UrlRegistry:
             has_dynamic = dynamic_start >= 0
 
         return (-len(literal_prefix), has_dynamic, -len(route_text))
+
+
+    def _sort_urlpatterns(self) -> None:
+        """Order versions first, then static and specific routes before catch-alls."""
+
+        def sort_key(pattern: URLPattern) -> tuple[bool, int, bool, int, int]:
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            specificity = self._route_specificity_key(pattern)
+            has_dynamic = specificity[1]
+            return (
+                route_version is not None,
+                route_version if route_version is not None else -1,
+                has_dynamic,
+                specificity[0] if has_dynamic else 0,
+                specificity[2] if has_dynamic else 0,
+            )
+
+        self.urlpatterns.sort(key=sort_key)
