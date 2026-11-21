@@ -2,13 +2,15 @@
 
 import pytest
 from django.test import RequestFactory
-from hypothesis import given, settings as hypothesis_settings, strategies as st
+from hypothesis import given
+from hypothesis import settings as hypothesis_settings
+from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, invariant, rule
 
 from django_api_versioning.negotiation import (
-    _UnsupportedVersion,
     _header_version,
     _parse_version,
+    _UnsupportedVersion,
 )
 from django_api_versioning.registry import UrlRegistry
 from django_api_versioning.settings import api_settings
