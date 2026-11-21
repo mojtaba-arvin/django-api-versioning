@@ -29,11 +29,13 @@ jobs:
       - name: Collect test-to-source coverage once
         run: |
           coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
+      - name: Stage coverage data for artifact upload
+        run: cp .coverage coverage.data
       - name: Share coverage data with mutation shards
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: mutation-coverage-data
-          path: .coverage
+          path: coverage.data
           if-no-files-found: error
           retention-days: 1
 
@@ -104,6 +106,8 @@ jobs:
         with:
           name: mutation-coverage-data
           path: .
+      - name: Restore coverage.py's expected data filename
+        run: mv coverage.data .coverage
       - name: Run mutation analysis
         env:
           MUTATION_TARGET_ID: ${{ matrix.id }}
