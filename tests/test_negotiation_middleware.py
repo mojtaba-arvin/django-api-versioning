@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.http import HttpResponse, JsonResponse
 from django.test import Client, RequestFactory, override_settings
@@ -603,7 +605,7 @@ def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
     response = middleware(request)
 
     assert response.status_code == 200
-    assert response.json() == {
+    assert json.loads(response.content) == {
         "path": "/gateway/api/v2/orders/",
         "path_info": "/api/v2/orders/",
     }
