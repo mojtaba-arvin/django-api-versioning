@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from django.http import JsonResponse
 from django.test import Client, override_settings
@@ -128,9 +130,14 @@ class TestApiReverse:
             def to_url(self, value):
                 return str(value).lower()
 
-        register_converter(LowercaseConverter, "lowercase")
+        converter_name = f"lowercase_{uuid.uuid4().hex}"
+        register_converter(LowercaseConverter, converter_name)
 
-        @endpoint("items/<lowercase:code>/", version=1, view_name="item-detail")
+        @endpoint(
+            f"items/<{converter_name}:code>/",
+            version=1,
+            view_name="item-detail",
+        )
         def item_detail(request, code):
             return JsonResponse({"code": code})
 
