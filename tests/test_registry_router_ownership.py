@@ -242,3 +242,45 @@ def test_decorator_removal_boundary_does_not_suppress_router_registration():
         and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
         for pattern in registry.urlpatterns
     )
+
+
+def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
+    """Removing one router's route must not suppress another router's later registration."""
+    from django_api_versioning.settings import api_settings
+
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    class V1Orders(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"version": 1})
+
+    class V2Orders(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"version": 2})
+
+    class V3Orders(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"version": 3})
+
+    slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
+    slash_router.register("shared-orders", V1Orders, versions=[1], basename="shared-order")
+
+    no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
+    no_slash_router.register("shared-orders", V3Orders, versions=[3], basename="shared-order")
+
+    # These routers intentionally coexist because their generated URL patterns
+    # differ by trailing-slash policy, while their logical endpoint is equal.
+    slash_router.remove("shared-orders", "shared-order-list", from_version=2)
+
+    # The second owner is allowed to introduce its own v2 implementation.
+    no_slash_router.register("shared-orders", V2Orders, versions=[2], basename="shared-order")
+
+    owned_v2 = [
+        pattern for pattern in registry.urlpatterns
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "shared-orders:shared-order-list"
+        and getattr(pattern, registry._ROUTE_VERSION_ATTR, None) == 2
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is no_slash_router._registry_owner
+    ]
+    assert len(owned_v2) == 1
