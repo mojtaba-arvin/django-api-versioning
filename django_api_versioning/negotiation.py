@@ -128,15 +128,28 @@ def _parse_accept_parameter_value(raw_value: str) -> tuple[str, bool]:
 
     quoted = value.startswith('"') or value.endswith('"')
     if quoted:
-        if (
-            len(value) < 2
-            or not value.startswith('"')
-            or not value.endswith('"')
-            or any(
-                (ord(character) < 32 and character != "\t") or ord(character) == 127
-                for character in value[1:-1]
-            )
-        ):
+        if len(value) < 2 or not value.startswith('"') or not value.endswith('"'):
+            raise ValueError("Accept contains an invalid quoted parameter.")
+
+        # RFC quoted-string permits an embedded DQUOTE only as a quoted-pair
+        # (backslash escape). Merely checking the outer quotes accepts malformed
+        # values such as `profile="one""two"`, which can make an invalid Accept
+        # field influence version selection.
+        escaped = False
+        for character in value[1:-1]:
+            codepoint = ord(character)
+            if escaped:
+                if (codepoint < 32 and character != "\t") or codepoint == 127:
+                    raise ValueError("Accept contains an invalid quoted parameter.")
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                raise ValueError("Accept contains an invalid quoted parameter.")
+            elif (codepoint < 32 and character != "\t") or codepoint == 127:
+                raise ValueError("Accept contains an invalid quoted parameter.")
+
+        if escaped:
             raise ValueError("Accept contains an invalid quoted parameter.")
         return value[1:-1], True
 
