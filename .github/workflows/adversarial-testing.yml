@@ -26,11 +26,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .
           python -m pip install -r requirements-ci.txt
-          python -m pip install "mutmut==3.6.0"
+          python -m pip install "mutmut==2.5.1"
       - name: Run mutation analysis
         run: |
-          python -m mutmut run
-          python -m mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
+          mutmut run --use-coverage
+          mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
       - name: Preserve mutation report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
