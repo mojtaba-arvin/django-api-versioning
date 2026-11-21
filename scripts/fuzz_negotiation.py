@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
-import os
 import sys
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
 
 import atheris
 
 with atheris.instrument_imports():
     import django
+    from django.conf import settings
 
+    if not settings.configured:
+        settings.configure(
+            SECRET_KEY="atheris-only-not-for-production",
+            INSTALLED_APPS=[],
+            DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+            API_BASE_PATH="api/v{version}/",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=5,
+            ALLOWED_HOSTS=["*"],
+        )
     django.setup()
 
     from django.http import HttpRequest
@@ -23,8 +31,10 @@ with atheris.instrument_imports():
     from django_api_versioning.negotiation import (
         _UnsupportedVersion,
         _header_version,
+        _normalize_hostname,
         _parse_accept_media_range,
         _parse_version,
+        _path_version,
         _split_quoted_header,
     )
 
@@ -42,6 +52,8 @@ def TestOneInput(data: bytes) -> None:
 
     value = data.decode("latin-1")
     _ignore_expected_rejections(_parse_version, value)
+    _ignore_expected_rejections(_path_version, value, "api/v{version}/")
+    _ignore_expected_rejections(_normalize_hostname, value)
     _ignore_expected_rejections(_split_quoted_header, value, ",")
     _ignore_expected_rejections(_split_quoted_header, value, ";")
 
