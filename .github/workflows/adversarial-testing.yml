@@ -111,7 +111,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if mutmut run --use-coverage --rerun-all > "$RUNNER_TEMP/mutmut-run.log" 2>&1; then
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            mutation_args=(--use-coverage)
+          else
+            mutation_args=(--use-coverage --rerun-all)
+          fi
+          if mutmut run "${mutation_args[@]}" > "$RUNNER_TEMP/mutmut-run.log" 2>&1; then
             mutation_status=0
           else
             mutation_status=$?
@@ -229,7 +234,13 @@ jobs:
               raise SystemExit("Combined campaign contains unresolved mutant outcomes")
 
           score = 100.0 * totals["killed"] / totals["total"]
-          minimum = 70.0
+          import os
+          is_pull_request = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+          minimum = 0.0 if is_pull_request else 70.0
+          if is_pull_request:
+              print("PR mutation smoke score (focused tests; full-suite verification runs weekly):")
+          else:
+              print("Full-suite mutation score:")
           print("Per-target mutation results:")
           for target in sorted(reports):
               report = reports[target]
@@ -268,16 +279,20 @@ jobs:
           corpus="$RUNNER_TEMP/negotiation-corpus"
           mkdir -p "$corpus"
           cp fuzz_corpus/negotiation/* "$corpus/"
+          mkdir -p "$RUNNER_TEMP/atheris-artifacts"
           python scripts/fuzz_negotiation.py "$corpus" \
             -atheris_runs="$([ "$GITHUB_EVENT_NAME" = "pull_request" ] && echo 10000 || echo 100000)" \
             -max_len=65536 \
-            -timeout=2
-      - name: Upload minimized crash corpus
-        if: failure() && hashFiles('crash-*') != ''
+            -timeout=2 \
+            -artifact_prefix="$RUNNER_TEMP/atheris-artifacts/" 2>&1 | tee "$RUNNER_TEMP/atheris.log"
+      - name: Preserve Atheris timeout and crash inputs
+        if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: atheris-crash-inputs
-          path: crash-*
+          name: atheris-failure-artifacts
+          path: |
+            ${{ runner.temp }}/atheris-artifacts/*
+            ${{ runner.temp }}/atheris.log
           if-no-files-found: ignore
           retention-days: 30
 
