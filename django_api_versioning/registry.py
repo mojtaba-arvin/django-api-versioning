@@ -32,6 +32,7 @@ class ResolvedOperation:
     namespace: str
     route: str
     registered_route: str
+    router_owner: object | None = None
 
 
 ViewType = Callable[..., HttpResponse] | type[View]
@@ -139,6 +140,8 @@ class UrlRegistry:
         for pattern in self.urlpatterns:
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
                 continue
+            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
+                continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
             if (
@@ -149,9 +152,10 @@ class UrlRegistry:
             ):
                 preserved_versions.add(route_version)
         for key in list(self._endpoint_lifecycle):
-            endpoint, version, _, _ = key
+            endpoint, version, _, _, metadata_owner = key
             if (
-                endpoint == logical_endpoint
+                metadata_owner is owner
+                and endpoint == logical_endpoint
                 and version >= from_version
                 and version not in preserved_versions
             ):
@@ -510,9 +514,6 @@ class UrlRegistry:
                 return index
 
             existing_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if new_owner is None and existing_owner is None:
-                continue
-
             route_key = self._canonical_route_key(route) if regex_route else route
             existing_key = (
                 self._canonical_route_key(existing_pattern_text)
@@ -762,6 +763,7 @@ class UrlRegistry:
             namespace=namespace,
             route=route,
             registered_route=str(pattern.pattern),
+            router_owner=getattr(pattern, self._ROUTER_OWNER_ATTR, None),
         )
 
     def resolve_registered_operation(
@@ -823,6 +825,7 @@ class UrlRegistry:
         action: str | None = None,
         deprecated_at: str | None = None,
         sunset: str | None = None,
+        owner: object | None = None,
     ) -> None:
         """Register lifecycle dates for a route, HTTP method, or DRF action."""
         if not isinstance(logical_endpoint, str) or not logical_endpoint:
@@ -858,6 +861,7 @@ class UrlRegistry:
             route_version,
             normalized_method,
             normalized_action,
+            owner,
         )
         existing = self._endpoint_lifecycle.get(key)
         if existing is not None and existing != lifecycle:
@@ -901,6 +905,7 @@ class UrlRegistry:
                     operation.route_version,
                     method,
                     action,
+                    operation.router_owner,
                 )
             )
             if record is not None:
