@@ -189,6 +189,12 @@ class VersionedRouter:
             and getattr(pattern, registry._ROUTE_VERSION_ATTR) >= from_version
             and getattr(pattern, registry._SOURCE_VERSION_ATTR, None) is not None
             and getattr(pattern, registry._SOURCE_VERSION_ATTR) <= from_version
+            # A router removal only affects its own generated route identity.
+            # Other routers may intentionally expose the same logical endpoint
+            # with a different trailing-slash policy.
+            and getattr(pattern, registry._ROUTER_PREFIX_ATTR, None) == prefix
+            and getattr(pattern, registry._ROUTER_TRAILING_SLASH_ATTR, None)
+            == self.trailing_slash
             and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
             is not self._registry_owner
         ]
