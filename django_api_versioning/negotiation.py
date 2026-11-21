@@ -44,7 +44,18 @@ def _path_version(path_info: str, template: str) -> int | None:
     prefix, suffix = template.split("{version}")
     pattern = "^" + re.escape(prefix.lstrip("/")) + r"([0-9]+)" + re.escape(suffix)
     match = re.match(pattern, path_info.lstrip("/"))
-    return int(match.group(1)) if match else None
+    if not match:
+        return None
+
+    # A long numeric segment is still a versioned path, even when it cannot
+    # be a supported version. Avoid unbounded int conversion (which raises on
+    # Python 3.11+ after the configured digit limit) while preserving that
+    # distinction for non-path negotiation schemes.
+    digits = match.group(1).lstrip("0") or "0"
+    maximum = _setting("API_MAX_VERSION", api_settings.API_MAX_VERSION)
+    if len(digits) > len(str(maximum)):
+        return -1
+    return int(digits)
 
 
 def _host_version(request: HttpRequest, host_map: dict[str, int]) -> int | None:
