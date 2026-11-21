@@ -56,7 +56,20 @@ jobs:
           echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Run package unit tests
-        run: python -m pytest --capture=no tests
+        run: >-
+          python -m pytest --capture=no --cov=django_api_versioning
+          --cov-report=xml:coverage.xml tests
 
       - name: Run Django integration tests
-        run: python -m pytest --capture=no -c integration_test_project/pytest.ini integration_test_project
+        run: >-
+          python -m pytest --capture=no --cov=django_api_versioning --cov-append
+          --cov-report=xml:coverage.xml
+          -c integration_test_project/pytest.ini integration_test_project
+
+      - name: Upload coverage reports to Codecov
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
