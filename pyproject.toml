@@ -141,7 +141,7 @@ exclude_lines = [
 [tool.mutmut]
 debug = true
 source_paths = ["django_api_versioning"]
-pytest_add_cli_args_test_selection = ["tests", "integration_test_project"]
+pytest_add_cli_args_test_selection = ["tests"]
 mutate_only_covered_lines = true
 max_stack_depth = 8
 use_setproctitle = false
