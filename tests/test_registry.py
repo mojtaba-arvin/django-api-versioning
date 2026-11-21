@@ -1179,7 +1179,6 @@ def test_literal_path_with_regex_anchor_characters_does_not_collide_with_regex_r
     assert registry.urlpatterns[1].callback is literal_path_view
 
 
-
 @pytest.mark.parametrize("regex_first", [True, False])
 def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
     clear_registry, regex_first
@@ -1237,7 +1236,6 @@ def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
     assert getattr(
         registry.urlpatterns[0], registry._ROUTE_VERSION_ATTR
     ) == 2
-
 
 
 def test_concurrent_registration_of_same_route_is_serialized(
