@@ -98,7 +98,9 @@ def test_router_lifecycle_metadata_is_scoped_to_router_owner():
         use_regex_path=False,
         app_name="no_slash_api",
     )
-    slash_router.register("shared-orders", OrdersViewSet, versions=[2], basename="shared")
+    slash_router.register(
+        "shared-orders", OrdersViewSet, versions=[2], basename="shared"
+    )
     no_slash_router.register(
         "shared-orders", OrdersViewSet, versions=[2], basename="shared"
     )
