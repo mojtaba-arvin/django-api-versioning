@@ -1123,7 +1123,6 @@ class UrlRegistry:
 
         return (-len(literal_prefix), has_dynamic, -len(route_text))
 
-
     def _sort_urlpatterns(self) -> None:
         """Order versions first, then static and specific routes before catch-alls."""
 
