@@ -357,9 +357,9 @@ def remove_endpoint(
         and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
         for pattern in registry.urlpatterns
     ) or any(
-        endpoint == logical_endpoint
+        key[0] == logical_endpoint
         and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
-        for (endpoint, _version), pattern in registry._removed_patterns.items()
+        for key, pattern in registry._removed_patterns.items()
     )
     if router_owned:
         raise VersioningError(

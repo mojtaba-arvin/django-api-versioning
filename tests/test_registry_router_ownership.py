@@ -301,3 +301,32 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
         is slash_router._registry_owner
         for key, pattern in registry._removed_patterns.items()
     )
+
+
+def test_decorator_removal_rejects_router_owned_tombstone():
+    """Decorator removal must inspect router tombstones without assuming 2-part keys."""
+
+    class RemovedViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"ok": True})
+
+    router = VersionedRouter()
+    router.register(
+        "router-owned-tombstone",
+        RemovedViewSet,
+        version=1,
+        basename="router-owned-tombstone",
+    )
+    router.remove(
+        "router-owned-tombstone",
+        "router-owned-tombstone-list",
+        from_version=1,
+    )
+
+    assert not any(
+        getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is router._registry_owner
+        for pattern in registry.urlpatterns
+    )
+    with pytest.raises(VersioningError, match="owned by a VersionedRouter"):
+        remove_endpoint("router-owned-tombstone", from_version=1)
