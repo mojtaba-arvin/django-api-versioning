@@ -318,3 +318,20 @@ def test_lifecycle_uses_the_effective_negotiated_version():
     assert v2.json() == {"handler": "v2", "version": 2}
     assert "Deprecation" not in v2.headers
     assert "Sunset" not in v2.headers
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_version_parameter_inside_quoted_accept_parameter_is_not_a_version():
+    """A semicolon inside a quoted parameter must not start a new media parameter."""
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT='application/json; profile="application/example; version=2"',
+    )
+
+    assert response.status_code == 400
