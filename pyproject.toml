@@ -136,3 +136,16 @@ exclude_lines = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:",
 ]
+
+[tool.mutmut]
+# Mutation scope for the request negotiation, lifecycle, routing, and registry logic.
+source_paths = ["django_api_versioning/"]
+only_mutate = [
+    "django_api_versioning/negotiation.py",
+    "django_api_versioning/lifecycle.py",
+    "django_api_versioning/routers.py",
+    "django_api_versioning/registry.py",
+]
+pytest_add_cli_args_test_selection = ["tests/"]
+pytest_add_cli_args = ["-o", "addopts="]
+mutate_only_covered_lines = true
