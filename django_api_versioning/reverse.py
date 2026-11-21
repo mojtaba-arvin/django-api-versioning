@@ -171,7 +171,9 @@ def api_reverse(
     conflicting_defaults = sorted(
         name
         for name, default_value in default_args.items()
-        if name in kwargs and kwargs[name] != default_value
+        if name not in parameter_names
+        and name in kwargs
+        and kwargs[name] != default_value
     )
     if conflicting_defaults:
         raise NoReverseMatch(
