@@ -513,14 +513,29 @@ class UrlRegistry:
         # one callback. Keep the familiar key for unambiguous operations and
         # add a stable router/route discriminator only when a collision exists.
         counts = {}
-        for logical_id, route_version, _pattern, _callback in entries:
+        owner_groups = {}
+        for logical_id, route_version, pattern, _callback in entries:
             identity = (logical_id, route_version)
             counts[identity] = counts.get(identity, 0) + 1
 
+            owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if owner is None:
+                owner_identity = ("unowned",)
+            else:
+                owner_identity = (
+                    "router",
+                    getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
+                    getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
+                )
+            owner_groups.setdefault(logical_id, set()).add(owner_identity)
+
         matrix: dict[str, dict[int | None, Callable]] = {}
         for logical_id, route_version, pattern, callback in entries:
-            if counts[(logical_id, route_version)] > 1:
-                owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            has_multiple_owners = len(owner_groups[logical_id]) > 1
+            has_same_version_collision = counts[(logical_id, route_version)] > 1
+
+            if has_multiple_owners or has_same_version_collision:
                 if owner is not None:
                     discriminator = (
                         f"router={getattr(pattern, self._ROUTER_PREFIX_ATTR, None)!r}, "
