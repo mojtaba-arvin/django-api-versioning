@@ -399,6 +399,8 @@ class VersionedRouter:
     def _validate_version(version: int) -> None:
         if isinstance(version, bool) or not isinstance(version, int):
             raise VersionTypeError("Version must be an integer.")
+        if version < 0:
+            raise VersionRangeError("Version must be a non-negative API version.")
         if version > api_settings.API_MAX_VERSION:
             raise InvalidVersionError(
                 f"Version {version} is above the maximum allowed version "
