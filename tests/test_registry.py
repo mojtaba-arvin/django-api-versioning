@@ -1274,7 +1274,6 @@ def test_concurrent_registration_of_same_route_is_serialized(
     assert registry.urlpatterns[0].callback is view
 
 
-
 @pytest.mark.parametrize("regex_first", [True, False])
 def test_escaped_literal_regex_and_path_routes_share_identity(
     clear_registry, regex_first
