@@ -43,6 +43,7 @@ ViewType = Callable[..., HttpResponse] | type[View]
 
 def _synchronized(method):
     """Serialize registry mutations and keep multi-step checks atomic."""
+
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         with self._lock:
