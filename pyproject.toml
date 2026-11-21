@@ -141,6 +141,14 @@ exclude_lines = [
 [tool.mutmut]
 debug = true
 source_paths = ["django_api_versioning"]
+only_mutate = [
+    "django_api_versioning/decorators.py",
+    "django_api_versioning/lifecycle.py",
+    "django_api_versioning/negotiation.py",
+    "django_api_versioning/registry.py",
+    "django_api_versioning/routers.py",
+]
+do_not_mutate = ["django_api_versioning/__init__.py"]
 pytest_add_cli_args_test_selection = ["tests"]
 mutate_only_covered_lines = true
 max_stack_depth = 8
