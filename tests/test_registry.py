@@ -1233,9 +1233,7 @@ def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
     assert registry.urlpatterns[0].callback is (
         second_view if regex_first else regex_pattern.callback
     )
-    assert getattr(
-        registry.urlpatterns[0], registry._ROUTE_VERSION_ATTR
-    ) == 2
+    assert getattr(registry.urlpatterns[0], registry._ROUTE_VERSION_ATTR) == 2
 
 
 def test_concurrent_registration_of_same_route_is_serialized(
