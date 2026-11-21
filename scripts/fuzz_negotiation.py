@@ -33,13 +33,13 @@ with atheris.instrument_imports():
         _extract_version_from_value,
     )
     from django_api_versioning.negotiation import (
-        _UnsupportedVersion,
         _header_version,
         _normalize_hostname,
         _parse_accept_media_range,
         _parse_version,
         _path_version,
         _split_quoted_header,
+        _UnsupportedVersion,
     )
 
 
