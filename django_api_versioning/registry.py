@@ -1,5 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
+from functools import wraps
+from threading import RLock
 from typing import Callable
 
 from django.http import HttpResponse
@@ -38,6 +40,16 @@ class ResolvedOperation:
 ViewType = Callable[..., HttpResponse] | type[View]
 
 
+def _synchronized(method):
+    """Serialize registry mutations and keep multi-step checks atomic."""
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class UrlRegistry:
     """Registry for managing API versioning URLs."""
 
@@ -49,6 +61,7 @@ class UrlRegistry:
     _ROUTER_TRAILING_SLASH_ATTR = "_django_api_versioning_router_trailing_slash"
 
     def __init__(self) -> None:
+        self._lock = RLock()
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
         self._router_removal_boundaries: dict[
@@ -56,9 +69,14 @@ class UrlRegistry:
         ] = {}
         self._removed_patterns: dict[tuple[object, ...], URLPattern] = {}
         self._endpoint_lifecycle: dict[
-            tuple[str, int, str | None, str | None], EndpointLifecycle
+            tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
         ] = {}
 
+    def transaction(self):
+        """Return the re-entrant lock for atomic multi-operation registration."""
+        return self._lock
+
+    @_synchronized
     def clear(self) -> None:
         """Clear active routes and removal declarations."""
         self.urlpatterns.clear()
@@ -67,6 +85,7 @@ class UrlRegistry:
         self._removed_patterns.clear()
         self._endpoint_lifecycle.clear()
 
+    @_synchronized
     def remove(
         self,
         logical_endpoint: str,
@@ -226,6 +245,7 @@ class UrlRegistry:
 
         self._removed_patterns[key] = pattern
 
+    @_synchronized
     def register(
         self,
         route: str,
@@ -279,6 +299,7 @@ class UrlRegistry:
 
         self._sort_urlpatterns()
 
+    @_synchronized
     def register_urlpattern(
         self,
         pattern: URLPattern,
