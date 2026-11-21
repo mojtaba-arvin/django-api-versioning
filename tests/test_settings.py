@@ -51,6 +51,23 @@ class TestBasePathValidation:
     @pytest.mark.parametrize(
         "base_path",
         [
+            "api/../v{version}/",
+            "api/./v{version}/",
+            "api//v{version}/",
+            "api/v{version}/?query/",
+            r"api\\v{version}\\",
+            "api/%252e%252e/v{version}/",
+            "api%2Fv{version}/",
+            "api/%FF/v{version}/",
+        ],
+    )
+    def test_rejects_unsafe_url_path_segments(self, base_path):
+        with pytest.raises(VersioningError):
+            APISettings(API_BASE_PATH=base_path)
+
+    @pytest.mark.parametrize(
+        "base_path",
+        [
             "api/v{version}/v{version}/",
             "api/v{version}/{other}/",
             "api/v{version:02d}/",
@@ -326,6 +343,21 @@ class TestNegotiationSettings:
                 API_DEFAULT_VERSION=3,
             )
 
+    @pytest.mark.parametrize(
+        "base_path",
+        [
+            "api/../",
+            "api/./",
+            "api/?query/",
+            r"api\\v1/",
+            "api/%252e%252e/",
+            "api%2Fv/",
+        ],
+    )
+    def test_unversioned_base_path_rejects_unsafe_segments(self, base_path):
+        with pytest.raises(VersioningError, match="API_UNVERSIONED_BASE_PATH"):
+            APISettings(API_UNVERSIONED_BASE_PATH=base_path)
+
     def test_unversioned_base_path_must_be_relative_and_normalized(self):
         with pytest.raises(VersioningError, match="API_UNVERSIONED_BASE_PATH"):
             APISettings(API_UNVERSIONED_BASE_PATH="/api/")
@@ -335,3 +367,11 @@ class TestNegotiationSettings:
             APISettings(API_VERSIONING_HEADER="Accept Version")
         with pytest.raises(VersioningError, match="API_VERSIONING_QUERY_PARAMETER"):
             APISettings(API_VERSIONING_QUERY_PARAMETER="")
+
+    @pytest.mark.parametrize("hostname", ["api.example.com..", "api..example.com"])
+    def test_hostname_map_rejects_invalid_dot_structure(self, hostname):
+        with pytest.raises(VersioningError):
+            APISettings(
+                API_VERSIONING_SCHEME="hostname",
+                API_VERSIONING_HOSTS={hostname: 1},
+            )

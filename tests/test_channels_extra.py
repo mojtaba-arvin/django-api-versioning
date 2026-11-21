@@ -108,3 +108,19 @@ def test_version_channels_reject_non_ascii_decimal_digits():
     request = RequestFactory().get("/users", HTTP_ACCEPT_VERSION="v٣")
 
     assert extract_version(request, ["header"]) is None
+
+
+@pytest.mark.parametrize("channel", ["path", "header", "query"])
+def test_extremely_long_version_channel_values_return_none_instead_of_raising(channel):
+    """Untrusted version strings must not leak int() digit-limit ValueErrors."""
+    value = "9" * 5000
+    if channel == "path":
+        request = RequestFactory().get("/users")
+        request.resolver_match = type("M", (), {"kwargs": {"version": value}})()
+        request.version = None
+    elif channel == "header":
+        request = RequestFactory().get("/users", HTTP_ACCEPT_VERSION=value)
+    else:
+        request = RequestFactory().get("/users?" + urlencode({"version": value}))
+
+    assert extract_version(request, [channel]) is None

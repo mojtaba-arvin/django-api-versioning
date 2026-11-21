@@ -2,7 +2,10 @@ from django.http import HttpResponse, JsonResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 
-from django_api_versioning.negotiation import VersionNegotiationMiddleware
+from django_api_versioning.negotiation import (
+    VersionNegotiationMiddleware,
+    _host_version,
+)
 
 
 def _dispatch(path, **headers):
@@ -318,3 +321,114 @@ def test_lifecycle_uses_the_effective_negotiated_version():
     assert v2.json() == {"handler": "v2", "version": 2}
     assert "Deprecation" not in v2.headers
     assert "Sunset" not in v2.headers
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_version_parameter_inside_quoted_accept_parameter_is_not_a_version():
+    """A semicolon inside a quoted parameter must not start a new media parameter."""
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT=(
+            'application/json; profile="application/example; version=2; trailing=token"'
+        ),
+    )
+
+    assert response.status_code == 400
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_quoted_accept_version_parameter_remains_supported():
+    request, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT='application/json; version="2"',
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"/api/v2/orders/"
+    assert request.api_version == 2
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_commas_and_semicolons_inside_quoted_accept_values_are_not_delimiters():
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT='application/json; profile="one,two; version=2; three"',
+    )
+
+    assert response.status_code == 400
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_real_accept_version_parameter_wins_over_quoted_profile_text():
+    request, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT='application/json; profile="one; version=2; three"; version=3',
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"/api/v3/orders/"
+    assert request.api_version == 3
+
+
+@override_settings(
+    ROOT_URLCONF=__name__,
+    MIDDLEWARE=["django_api_versioning.negotiation.VersionNegotiationMiddleware"],
+    API_VERSIONING_SCHEME="path",
+    API_BASE_PATH="api/v{version}/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=2,
+    ALLOWED_HOSTS=["testserver"],
+)
+def test_extremely_long_path_version_does_not_crash_middleware():
+    requested_path = "/api/v" + ("9" * 5000) + "/orders/"
+
+    response = Client().get(requested_path)
+
+    assert response.status_code == 404
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_oversized_explicit_path_is_rejected_in_non_path_mode():
+    _, response = _dispatch(
+        "/api/v" + ("9" * 5000) + "/orders/",
+        HTTP_ACCEPT_VERSION="2",
+    )
+
+    assert response.status_code == 400
+
+
+@override_settings(ALLOWED_HOSTS=["*"])
+def test_hostname_negotiation_does_not_strip_multiple_trailing_dots():
+    request = RequestFactory().get("/", HTTP_HOST="api.example.com..")
+
+    assert _host_version(request, {"api.example.com": 2}) is None

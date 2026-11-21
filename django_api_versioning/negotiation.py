@@ -44,21 +44,75 @@ def _path_version(path_info: str, template: str) -> int | None:
     prefix, suffix = template.split("{version}")
     pattern = "^" + re.escape(prefix.lstrip("/")) + r"([0-9]+)" + re.escape(suffix)
     match = re.match(pattern, path_info.lstrip("/"))
-    return int(match.group(1)) if match else None
+    if not match:
+        return None
+
+    # A long numeric segment is still a versioned path, even when it cannot
+    # be a supported version. Avoid unbounded int conversion (which raises on
+    # Python 3.11+ after the configured digit limit) while preserving that
+    # distinction for non-path negotiation schemes.
+    digits = match.group(1).lstrip("0") or "0"
+    maximum = _setting("API_MAX_VERSION", api_settings.API_MAX_VERSION)
+    if len(digits) > len(str(maximum)):
+        return -1
+    return int(digits)
+
+
+def _normalize_hostname(hostname: str) -> str | None:
+    """Normalize one DNS hostname without accepting multiple root dots."""
+    if not hostname or hostname.endswith(".."):
+        return None
+    hostname = hostname[:-1] if hostname.endswith(".") else hostname
+    try:
+        return hostname.encode("idna").decode("ascii").lower()
+    except UnicodeError:
+        return None
 
 
 def _host_version(request: HttpRequest, host_map: dict[str, int]) -> int | None:
     # request.get_host() applies Django's ALLOWED_HOSTS validation. Do not read
     # HTTP_HOST or X-Forwarded-Host directly, bypassing that validation.
-    host = urlsplit("//" + request.get_host()).hostname
-    if not host:
+    host = _normalize_hostname(urlsplit("//" + request.get_host()).hostname or "")
+    if host is None:
         return None
-    normalized = host.rstrip(".").encode("idna").decode("ascii").lower()
     for configured_host, version in host_map.items():
-        candidate = configured_host.rstrip(".").encode("idna").decode("ascii").lower()
-        if normalized == candidate:
+        candidate = _normalize_hostname(configured_host)
+        if host == candidate:
             return version
     return None
+
+
+def _split_quoted_header(value: str, delimiter: str) -> list[str]:
+    """Split an HTTP header outside quoted strings.
+
+    Accept media parameters may contain commas and semicolons inside quoted
+    values. Treating those characters as delimiters without tracking quoted
+    strings can mistake arbitrary profile text for an API version parameter.
+    """
+    parts: list[str] = []
+    start = 0
+    quoted = False
+    escaped = False
+
+    for index, character in enumerate(value):
+        if quoted and escaped:
+            escaped = False
+            continue
+        if quoted and character == "\\":
+            escaped = True
+            continue
+        if character == '"':
+            quoted = not quoted
+            continue
+        if character == delimiter and not quoted:
+            parts.append(value[start:index])
+            start = index + 1
+
+    if quoted or escaped:
+        raise ValueError("Accept contains an unterminated quoted parameter.")
+
+    parts.append(value[start:])
+    return parts
 
 
 def _header_version(request: HttpRequest, header_name: str) -> int | None:
@@ -66,14 +120,30 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
     dedicated_version = _parse_version(dedicated) if dedicated is not None else None
 
     # Interoperate with DRF's AcceptHeaderVersioning wire format:
-    # Accept: application/json; version=2. Reject conflicting values instead
-    # of guessing which media range should control route dispatch.
-    values = re.findall(
-        r'(?:^|[;,])\s*version\s*=\s*(?:"([^"]+)"|([^;,\s]+))',
-        request.headers.get("Accept", ""),
-        flags=re.IGNORECASE,
-    )
-    versions = {quoted or bare for quoted, bare in values}
+    # Accept: application/json; version=2. Split only outside quoted strings;
+    # semicolons inside profile/extension values are ordinary data.
+    versions: set[str] = set()
+    accept = request.headers.get("Accept", "")
+    for media_range in _split_quoted_header(accept, ","):
+        parameters = _split_quoted_header(media_range, ";")
+        for parameter in parameters[1:]:
+            name, separator, raw_value = parameter.partition("=")
+            if name.strip().casefold() != "version":
+                continue
+            if not separator:
+                raise ValueError("Accept version parameter requires a value.")
+
+            raw_value = raw_value.strip()
+            if raw_value.startswith('"') or raw_value.endswith('"'):
+                if (
+                    len(raw_value) < 2
+                    or not raw_value.startswith('"')
+                    or not raw_value.endswith('"')
+                ):
+                    raise ValueError("Accept contains an invalid quoted version.")
+                raw_value = raw_value[1:-1]
+            versions.add(raw_value)
+
     if len(versions) > 1:
         raise ValueError("Accept contains conflicting API version parameters.")
     accept_version = _parse_version(next(iter(versions))) if versions else None
@@ -114,7 +184,7 @@ class VersionNegotiationMiddleware:
             version = _path_version(
                 request.path_info, _setting("API_BASE_PATH", "api/v{version}/")
             )
-            if version is not None:
+            if version is not None and version >= 0:
                 request.requested_api_version = version
                 request.api_version = version
                 request.version = str(version)
