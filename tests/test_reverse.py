@@ -309,5 +309,6 @@ def test_api_reverse_uses_urlpattern_defaults_for_missing_path_parameters():
         "/api/v1/orders/42/"
     )
 
+
     with pytest.raises(NoReverseMatch, match="conflict with URL defaults"):
         api_reverse("default-order-detail", version=1, pk=43)
