@@ -2,16 +2,10 @@ name: Adversarial quality gates
 
 on:
   workflow_call:
-  push:
-    branches: ["audit/**"]
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: adversarial-testing-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
 
 jobs:
   mutation:
