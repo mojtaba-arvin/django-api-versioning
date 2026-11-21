@@ -58,16 +58,26 @@ def _path_version(path_info: str, template: str) -> int | None:
     return int(digits)
 
 
+def _normalize_hostname(hostname: str) -> str | None:
+    """Normalize one DNS hostname without accepting multiple root dots."""
+    if not hostname or hostname.endswith(".."):
+        return None
+    hostname = hostname[:-1] if hostname.endswith(".") else hostname
+    try:
+        return hostname.encode("idna").decode("ascii").lower()
+    except UnicodeError:
+        return None
+
+
 def _host_version(request: HttpRequest, host_map: dict[str, int]) -> int | None:
     # request.get_host() applies Django's ALLOWED_HOSTS validation. Do not read
     # HTTP_HOST or X-Forwarded-Host directly, bypassing that validation.
-    host = urlsplit("//" + request.get_host()).hostname
-    if not host:
+    host = _normalize_hostname(urlsplit("//" + request.get_host()).hostname or "")
+    if host is None:
         return None
-    normalized = host.rstrip(".").encode("idna").decode("ascii").lower()
     for configured_host, version in host_map.items():
-        candidate = configured_host.rstrip(".").encode("idna").decode("ascii").lower()
-        if normalized == candidate:
+        candidate = _normalize_hostname(configured_host)
+        if host == candidate:
             return version
     return None
 
