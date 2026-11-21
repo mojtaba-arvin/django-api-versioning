@@ -383,9 +383,7 @@ def test_commas_and_semicolons_inside_quoted_accept_values_are_not_delimiters():
 def test_real_accept_version_parameter_wins_over_quoted_profile_text():
     request, response = _dispatch(
         "/api/orders/",
-        HTTP_ACCEPT=(
-            'application/json; profile="one; version=2; three"; version=3'
-        ),
+        HTTP_ACCEPT='application/json; profile="one; version=2; three"; version=3',
     )
 
     assert response.status_code == 200
