@@ -702,3 +702,45 @@ class TestDecoratorInputHardening:
                 return JsonResponse({})
 
         assert _routes() == set()
+
+
+class TestEndpointPathValidation:
+    @pytest.mark.parametrize(
+        "postfix",
+        [
+            "orders/../admin",
+            "orders/./archive",
+            "orders//archive",
+            "orders?admin=true",
+            "orders#fragment",
+            r"orders\\admin",
+            "orders/%252e%252e/admin",
+            "orders/with space",
+        ],
+    )
+    def test_rejects_ambiguous_or_unsafe_postfix_paths(self, postfix):
+        with pytest.raises(VersioningError, match="postfix"):
+            endpoint(postfix, version=1)
+
+    def test_empty_postfix_remains_available_for_api_root(self):
+        @endpoint("", version=1)
+        def api_root(request):
+            return JsonResponse({})
+
+        assert "api/v1/" in _routes()
+
+    @pytest.mark.parametrize(
+        "app_name",
+        [
+            "billing/../admin",
+            "billing//reports",
+            "billing?tenant=other",
+            "billing#fragment",
+            r"billing\\admin",
+            "billing/%252e%252e/admin",
+            "billing/reports with space",
+        ],
+    )
+    def test_rejects_ambiguous_or_unsafe_app_name_paths(self, app_name):
+        with pytest.raises(VersioningError, match="app_name"):
+            endpoint("orders", version=1, app_name=app_name)
