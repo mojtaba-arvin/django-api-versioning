@@ -543,10 +543,11 @@ def test_malformed_accept_media_ranges_are_rejected(accept):
     API_MIN_VERSION=1,
     API_MAX_VERSION=3,
 )
-def test_version_parameter_after_accept_quality_is_not_a_media_parameter():
-    _, response = _dispatch(
+def test_version_parameter_after_accept_quality_is_still_processed():
+    request, response = _dispatch(
         "/api/orders/",
         HTTP_ACCEPT="application/json; q=0.8; version=2",
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert request.api_version == 2
