@@ -60,7 +60,6 @@ dev = [
     "pytest>=9.2.0",
     "pytest-django>=4.14.0",
     "pytest-cov>=7.1.0",
-    "hypothesis>=6.100",
     "pre-commit>=4.7.0; python_version >= '3.11'",
     "twine>=7.0.0",
     "build>=1.6.1",
