@@ -581,3 +581,30 @@ def test_version_parameter_after_accept_quality_is_still_processed():
 
     assert response.status_code == 200
     assert request.api_version == 2
+
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="query",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
+    request = RequestFactory().get(
+        "/api/orders/?version=2",
+        SCRIPT_NAME="/gateway",
+    )
+    middleware = VersionNegotiationMiddleware(
+        lambda req: JsonResponse({"path": req.path, "path_info": req.path_info})
+    )
+
+    response = middleware(request)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "path": "/gateway/api/v2/orders/",
+        "path_info": "/api/v2/orders/",
+    }
+    assert request.META["PATH_INFO"] == "/api/v2/orders/"
