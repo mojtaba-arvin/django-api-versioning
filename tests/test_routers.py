@@ -610,10 +610,11 @@ def test_conflicting_later_lifecycle_scope_rolls_back_earlier_scopes():
         1,
         "GET",
         "list",
+        router._registry_owner,
     ) not in registry._endpoint_lifecycle
     assert (
         registry._endpoint_lifecycle[
-            ("orders:order-list", 1, "POST", "create")
+            ("orders:order-list", 1, "POST", "create", router._registry_owner)
         ].deprecated_at.year
         == 2030
     )
