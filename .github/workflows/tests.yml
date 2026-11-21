@@ -38,7 +38,7 @@ permissions:
 
 concurrency:
   group: python-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test:
