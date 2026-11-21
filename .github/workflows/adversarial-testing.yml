@@ -27,6 +27,9 @@ jobs:
           python -m pip install -e .
           python -m pip install -r requirements-ci.txt
           python -m pip install "mutmut==2.5.1"
+      - name: Collect test-to-source coverage for mutation selection
+        run: |
+          coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
       - name: Run mutation analysis
         run: |
           mutmut run --use-coverage
