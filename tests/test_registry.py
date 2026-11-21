@@ -1272,3 +1272,105 @@ def test_concurrent_registration_of_same_route_is_serialized(
 
     assert len(registry.urlpatterns) == 1
     assert registry.urlpatterns[0].callback is view
+
+
+
+@pytest.mark.parametrize("regex_first", [True, False])
+def test_escaped_literal_regex_and_path_routes_share_identity(
+    clear_registry, regex_first
+):
+    def first_view(request):
+        return None
+
+    def second_view(request):
+        return None
+
+    regex_pattern = re_path(
+        r"^api/v1/static\.users/$",
+        first_view,
+        name="static-users",
+    )
+    path_route = "api/v1/static.users/"
+
+    if regex_first:
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register(
+            path_route,
+            second_view,
+            name="static-users",
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+    else:
+        registry.register(
+            path_route,
+            first_view,
+            name="static-users",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is (
+        second_view if regex_first else regex_pattern.callback
+    )
+
+
+@pytest.mark.parametrize("static_first", [True, False])
+def test_literal_numeric_route_precedes_regex_digit_route(clear_registry, static_first):
+    def digit_view(request):
+        return None
+
+    def static_view(request):
+        return None
+
+    digit_pattern = re_path(
+        r"^api/v1/orders/\d/$",
+        digit_view,
+        name="order-digit",
+    )
+    if static_first:
+        registry.register(
+            "api/v1/orders/7/",
+            static_view,
+            name="order-seven",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-seven",
+        )
+        registry.register_urlpattern(
+            digit_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-digit",
+        )
+    else:
+        registry.register_urlpattern(
+            digit_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-digit",
+        )
+        registry.register(
+            "api/v1/orders/7/",
+            static_view,
+            name="order-seven",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-seven",
+        )
+
+    assert registry.urlpatterns[0].callback is static_view
