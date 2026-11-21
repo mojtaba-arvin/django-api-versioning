@@ -2,7 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 
-from django_api_versioning.negotiation import VersionNegotiationMiddleware
+from django_api_versioning.negotiation import VersionNegotiationMiddleware, _host_version
 
 
 def _dispatch(path, **headers):
@@ -422,3 +422,10 @@ def test_oversized_explicit_path_is_rejected_in_non_path_mode():
     )
 
     assert response.status_code == 400
+
+
+@override_settings(ALLOWED_HOSTS=["*"])
+def test_hostname_negotiation_does_not_strip_multiple_trailing_dots():
+    request = RequestFactory().get("/", HTTP_HOST="api.example.com..")
+
+    assert _host_version(request, {"api.example.com": 2}) is None
