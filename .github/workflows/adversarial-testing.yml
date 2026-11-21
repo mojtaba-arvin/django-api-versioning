@@ -51,7 +51,7 @@ jobs:
 
           output = Path(sys.argv[1]).read_text(errors="replace")
           matches = re.findall(
-              r"(\\d+)/(\\d+)\\s+🎉\\s+(\\d+)\\s+⏰\\s+(\\d+)\\s+🤔\\s+(\\d+)\\s+🙁\\s+(\\d+)",
+              r"(\d+)/(\d+)\s+🎉\s+(\d+)\s+⏰\s+(\d+)\s+🤔\s+(\d+)\s+🙁\s+(\d+)",
               output,
           )
           if not matches:
