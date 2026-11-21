@@ -31,30 +31,63 @@ jobs:
         run: |
           coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
       - name: Run mutation analysis
+        shell: bash
         run: |
-          mutmut run --use-coverage
-          # "show" requires a mutant identifier; "results" is the non-interactive
-          # summary command and is suitable for CI logs and retained artifacts.
-          mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
+          set -uo pipefail
+          # mutmut 2.5.1 can return a non-zero status after completing the run
+          # when surviving mutants exist. Do not let bash -e skip the score
+          # calculation; first prove that the complete generated mutant set ran.
+          mutmut run --use-coverage > "$RUNNER_TEMP/mutmut-run.log" 2>&1
+          mutation_status=$?
+          tail -n 30 "$RUNNER_TEMP/mutmut-run.log"
+          if [ "$mutation_status" -ne 0 ] && [ "$mutation_status" -ne 2 ]; then
+            echo "Mutation runner failed with exit code $mutation_status" >&2
+            exit "$mutation_status"
+          fi
+          python - "$RUNNER_TEMP/mutmut-run.log" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          output = Path(sys.argv[1]).read_text(errors="replace")
+          matches = re.findall(
+              r"(\\d+)/(\\d+)\\s+🎉\\s+(\\d+)\\s+⏰\\s+(\\d+)\\s+🤔\\s+(\\d+)\\s+🙁\\s+(\\d+)",
+              output,
+          )
+          if not matches:
+              raise SystemExit("Mutation run produced no machine-checkable completion summary")
+          completed, total, killed, timed_out, suspicious, survived = map(int, matches[-1])
+          print(
+              f"Mutation execution: {completed}/{total}; "
+              f"killed={killed}, survived={survived}, timed_out={timed_out}, suspicious={suspicious}"
+          )
+          if total == 0 or completed != total:
+              raise SystemExit("Mutation run did not complete the entire generated mutant set")
+          if killed + survived + timed_out + suspicious != total:
+              raise SystemExit("Mutation progress totals do not reconcile")
+          PY
+          # "results" is the non-interactive per-mutant report. Keep it separate
+          # from the animated progress stream to avoid parsing partial redraws.
+          mutmut results > "$RUNNER_TEMP/mutmut-results.txt"
+          cat "$RUNNER_TEMP/mutmut-results.txt"
           killed=$(mutmut result-ids killed | wc -l | tr -d ' ')
           survived=$(mutmut result-ids survived | wc -l | tr -d ' ')
           timed_out=$(mutmut result-ids timeout | wc -l | tr -d ' ')
-          total=$((killed + survived + timed_out))
+          suspicious=$(mutmut result-ids suspicious | wc -l | tr -d ' ')
+          total=$((killed + survived + timed_out + suspicious))
           if [ "$total" -eq 0 ]; then
             echo "No scoreable mutants were produced" >&2
             exit 1
           fi
-          # Initial regression floor: 70%. This is a minimum guardrail, not a
-          # claim that surviving mutants are acceptable or that 70% is sufficient.
           min_score=70
-          awk -v killed="$killed" -v survived="$survived" -v timed_out="$timed_out" -v total="$total" -v min_score="$min_score" \
+          awk -v killed="$killed" -v survived="$survived" -v timed_out="$timed_out" -v suspicious="$suspicious" -v total="$total" -v min_score="$min_score" \
             'BEGIN {
-              score = 100 * (killed + timed_out) / total
-              printf "Mutation score: %.2f%% (%d killed, %d survived, %d timed out; %d total; minimum %.2f%%)\\n", score, killed, survived, timed_out, total, min_score
+              score = 100 * killed / total
+              printf "Mutation score: %.2f%% (%d killed, %d survived, %d timed out, %d suspicious; %d total; minimum %.2f%%)\\n", score, killed, survived, timed_out, suspicious, total, min_score
               if (score < min_score) exit 1
             }' | tee -a "$RUNNER_TEMP/mutmut-results.txt"
-          if [ "$timed_out" -gt 0 ]; then
-            echo "Timed-out mutants require review; do not treat them as proven kills." >&2
+          if [ "$timed_out" -gt 0 ] || [ "$suspicious" -gt 0 ]; then
+            echo "Timed-out or suspicious mutants are unresolved and cannot count as killed." >&2
             exit 1
           fi
       - name: Preserve mutation report
@@ -64,6 +97,7 @@ jobs:
           name: mutmut-results
           path: |
             ${{ runner.temp }}/mutmut-results.txt
+            ${{ runner.temp }}/mutmut-run.log
             .mutmut-cache
             mutants
           if-no-files-found: ignore
