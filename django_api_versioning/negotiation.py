@@ -156,7 +156,11 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
                     len(raw_value) < 2
                     or not raw_value.startswith('"')
                     or not raw_value.endswith('"')
-                    or any(character in raw_value[1:-1] for character in "\r\n")
+                    or any(
+                        (ord(character) < 32 and character != "\\t")
+                        or ord(character) == 127
+                        for character in raw_value[1:-1]
+                    )
                 ):
                     raise ValueError("Accept contains an invalid quoted parameter.")
                 parsed_value = raw_value[1:-1]
