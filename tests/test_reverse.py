@@ -286,6 +286,7 @@ def test_format_negotiated_url_recovers_version_from_concrete_route(scheme, expe
             == expected
         )
 
+
 def test_api_reverse_uses_urlpattern_defaults_for_missing_path_parameters():
     """Django URLPattern defaults should satisfy omitted converter parameters."""
 
