@@ -334,17 +334,29 @@ class APISettings:
                 "API_VERSIONING_SCHEME must be one of " f"{sorted(allowed_schemes)}."
             )
 
-        for setting_name, value in (
-            ("API_VERSIONING_HEADER", self.API_VERSIONING_HEADER),
-            ("API_VERSIONING_QUERY_PARAMETER", self.API_VERSIONING_QUERY_PARAMETER),
+        header = self.API_VERSIONING_HEADER
+        # HTTP field names use the RFC 9110 token grammar (tchar), not merely
+        # "no whitespace". Accept is reserved for media-range negotiation and
+        # cannot also serve as the dedicated scalar version header.
+        if (
+            not isinstance(header, str)
+            or not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", header)
+            or header.casefold() == "accept"
         ):
-            if (
-                not isinstance(value, str)
-                or not value
-                or value != value.strip()
-                or any(char.isspace() for char in value)
-            ):
-                raise VersioningError(f"{setting_name} must be a non-empty token.")
+            raise VersioningError(
+                "API_VERSIONING_HEADER must be a valid HTTP field name other than Accept."
+            )
+
+        parameter = self.API_VERSIONING_QUERY_PARAMETER
+        if (
+            not isinstance(parameter, str)
+            or not parameter
+            or parameter != parameter.strip()
+            or any(char.isspace() for char in parameter)
+        ):
+            raise VersioningError(
+                "API_VERSIONING_QUERY_PARAMETER must be a non-empty token."
+            )
 
         if not isinstance(self.API_UNVERSIONED_BASE_PATH, str):
             raise VersioningError("API_UNVERSIONED_BASE_PATH must be a string.")

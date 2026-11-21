@@ -687,3 +687,70 @@ class TestDecoratorInputHardening:
     def test_set_endpoint_lifecycle_rejects_malformed_app_name(self):
         with pytest.raises(VersioningError, match="app_name"):
             set_endpoint_lifecycle("users", version=2, app_name="billing/")
+
+    def test_negative_version_is_rejected(self):
+        with pytest.raises(VersionRangeError, match="non-negative"):
+
+            @endpoint("negative", version=-1)
+            def negative(request):
+                return JsonResponse({})
+
+    def test_negative_explicit_version_is_rejected_atomically(self, versions_1_to_5):
+        with pytest.raises(VersionRangeError, match="non-negative"):
+
+            @endpoint("negative-list", versions=[1, -1, 2])
+            def negative_list(request):
+                return JsonResponse({})
+
+        assert _routes() == set()
+
+
+class TestEndpointPathValidation:
+    @pytest.mark.parametrize(
+        "postfix",
+        [
+            "orders/../admin",
+            "orders/./archive",
+            "orders//archive",
+            "orders?admin=true",
+            "orders#fragment",
+            r"orders\\admin",
+            "orders/%252e%252e/admin",
+            "orders/with space",
+        ],
+    )
+    def test_rejects_ambiguous_or_unsafe_postfix_paths(self, postfix):
+        with pytest.raises(VersioningError, match="postfix"):
+            endpoint(postfix, version=1)
+
+    def test_empty_postfix_remains_available_for_api_root(self):
+        @endpoint("", version=1)
+        def api_root(request):
+            return JsonResponse({})
+
+        assert "api/v1/" in _routes()
+
+    @pytest.mark.parametrize(
+        "app_name",
+        [
+            "billing/../admin",
+            "billing//reports",
+            "billing?tenant=other",
+            "billing#fragment",
+            r"billing\\admin",
+            "billing/%252e%252e/admin",
+            "billing/reports with space",
+        ],
+    )
+    def test_rejects_ambiguous_or_unsafe_app_name_paths(self, app_name):
+        with pytest.raises(VersioningError, match="app_name"):
+            endpoint("orders", version=1, app_name=app_name)
+
+    def test_duplicate_explicit_versions_are_rejected_atomically(self, versions_1_to_5):
+        with pytest.raises(VersionRangeError, match="must not contain duplicates"):
+
+            @endpoint("duplicate-versions", versions=[1, 2, 1])
+            def duplicate_versions(request):
+                return JsonResponse({})
+
+        assert _routes() == set()

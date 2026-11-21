@@ -12,3 +12,4 @@ twine>=7.0.0
 build>=1.6.1
 djangorestframework>=3.18.3
 tomli>=2.5.0; python_version < "3.11"
+hypothesis>=6.100

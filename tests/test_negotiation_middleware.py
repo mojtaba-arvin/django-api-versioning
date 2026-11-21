@@ -1,3 +1,4 @@
+import pytest
 from django.http import HttpResponse, JsonResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
@@ -432,3 +433,118 @@ def test_hostname_negotiation_does_not_strip_multiple_trailing_dots():
     request = RequestFactory().get("/", HTTP_HOST="api.example.com..")
 
     assert _host_version(request, {"api.example.com": 2}) is None
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_accept_q_zero_does_not_select_an_explicitly_unacceptable_version():
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT="application/json; version=1; q=0",
+    )
+
+    assert response.status_code == 406
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_accept_selects_highest_quality_versioned_media_range():
+    request, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT=(
+            "application/json; version=1; q=0.2, "
+            "application/vnd.example+json; version=2; q=0.8"
+        ),
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"/api/v2/orders/"
+    assert request.api_version == 2
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_accept_equal_quality_conflicting_versions_are_rejected():
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT=(
+            "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
+        ),
+    )
+
+    assert response.status_code == 400
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_accept_normalizes_equivalent_integer_version_parameters():
+    request, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT=("application/json; version=2, " "text/csv; version=02; q=0.5"),
+    )
+
+    assert response.status_code == 200
+    assert request.api_version == 2
+
+
+@pytest.mark.parametrize(
+    "accept",
+    [
+        "not-a-media-type; version=2",
+        "application/json; version=2; q=1.1",
+        "application/json; version=2; q=0.1234",
+        "application/json; version=2; q=0.8; q=0.7",
+        'application/json; profile="\x00"; version=2',
+        'application/json; profile="\x7f"; version=2',
+        "application/json; version=2; version=3",
+        "application/json; version=2; invalid parameter=x",
+    ],
+)
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_malformed_accept_media_ranges_are_rejected(accept):
+    _, response = _dispatch("/api/orders/", HTTP_ACCEPT=accept)
+
+    assert response.status_code == 400
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_version_parameter_after_accept_quality_is_still_processed():
+    request, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT="application/json; q=0.8; version=2",
+    )
+
+    assert response.status_code == 200
+    assert request.api_version == 2

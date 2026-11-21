@@ -375,3 +375,25 @@ class TestNegotiationSettings:
                 API_VERSIONING_SCHEME="hostname",
                 API_VERSIONING_HOSTS={hostname: 1},
             )
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Bad:Name",
+        "Bad/Name",
+        "Bad Name",
+        "Accept",
+        "accept",
+        "Bad\\rName",
+    ],
+)
+def test_invalid_or_reserved_version_header_names_are_rejected(header):
+    with pytest.raises(VersioningError, match="API_VERSIONING_HEADER"):
+        APISettings(API_VERSIONING_HEADER=header)
+
+
+def test_valid_custom_version_header_name_is_accepted():
+    settings = APISettings(API_VERSIONING_HEADER="X-API-Version")
+
+    assert settings.API_VERSIONING_HEADER == "X-API-Version"

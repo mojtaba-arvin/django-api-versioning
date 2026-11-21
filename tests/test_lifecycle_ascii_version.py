@@ -47,3 +47,12 @@ def test_negative_integer_request_version_is_not_an_api_version():
     request.resolver_match = None
 
     assert _extract_version(request) is None
+
+
+def test_extremely_long_ascii_request_version_is_ignored_without_crashing():
+    """Oversized custom/DRF version strings must not raise during lifecycle lookup."""
+    request = RequestFactory().get("/unrelated/")
+    request.version = "9" * 5000
+    request.resolver_match = None
+
+    assert _extract_version(request) is None

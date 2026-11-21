@@ -188,3 +188,16 @@ def test_schema_snapshot_detects_unreviewed_contract_drift(tmp_path):
 def test_schema_snapshot_rejects_non_mapping_input(tmp_path):
     with pytest.raises(ContractSnapshotError, match="must be a mapping"):
         assert_schema_snapshot([], tmp_path / "v1.json")
+
+
+def test_matrix_snapshot_update_creates_missing_parent_directories(tmp_path):
+    registry.urlpatterns.clear()
+    registry.register("api/v1/x", lambda request: None, route_version=1)
+    snapshot = tmp_path / "nested" / "snapshots" / "matrix.json"
+
+    assert_version_matrix(snapshot=str(snapshot), update=True)
+
+    assert snapshot.is_file()
+    assert json.loads(snapshot.read_text(encoding="utf-8")) == {
+        "api/v1/x": {"1": "<lambda>"}
+    }

@@ -658,3 +658,37 @@ def test_router_dispatch_and_reverse_follow_non_path_transport(
     assert payload["transport"] == scheme, payload
     assert payload["url"].endswith(expected_url), payload
     assert "/api/v2/" not in payload["url"]
+
+
+def test_negative_version_is_rejected():
+    router = VersionedRouter()
+    with pytest.raises(VersionRangeError, match="non-negative"):
+        router.register("negative", PostViewSetV1, version=-1, basename="negative")
+    assert registry.urlpatterns == []
+
+
+def test_negative_explicit_version_is_rejected_atomically():
+    router = VersionedRouter()
+    with pytest.raises(VersionRangeError, match="non-negative"):
+        router.register(
+            "negative-list",
+            PostViewSetV1,
+            versions=[1, -1, 2],
+            basename="negative-list",
+        )
+    assert registry.urlpatterns == []
+
+
+def test_path_router_rejects_ambiguous_literal_prefixes():
+    router = VersionedRouter(use_regex_path=False)
+    for prefix in ("orders/../admin", "orders//archive", "orders/%252e%252e/admin"):
+        with pytest.raises(VersioningError, match="prefix"):
+            router.register(prefix, PostViewSetV1, versions=[1], basename="unsafe")
+
+
+@pytest.mark.parametrize("option", ["trailing_slash", "use_regex_path"])
+@pytest.mark.parametrize("value", ["false", 0, None])
+def test_router_boolean_options_require_actual_booleans(option, value):
+    options = {option: value}
+    with pytest.raises(TypeError, match=f"{option} must be a bool"):
+        VersionedRouter(**options)

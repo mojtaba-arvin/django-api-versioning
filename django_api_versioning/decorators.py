@@ -29,6 +29,7 @@ def _app_name_prefix(app_name: str | None) -> str:
         raise VersioningError(
             "app_name must be a relative path without empty, '.' or '..' segments."
         )
+    settings._validate_url_prefix(app_name, "app_name")
     return f"{app_name}/"
 
 
@@ -150,6 +151,8 @@ def _register_endpoint_view(
     if versions is not None:
         for concrete_version in versions:
             _validate_version(concrete_version, max_version)
+        if len(set(versions)) != len(versions):
+            raise VersionRangeError("'versions' must not contain duplicates.")
 
     app_name_part = _app_name_prefix(app_name)
     logical_endpoint = f"{app_name_part}{postfix}"
@@ -239,6 +242,8 @@ def endpoint(
         raise TypeError("postfix must be a string.")
     if postfix.startswith("/"):
         raise VersioningError("postfix must be relative and must not start with '/'.")
+    if postfix:
+        settings._validate_url_prefix(postfix, "postfix")
     _app_name_prefix(app_name)
     if version is not None and versions is not None:
         raise VersionRangeError("Use either 'version' or 'versions', not both.")
@@ -326,6 +331,8 @@ def set_endpoint_lifecycle(
 def _validate_version(version: int, max_version: int) -> None:
     if isinstance(version, bool) or not isinstance(version, int):
         raise VersionTypeError("Version must be an integer.")
+    if version < 0:
+        raise VersionRangeError("Version must be a non-negative API version.")
     if version > max_version:
         raise InvalidVersionError(
             f"Version {version} is above the maximum allowed version {max_version}."
