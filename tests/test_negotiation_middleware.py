@@ -389,3 +389,20 @@ def test_real_accept_version_parameter_wins_over_quoted_profile_text():
     assert response.status_code == 200
     assert response.content == b"/api/v3/orders/"
     assert request.api_version == 3
+
+
+@override_settings(
+    ROOT_URLCONF=__name__,
+    MIDDLEWARE=["django_api_versioning.negotiation.VersionNegotiationMiddleware"],
+    API_VERSIONING_SCHEME="path",
+    API_BASE_PATH="api/v{version}/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=2,
+    ALLOWED_HOSTS=["testserver"],
+)
+def test_extremely_long_path_version_does_not_crash_middleware():
+    requested_path = "/api/v" + ("9" * 5000) + "/orders/"
+
+    response = Client().get(requested_path)
+
+    assert response.status_code == 404
