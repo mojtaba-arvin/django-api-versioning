@@ -1,7 +1,7 @@
 import pytest
 from django.http import JsonResponse
 from django.test import Client, override_settings
-from django.urls import NoReverseMatch, re_path, register_converter
+from django.urls import NoReverseMatch, path, re_path, register_converter
 
 from django_api_versioning import api_reverse
 from django_api_versioning.decorators import endpoint
@@ -285,3 +285,26 @@ def test_format_negotiated_url_recovers_version_from_concrete_route(scheme, expe
             )
             == expected
         )
+
+def test_api_reverse_uses_urlpattern_defaults_for_missing_path_parameters():
+    """Django URLPattern defaults should satisfy omitted converter parameters."""
+
+    def view(request, pk):
+        return JsonResponse({"pk": pk})
+
+    pattern = path(
+        "api/v1/orders/<int:pk>/",
+        view,
+        {"pk": 42},
+        name="default-order-detail",
+    )
+    registry.register_urlpattern(
+        pattern,
+        source_version=1,
+        route_version=1,
+        logical_endpoint="orders:default-order-detail",
+    )
+
+    assert api_reverse("default-order-detail", version=1) == (
+        "/api/v1/orders/42/"
+    )
