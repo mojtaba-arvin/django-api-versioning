@@ -688,7 +688,6 @@ class TestDecoratorInputHardening:
         with pytest.raises(VersioningError, match="app_name"):
             set_endpoint_lifecycle("users", version=2, app_name="billing/")
 
-
     def test_negative_version_is_rejected(self):
         with pytest.raises(VersionRangeError, match="non-negative"):
             @endpoint("negative", version=-1)
@@ -744,7 +743,6 @@ class TestEndpointPathValidation:
     def test_rejects_ambiguous_or_unsafe_app_name_paths(self, app_name):
         with pytest.raises(VersioningError, match="app_name"):
             endpoint("orders", version=1, app_name=app_name)
-
 
     def test_duplicate_explicit_versions_are_rejected_atomically(self, versions_1_to_5):
         with pytest.raises(VersionRangeError, match="must not contain duplicates"):
