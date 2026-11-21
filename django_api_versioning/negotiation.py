@@ -129,6 +129,8 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
     candidates: list[tuple[float, int]] = []
     saw_version = False
     accept = request.headers.get("Accept", "")
+    if not accept.strip():
+        return dedicated_version
 
     for media_range in _split_quoted_header(accept, ","):
         parameters = _split_quoted_header(media_range, ";")
