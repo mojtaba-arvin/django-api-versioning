@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: pip
           cache-dependency-path: requirements-ci.txt
       - name: Install test and mutation dependencies
@@ -123,19 +123,31 @@ jobs:
           python examples/openapi_contract/verify.py
           python examples/openapi_contract/generate_schemas.py \
             --output-dir "$RUNNER_TEMP/schemathesis-schemas"
-      - name: Run generated positive, negative, and fuzzing scenarios against WSGI app
+      - name: Start the consumer API
         working-directory: examples/openapi_contract
         run: |
-          export PYTHONPATH="$GITHUB_WORKSPACE:$PWD"
+          python manage.py runserver 127.0.0.1:8000 --noreload > "$RUNNER_TEMP/django-runserver.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/django-runserver.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/api/v1/products/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/api/v1/products/ >/dev/null
+          curl --fail --silent http://127.0.0.1:8000/api/v2/products/ >/dev/null
+      - name: Run generated positive, negative, and fuzzing scenarios against HTTP API
+        working-directory: examples/openapi_contract
+        run: |
           st run "$RUNNER_TEMP/schemathesis-schemas/v1/openapi.yaml" \
-            --app contract_project.wsgi:application \
+            --url http://127.0.0.1:8000 \
             --phases examples,coverage,fuzzing \
             --max-examples 100 \
             --max-time 300 \
             --report junit \
             --report-junit-path "$RUNNER_TEMP/schemathesis-v1.xml"
           st run "$RUNNER_TEMP/schemathesis-schemas/v2/openapi.yaml" \
-            --app contract_project.wsgi:application \
+            --url http://127.0.0.1:8000 \
             --phases examples,coverage,fuzzing \
             --max-examples 100 \
             --max-time 300 \
