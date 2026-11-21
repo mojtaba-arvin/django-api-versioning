@@ -61,7 +61,7 @@ def init():
 
 
 def pre_mutation(context):
-    """Run the narrowest relevant tests first; mutmut reruns survivors fully."""
+    """Run focused tests; the scheduled campaign verifies survivors fully."""
     source_name = Path(context.filename).name
     test_paths = TESTS_BY_SOURCE.get(source_name)
     if not test_paths:
