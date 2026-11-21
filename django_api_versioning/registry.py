@@ -537,11 +537,7 @@ class UrlRegistry:
 
     @staticmethod
     def _canonical_route_key(route: str) -> str:
-        """Normalize simple anchored regex routes to their literal path form.
-
-        DRF regex routes use ^literal/path/$ while Django path() uses
-        literal/path/. Treat them as identical only for static literal paths.
-        """
+        """Normalize anchored regexes that contain only literal path text."""
         if not (route.startswith("^") and route.endswith("$")):
             return route
 
@@ -559,12 +555,7 @@ class UrlRegistry:
                     return route
                 normalized.append(character)
                 escaped = False
-                if character == "\\":
-                    if index + 1 < len(source) and source[index + 1].isalnum():
-                        dynamic_start = index
-                        break
-                    escaped = True
-                    continue
+            elif character == "\\":
                 escaped = True
             elif character in ".^$*+?{}[]|()":
                 return route
@@ -1106,6 +1097,9 @@ class UrlRegistry:
                     escaped = False
                     continue
                 if character == "\\":
+                    if index + 1 < len(source) and source[index + 1].isalnum():
+                        dynamic_start = index
+                        break
                     escaped = True
                     continue
                 if character in "([?*+{":
