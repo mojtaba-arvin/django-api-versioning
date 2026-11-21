@@ -51,14 +51,44 @@ def validate_commit_message(message: str) -> list[str]:
     return errors
 
 
+def validate_commit_subjects(subjects: list[str]) -> list[str]:
+    """Validate every subject returned for a pull request's commits."""
+    if not subjects:
+        return ["pull request contains no commits to validate"]
+
+    errors: list[str] = []
+    for index, subject in enumerate(subjects, start=1):
+        errors.extend(
+            f"commit {index}: {error}"
+            for error in validate_commit_message(subject)
+        )
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--message", help="commit subject/message text")
+    source.add_argument("--subjects-file", type=Path, help="file containing one commit subject per line")
     source.add_argument("message_file", nargs="?", type=Path)
     args = parser.parse_args()
 
     try:
+        if args.subjects_file is not None:
+            errors = validate_commit_subjects(
+                args.subjects_file.read_text(encoding="utf-8").splitlines()
+            )
+            if errors:
+                for error in errors:
+                    print(f"ERROR: {error}", file=sys.stderr)
+                print(
+                    "Example: feat(router): support nested route prefixes",
+                    file=sys.stderr,
+                )
+                return 1
+            print("All commit subjects are valid.")
+            return 0
+
         message = (
             args.message
             if args.message is not None

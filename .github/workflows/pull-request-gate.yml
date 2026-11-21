@@ -48,6 +48,15 @@ jobs:
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: python scripts/check_commit_message.py --message "$PR_TITLE"
+      - name: Validate every commit subject in the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_PROMPT_DISABLED: "1"
+        run: |
+          gh api --paginate \
+            "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/commits?per_page=100" \
+            --jq '.[].commit.message | split("\\n")[0]' > "$RUNNER_TEMP/commit-subjects.txt"
+          python scripts/check_commit_message.py --subjects-file "$RUNNER_TEMP/commit-subjects.txt"
       - name: Classify checks required by the changed files
         id: classify
         run: python scripts/classify_pr_changes.py "$RUNNER_TEMP/changed-files.txt" "$GITHUB_OUTPUT"

@@ -1,6 +1,6 @@
 """Tests for the repository's Conventional Commit validator."""
 
-from scripts.check_commit_message import validate_commit_message
+from scripts.check_commit_message import (\n    validate_commit_message,\n    validate_commit_subjects,\n)
 
 
 def test_accepts_scoped_conventional_commit():
@@ -48,3 +48,22 @@ def test_accepts_multiline_message_with_conventional_subject():
         "Exercise the race between registration and lookup."
     )
     assert validate_commit_message(message) == []
+
+\n\ndef test_accepts_multiple_valid_commit_subjects():
+    assert validate_commit_subjects(
+        [
+            "feat(router): support nested route prefixes",
+            "test(router): cover nested route prefixes",
+        ]
+    ) == []
+
+
+def test_rejects_invalid_subject_in_pull_request_history():
+    errors = validate_commit_subjects(
+        [
+            "feat(router): support nested route prefixes",
+            "Update files",
+        ]
+    )
+    assert len(errors) == 1
+    assert errors[0].startswith("commit 2:")
