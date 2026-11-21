@@ -128,7 +128,12 @@ class APISettings:
                 "or query/fragment delimiters."
             )
 
-        decoded = unquote(path)
+        try:
+            decoded = unquote(path, errors="strict")
+        except UnicodeDecodeError as exc:
+            raise VersioningError(
+                f"{setting_name} must contain valid UTF-8 percent escapes."
+            ) from exc
         # A remaining percent sign indicates malformed or multiply encoded
         # input (for example, %252e%252e -> %2e%2e after one decode).
         if "%" in decoded:
