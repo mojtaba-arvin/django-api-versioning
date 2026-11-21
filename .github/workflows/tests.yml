@@ -7,6 +7,17 @@ on:
         required: false
   # Validate main after pushes and proposed changes through pull requests targeting main.
   # Use workflow_dispatch for deliberate manual checkpoints.
+  pull_request:
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "examples/openapi_contract/**"
+      - "scripts/fuzz_negotiation.py"
+      - "fuzz_corpus/**"
+      - "pyproject.toml"
+      - ".github/workflows/**"
   workflow_dispatch:
   push:
     branches: [main]
@@ -76,3 +87,7 @@ jobs:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+
+  adversarial:
+    name: Adversarial release-readiness campaigns
+    uses: ./.github/workflows/adversarial-testing.yml
