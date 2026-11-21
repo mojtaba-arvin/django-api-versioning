@@ -71,9 +71,10 @@ git status --short
 git diff
 ```
 
-Stage explicit paths, inspect the staged diff, and verify the commit identity. Never commit credentials, local environment files, non-canonical generated files, or unrelated user work. When pre-commit is installed, activate the commit-message, commit, and push hooks:
+Stage explicit paths, inspect the staged diff, and verify the commit identity. Never commit credentials, local environment files, non-canonical generated files, or unrelated user work. Configure the repository commit template and activate the commit-message, commit, and push hooks (the template is a local Git setting and must be enabled once per clone):
 
 ```bash
+git config commit.template .gitmessage
 pre-commit install --hook-type commit-msg
 pre-commit install
 pre-commit install --hook-type pre-push
