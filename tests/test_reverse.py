@@ -296,7 +296,7 @@ def test_api_reverse_uses_urlpattern_defaults_for_missing_path_parameters():
     pattern = path(
         "api/v1/orders/<int:pk>/",
         view,
-        {"pk": 42},
+        {"pk": 42, "format": "json"},
         name="default-order-detail",
     )
     registry.register_urlpattern(
@@ -310,5 +310,11 @@ def test_api_reverse_uses_urlpattern_defaults_for_missing_path_parameters():
         "/api/v1/orders/42/"
     )
 
+    # A path parameter can override its URLPattern default, as in Django reverse().
+    assert api_reverse("default-order-detail", version=1, pk=43) == (
+        "/api/v1/orders/43/"
+    )
+
+    # Non-path default kwargs must still match the URLPattern defaults.
     with pytest.raises(NoReverseMatch, match="conflict with URL defaults"):
-        api_reverse("default-order-detail", version=1, pk=43)
+        api_reverse("default-order-detail", version=1, format="xml")
