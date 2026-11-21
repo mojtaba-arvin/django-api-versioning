@@ -157,7 +157,7 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
                     or not raw_value.startswith('"')
                     or not raw_value.endswith('"')
                     or any(
-                        (ord(character) < 32 and character != "\\t")
+                        (ord(character) < 32 and character != "\t")
                         or ord(character) == 127
                         for character in raw_value[1:-1]
                     )
