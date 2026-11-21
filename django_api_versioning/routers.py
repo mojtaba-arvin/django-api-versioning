@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 def _registry_transaction(function):
     """Serialize multi-route router mutations against other registrations."""
+
     @wraps(function)
     def wrapper(*args, **kwargs):
         with registry.transaction():
