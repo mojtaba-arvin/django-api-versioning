@@ -144,9 +144,7 @@ class APISettings:
             any(character in decoded for character in "\\?#")
             or "//" in decoded
             or any(
-                character.isspace()
-                or ord(character) < 32
-                or ord(character) == 127
+                character.isspace() or ord(character) < 32 or ord(character) == 127
                 for character in decoded
             )
         ):
