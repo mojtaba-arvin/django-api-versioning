@@ -4,9 +4,9 @@ This module is optional: importing the core package does not require DRF.
 """
 
 import logging
-from functools import wraps
 from collections import defaultdict
 from collections.abc import Mapping
+from functools import wraps
 from typing import Any
 
 from django.urls import URLPattern, URLResolver, include, path
@@ -541,8 +541,9 @@ class VersionedRouter:
         The URL path itself includes API_BASE_PATH. The namespace is used by
         DRF's version-aware reverse implementation, including nested includes.
         """
-        versioned, unversioned = self._collect_registered_patterns()
-        return self._build_namespaced_urlpatterns(versioned, unversioned)
+        with registry.transaction():
+            versioned, unversioned = self._collect_registered_patterns()
+            return self._build_namespaced_urlpatterns(versioned, unversioned)
 
 
 class VersionedDefaultRouter(VersionedRouter):
@@ -595,6 +596,10 @@ class VersionedDefaultRouter(VersionedRouter):
     @property
     def urls(self) -> list[URLPattern | URLResolver]:
         """Return versioned URL patterns with optional roots and suffixes."""
+        with registry.transaction():
+            return self._build_default_urls()
+
+    def _build_default_urls(self) -> list[URLPattern | URLResolver]:
         registered_versioned, registered_unversioned = (
             self._collect_registered_patterns()
         )
