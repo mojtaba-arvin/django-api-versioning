@@ -1,0 +1,154 @@
+name: Adversarial test suite
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adversarial-testing-${ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutation-testing:
+    name: Mutation testing (mutmut)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install project test dependencies and mutmut
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" -r requirements-ci.txt
+          python -m pip install "mutmut==3.8.1"
+      - name: Collect fresh coverage for the mutation scope
+        run: python -m pytest tests -q --cov=django_api_versioning --cov-report=
+      - name: Run full mutation campaign and enforce score
+        run: |
+          mutmut run
+          mutmut export-cicd-stats
+          mutmut results | tee "$RUNNER_TEMP/mutmut-results.txt"
+          python scripts/check_mutation_score.py
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutmut-report
+          path: |
+            mutants/mutmut-cicd-stats.json
+            ${ runner.temp }}/mutmut-results.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+  atheris-fuzzing:
+    name: Coverage-guided parser fuzzing (Atheris)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install package and Atheris
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install "atheris==3.1.0"
+      - name: Fuzz Accept and version parsers
+        run: |
+          mkdir -p "$RUNNER_TEMP/atheris-crashes"
+          python fuzz/fuzz_accept_header.py fuzz/corpus/accept \
+            -max_total_time=120 -max_len=65536 -timeout=5 \
+            -artifact_prefix="$RUNNER_TEMP/atheris-crashes/"
+          test -z "$(find "$RUNNER_TEMP/atheris-crashes" -type f -print -quit)"
+      - name: Upload fuzz corpus and crash artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atheris-fuzz-artifacts
+          path: |
+            fuzz/corpus/accept/
+            ${ runner.temp }}/atheris-crashes/
+          if-no-files-found: warn
+          retention-days: 30
+
+  schemathesis:
+    name: OpenAPI-generated hostile API tests (Schemathesis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install OpenAPI contract app and Schemathesis
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" -r requirements-ci.txt
+          python -m pip install -r examples/openapi_contract/requirements.txt
+          python -m pip install "schemathesis==4.33.4"
+      - name: Start the real Django contract application
+        working-directory: examples/openapi_contract
+        env:
+          DJANGO_SETTINGS_MODULE: contract_project.settings
+        run: |
+          python manage.py runserver 127.0.0.1:8000 --noreload > "$RUNNER_TEMP/django-server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/django-server.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8000/api/v1/products/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/django-server.log"
+          exit 1
+      - name: Generate and fuzz the V1 and V2 OpenAPI contracts
+        run: |
+          set -o pipefail
+          st run examples/openapi_contract/schemas/v1/openapi.yaml \
+            --url http://localhost:8000 \
+            --phases examples,coverage,fuzzing,stateful \
+            --max-examples 50 --max-time 180 --workers 1 \
+            --continue-on-failure --report junit \
+            --report-junit-path "$RUNNER_TEMP/schemathesis-v1.junit.xml"
+          st run examples/openapi_contract/schemas/v2/openapi.yaml \
+            --url http://localhost:8000 \
+            --phases examples,coverage,fuzzing,stateful \
+            --max-examples 50 --max-time 180 --workers 1 \
+            --continue-on-failure --report junit \
+            --report-junit-path "$RUNNER_TEMP/schemathesis-v2.junit.xml"
+      - name: Stop Django contract application
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/django-server.pid"; then
+            kill "$(cat "$RUNNER_TEMP/django-server.pid")" || true
+          fi
+      - name: Upload Schemathesis reports and server logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: schemathesis-openapi-reports
+          path: |
+            ${ runner.temp }}/schemathesis-v*.junit.xml
+            ${ runner.temp }}/django-server.log
+          if-no-files-found: warn
+          retention-days: 30
