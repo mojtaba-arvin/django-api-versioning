@@ -76,7 +76,6 @@ def test_registered_endpoint_lifecycle_survives_nested_include():
     assert response["Deprecation"] == "@1893456000"
 
 
-
 def test_router_lifecycle_metadata_is_scoped_to_router_owner():
     """A trailing-slash sibling router must not inherit another router's policy."""
     from rest_framework import viewsets
