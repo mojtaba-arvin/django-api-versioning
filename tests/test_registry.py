@@ -1329,7 +1329,13 @@ def test_escaped_literal_regex_and_path_routes_share_identity(
 
 
 @pytest.mark.parametrize("static_first", [True, False])
-def test_literal_numeric_route_precedes_regex_digit_route(clear_registry, static_first):
+@pytest.mark.parametrize(
+    "regex_route",
+    [r"^api/v1/orders/\d/$", r"^api/v1/orders/./$"],
+)
+def test_literal_numeric_route_precedes_regex_digit_route(
+    clear_registry, static_first, regex_route
+):
     def digit_view(request):
         return None
 
@@ -1337,7 +1343,7 @@ def test_literal_numeric_route_precedes_regex_digit_route(clear_registry, static
         return None
 
     digit_pattern = re_path(
-        r"^api/v1/orders/\d/$",
+        regex_route,
         digit_view,
         name="order-digit",
     )
