@@ -4,6 +4,7 @@ This module is optional: importing the core package does not require DRF.
 """
 
 import logging
+from functools import wraps
 from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
@@ -31,6 +32,16 @@ from .reverse import format_negotiated_url
 from .settings import api_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _registry_transaction(function):
+    """Serialize multi-route router mutations against other registrations."""
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        with registry.transaction():
+            return function(*args, **kwargs)
+
+    return wrapper
 
 _ROUTE_VERSION_ATTR = registry._ROUTE_VERSION_ATTR
 
@@ -65,6 +76,7 @@ class VersionedRouter:
         self._basenames: dict[str, str] = {}
         self._basename_prefixes: dict[str, str] = {}
 
+    @_registry_transaction
     def register(
         self,
         prefix: str,
@@ -159,6 +171,7 @@ class VersionedRouter:
             self._basename_prefixes.update(basename_prefixes)
             raise
 
+    @_registry_transaction
     def remove(self, prefix: str, route_name: str, *, from_version: int) -> None:
         """Remove one logical DRF route from a concrete version onward.
 
@@ -243,6 +256,7 @@ class VersionedRouter:
 
         registry.remove(logical_endpoint, from_version, owner=self._registry_owner)
 
+    @_registry_transaction
     def set_lifecycle(
         self,
         prefix: str,
