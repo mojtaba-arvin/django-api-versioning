@@ -344,7 +344,14 @@ class TestNegotiationSettings:
 
     @pytest.mark.parametrize(
         "base_path",
-        ["api/../", "api/./", "api/?query/", r"api\\v1/", "api/%252e%252e/", "api%2Fv/"],
+        [
+            "api/../",
+            "api/./",
+            "api/?query/",
+            r"api\\v1/",
+            "api/%252e%252e/",
+            "api%2Fv/",
+        ],
     )
     def test_unversioned_base_path_rejects_unsafe_segments(self, base_path):
         with pytest.raises(VersioningError, match="API_UNVERSIONED_BASE_PATH"):
