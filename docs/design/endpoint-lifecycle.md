@@ -181,7 +181,7 @@ The runtime implementation is present in main after PR #71:
 
 - Decorator and DRF route registrations retain stable logical endpoint identity and concrete route-version metadata on their registered URLPatterns.
 - The merged implementation adds immutable normalized operation identity based on the actual Django ResolverMatch, concrete HTTP method, namespace/route metadata, and DRF action map. Ambiguous matches fail closed.
-- The merged implementation adds one normalized lifecycle registry and adapter-specific public declarations. The decorator declaration uses the same app_name + postfix identity as @endpoint; the router declaration uses prefix + generated route name + concrete version.
+- The merged implementation adds one normalized lifecycle registry and adapter-specific public declarations. The decorator declaration uses the same app_name + postfix identity as @endpoint; the router declaration uses owner identity + prefix + generated route name + concrete version.
 - The merged middleware applies endpoint headers from the resolved operation. It composes version-wide and endpoint-level dates independently, choosing the earliest instant for each header. Version-wide past-Sunset 410 remains authoritative; endpoint-level past Sunset is headers-only.
 - The merged optional drf-spectacular AutoSchema integration supports VersionedRouter and decorator-backed DRF views. The adapter does not import drf-spectacular from the package root or add it to runtime dependencies.
 - Tests cover method/action separation, version isolation, route ambiguity, actual Django request resolution, headers, past-Sunset precedence, and generated OpenAPI operation flags.
