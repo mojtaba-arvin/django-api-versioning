@@ -53,6 +53,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     uses: ./.github/workflows/tests.yml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     permissions:
       contents: read
 
