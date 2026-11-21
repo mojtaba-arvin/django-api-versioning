@@ -11,7 +11,7 @@ from pathlib import Path
 MAX_SUBJECT_LENGTH = 100
 HEADER = re.compile(
     r"^(?P<type>[a-z][a-z0-9-]*)"
-    r"(?:\((?P<scope>[a-z0-9][a-z0-9./-]*)\))?"
+    r"(?:\((?P<scope>[a-z0-9]+(?:[./-][a-z0-9]+)*)\))?"
     r"(?P<breaking>!)?: (?P<subject>.+)$"
 )
 
@@ -23,8 +23,8 @@ def validate_commit_message(message: str) -> list[str]:
     if not lines:
         return ["commit message is empty"]
 
-    subject = lines[0].strip()
-    if not subject:
+    subject = lines[0]
+    if not subject.strip():
         return ["commit subject must be the first non-empty line"]
 
     if len(subject) > MAX_SUBJECT_LENGTH:
@@ -41,7 +41,7 @@ def validate_commit_message(message: str) -> list[str]:
         return errors
 
     summary = match.group("subject")
-    if summary[-1] == ".":
+    if summary.endswith("."):
         errors.append("subject must not end with a period")
     if not re.match(r"^[a-z0-9]", summary):
         errors.append("summary must start with a lowercase letter or digit")
