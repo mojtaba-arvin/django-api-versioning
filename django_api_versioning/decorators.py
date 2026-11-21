@@ -352,12 +352,22 @@ def remove_endpoint(
     # The decorator removal API owns only decorator-registered routes. The
     # registry is shared with VersionedRouter, so reject matching router-owned
     # active routes and tombstones before creating a cross-owner boundary.
+    def _matches_router_endpoint(endpoint: object) -> bool:
+        if not isinstance(endpoint, str):
+            return False
+        router_prefix = logical_endpoint.rstrip("/")
+        return endpoint == logical_endpoint or endpoint.startswith(
+            f"{router_prefix}:"
+        )
+
     router_owned = any(
-        getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None) == logical_endpoint
+        _matches_router_endpoint(
+            getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        )
         and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
         for pattern in registry.urlpatterns
     ) or any(
-        key[0] == logical_endpoint
+        _matches_router_endpoint(key[0])
         and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is not None
         for key, pattern in registry._removed_patterns.items()
     )
