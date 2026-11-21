@@ -28,19 +28,30 @@ def main() -> int:
 
     total, killed = data["total"], data["killed"]
     survived, skipped = data["survived"], data["skipped"]
-    typed = data.get("caught_by_type_check", 0)
     unresolved = {
-        key: data.get(key, 0) for key in ("no_tests", "suspicious", "timeout")
+        key: data.get(key, 0)
+        for key in (
+            "no_tests",
+            "suspicious",
+            "timeout",
+            "segfault",
+            "check_was_interrupted_by_user",
+        )
     }
-    denominator = total - skipped - typed
-    if total <= 0 or denominator <= 0 or killed + survived > denominator:
-        print(f"Invalid or empty mutation population: {data!r}", file=sys.stderr)
+    denominator = total - skipped
+    if (
+        total <= 0
+        or denominator <= 0
+        or killed + survived > denominator
+        or killed + survived + sum(unresolved.values()) != denominator
+    ):
+        print(f"Invalid or incomplete mutation population: {data!r}", file=sys.stderr)
         return 2
 
     score = 100.0 * killed / denominator
     print(
         f"Mutation score: {score:.2f}% ({killed} killed / {survived} survived; "
-        f"{total} total, {skipped} skipped, {typed} type-checked)."
+        f"{total} total, {skipped} skipped)."
     )
     print("Unresolved mutant states: " + json.dumps(unresolved, sort_keys=True))
 
