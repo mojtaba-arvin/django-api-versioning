@@ -335,3 +335,37 @@ def test_version_parameter_inside_quoted_accept_parameter_is_not_a_version():
     )
 
     assert response.status_code == 400
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_quoted_accept_version_parameter_remains_supported():
+    request, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT='application/json; version="2"',
+    )
+
+    assert response.status_code == 200
+    assert response.content == b"/api/v2/orders/"
+    assert request.api_version == 2
+
+
+@override_settings(
+    API_VERSIONING_SCHEME="header",
+    API_BASE_PATH="api/v{version}/",
+    API_UNVERSIONED_BASE_PATH="api/",
+    API_MIN_VERSION=1,
+    API_MAX_VERSION=3,
+)
+def test_commas_and_semicolons_inside_quoted_accept_values_are_not_delimiters():
+    _, response = _dispatch(
+        "/api/orders/",
+        HTTP_ACCEPT='application/json; profile="one,two; version=2; three"',
+    )
+
+    assert response.status_code == 400
