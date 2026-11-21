@@ -658,3 +658,21 @@ def test_router_dispatch_and_reverse_follow_non_path_transport(
     assert payload["transport"] == scheme, payload
     assert payload["url"].endswith(expected_url), payload
     assert "/api/v2/" not in payload["url"]
+
+
+    def test_negative_version_is_rejected(self):
+        router = VersionedRouter()
+        with pytest.raises(VersionRangeError, match="non-negative"):
+            router.register("negative", PostViewSetV1, version=-1, basename="negative")
+        assert registry.urlpatterns == []
+
+    def test_negative_explicit_version_is_rejected_atomically(self):
+        router = VersionedRouter()
+        with pytest.raises(VersionRangeError, match="non-negative"):
+            router.register(
+                "negative-list",
+                PostViewSetV1,
+                versions=[1, -1, 2],
+                basename="negative-list",
+            )
+        assert registry.urlpatterns == []
