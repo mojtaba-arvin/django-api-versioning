@@ -8,6 +8,8 @@ on:
   # Validate main after pushes and proposed changes through pull requests targeting main.
   # Use workflow_dispatch for deliberate manual checkpoints.
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
     paths:
