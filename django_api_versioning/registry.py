@@ -1064,10 +1064,18 @@ class UrlRegistry:
     @staticmethod
     def _route_specificity_key(pattern: URLPattern) -> tuple[int, bool, int]:
         """Prefer longer literal prefixes before generic converter/regex routes."""
-        route = str(pattern.pattern)
+        pattern_route = str(pattern.pattern)
         if isinstance(pattern.pattern, RegexPattern):
-            source = route[1:] if route.startswith("^") else route
-            source = source[:-1] if source.endswith("$") else source
+            source = (
+                pattern_route[1:]
+                if pattern_route.startswith("^")
+                else pattern_route
+            )
+            source = (
+                source[:-1]
+                if source.endswith("$")
+                else source
+            )
             escaped = False
             dynamic_start = len(source)
             for index, character in enumerate(source):
@@ -1083,11 +1091,13 @@ class UrlRegistry:
             literal_prefix = source[:dynamic_start]
             has_dynamic = dynamic_start < len(source)
         else:
-            dynamic_start = route.find("<")
-            literal_prefix = route if dynamic_start < 0 else route[:dynamic_start]
+            dynamic_start = pattern_route.find("<")
+            literal_prefix = (
+                pattern_route if dynamic_start < 0 else pattern_route[:dynamic_start]
+            )
             has_dynamic = dynamic_start >= 0
 
-        return (-len(literal_prefix), has_dynamic, -len(route))
+        return (-len(literal_prefix), has_dynamic, -len(pattern_route))
 
     def _sort_urlpatterns(self) -> None:
         """Order versions first and more-specific URL patterns before catch-alls."""
@@ -1095,10 +1105,13 @@ class UrlRegistry:
         def sort_key(pattern: URLPattern) -> tuple[bool, int, int, bool, int]:
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             specificity = self._route_specificity_key(pattern)
+            has_dynamic = specificity[1]
             return (
                 route_version is not None,
                 route_version if route_version is not None else -1,
-                *specificity,
+                has_dynamic,
+                specificity[0] if has_dynamic else 0,
+                specificity[2] if has_dynamic else 0,
             )
 
         self.urlpatterns.sort(key=sort_key)
