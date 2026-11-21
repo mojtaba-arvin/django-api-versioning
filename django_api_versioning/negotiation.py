@@ -115,17 +115,76 @@ def _split_quoted_header(value: str, delimiter: str) -> list[str]:
     return parts
 
 
+_HTTP_TOKEN = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
+_ACCEPT_MEDIA_TYPE_RE = re.compile(rf"^({_HTTP_TOKEN}|\*)/({_HTTP_TOKEN}|\*)$")
+_ACCEPT_QVALUE_RE = re.compile(r"^(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)$")
+
+
+def _parse_accept_parameter_value(raw_value: str) -> tuple[str, bool]:
+    """Validate and unwrap one Accept parameter value."""
+    value = raw_value.strip()
+    if not value:
+        raise ValueError("Accept contains an empty media parameter value.")
+
+    quoted = value.startswith('"') or value.endswith('"')
+    if quoted:
+        if (
+            len(value) < 2
+            or not value.startswith('"')
+            or not value.endswith('"')
+            or any(
+                (ord(character) < 32 and character != "\t")
+                or ord(character) == 127
+                for character in value[1:-1]
+            )
+        ):
+            raise ValueError("Accept contains an invalid quoted parameter.")
+        return value[1:-1], True
+
+    if not re.fullmatch(_HTTP_TOKEN, value):
+        raise ValueError("Accept contains an invalid media parameter value.")
+    return value, False
+
+
+def _parse_accept_media_range(media_range: str) -> tuple[str | None, float]:
+    """Return a version parameter and quality from one syntactically valid range."""
+    parameters = _split_quoted_header(media_range, ";")
+    match = _ACCEPT_MEDIA_TYPE_RE.fullmatch(parameters[0].strip())
+    if match is None or (match.group(1) == "*" and match.group(2) != "*"):
+        raise ValueError("Accept contains an invalid media range.")
+
+    quality = 1.0
+    saw_quality = False
+    version_value = None
+
+    for parameter in parameters[1:]:
+        name, separator, raw_value = parameter.partition("=")
+        name = name.strip()
+        if not re.fullmatch(_HTTP_TOKEN, name) or not separator:
+            raise ValueError("Accept contains an invalid media parameter.")
+
+        value, quoted = _parse_accept_parameter_value(raw_value)
+        folded_name = name.casefold()
+        if folded_name == "q":
+            if saw_quality or quoted or not _ACCEPT_QVALUE_RE.fullmatch(value):
+                raise ValueError("Accept contains an invalid quality value.")
+            saw_quality = True
+            quality = float(value)
+        elif folded_name == "version":
+            if version_value is not None:
+                raise ValueError("Accept contains duplicate version parameters.")
+            version_value = value
+
+    return version_value, quality
+
+
 def _header_version(request: HttpRequest, header_name: str) -> int | None:
     dedicated = request.headers.get(header_name)
     dedicated_version = _parse_version(dedicated) if dedicated is not None else None
 
-    # Parse media ranges and quality values before trusting a version parameter.
-    # q=0 means that representation is explicitly unacceptable. If several
-    # versioned ranges are acceptable, select the version with the highest q;
-    # equally preferred conflicting versions are ambiguous and fail closed.
-    token = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
-    media_type_pattern = re.compile(rf"^({token}|\*)/({token}|\*)$")
-    qvalue_pattern = re.compile(r"^(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)$")
+    # q=0 means a versioned representation is explicitly unacceptable. If
+    # multiple versioned ranges are acceptable, prefer the highest q; equal
+    # quality conflicts are ambiguous and fail closed.
     candidates: list[tuple[float, int]] = []
     saw_version = False
     accept = request.headers.get("Accept", "")
@@ -133,61 +192,12 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
         return dedicated_version
 
     for media_range in _split_quoted_header(accept, ","):
-        parameters = _split_quoted_header(media_range, ";")
-        match = media_type_pattern.fullmatch(parameters[0].strip())
-        if match is None or (match.group(1) == "*" and match.group(2) != "*"):
-            raise ValueError("Accept contains an invalid media range.")
-
-        quality = 1.0
-        saw_quality = False
-        version_value: str | None = None
-
-        for parameter in parameters[1:]:
-            name, separator, raw_value = parameter.partition("=")
-            name = name.strip()
-            if not re.fullmatch(token, name) or not separator:
-                raise ValueError("Accept contains an invalid media parameter.")
-            raw_value = raw_value.strip()
-            if not raw_value:
-                raise ValueError("Accept contains an empty media parameter value.")
-
-            if raw_value.startswith('"') or raw_value.endswith('"'):
-                if (
-                    len(raw_value) < 2
-                    or not raw_value.startswith('"')
-                    or not raw_value.endswith('"')
-                    or any(
-                        (ord(character) < 32 and character != "\t")
-                        or ord(character) == 127
-                        for character in raw_value[1:-1]
-                    )
-                ):
-                    raise ValueError("Accept contains an invalid quoted parameter.")
-                parsed_value = raw_value[1:-1]
-            else:
-                if not re.fullmatch(token, raw_value):
-                    raise ValueError("Accept contains an invalid media parameter value.")
-                parsed_value = raw_value
-
-            folded_name = name.casefold()
-            if folded_name == "q":
-                if (
-                    saw_quality
-                    or raw_value.startswith('"')
-                    or not qvalue_pattern.fullmatch(raw_value)
-                ):
-                    raise ValueError("Accept contains an invalid quality value.")
-                saw_quality = True
-                quality = float(raw_value)
-            elif folded_name == "version":
-                if version_value is not None:
-                    raise ValueError("Accept contains duplicate version parameters.")
-                version_value = parsed_value
-
-        if version_value is not None:
-            saw_version = True
-            if quality > 0:
-                candidates.append((quality, _parse_version(version_value)))
+        version_value, quality = _parse_accept_media_range(media_range)
+        if version_value is None:
+            continue
+        saw_version = True
+        if quality > 0:
+            candidates.append((quality, _parse_version(version_value)))
 
     if saw_version and not candidates:
         raise _UnsupportedVersion("All requested API versions have q=0.")
@@ -211,7 +221,6 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
             "Accept-Version and Accept media-type version parameters conflict."
         )
     return dedicated_version if dedicated_version is not None else accept_version
-
 
 class VersionNegotiationMiddleware:
     """Select the effective API version before URL resolution.
