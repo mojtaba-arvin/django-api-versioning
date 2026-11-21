@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from time import sleep
 from types import ModuleType
 
 import pytest
@@ -1235,3 +1237,38 @@ def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
     assert getattr(
         registry.urlpatterns[0], registry._ROUTE_VERSION_ATTR
     ) == 2
+
+
+
+def test_concurrent_registration_of_same_route_is_serialized(clear_registry, monkeypatch):
+    """A racing registration cannot append duplicate URLPatterns."""
+
+    def view(request):
+        return None
+
+    original_create_pattern = registry._create_pattern
+
+    def slow_create_pattern(route, callback, name):
+        # Widen the check-then-create race window for deterministic contention.
+        sleep(0.01)
+        return original_create_pattern(route, callback, name)
+
+    monkeypatch.setattr(registry, "_create_pattern", slow_create_pattern)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(
+            executor.map(
+                lambda _: registry.register(
+                    "api/v1/racing/",
+                    view,
+                    name="racing",
+                    source_version=1,
+                    route_version=1,
+                    logical_endpoint="racing",
+                ),
+                range(24),
+            )
+        )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is view
