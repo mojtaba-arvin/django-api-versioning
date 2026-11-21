@@ -321,22 +321,24 @@ jobs:
         working-directory: examples/openapi_contract
         run: |
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            max_examples=25
-            max_time=60
+            max_examples=15
+            max_time=30
+            phases=examples,fuzzing
           else
             max_examples=100
             max_time=300
+            phases=examples,coverage,fuzzing
           fi
           st run "$RUNNER_TEMP/schemathesis-schemas/v1/openapi.yaml" \
             --url http://localhost:8000 \
-            --phases examples,coverage,fuzzing \
+            --phases "$phases" \
             --max-examples "$max_examples" \
             --max-time "$max_time" \
             --report junit \
             --report-junit-path "$RUNNER_TEMP/schemathesis-v1.xml"
           st run "$RUNNER_TEMP/schemathesis-schemas/v2/openapi.yaml" \
             --url http://localhost:8000 \
-            --phases examples,coverage,fuzzing \
+            --phases "$phases" \
             --max-examples "$max_examples" \
             --max-time "$max_time" \
             --report junit \
