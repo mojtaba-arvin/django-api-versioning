@@ -368,9 +368,7 @@ class UrlRegistry:
             setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
 
         router_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
-        router_trailing_slash = getattr(
-            pattern, self._ROUTER_TRAILING_SLASH_ATTR, None
-        )
+        router_trailing_slash = getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
         if self._is_suppressed(
             logical_endpoint,
             route_version,

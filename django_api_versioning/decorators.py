@@ -356,9 +356,7 @@ def remove_endpoint(
         if not isinstance(endpoint, str):
             return False
         router_prefix = logical_endpoint.rstrip("/")
-        return endpoint == logical_endpoint or endpoint.startswith(
-            f"{router_prefix}:"
-        )
+        return endpoint == logical_endpoint or endpoint.startswith(f"{router_prefix}:")
 
     router_owned = any(
         _matches_router_endpoint(

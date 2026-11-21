@@ -263,9 +263,7 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
             return Response({"version": 3})
 
     slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
-    slash_router.register(
-        "shared-orders", V1Orders, version=1, basename="shared-order"
-    )
+    slash_router.register("shared-orders", V1Orders, version=1, basename="shared-order")
 
     no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
     no_slash_router.register(
@@ -282,7 +280,8 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
     )
 
     owned_v2 = [
-        pattern for pattern in registry.urlpatterns
+        pattern
+        for pattern in registry.urlpatterns
         if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
         == "shared-orders:shared-order-list"
         and getattr(pattern, registry._ROUTE_VERSION_ATTR, None) == 2
@@ -324,8 +323,7 @@ def test_decorator_removal_rejects_router_owned_tombstone():
     )
 
     assert not any(
-        getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
-        is router._registry_owner
+        getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is router._registry_owner
         for pattern in registry.urlpatterns
     )
     with pytest.raises(VersioningError, match="owned by a VersionedRouter"):
