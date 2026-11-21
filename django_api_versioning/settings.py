@@ -133,7 +133,8 @@ class APISettings:
         # input (for example, %252e%252e -> %2e%2e after one decode).
         if "%" in decoded:
             raise VersioningError(
-                f"{setting_name} must not contain malformed or nested percent escapes."
+                f"{setting_name} must not contain malformed or nested "
+                "percent escapes."
             )
         if (
             any(character in decoded for character in "\\?#")
@@ -147,7 +148,8 @@ class APISettings:
         ):
             raise VersioningError(
                 f"{setting_name} must not contain query/fragment delimiters, "
-                "whitespace, control characters, backslashes, or doubled path separators."
+                "whitespace, control characters, backslashes, or doubled "
+                "path separators."
             )
         segments = decoded.rstrip("/").split("/")
         if any(segment in {"", ".", ".."} for segment in segments):
