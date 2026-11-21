@@ -37,7 +37,7 @@ Treat endpoint lifecycle as metadata attached to a stable logical operation iden
 Identity components:
 
 - Decorator endpoint: the existing logical endpoint key (`app_name + postfix`).
-- DRF operation: router prefix plus the stable generated route name/action identity already used by endpoint removal.
+- DRF operation: router owner identity, router prefix, stable generated route name/action identity, and concrete API version. Owner identity prevents lifecycle metadata from leaking between independent routers that intentionally use different route patterns for the same logical name.
 - Concrete API version: the version whose resolved route is being served.
 
 The declaration should be metadata-only and must not register, delete, or mutate URL patterns. The public API uses adapter-specific declarations over one normalized registry record: set_endpoint_lifecycle() for decorator endpoints and VersionedRouter.set_lifecycle() for DRF routes. Their concrete signatures are recorded in D7 and the canonical reference.
