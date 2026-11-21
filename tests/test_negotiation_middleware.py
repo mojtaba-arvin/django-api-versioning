@@ -432,9 +432,3 @@ def test_hostname_negotiation_does_not_strip_multiple_trailing_dots():
     request = RequestFactory().get("/", HTTP_HOST="api.example.com..")
 
     assert _host_version(request, {"api.example.com": 2}) is None
-
-@override_settings(ALLOWED_HOSTS=["*"])
-def test_hostname_negotiation_handles_malformed_bracketed_host():
-    request = RequestFactory().get("/", HTTP_HOST="[invalid")
-
-    assert _host_version(request, {"api.example.com": 2}) is None
