@@ -303,4 +303,10 @@ def _to_http_date(date: datetime) -> str:
 
 def _to_structured_field_date(date: datetime) -> str:
     """Serialize an RFC 9745 Date as an RFC 9651 Structured Field Date."""
-    return f"@{int(date.timestamp())}"
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    delta = date - epoch
+    # timedelta's normalized days/seconds representation floors fractional
+    # seconds correctly for pre-epoch dates; int(timestamp()) truncates toward
+    # zero and can turn 1969-12-31T23:59:59.5Z into @0.
+    seconds = delta.days * 86400 + delta.seconds
+    return f"@{seconds}"
