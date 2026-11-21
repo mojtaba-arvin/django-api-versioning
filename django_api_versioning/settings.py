@@ -332,8 +332,22 @@ class APISettings:
                 raise VersioningError(
                     f"Invalid API_VERSIONING_HOSTS hostname: {hostname!r}."
                 )
-            normalized = hostname.rstrip(".").encode("idna").decode("ascii").lower()
-            labels = normalized.rstrip(".").split(".")
+            if hostname.endswith(".."):
+                raise VersioningError(
+                    f"Invalid API_VERSIONING_HOSTS hostname: {hostname!r}."
+                )
+            hostname_without_root_dot = (
+                hostname[:-1] if hostname.endswith(".") else hostname
+            )
+            try:
+                normalized = (
+                    hostname_without_root_dot.encode("idna").decode("ascii").lower()
+                )
+            except UnicodeError as exc:
+                raise VersioningError(
+                    f"Invalid API_VERSIONING_HOSTS hostname: {hostname!r}."
+                ) from exc
+            labels = normalized.split(".")
             valid_labels = all(
                 len(label) <= 63
                 and re.fullmatch(
