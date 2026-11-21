@@ -70,6 +70,8 @@ jobs:
           python -m pip install -e .
           python -m pip install "atheris==3.1.0"
       - name: Fuzz Accept and version parsers
+        env:
+          DJANGO_SETTINGS_MODULE: tests.settings
         run: |
           mkdir -p "$RUNNER_TEMP/atheris-crashes"
           python fuzz/fuzz_accept_header.py fuzz/corpus/accept \
