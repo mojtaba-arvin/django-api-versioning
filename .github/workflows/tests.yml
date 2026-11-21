@@ -4,6 +4,8 @@ on:
   workflow_call:
   # Validate main after pushes and proposed changes through pull requests targeting main.
   # Use workflow_dispatch for deliberate manual checkpoints.
+  pull_request:
+    branches: [main]
   workflow_dispatch:
   push:
     branches: [main]
