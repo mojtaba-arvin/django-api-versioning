@@ -68,6 +68,5 @@ def pre_mutation(context):
         return
 
     context.config.test_command = (
-        "python -m pytest -x -q -p no:pytest_cov -o addopts= "
-        + " ".join(test_paths)
+        "python -m pytest -x -q -p no:pytest_cov -o addopts= " + " ".join(test_paths)
     )
