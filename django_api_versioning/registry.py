@@ -441,6 +441,7 @@ class UrlRegistry:
 
         self._sort_urlpatterns()
 
+    @_synchronized
     def get_route_version(self, route: str) -> int | None:
         """Return the concrete version registered for a resolved route."""
         route_index = next(
@@ -462,6 +463,7 @@ class UrlRegistry:
             None,
         )
 
+    @_synchronized
     def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{route: {route_version: callback}}``.
@@ -482,6 +484,7 @@ class UrlRegistry:
             )
         return matrix
 
+    @_synchronized
     def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{logical_endpoint: {route_version: callback}}``.
@@ -569,6 +572,7 @@ class UrlRegistry:
                 matched_length = max(matched_length, len(pattern_candidate))
         return matched_length
 
+    @_synchronized
     def get_resolved_route_version_for_match(
         self, resolver_match: object
     ) -> tuple[bool, int | None]:
@@ -637,6 +641,7 @@ class UrlRegistry:
             return True, None
         return True, next(iter(versions))
 
+    @_synchronized
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
 
@@ -665,6 +670,7 @@ class UrlRegistry:
         versions = {version for length, version in matches if length == longest}
         return next(iter(versions)) if len(versions) == 1 else None
 
+    @_synchronized
     def resolve_operation(
         self,
         resolver_match: object,
@@ -787,6 +793,7 @@ class UrlRegistry:
             router_owner=getattr(pattern, self._ROUTER_OWNER_ATTR, None),
         )
 
+    @_synchronized
     def resolve_registered_operation(
         self, logical_endpoint: str, route_version: int, method: str
     ) -> ResolvedOperation | None:
@@ -837,6 +844,7 @@ class UrlRegistry:
             registered_route=pattern_text,
         )
 
+    @_synchronized
     def register_endpoint_lifecycle(
         self,
         logical_endpoint: str,
@@ -892,6 +900,7 @@ class UrlRegistry:
             )
         self._endpoint_lifecycle[key] = lifecycle
 
+    @_synchronized
     def get_endpoint_lifecycle(
         self, operation: ResolvedOperation
     ) -> EndpointLifecycle | None:
