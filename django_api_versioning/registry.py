@@ -50,7 +50,9 @@ class UrlRegistry:
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
-        self._router_removal_boundaries: dict[tuple[str, str | None, bool | None], set[int]] = {}
+        self._router_removal_boundaries: dict[
+            tuple[str, str | None, bool | None], set[int]
+        ] = {}
         self._removed_patterns: dict[tuple[object, ...], URLPattern] = {}
         self._endpoint_lifecycle: dict[
             tuple[str, int, str | None, str | None], EndpointLifecycle

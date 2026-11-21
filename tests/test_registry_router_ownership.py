@@ -264,7 +264,7 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
 
     slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
     slash_router.register(
-        "shared-orders", V1Orders, versions=[1], basename="shared-order"
+        "shared-orders", V1Orders, version=1, basename="shared-order"
     )
 
     no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
@@ -290,3 +290,10 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
         is no_slash_router._registry_owner
     ]
     assert len(owned_v2) == 1
+    assert any(
+        key[0] == "shared-orders:shared-order-list"
+        and key[1] == 2
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is slash_router._registry_owner
+        for key, pattern in registry._removed_patterns.items()
+    )
