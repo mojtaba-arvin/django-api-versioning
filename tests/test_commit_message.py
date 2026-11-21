@@ -34,7 +34,7 @@ def test_rejects_invalid_scope_characters():
     assert validate_commit_message("fix(Invalid_Scope): correct behavior")
 
 
-def test_accepts_multiline_message_with_conventional_subject():
+def test_rejects_trailing_subject_whitespace():\n    assert validate_commit_message("fix(api): reject malformed headers ")\n\n\ndef test_rejects_scope_with_trailing_separator():\n    assert validate_commit_message("fix(api/): reject malformed headers")\n\n\ndef test_accepts_multiline_message_with_conventional_subject():
     message = (
         "test(registry): cover concurrent registration\n\n"
         "Exercise the race between registration and lookup."
