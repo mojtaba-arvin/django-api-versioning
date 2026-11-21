@@ -1108,7 +1108,7 @@ class UrlRegistry:
                 if character == "\\":
                     escaped = True
                     continue
-                if character in "([?*+{":
+                if character in "([?*+{.^$|)]}":
                     dynamic_start = index
                     break
             literal_prefix = source[:dynamic_start]
