@@ -330,7 +330,6 @@ def test_decorator_removal_rejects_router_owned_tombstone():
         remove_endpoint("router-owned-tombstone", from_version=1)
 
 
-
 def test_router_removal_ignores_foreign_route_with_distinct_trailing_slash(monkeypatch):
     """A different generated route identity must not block this router's removal."""
     from django_api_versioning.settings import api_settings
