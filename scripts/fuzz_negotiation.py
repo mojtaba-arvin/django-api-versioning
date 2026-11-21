@@ -13,7 +13,12 @@ if not settings.configured:
     settings.configure(
         SECRET_KEY="atheris-only-not-for-production",
         INSTALLED_APPS=[],
-        DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+        DATABASES={
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": ":memory:",
+            }
+        },
         API_BASE_PATH="api/v{version}/",
         API_MIN_VERSION=1,
         API_MAX_VERSION=5,
