@@ -7,6 +7,7 @@ import sys
 import atheris
 import django
 from django.conf import settings
+from django.http import HttpRequest
 
 if not settings.configured:
     settings.configure(
@@ -20,7 +21,6 @@ if not settings.configured:
     )
 django.setup()
 
-from django.http import HttpRequest  # noqa: E402
 
 with atheris.instrument_imports():
     from django_api_versioning.lifecycle import (
