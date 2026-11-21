@@ -1102,7 +1102,7 @@ class UrlRegistry:
     def _sort_urlpatterns(self) -> None:
         """Order versions first and more-specific URL patterns before catch-alls."""
 
-        def sort_key(pattern: URLPattern) -> tuple[bool, int, int, bool, int]:
+        def sort_key(pattern: URLPattern) -> tuple[bool, int, bool, int, int]:
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             specificity = self._route_specificity_key(pattern)
             has_dynamic = specificity[1]
