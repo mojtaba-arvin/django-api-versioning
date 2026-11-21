@@ -544,3 +544,29 @@ def test_static_nested_route_precedes_parent_dynamic_detail_route(archive_first)
 
     assert response.status_code == 200
     assert response.json() == {"handler": "archive-list"}
+
+
+
+def test_logical_matrix_separates_router_owners_with_disjoint_versions():
+    """Different trailing-slash routers must not masquerade as one version span."""
+
+    from django_api_versioning.registry import registry
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response([])
+
+    slash_router = VersionedRouter(trailing_slash=True)
+    no_slash_router = VersionedRouter(trailing_slash=False)
+    slash_router.register("orders", OrdersViewSet, versions=[1], basename="order")
+    no_slash_router.register("orders", OrdersViewSet, versions=[2], basename="order")
+
+    matrix = registry.get_logical_version_matrix()
+    route_variants = [
+        versions
+        for logical_id, versions in matrix.items()
+        if logical_id.startswith("orders:order-list")
+    ]
+
+    assert len(route_variants) == 2
+    assert sorted(next(iter(versions)) for versions in route_variants) == [1, 2]
