@@ -78,10 +78,11 @@ def test_registered_endpoint_lifecycle_survives_nested_include():
 
 def test_router_lifecycle_metadata_is_scoped_to_router_owner():
     """A trailing-slash sibling router must not inherit another router's policy."""
+    from django.urls import path
+
+    from django_api_versioning.routers import VersionedRouter
     from rest_framework import viewsets
     from rest_framework.response import Response
-    from django.urls import path
-    from django_api_versioning.routers import VersionedRouter
 
     class OrdersViewSet(viewsets.ViewSet):
         def list(self, request):
