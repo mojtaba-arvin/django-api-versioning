@@ -4,7 +4,7 @@ import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
 
-from django_api_versioning.lifecycle import LifecycleMiddleware
+from django_api_versioning.lifecycle import LifecycleMiddleware, _to_http_date
 from django_api_versioning.settings import api_settings as settings
 
 # Dates relative to "today" so the tests never depend on the current date.
@@ -801,3 +801,10 @@ def test_structured_field_date_floors_fractional_pre_epoch_seconds():
 
     assert _to_structured_field_date(pre_epoch) == "@-1"
     assert _to_structured_field_date(post_epoch) == "@0"
+
+
+
+def test_http_date_uses_locale_independent_gmt_format():
+    value = datetime(2031, 1, 1, 3, 0, tzinfo=timezone(timedelta(hours=3)))
+
+    assert _to_http_date(value) == "Wed, 01 Jan 2031 00:00:00 GMT"
