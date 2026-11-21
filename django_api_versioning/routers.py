@@ -188,10 +188,10 @@ class VersionedRouter:
                 if route_version is not None
                 else prefix
             )
-            return (
-                getattr(pattern, registry._ROUTER_PREFIX_ATTR, None)
-                == expected_prefix
+            registered_prefix = getattr(
+                pattern, registry._ROUTER_PREFIX_ATTR, None
             )
+            return registered_prefix == expected_prefix
 
         affected_foreign_routes = [
             pattern
