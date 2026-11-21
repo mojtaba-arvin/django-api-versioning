@@ -124,8 +124,8 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
     # versioned ranges are acceptable, select the version with the highest q;
     # equally preferred conflicting versions are ambiguous and fail closed.
     token = r"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
-    media_type_pattern = re.compile(rf"^({token}|\\*)/({token}|\\*)$")
-    qvalue_pattern = re.compile(r"^(?:0(?:\\.[0-9]{0,3})?|1(?:\\.0{0,3})?)$")
+    media_type_pattern = re.compile(rf"^({token}|\*)/({token}|\*)$")
+    qvalue_pattern = re.compile(r"^(?:0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?)$")
     candidates: list[tuple[float, int]] = []
     saw_version = False
     accept = request.headers.get("Accept", "")
@@ -155,7 +155,7 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
                     len(raw_value) < 2
                     or not raw_value.startswith('"')
                     or not raw_value.endswith('"')
-                    or any(character in raw_value[1:-1] for character in "\\r\\n")
+                    or any(character in raw_value[1:-1] for character in "\r\n")
                 ):
                     raise ValueError("Accept contains an invalid quoted parameter.")
                 parsed_value = raw_value[1:-1]
