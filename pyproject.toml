@@ -144,3 +144,4 @@ pytest_add_cli_args_test_selection = ["tests", "integration_test_project"]
 mutate_only_covered_lines = true
 max_stack_depth = 8
 use_setproctitle = false
+pytest_add_cli_args = ["-p", "no:pytest_cov", "-o", "addopts="]
