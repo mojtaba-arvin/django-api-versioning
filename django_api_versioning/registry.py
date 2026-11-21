@@ -1082,7 +1082,7 @@ class UrlRegistry:
                 if escaped:
                     escaped = False
                     continue
-                if character == "\\\\":
+                if character == "\\":
                     escaped = True
                     continue
                 if character in "([?*+{":
