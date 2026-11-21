@@ -4,17 +4,6 @@ on:
   workflow_call:
   push:
     branches: ["audit/**"]
-  pull_request:
-    branches: [main]
-    paths:
-      - "django_api_versioning/**"
-      - "tests/**"
-      - "integration_test_project/**"
-      - "examples/openapi_contract/**"
-      - "scripts/fuzz_negotiation.py"
-      - "fuzz_corpus/**"
-      - "pyproject.toml"
-      - ".github/workflows/adversarial-testing.yml"
   workflow_dispatch:
 
 permissions:
