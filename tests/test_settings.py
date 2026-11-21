@@ -51,6 +51,20 @@ class TestBasePathValidation:
     @pytest.mark.parametrize(
         "base_path",
         [
+            "api/../v{version}/",
+            "api/./v{version}/",
+            "api//v{version}/",
+            "api/v{version}/?query/",
+            r"api\\v{version}\\",
+        ],
+    )
+    def test_rejects_unsafe_url_path_segments(self, base_path):
+        with pytest.raises(VersioningError):
+            APISettings(API_BASE_PATH=base_path)
+
+    @pytest.mark.parametrize(
+        "base_path",
+        [
             "api/v{version}/v{version}/",
             "api/v{version}/{other}/",
             "api/v{version:02d}/",
@@ -325,6 +339,14 @@ class TestNegotiationSettings:
                 API_MAX_VERSION=2,
                 API_DEFAULT_VERSION=3,
             )
+
+    @pytest.mark.parametrize(
+        "base_path",
+        ["api/../", "api/./", "api/?query/", r"api\\v1/"],
+    )
+    def test_unversioned_base_path_rejects_unsafe_segments(self, base_path):
+        with pytest.raises(VersioningError, match="API_UNVERSIONED_BASE_PATH"):
+            APISettings(API_UNVERSIONED_BASE_PATH=base_path)
 
     def test_unversioned_base_path_must_be_relative_and_normalized(self):
         with pytest.raises(VersioningError, match="API_UNVERSIONED_BASE_PATH"):

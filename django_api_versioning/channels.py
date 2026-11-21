@@ -57,4 +57,14 @@ def _parse_version(value: object) -> int | None:
     # documented channel grammar (for example, "-1", "+2", and "1_0").
     if not raw.isascii() or not raw.isdecimal():
         return None
-    return int(raw)
+
+    # Python 3.11+ limits decimal-to-int conversion to 4,300 digits by
+    # default. Keep the channel parser consistent across supported Python
+    # versions and avoid converting unbounded attacker-controlled input.
+    if len(raw) > 4300:
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        # Also respect a stricter interpreter-level integer-string limit.
+        return None

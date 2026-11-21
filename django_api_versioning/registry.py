@@ -50,8 +50,10 @@ class UrlRegistry:
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
-        self._router_removal_boundaries: dict[str, set[int]] = {}
-        self._removed_patterns: dict[tuple[str, int], URLPattern] = {}
+        self._router_removal_boundaries: dict[
+            tuple[str, str | None, bool | None], set[int]
+        ] = {}
+        self._removed_patterns: dict[tuple[object, ...], URLPattern] = {}
         self._endpoint_lifecycle: dict[
             tuple[str, int, str | None, str | None], EndpointLifecycle
         ] = {}
@@ -87,12 +89,32 @@ class UrlRegistry:
                 f"version {api_settings.API_MIN_VERSION}."
             )
 
-        boundaries = (
-            self._removal_boundaries
-            if owner is None
-            else self._router_removal_boundaries
-        )
-        boundaries.setdefault(logical_endpoint, set()).add(from_version)
+        if owner is None:
+            self._removal_boundaries.setdefault(logical_endpoint, set()).add(
+                from_version
+            )
+        else:
+            # A router tombstone applies to the same generated URL identity,
+            # not every route that happens to share its logical endpoint name.
+            # Distinct trailing-slash policies can coexist for one logical name.
+            owner_patterns = [
+                pattern
+                for pattern in [*self.urlpatterns, *self._removed_patterns.values()]
+                if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is owner
+                and getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
+                == logical_endpoint
+            ]
+            route_identities = {
+                (
+                    getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
+                    getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
+                )
+                for pattern in owner_patterns
+            }
+            for router_prefix, trailing_slash in route_identities:
+                self._router_removal_boundaries.setdefault(
+                    (logical_endpoint, router_prefix, trailing_slash), set()
+                ).add(from_version)
 
         for index in range(len(self.urlpatterns) - 1, -1, -1):
             pattern = self.urlpatterns[index]
@@ -106,7 +128,7 @@ class UrlRegistry:
                 continue
             if source_version is not None and source_version > from_version:
                 continue
-            self._removed_patterns[(logical_endpoint, route_version)] = pattern
+            self._record_removed(pattern, logical_endpoint)
             del self.urlpatterns[index]
 
         # Lifecycle metadata belongs to a concrete active declaration segment.
@@ -140,15 +162,17 @@ class UrlRegistry:
         logical_endpoint: str | None,
         route_version: int | None,
         owner: object | None = None,
+        router_prefix: str | None = None,
+        trailing_slash: bool | None = None,
     ) -> int | None:
         if logical_endpoint is None or route_version is None:
             return None
-        boundary_registry = (
-            self._removal_boundaries
-            if owner is None
-            else self._router_removal_boundaries
-        )
-        boundaries = boundary_registry.get(logical_endpoint, set())
+        if owner is None:
+            boundaries = self._removal_boundaries.get(logical_endpoint, set())
+        else:
+            boundaries = self._router_removal_boundaries.get(
+                (logical_endpoint, router_prefix, trailing_slash), set()
+            )
         applicable = [boundary for boundary in boundaries if boundary <= route_version]
         return max(applicable) if applicable else None
 
@@ -158,8 +182,16 @@ class UrlRegistry:
         route_version: int | None,
         source_version: int | None,
         owner: object | None = None,
+        router_prefix: str | None = None,
+        trailing_slash: bool | None = None,
     ) -> bool:
-        boundary = self._removal_boundary(logical_endpoint, route_version, owner)
+        boundary = self._removal_boundary(
+            logical_endpoint,
+            route_version,
+            owner,
+            router_prefix,
+            trailing_slash,
+        )
         return boundary is not None and (
             source_version is None or source_version <= boundary
         )
@@ -169,7 +201,16 @@ class UrlRegistry:
         if route_version is None:
             return
 
-        key = (logical_endpoint, route_version)
+        owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+        if owner is None:
+            key = (logical_endpoint, route_version)
+        else:
+            key = (
+                logical_endpoint,
+                route_version,
+                getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
+                getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
+            )
         existing = self._removed_patterns.get(key)
         if existing is not None:
             existing_owner = getattr(existing, self._ROUTER_OWNER_ATTR, None)
@@ -326,8 +367,15 @@ class UrlRegistry:
         if logical_endpoint is not None:
             setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
 
+        router_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
+        router_trailing_slash = getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
         if self._is_suppressed(
-            logical_endpoint, route_version, source_version, owner=pattern_owner
+            logical_endpoint,
+            route_version,
+            source_version,
+            owner=pattern_owner,
+            router_prefix=router_prefix,
+            trailing_slash=router_trailing_slash,
         ):
             if route_index is not None:
                 existing = self.urlpatterns[route_index]
@@ -339,6 +387,10 @@ class UrlRegistry:
                     existing_version,
                     existing_source,
                     owner=getattr(existing, self._ROUTER_OWNER_ATTR, None),
+                    router_prefix=getattr(existing, self._ROUTER_PREFIX_ATTR, None),
+                    trailing_slash=getattr(
+                        existing, self._ROUTER_TRAILING_SLASH_ATTR, None
+                    ),
                 ):
                     del self.urlpatterns[route_index]
             if logical_endpoint is not None:
@@ -346,7 +398,16 @@ class UrlRegistry:
             return
 
         if logical_endpoint is not None and route_version is not None:
-            self._removed_patterns.pop((logical_endpoint, route_version), None)
+            if pattern_owner is None:
+                removed_key = (logical_endpoint, route_version)
+            else:
+                removed_key = (
+                    logical_endpoint,
+                    route_version,
+                    router_prefix,
+                    router_trailing_slash,
+                )
+            self._removed_patterns.pop(removed_key, None)
 
         if route_index is None:
             self.urlpatterns.append(pattern)
@@ -388,7 +449,8 @@ class UrlRegistry:
             route = str(pattern.pattern)
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(route, {})[route_version] = pattern.callback
-        for (_, route_version), pattern in self._removed_patterns.items():
+        for key, pattern in self._removed_patterns.items():
+            route_version = key[1]
             tombstone_path = str(pattern.pattern)
             matrix.setdefault(tombstone_path, {}).setdefault(
                 route_version, REMOVED_ROUTE
@@ -411,8 +473,9 @@ class UrlRegistry:
             )
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             matrix.setdefault(logical_id, {})[route_version] = pattern.callback
-        for (logical_id, route_version), _pattern in self._removed_patterns.items():
-            matrix.setdefault(logical_id, {})[route_version] = REMOVED_ROUTE
+        for key, _pattern in self._removed_patterns.items():
+            logical_id, route_version = key[:2]
+            matrix.setdefault(logical_id, {}).setdefault(route_version, REMOVED_ROUTE)
         return matrix
 
     @staticmethod

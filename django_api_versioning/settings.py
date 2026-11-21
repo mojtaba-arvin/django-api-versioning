@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from string import Formatter
 from typing import Any, Callable
+from urllib.parse import unquote
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -115,6 +116,21 @@ class APISettings:
             ),
         )
 
+    @staticmethod
+    def _validate_url_prefix(path: str, setting_name: str) -> None:
+        """Reject URL prefixes that browsers or proxies can normalize ambiguously."""
+        decoded = unquote(path)
+        if any(character in decoded for character in "\\?#") or "//" in decoded:
+            raise VersioningError(
+                f"{setting_name} must not contain query/fragment delimiters, "
+                "backslashes, or doubled path separators."
+            )
+        segments = decoded.rstrip("/").split("/")
+        if any(segment in {"", ".", ".."} for segment in segments):
+            raise VersioningError(
+                f"{setting_name} must not contain empty, '.' or '..' path segments."
+            )
+
     def _validate_base_path(self) -> None:
         """Validate and normalize the API URL prefix."""
         if not isinstance(self.API_BASE_PATH, str):
@@ -150,6 +166,7 @@ class APISettings:
                 "API_BASE_PATH should end with a '/'. Adding '/' automatically."
             )
             self.API_BASE_PATH += "/"
+        self._validate_url_prefix(self.API_BASE_PATH, "API_BASE_PATH")
 
     def _validate_version_settings(self) -> None:
         """Validate version boundaries and their ordering."""
@@ -315,6 +332,9 @@ class APISettings:
                 "API_UNVERSIONED_BASE_PATH must be a relative path ending in "
                 "'/' and must not contain format fields or doubled slashes."
             )
+        self._validate_url_prefix(
+            self.API_UNVERSIONED_BASE_PATH, "API_UNVERSIONED_BASE_PATH"
+        )
 
         if not isinstance(self.API_VERSIONING_HOSTS, dict):
             raise VersioningError(
