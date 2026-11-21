@@ -151,6 +151,8 @@ def _register_endpoint_view(
     if versions is not None:
         for concrete_version in versions:
             _validate_version(concrete_version, max_version)
+        if len(set(versions)) != len(versions):
+            raise VersionRangeError("'versions' must not contain duplicates.")
 
     app_name_part = _app_name_prefix(app_name)
     logical_endpoint = f"{app_name_part}{postfix}"
