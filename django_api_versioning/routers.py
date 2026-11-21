@@ -43,6 +43,7 @@ def _registry_transaction(function):
 
     return wrapper
 
+
 _ROUTE_VERSION_ATTR = registry._ROUTE_VERSION_ATTR
 
 
