@@ -1,6 +1,8 @@
 name: Adversarial quality gates
 
 on:
+  push:
+    branches: ["audit/**"]
   pull_request:
     branches: [main]
     paths:
