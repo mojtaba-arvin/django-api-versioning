@@ -662,13 +662,13 @@ def test_router_dispatch_and_reverse_follow_non_path_transport(
 
 
 
-def test_negative_version_is_rejected(self):
+def test_negative_version_is_rejected():
     router = VersionedRouter()
     with pytest.raises(VersionRangeError, match="non-negative"):
         router.register("negative", PostViewSetV1, version=-1, basename="negative")
     assert registry.urlpatterns == []
 
-def test_negative_explicit_version_is_rejected_atomically(self):
+def test_negative_explicit_version_is_rejected_atomically():
     router = VersionedRouter()
     with pytest.raises(VersionRangeError, match="non-negative"):
         router.register(
