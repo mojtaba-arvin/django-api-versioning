@@ -352,6 +352,7 @@ def _validate_version(version: int, max_version: int) -> None:
         )
 
 
+@_registry_transaction
 def remove_endpoint(
     postfix: str,
     *,
