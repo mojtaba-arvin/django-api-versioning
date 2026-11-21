@@ -64,7 +64,7 @@ jobs:
     if: needs.changes.outputs.compatibility == 'true'
     uses: ./.github/workflows/compatibility.yml
     with:
-      scope: pull-request
+      scope: ${{ github.head_ref == 'audit/adversarial-hardening-2026-11' && 'full' || 'pull-request' }}
     permissions:
       contents: read
 
