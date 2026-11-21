@@ -20,7 +20,7 @@ if not settings.configured:
     )
 django.setup()
 
-from django.http import HttpRequest
+from django.http import HttpRequest  # noqa: E402
 
 with atheris.instrument_imports():
     from django_api_versioning.lifecycle import (
@@ -36,6 +36,7 @@ with atheris.instrument_imports():
         _path_version,
         _split_quoted_header,
     )
+
 
 def _ignore_expected_rejections(callable_, *args) -> None:
     try:
