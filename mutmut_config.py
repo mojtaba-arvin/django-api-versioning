@@ -1,9 +1,8 @@
 """Targeted test selection for mutmut, with a full-suite safety net.
 
-The focused files are chosen to exercise each module's public and internal
-contracts. mutmut is invoked with --rerun-all, so surviving mutants are
-rechecked against the complete test suite before they are classified as
-survivors.
+The focused files exercise each module's public and internal contracts on
+pull requests. The scheduled full campaign adds --rerun-all so surviving
+mutants are rechecked against the complete test suite before classification.
 """
 
 from pathlib import Path
