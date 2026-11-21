@@ -58,6 +58,7 @@ class TestBasePathValidation:
             r"api\\v{version}\\",
             "api/%252e%252e/v{version}/",
             "api%2Fv{version}/",
+            "api/%FF/v{version}/",
         ],
     )
     def test_rejects_unsafe_url_path_segments(self, base_path):
