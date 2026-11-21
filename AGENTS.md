@@ -51,7 +51,7 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 ## Commit and automation hygiene
 
 - Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.
-- Every commit subject and pull-request title (the squash-merge subject) must follow Conventional Commits: `type(scope): imperative, lowercase summary` (scope optional; use `!` for breaking changes). Keep the subject at or below 100 characters, omit the trailing period, and explain material context in the body. Run `python scripts/check_commit_message.py --message "type(scope): summary"` before committing; the installed `commit-msg` hook and mandatory PR gate enforce the same rule. Never use a generic, progress-style, or multi-change subject.
+- Commit subjects and PR titles (squash subjects) must follow Conventional Commits: `type(scope): lowercase imperative summary`; scope is optional and `!` marks breaking changes. Limit subjects to 100 characters, with no final period. Validate using `python scripts/check_commit_message.py --message "type(scope): summary"`; the local hook and required PR gate enforce it. Avoid vague, progress-style, or multi-change subjects.
 - GitHub Actions commits must use the `github-actions[bot]` identity, never the maintainer's personal identity. Manual commits use the repository's verified maintainer identity.
 
 ## Agent configuration ownership
