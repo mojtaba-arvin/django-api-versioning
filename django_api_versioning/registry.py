@@ -50,7 +50,10 @@ class UrlRegistry:
     def __init__(self) -> None:
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
-        self._router_removal_boundaries: dict[str, set[int]] = {}
+        # Router removal boundaries are scoped by owner identity as well as
+        # logical endpoint. Different routers may own disjoint version ranges
+        # for the same logical endpoint without sharing removal state.
+        self._router_removal_boundaries: dict[tuple[object, str], set[int]] = {}
         self._removed_patterns: dict[tuple[str, int], URLPattern] = {}
         self._endpoint_lifecycle: dict[
             tuple[str, int, str | None, str | None], EndpointLifecycle
@@ -87,12 +90,14 @@ class UrlRegistry:
                 f"version {api_settings.API_MIN_VERSION}."
             )
 
-        boundaries = (
-            self._removal_boundaries
-            if owner is None
-            else self._router_removal_boundaries
-        )
-        boundaries.setdefault(logical_endpoint, set()).add(from_version)
+        if owner is None:
+            self._removal_boundaries.setdefault(logical_endpoint, set()).add(
+                from_version
+            )
+        else:
+            self._router_removal_boundaries.setdefault(
+                (owner, logical_endpoint), set()
+            ).add(from_version)
 
         for index in range(len(self.urlpatterns) - 1, -1, -1):
             pattern = self.urlpatterns[index]
@@ -143,12 +148,12 @@ class UrlRegistry:
     ) -> int | None:
         if logical_endpoint is None or route_version is None:
             return None
-        boundary_registry = (
-            self._removal_boundaries
-            if owner is None
-            else self._router_removal_boundaries
-        )
-        boundaries = boundary_registry.get(logical_endpoint, set())
+        if owner is None:
+            boundaries = self._removal_boundaries.get(logical_endpoint, set())
+        else:
+            boundaries = self._router_removal_boundaries.get(
+                (owner, logical_endpoint), set()
+            )
         applicable = [boundary for boundary in boundaries if boundary <= route_version]
         return max(applicable) if applicable else None
 
