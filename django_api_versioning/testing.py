@@ -98,7 +98,8 @@ def assert_version_matrix(
         )
 
     if update:
-        path.write_text(json.dumps(current, indent=2, sort_keys=True))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(current, indent=2, sort_keys=True), encoding="utf-8")
         return
 
     if not path.exists():
