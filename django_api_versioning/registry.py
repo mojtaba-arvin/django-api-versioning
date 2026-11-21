@@ -1,4 +1,5 @@
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from threading import RLock
@@ -72,9 +73,11 @@ class UrlRegistry:
             tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
         ] = {}
 
-    def transaction(self):
-        """Return the re-entrant lock for atomic multi-operation registration."""
-        return self._lock
+    @contextmanager
+    def transaction(self) -> Iterator[None]:
+        """Hold the re-entrant lock for an atomic multi-operation transaction."""
+        with self._lock:
+            yield
 
     @_synchronized
     def clear(self) -> None:
