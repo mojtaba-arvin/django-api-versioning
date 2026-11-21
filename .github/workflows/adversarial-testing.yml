@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: adversarial-testing-${ github.event.pull_request.number || github.ref }}
+  group: adversarial-testing-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
           name: mutmut-report
           path: |
             mutants/mutmut-cicd-stats.json
-            ${ runner.temp }}/mutmut-results.txt
+            ${{ runner.temp }}/mutmut-results.txt
           if-no-files-found: warn
           retention-days: 30
 
@@ -83,7 +83,7 @@ jobs:
           name: atheris-fuzz-artifacts
           path: |
             fuzz/corpus/accept/
-            ${ runner.temp }}/atheris-crashes/
+            ${{ runner.temp }}/atheris-crashes/
           if-no-files-found: warn
           retention-days: 30
 
@@ -148,7 +148,7 @@ jobs:
         with:
           name: schemathesis-openapi-reports
           path: |
-            ${ runner.temp }}/schemathesis-v*.junit.xml
-            ${ runner.temp }}/django-server.log
+            ${{ runner.temp }}/schemathesis-v*.junit.xml
+            ${{ runner.temp }}/django-server.log
           if-no-files-found: warn
           retention-days: 30
