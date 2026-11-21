@@ -174,7 +174,7 @@ class VersionNegotiationMiddleware:
             version = _path_version(
                 request.path_info, _setting("API_BASE_PATH", "api/v{version}/")
             )
-            if version is not None:
+            if version is not None and version >= 0:
                 request.requested_api_version = version
                 request.api_version = version
                 request.version = str(version)
