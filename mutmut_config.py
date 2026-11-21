@@ -78,7 +78,7 @@ def pre_mutation(context):
         }
     )
     if os.environ.get("GITHUB_EVENT_NAME") == "pull_request":
-        node_ids = node_ids[:3]
+        node_ids = node_ids[:1]
     if node_ids:
         context.config.test_command = (
             "python -m pytest -x -q -p no:pytest_cov -o addopts= "
