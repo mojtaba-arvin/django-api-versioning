@@ -1333,7 +1333,7 @@ def test_escaped_literal_regex_and_path_routes_share_identity(
     "regex_route",
     [r"^api/v1/orders/\d/$", r"^api/v1/orders/./$"],
 )
-def test_literal_numeric_route_precedes_regex_digit_route(
+def test_literal_route_precedes_single_segment_regex_route(
     clear_registry, static_first, regex_route
 ):
     def digit_view(request):
