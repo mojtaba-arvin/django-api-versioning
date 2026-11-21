@@ -477,7 +477,7 @@ class UrlRegistry:
             matrix.setdefault(logical_id, {})[route_version] = pattern.callback
         for key, _pattern in self._removed_patterns.items():
             logical_id, route_version = key[:2]
-            matrix.setdefault(logical_id, {})[route_version] = REMOVED_ROUTE
+            matrix.setdefault(logical_id, {}).setdefault(route_version, REMOVED_ROUTE)
         return matrix
 
     @staticmethod

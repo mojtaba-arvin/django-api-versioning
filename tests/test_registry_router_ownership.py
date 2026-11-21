@@ -290,6 +290,10 @@ def test_router_removal_boundary_is_isolated_between_router_owners(monkeypatch):
         is no_slash_router._registry_owner
     ]
     assert len(owned_v2) == 1
+    assert (
+        registry.get_logical_version_matrix()["shared-orders:shared-order-list"][2]
+        is owned_v2[0].callback
+    )
     assert any(
         key[0] == "shared-orders:shared-order-list"
         and key[1] == 2
