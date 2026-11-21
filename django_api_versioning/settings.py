@@ -3,8 +3,8 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from string import Formatter
-from urllib.parse import unquote
 from typing import Any, Callable
+from urllib.parse import unquote
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured

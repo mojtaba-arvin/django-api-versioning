@@ -266,16 +266,7 @@ class UrlRegistry:
             return
 
         if logical_endpoint is not None and route_version is not None:
-            if pattern_owner is None:
-                removed_key = (logical_endpoint, route_version)
-            else:
-                removed_key = (
-                    logical_endpoint,
-                    route_version,
-                    router_prefix,
-                    router_trailing_slash,
-                )
-            self._removed_patterns.pop(removed_key, None)
+            self._removed_patterns.pop((logical_endpoint, route_version), None)
 
         if route_index is None:
             self.urlpatterns.append(pattern)
@@ -409,7 +400,16 @@ class UrlRegistry:
             return
 
         if logical_endpoint is not None and route_version is not None:
-            self._removed_patterns.pop((logical_endpoint, route_version), None)
+            if pattern_owner is None:
+                removed_key = (logical_endpoint, route_version)
+            else:
+                removed_key = (
+                    logical_endpoint,
+                    route_version,
+                    router_prefix,
+                    router_trailing_slash,
+                )
+            self._removed_patterns.pop(removed_key, None)
 
         if route_index is None:
             self.urlpatterns.append(pattern)
