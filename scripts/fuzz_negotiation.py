@@ -5,25 +5,24 @@ from __future__ import annotations
 import sys
 
 import atheris
+import django
+from django.conf import settings
+
+if not settings.configured:
+    settings.configure(
+        SECRET_KEY="atheris-only-not-for-production",
+        INSTALLED_APPS=[],
+        DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+        API_BASE_PATH="api/v{version}/",
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=5,
+        ALLOWED_HOSTS=["*"],
+    )
+django.setup()
+
+from django.http import HttpRequest
 
 with atheris.instrument_imports():
-    import django
-    from django.conf import settings
-
-    if not settings.configured:
-        settings.configure(
-            SECRET_KEY="atheris-only-not-for-production",
-            INSTALLED_APPS=[],
-            DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
-            API_BASE_PATH="api/v{version}/",
-            API_MIN_VERSION=1,
-            API_MAX_VERSION=5,
-            ALLOWED_HOSTS=["*"],
-        )
-    django.setup()
-
-    from django.http import HttpRequest
-
     from django_api_versioning.lifecycle import (
         _coerce_version,
         _extract_version_from_value,
@@ -37,7 +36,6 @@ with atheris.instrument_imports():
         _path_version,
         _split_quoted_header,
     )
-
 
 def _ignore_expected_rejections(callable_, *args) -> None:
     try:
