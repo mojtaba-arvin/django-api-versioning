@@ -38,6 +38,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProductV2'
           description: ''
+        '404':
+          description: The product identifier must be numeric.
   /api/v2/products/availability/:
     get:
       operationId: v2_products_availability_retrieve

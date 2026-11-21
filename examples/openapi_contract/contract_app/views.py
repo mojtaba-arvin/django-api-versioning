@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -18,6 +18,7 @@ class ProductViewSetV1(viewsets.GenericViewSet):
 
     queryset = []
     serializer_class = ProductV1Serializer
+    lookup_value_regex = r"\d+"
 
     @extend_schema(responses=ProductV1Serializer(many=True))
     def list(self, request, *args, **kwargs):
@@ -26,7 +27,10 @@ class ProductViewSetV1(viewsets.GenericViewSet):
 
     @extend_schema(
         parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
-        responses=ProductV1Serializer,
+        responses={
+            200: ProductV1Serializer,
+            404: OpenApiResponse(description="The product identifier must be numeric."),
+        },
     )
     def retrieve(self, request, pk: int | None = None, *args, **kwargs):
         payload = {"id": int(pk or 1), "name": "Desk lamp", "price": "12.50"}
@@ -56,6 +60,7 @@ class ProductViewSetV2(viewsets.GenericViewSet):
 
     queryset = []
     serializer_class = ProductV2Serializer
+    lookup_value_regex = r"\d+"
 
     @extend_schema(responses=ProductV2Serializer(many=True))
     def list(self, request, *args, **kwargs):
@@ -71,7 +76,10 @@ class ProductViewSetV2(viewsets.GenericViewSet):
 
     @extend_schema(
         parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
-        responses=ProductV2Serializer,
+        responses={
+            200: ProductV2Serializer,
+            404: OpenApiResponse(description="The product identifier must be numeric."),
+        },
     )
     def retrieve(self, request, pk=None, *args, **kwargs):
         payload = {

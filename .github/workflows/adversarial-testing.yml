@@ -1,0 +1,216 @@
+name: Adversarial quality gates
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    name: Mutation testing (mutmut)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Install test and mutation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r requirements-ci.txt
+          python -m pip install "mutmut==2.5.1"
+      - name: Collect test-to-source coverage for mutation selection
+        run: |
+          coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
+      - name: Run mutation analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+          # mutmut 2.5.1 returns exit 2 after a complete run with surviving
+          # mutants. Handle that result in an if block so GitHub's default
+          # errexit setting does not terminate the step before scoring.
+          if mutmut run --use-coverage > "$RUNNER_TEMP/mutmut-run.log" 2>&1; then
+            mutation_status=0
+          else
+            mutation_status=$?
+          fi
+          tail -n 30 "$RUNNER_TEMP/mutmut-run.log"
+          if [ "$mutation_status" -ne 0 ] && [ "$mutation_status" -ne 2 ]; then
+            echo "Mutation runner failed with exit code $mutation_status" >&2
+            exit "$mutation_status"
+          fi
+
+          python - "$RUNNER_TEMP/mutmut-run.log" "$RUNNER_TEMP/mutmut-results.txt" "$mutation_status" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          run_log = Path(sys.argv[1]).read_text(errors="replace")
+          report_path = Path(sys.argv[2])
+          mutation_status = int(sys.argv[3])
+          matches = re.findall(
+              r"(\d+)/(\d+)\s+🎉\s+(\d+)\s+⏰\s+(\d+)\s+🤔\s+(\d+)\s+🙁\s+(\d+)\s+🔇\s+(\d+)",
+              run_log,
+          )
+          if not matches:
+              raise SystemExit("Mutation run produced no machine-checkable completion summary")
+
+          completed, total, killed, timed_out, suspicious, survived, skipped = map(int, matches[-1])
+          print(
+              f"Mutation execution: {completed}/{total}; killed={killed}, "
+              f"survived={survived}, timed_out={timed_out}, "
+              f"suspicious={suspicious}, skipped={skipped}; runner_exit={mutation_status}"
+          )
+          if total == 0 or completed != total:
+              raise SystemExit("Mutation run did not complete the entire generated mutant set")
+          if killed + survived + timed_out + suspicious + skipped != total:
+              raise SystemExit("Mutation progress totals do not reconcile")
+          if timed_out or suspicious or skipped:
+              raise SystemExit("Timed-out, suspicious, or skipped mutants are unresolved")
+          if mutation_status == 2 and survived == 0:
+              raise SystemExit("mutmut returned survivor exit code 2 but no survivors were reported")
+
+          score = 100.0 * killed / total
+          minimum = 70.0
+          report = (
+              f"Mutation score: {score:.2f}% "
+              f"({killed} killed, {survived} survived, {total} total; minimum {minimum:.2f}%)\n"
+          )
+          report_path.write_text(report)
+          print(report, end="")
+          if score < minimum:
+              raise SystemExit("Mutation score is below the configured minimum")
+          PY
+
+          if mutmut results >> "$RUNNER_TEMP/mutmut-results.txt"; then
+            :
+          else
+            results_status=$?
+            if [ "$results_status" -ne 2 ] || [ ! -s "$RUNNER_TEMP/mutmut-results.txt" ]; then
+              echo "Unable to collect mutmut's per-mutant result report (exit $results_status)" >&2
+              exit "$results_status"
+            fi
+          fi
+          cat "$RUNNER_TEMP/mutmut-results.txt"
+      - name: Preserve mutation report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: mutmut-results
+          path: |
+            ${{ runner.temp }}/mutmut-results.txt
+            ${{ runner.temp }}/mutmut-run.log
+            .mutmut-cache
+            mutants
+          if-no-files-found: ignore
+          retention-days: 14
+
+  atheris:
+    name: Coverage-guided parser fuzzing (Atheris)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Install package and fuzzing dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r requirements-ci.txt "atheris==2.3.0"
+      - name: Run seeded fuzz campaign
+        run: |
+          corpus="$RUNNER_TEMP/negotiation-corpus"
+          mkdir -p "$corpus"
+          cp fuzz_corpus/negotiation/* "$corpus/"
+          python scripts/fuzz_negotiation.py "$corpus" \
+            -atheris_runs=100000 \
+            -max_len=65536 \
+            -timeout=2
+      - name: Upload minimized crash corpus
+        if: failure() && hashFiles('crash-*') != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: atheris-crash-inputs
+          path: crash-*
+          if-no-files-found: ignore
+          retention-days: 30
+
+  schemathesis:
+    name: OpenAPI-generated adversarial API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-ci.txt
+            examples/openapi_contract/requirements.txt
+      - name: Install consumer contract and Schemathesis
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install -r requirements-ci.txt
+          python -m pip install -r examples/openapi_contract/requirements.txt
+          python -m pip install schemathesis
+      - name: Generate reviewed V1 and V2 schemas
+        run: |
+          python examples/openapi_contract/verify.py
+          python examples/openapi_contract/generate_schemas.py \
+            --output-dir "$RUNNER_TEMP/schemathesis-schemas"
+      - name: Start the consumer API
+        working-directory: examples/openapi_contract
+        run: |
+          python manage.py runserver 127.0.0.1:8000 --noreload > "$RUNNER_TEMP/django-runserver.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/django-runserver.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:8000/api/v1/products/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:8000/api/v1/products/ >/dev/null
+          curl --fail --silent http://localhost:8000/api/v2/products/ >/dev/null
+      - name: Run generated positive, negative, and fuzzing scenarios against HTTP API
+        working-directory: examples/openapi_contract
+        run: |
+          st run "$RUNNER_TEMP/schemathesis-schemas/v1/openapi.yaml" \
+            --url http://localhost:8000 \
+            --phases examples,coverage,fuzzing \
+            --max-examples 100 \
+            --max-time 300 \
+            --report junit \
+            --report-junit-path "$RUNNER_TEMP/schemathesis-v1.xml"
+          st run "$RUNNER_TEMP/schemathesis-schemas/v2/openapi.yaml" \
+            --url http://localhost:8000 \
+            --phases examples,coverage,fuzzing \
+            --max-examples 100 \
+            --max-time 300 \
+            --report junit \
+            --report-junit-path "$RUNNER_TEMP/schemathesis-v2.xml"
+      - name: Upload Schemathesis reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: schemathesis-reports
+          path: ${{ runner.temp }}/schemathesis-*.xml
+          if-no-files-found: warn
+          retention-days: 14
