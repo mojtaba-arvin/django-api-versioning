@@ -74,7 +74,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ github.event_name }}-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
       - name: Install test and mutation dependencies
         run: |
           python -m pip install -e . -r requirements-ci.txt "mutmut==2.5.1"
@@ -96,6 +96,15 @@ jobs:
           )
           if replacements != 1:
               raise SystemExit("Expected exactly one [mutmut] paths_to_mutate setting")
+
+          depth = 4 if os.environ["GITHUB_EVENT_NAME"] == "pull_request" else 8
+          updated, depth_replacements = re.subn(
+              r"(?m)^max_stack_depth\s*=.*$",
+              f"max_stack_depth = {depth}",
+              updated,
+          )
+          if depth_replacements != 1:
+              raise SystemExit("Expected exactly one [mutmut] max_stack_depth setting")
           config.write_text(updated)
           PY
       - name: Download shared mutation coverage data
