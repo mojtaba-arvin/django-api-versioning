@@ -1,5 +1,4 @@
 import pytest
-
 from django.http import HttpResponse, JsonResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
