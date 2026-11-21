@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from django.http import HttpResponse
@@ -791,3 +791,13 @@ def test_timezone_normalization_overflow_is_ignored(
     assert response.status_code == 200
     assert expected_header not in response
     assert log_message in caplog.text
+
+
+def test_structured_field_date_floors_fractional_pre_epoch_seconds():
+    from django_api_versioning.lifecycle import _to_structured_field_date
+
+    pre_epoch = datetime(1969, 12, 31, 23, 59, 59, 500000, tzinfo=timezone.utc)
+    post_epoch = datetime(1970, 1, 1, 0, 0, 0, 500000, tzinfo=timezone.utc)
+
+    assert _to_structured_field_date(pre_epoch) == "@-1"
+    assert _to_structured_field_date(post_epoch) == "@0"
