@@ -201,7 +201,12 @@ def _coerce_version(value: Any) -> int | None:
     if isinstance(value, int):
         return value if value >= 0 else None
     if isinstance(value, str) and value.isascii() and value.isdecimal():
-        return int(value)
+        try:
+            return int(value)
+        except ValueError:
+            # Python limits decimal-string conversion length on modern releases.
+            # An untrusted/custom request.version must not turn a response into 500.
+            return None
     return None
 
 
