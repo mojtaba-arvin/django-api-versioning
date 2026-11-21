@@ -53,6 +53,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     uses: ./.github/workflows/tests.yml
+    secrets: inherit
     permissions:
       contents: read
 
