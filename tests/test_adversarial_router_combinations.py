@@ -513,7 +513,6 @@ def test_manual_route_reusing_registered_route_suffix_does_not_inherit_request_v
     assert response.json() == {"source": "manual", "version": None}
 
 
-
 @pytest.mark.parametrize("archive_first", [False, True])
 def test_static_nested_route_precedes_parent_dynamic_detail_route(archive_first):
     """A static child prefix must not be captured by a parent's detail converter."""
