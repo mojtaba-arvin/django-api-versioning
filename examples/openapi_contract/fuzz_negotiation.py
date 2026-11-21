@@ -10,9 +10,17 @@ fuzzer finding and must remain visible as a crash.
 
 from __future__ import annotations
 
+import os
 import sys
 
 import atheris
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
+
+import django
+
+django.setup()
+
 from django.http import HttpRequest
 
 with atheris.instrument_imports():
