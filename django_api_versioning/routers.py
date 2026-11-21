@@ -208,8 +208,8 @@ class VersionedRouter:
         ]
         owned_tombstones = [
             pattern
-            for (endpoint, _version), pattern in registry._removed_patterns.items()
-            if endpoint == logical_endpoint
+            for key, pattern in registry._removed_patterns.items()
+            if key[0] == logical_endpoint
             and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
             is self._registry_owner
         ]
