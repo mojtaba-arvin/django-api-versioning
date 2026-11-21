@@ -331,7 +331,7 @@ def test_version_parameter_inside_quoted_accept_parameter_is_not_a_version():
     """A semicolon inside a quoted parameter must not start a new media parameter."""
     _, response = _dispatch(
         "/api/orders/",
-        HTTP_ACCEPT='application/json; profile="application/example; version=2"',
+        HTTP_ACCEPT='application/json; profile="application/example; version=2; trailing=token"',
     )
 
     assert response.status_code == 400
