@@ -77,7 +77,7 @@ def _split_quoted_header(value: str, delimiter: str) -> list[str]:
         if quoted and escaped:
             escaped = False
             continue
-        if quoted and character == "\\\\":
+        if quoted and character == "\\":
             escaped = True
             continue
         if character == '"':
