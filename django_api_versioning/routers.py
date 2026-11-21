@@ -320,6 +320,7 @@ class VersionedRouter:
                 action=normalized_action,
                 deprecated_at=deprecated_at,
                 sunset=sunset,
+                owner=self._registry_owner,
             )
             return
 
@@ -335,6 +336,7 @@ class VersionedRouter:
             registrations,
             deprecated_at,
             sunset,
+            self._registry_owner,
         )
 
     @staticmethod
@@ -382,6 +384,7 @@ class VersionedRouter:
         registrations: list[tuple[str, str]],
         deprecated_at: str | None,
         sunset: str | None,
+        owner: object | None = None,
     ) -> None:
         # Conflicting existing declarations can fail during insertion. Restore
         # the prior registry state so multi-method declarations are atomic.
@@ -395,6 +398,7 @@ class VersionedRouter:
                     action=mapped_action,
                     deprecated_at=deprecated_at,
                     sunset=sunset,
+                    owner=owner,
                 )
         except Exception:
             registry._endpoint_lifecycle.clear()
