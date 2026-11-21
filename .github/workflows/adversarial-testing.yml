@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   mutation:
-    name: Mutation shard (\${{ matrix.id }})
+    name: Mutation shard (${{ matrix.id }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -42,7 +42,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-\${{ runner.os }}-\${{ matrix.id }}-\${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'requirements-ci.txt') }}
       - name: Install test and mutation dependencies
         run: |
           python -m pip install --upgrade pip
@@ -51,7 +51,7 @@ jobs:
           python -m pip install "mutmut==2.5.1"
       - name: Scope mutation generation to this shard
         env:
-          MUTATION_TARGET: \${{ matrix.path }}
+          MUTATION_TARGET: ${{ matrix.path }}
         run: |
           python - <<'PY'
           import os
@@ -74,7 +74,7 @@ jobs:
           coverage run --source=django_api_versioning -m pytest -q -p no:pytest_cov -o addopts= tests
       - name: Run mutation analysis
         env:
-          MUTATION_TARGET_ID: \${{ matrix.id }}
+          MUTATION_TARGET_ID: ${{ matrix.id }}
         shell: bash
         run: |
           set -euo pipefail
@@ -89,7 +89,7 @@ jobs:
             exit "$mutation_status"
           fi
 
-          python - "$RUNNER_TEMP/mutmut-run.log" "$RUNNER_TEMP/\${MUTATION_TARGET_ID}.json" "$mutation_status" <<'PY'
+          python - "$RUNNER_TEMP/mutmut-run.log" "$RUNNER_TEMP/${MUTATION_TARGET_ID}.json" "$mutation_status" <<'PY'
           import json
           import re
           import sys
@@ -130,11 +130,11 @@ jobs:
           )
           PY
 
-          if mutmut results > "$RUNNER_TEMP/\${MUTATION_TARGET_ID}-results.txt"; then
+          if mutmut results > "$RUNNER_TEMP/${MUTATION_TARGET_ID}-results.txt"; then
             :
           else
             results_status=$?
-            if [ "$results_status" -ne 2 ] || [ ! -s "$RUNNER_TEMP/\${MUTATION_TARGET_ID}-results.txt" ]; then
+            if [ "$results_status" -ne 2 ] || [ ! -s "$RUNNER_TEMP/${MUTATION_TARGET_ID}-results.txt" ]; then
               echo "Unable to collect mutmut's per-mutant report (exit $results_status)" >&2
               exit "$results_status"
             fi
@@ -143,11 +143,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: mutmut-\${{ matrix.id }}
+          name: mutmut-${{ matrix.id }}
           path: |
-            \${{ runner.temp }}/\${{ matrix.id }}.json
-            \${{ runner.temp }}/mutmut-run.log
-            \${{ runner.temp }}/\${{ matrix.id }}-results.txt
+            ${{ runner.temp }}/${{ matrix.id }}.json
+            ${{ runner.temp }}/mutmut-run.log
+            ${{ runner.temp }}/${{ matrix.id }}-results.txt
           if-no-files-found: ignore
           retention-days: 14
 
@@ -312,6 +312,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: schemathesis-reports
-          path: \${{ runner.temp }}/schemathesis-*.xml
+          path: ${{ runner.temp }}/schemathesis-*.xml
           if-no-files-found: warn
           retention-days: 14
