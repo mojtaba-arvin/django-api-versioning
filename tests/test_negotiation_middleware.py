@@ -484,8 +484,7 @@ def test_accept_equal_quality_conflicting_versions_are_rejected():
     _, response = _dispatch(
         "/api/orders/",
         HTTP_ACCEPT=(
-            "application/json; version=1; q=0.8, "
-            "text/csv; version=2; q=0.8"
+            "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
         ),
     )
 
@@ -502,10 +501,7 @@ def test_accept_equal_quality_conflicting_versions_are_rejected():
 def test_accept_normalizes_equivalent_integer_version_parameters():
     request, response = _dispatch(
         "/api/orders/",
-        HTTP_ACCEPT=(
-            "application/json; version=2, "
-            "text/csv; version=02; q=0.5"
-        ),
+        HTTP_ACCEPT=("application/json; version=2, " "text/csv; version=02; q=0.5"),
     )
 
     assert response.status_code == 200
