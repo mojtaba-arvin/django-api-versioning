@@ -328,3 +328,39 @@ def test_decorator_removal_rejects_router_owned_tombstone():
     )
     with pytest.raises(VersioningError, match="owned by a VersionedRouter"):
         remove_endpoint("router-owned-tombstone", from_version=1)
+
+
+
+def test_router_removal_ignores_foreign_route_with_distinct_trailing_slash(monkeypatch):
+    """A different generated route identity must not block this router's removal."""
+    from django_api_versioning.settings import api_settings
+
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    class OrdersViewSet(viewsets.ViewSet):
+        def list(self, request):
+            return Response({"ok": True})
+
+    slash_router = VersionedRouter(trailing_slash=True, use_regex_path=True)
+    slash_router.register(
+        "shared-prefix", OrdersViewSet, versions=[2], basename="shared"
+    )
+    no_slash_router = VersionedRouter(trailing_slash=False, use_regex_path=False)
+    no_slash_router.register(
+        "shared-prefix", OrdersViewSet, versions=[2], basename="shared"
+    )
+
+    foreign_route = next(
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is no_slash_router._registry_owner
+    )
+
+    # The same logical endpoint is legal because the generated paths differ.
+    slash_router.remove("shared-prefix", "shared-list", from_version=2)
+
+    assert foreign_route in registry.urlpatterns
+    assert getattr(foreign_route, registry._ROUTER_OWNER_ATTR, None) is (
+        no_slash_router._registry_owner
+    )
