@@ -29,7 +29,9 @@ class ProductViewSetV1(viewsets.GenericViewSet):
         parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)],
         responses={
             200: ProductV1Serializer,
-            404: OpenApiResponse(description="The product identifier must be numeric."),
+            404: OpenApiResponse(
+                description="The product identifier must be numeric."
+            ),
         },
     )
     def retrieve(self, request, pk: int | None = None, *args, **kwargs):
