@@ -102,6 +102,29 @@ def load_mutants(cache_path: Path) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def mutation_line_number(diff: str, fallback: int) -> int:
+    """Return the actual changed source line from mutmut's unified diff.
+
+    Mutmut's cache line number can point at the enclosing AST line rather than
+    the changed statement. The diff hunk is the authoritative source location.
+    """
+    old_line: int | None = None
+    for line in diff.splitlines():
+        if line.startswith("@@"):
+            match = re.search(r"@@ -(\\d+)(?:,\\d+)? \\+\\d+(?:,\\d+)? @@", line)
+            if match:
+                old_line = int(match.group(1))
+            continue
+        if line.startswith(("---", "+++")):
+            continue
+        if line.startswith("-"):
+            return old_line if old_line is not None else fallback
+        if line.startswith(" "):
+            if old_line is not None:
+                old_line += 1
+    return fallback
+
+
 def executing_tests(
     coverage_data: CoverageData, filename: str, line_number: int
 ) -> list[str]:
@@ -203,19 +226,20 @@ def main() -> None:
                     text=True,
                     check=False,
                 )
+                changed_line = mutation_line_number(
+                    shown.stdout, mutant["line_number"]
+                )
                 record = {
                     "target": args.target,
                     "mutant_id": mutant["mutant_id"],
                     "mutation_index": mutant["mutation_index"],
-                    "source_location": (
-                        f"{mutant['filename']}:{mutant['line_number']}"
-                    ),
+                    "source_location": f"{mutant['filename']}:{changed_line}",
                     "source_line": mutant["source_line"],
                     "mutation_type": "review mutation_diff",
                     "mutation_diff": shown.stdout,
                     "mutation_diff_error": shown.stderr if shown.returncode else None,
                     "executing_tests": executing_tests(
-                        coverage_data, mutant["filename"], mutant["line_number"]
+                        coverage_data, mutant["filename"], changed_line
                     ),
                     "classification": "unclassified",
                 }
