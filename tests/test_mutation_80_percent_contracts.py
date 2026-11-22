@@ -549,7 +549,6 @@ def test_router_versioning_qualifies_view_names_once_with_full_namespace():
     assert versioning.get_versioned_viewname("orders-list", request) == "orders-list"
 
 
-
 @pytest.mark.parametrize(
     ("route", "expected"),
     [
