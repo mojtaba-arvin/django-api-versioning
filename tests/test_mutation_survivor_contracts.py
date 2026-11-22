@@ -1995,7 +1995,7 @@ def test_mutation95_registry_router_removal_is_owner_and_route_identity_scoped()
     assert with_slash not in target.urlpatterns
     assert without_slash in target.urlpatterns
     assert target._router_removal_boundaries == {
-        ("orders", "orders", True): {2}
+        ("orders", "orders", True): {2},
     }
 
 
@@ -2139,12 +2139,8 @@ def test_mutation95_registry_operation_resolution_fails_closed_on_bad_identity()
 def test_mutation95_registry_regex_canonicalization_and_specificity_boundaries():
     target = UrlRegistry()
     assert target._canonical_route_key(r"^api/v2/orders/\.$") == "api/v2/orders/."
-    assert target._canonical_route_key(r"^api/v2/orders/\d/$") == (
-        r"^api/v2/orders/\d/$"
-    )
-    assert target._canonical_route_key(r"^api/v2/orders/\\") == (
-        r"^api/v2/orders/\\"
-    )
+    assert target._canonical_route_key(r"^api/v2/orders/\d/$") == r"^api/v2/orders/\d/$"
+    assert target._canonical_route_key(r"^api/v2/orders/\\") == r"^api/v2/orders/\\"
 
     static_path = path("api/v2/orders/search/", _view)
     dynamic_path = path("api/v2/orders/<int:pk>/", _view)
