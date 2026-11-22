@@ -311,3 +311,26 @@ def test_remove_endpoint_does_not_remove_unrelated_router_owned_tombstone():
 
     # A different logical endpoint remains independently removable.
     remove_endpoint("unrelated-orders", from_version=1)
+
+
+def test_registry_transaction_wrapper_preserves_callable_metadata():
+    from django_api_versioning.decorators import _registry_transaction
+
+    def operation(request, *, force=False):
+        """Stable metadata is part of the wrapped callable contract."""
+        return request, force
+
+    wrapped = _registry_transaction(operation)
+
+    assert wrapped.__name__ == "operation"
+    assert wrapped.__doc__ == operation.__doc__
+    assert wrapped.__wrapped__ is operation
+    assert wrapped.__annotations__ == operation.__annotations__
+
+
+def test_set_endpoint_lifecycle_rejects_absolute_postfix():
+    with pytest.raises(
+        VersioningError,
+        match="postfix must be relative and must not start with '/'",
+    ):
+        set_endpoint_lifecycle("/orders", version=2)

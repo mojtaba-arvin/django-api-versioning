@@ -20,7 +20,7 @@ jobs:
     if: github.event_name != 'push'
     name: Mutation shard (${{ inputs.target_id }})
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 15 || 60 }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -37,7 +37,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-${{ runner.os }}-${{ inputs.target_id }}-${{ github.event_name }}-contexts-v3-sample1-${{ hashFiles(inputs.target_path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ inputs.target_id }}-${{ github.event_name }}-contexts-v4-all-nodeids-${{ hashFiles(inputs.target_path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
       - name: Install test and mutation dependencies
         run: |
           python -m pip install -e . -r requirements-ci.txt "mutmut==2.5.1"

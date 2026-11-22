@@ -1,22 +1,20 @@
 """Line-level test selection for mutmut, with a full-suite safety net.
 
-Pytest-cov contexts identify the exact test node IDs that executed each
-mutated line. Static per-module test lists remain a conservative fallback.
-The scheduled full campaign adds --rerun-all to verify surviving mutants.
+Pytest-cov contexts identify every test node ID that executed a mutated line.
+All recorded contexts are run: selecting an arbitrary first test can produce
+false survivors because line coverage does not identify which assertion checks
+the mutated behavior. Import-time and otherwise uncontextualized mutations use
+the complete package test suite as a conservative fallback.
 """
 
 import os
 import shlex
 from pathlib import Path
 
+ALL_TEST_MODULES = tuple(str(path) for path in sorted(Path("tests").glob("test_*.py")))
+
 TESTS_BY_SOURCE = {
-    "decorators.py": (
-        "tests/test_decorators.py",
-        "tests/test_route_removal.py",
-        "tests/test_routers.py",
-        "tests/test_segment_model.py",
-        "tests/test_adversarial_router_combinations.py",
-    ),
+    "decorators.py": ALL_TEST_MODULES,
     "lifecycle.py": (
         "tests/test_lifecycle.py",
         "tests/test_lifecycle_ascii_version.py",
@@ -63,7 +61,7 @@ def init():
 
 
 def pre_mutation(context):
-    """Run tests that executed this exact line; fall back to module-level tests."""
+    """Run every test covering this line; fall back to conservative test modules."""
     source_name = Path(context.filename).name
     coverage_data = context.config.coverage_data or {}
     source_path = os.path.abspath(context.filename)
@@ -77,8 +75,6 @@ def pre_mutation(context):
             if context_name
         }
     )
-    if os.environ.get("GITHUB_EVENT_NAME") == "pull_request":
-        node_ids = node_ids[:1]
     if node_ids:
         context.config.test_command = (
             "python -m pytest -x -q -p no:pytest_cov -o addopts= "
