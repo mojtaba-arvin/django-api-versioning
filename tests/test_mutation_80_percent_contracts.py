@@ -41,17 +41,24 @@ def test_register_endpoint_routes_preserves_inclusive_minimum_and_maximum(monkey
     assert [call[0][4] for call in calls] == [2]
 
 
-def test_register_endpoint_routes_explicit_versions_skip_only_below_minimum(monkeypatch):
+def test_register_endpoint_routes_explicit_versions_skip_only_below_minimum(
+    monkeypatch,
+):
     calls = []
     monkeypatch.setattr(
         "django_api_versioning.decorators._register_endpoint_route",
         lambda *args, **kwargs: calls.append((args, kwargs)),
     )
-    _register_endpoint_routes("orders/", "", lambda request: None, None, None, [1, 2, 4], 2, 4)
+    _register_endpoint_routes(
+        "orders/", "", lambda request: None, None, None, [1, 2, 4], 2, 4
+    )
     assert [call[0][4] for call in calls] == [2, 4]
 
 
-@pytest.mark.parametrize(("value", "expected"), [(0, 0), ("0", 0), ("001", 1), (-1, None), (True, None), ("٣", None)])
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(0, 0), ("0", 0), ("001", 1), (-1, None), (True, None), ("٣", None)],
+)
 def test_lifecycle_version_coercion_keeps_non_negative_ascii_contract(value, expected):
     assert _coerce_version(value) == expected
 
@@ -59,7 +66,9 @@ def test_lifecycle_version_coercion_keeps_non_negative_ascii_contract(value, exp
 def test_lifecycle_path_extraction_requires_one_unambiguous_version(monkeypatch):
     monkeypatch.setattr(
         "django_api_versioning.lifecycle._get_api_setting",
-        lambda name, default=None: "api/v{version}/" if name == "API_BASE_PATH" else default,
+        lambda name, default=None: (
+            "api/v{version}/" if name == "API_BASE_PATH" else default
+        ),
     )
     assert _extract_version_from_value("/api/v0/orders/") == 0
     assert _extract_version_from_value("/api/v1/orders/api/v2/items/") is None
@@ -82,7 +91,9 @@ def test_lifecycle_state_is_cached_on_request(monkeypatch):
     )
     monkeypatch.setattr(
         "django_api_versioning.lifecycle._get_api_setting",
-        lambda name, default=None: {2: {"status": "active"}} if name == "API_VERSION_LIFECYCLE" else default,
+        lambda name, default=None: (
+            {2: {"status": "active"}} if name == "API_VERSION_LIFECYCLE" else default
+        ),
     )
     first = _get_lifecycle_state(request)
     request._django_api_version_lifecycle_state = ("sentinel", None, None, None)
@@ -91,7 +102,9 @@ def test_lifecycle_state_is_cached_on_request(monkeypatch):
 
 
 def test_accept_header_splitter_respects_escaped_delimiters():
-    assert _split_quoted_header(r'application/json; profile="a\\;b,c", text/plain', ",") == [
+    assert _split_quoted_header(
+        r'application/json; profile="a\\;b,c", text/plain', ","
+    ) == [
         r'application/json; profile="a\\;b,c"',
         " text/plain",
     ]
@@ -137,7 +150,13 @@ def test_path_version_accepts_zero_and_rejects_prefix_or_suffix_near_misses():
 
 @pytest.mark.parametrize(
     ("hostname", "expected"),
-    [("EXAMPLE.COM", "example.com"), ("example.com.", "example.com"), ("bücher.example", "xn--bcher-kva.example"), ("example.com..", None), ("", None)],
+    [
+        ("EXAMPLE.COM", "example.com"),
+        ("example.com.", "example.com"),
+        ("bücher.example", "xn--bcher-kva.example"),
+        ("example.com..", None),
+        ("", None),
+    ],
 )
 def test_hostname_normalization_handles_case_idna_and_root_dot(hostname, expected):
     assert _normalize_hostname(hostname) == expected
@@ -166,7 +185,10 @@ def test_registry_route_specificity_distinguishes_literal_and_dynamic_routes():
     assert UrlRegistry._route_specificity_key(literal)[1] is False
     assert UrlRegistry._route_specificity_key(converter)[1] is True
     assert UrlRegistry._route_specificity_key(regex)[1] is True
-    assert UrlRegistry._route_specificity_key(literal)[0] < UrlRegistry._route_specificity_key(converter)[0]
+    assert (
+        UrlRegistry._route_specificity_key(literal)[0]
+        < UrlRegistry._route_specificity_key(converter)[0]
+    )
 
 
 def test_registry_lifecycle_scopes_compose_by_earliest_date():
@@ -176,7 +198,11 @@ def test_registry_lifecycle_scopes_compose_by_earliest_date():
         "orders:list", 2, deprecated_at="2030-01-01T00:00:00Z", owner=owner
     )
     registry.register_endpoint_lifecycle(
-        "orders:list", 2, method="GET", deprecated_at="2029-01-01T00:00:00Z", owner=owner
+        "orders:list",
+        2,
+        method="GET",
+        deprecated_at="2029-01-01T00:00:00Z",
+        owner=owner,
     )
     operation = ResolvedOperation(
         logical_endpoint="orders:list",
@@ -203,8 +229,12 @@ def test_registry_registered_operation_maps_head_to_get_action():
 
     callback.actions = {"get": "list"}
     registry.register(
-        "api/v2/orders/", callback, "orders-list",
-        source_version=2, route_version=2, logical_endpoint="orders:list"
+        "api/v2/orders/",
+        callback,
+        "orders-list",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:list",
     )
     operation = registry.resolve_registered_operation("orders:list", 2, "HEAD")
     assert operation is not None
