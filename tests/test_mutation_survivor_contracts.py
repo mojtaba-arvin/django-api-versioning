@@ -13,6 +13,7 @@ import pytest
 from django.test import RequestFactory, override_settings
 from django.urls import path
 from django.views import View
+from rest_framework.request import Request
 from rest_framework.viewsets import ViewSet
 
 from django_api_versioning.decorators import (
@@ -234,6 +235,18 @@ def test_registry_resolver_trace_and_method_action_mapping_fail_closed():
         target.resolve_operation(match, "PATCH", allow_unmapped_method=True).action
         is None
     )
+    assert target.resolve_operation(match, "OPTIONS").action is None
+    assert target.resolve_operation(match, 3) is None
+
+    wrong_namespace = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="order-list",
+        tried=[[pattern]],
+        namespaces=("v3",),
+        namespace="v3",
+    )
+    assert target.resolve_operation(wrong_namespace, "GET") is None
 
     foreign_pattern = path("api/v2/other/", lambda request: None, name="other")
     foreign_match = SimpleNamespace(
@@ -273,6 +286,11 @@ def test_registry_registered_operation_requires_one_identity_and_maps_head():
     assert operation.action == "list"
     assert target.resolve_registered_operation("orders:missing", 2, "GET") is None
     assert target.resolve_registered_operation("orders:order-list", True, "GET") is None
+    assert target.resolve_registered_operation("orders:order-list", 2, None) is None
+
+    duplicate = _registered_pattern(target, version=2)
+    target.urlpatterns.append(duplicate)
+    assert target.resolve_registered_operation("orders:order-list", 2, "GET") is None
 
 
 def test_registry_lifecycle_scopes_compose_conservatively_for_head():
@@ -383,6 +401,10 @@ def test_router_registration_and_removal_validate_public_inputs_exactly():
         VersionTypeError, match=re.escape("'versions' must be a list of integers.")
     ):
         router.register("orders", object, versions=(1, 2))
+    with pytest.raises(
+        VersionRangeError, match=re.escape("'versions' must not contain duplicates.")
+    ):
+        router.register("orders", object, versions=[1, 1])
 
     with pytest.raises(TypeError, match=re.escape("prefix must be a string.")):
         router.remove(1, "order-list", from_version=1)
@@ -489,6 +511,8 @@ def test_decorator_app_name_and_version_range_boundaries_are_explicit(monkeypatc
     _validate_version(0, 5)
     _validate_version(5, 5)
 
+    with pytest.raises(TypeError, match="app_name must be a string or None"):
+        _app_name_prefix(1)
     with pytest.raises(VersioningError, match="leading or trailing whitespace"):
         _app_name_prefix(" billing")
     with pytest.raises(VersioningError, match="empty, '.' or '..' segments"):
@@ -820,3 +844,26 @@ def test_negotiation_accept_version_header_and_hostname_mapping():
         assert VersionNegotiationMiddleware._requested_version(
             request, "hostname"
         ) == 2
+
+
+urlpatterns = [path("api/v2/orders/", _view, name="order-list")]
+
+
+def test_router_reverse_uses_underlying_api_version_when_request_version_is_missing():
+    from django.test import override_settings
+
+    with override_settings(
+        ROOT_URLCONF=__name__,
+        API_BASE_PATH="api/v{version}/",
+        API_UNVERSIONED_BASE_PATH="api/",
+    ):
+        django_request = RequestFactory().get("/")
+        django_request.resolver_match = SimpleNamespace(namespace="")
+        django_request.api_version = 2
+        django_request.api_versioning_scheme = "query"
+        request = Request(django_request)
+        request.version = None
+
+        url = VersionedRouterVersioning().reverse("order-list", request=request)
+
+    assert url.endswith("/api/orders/?version=2")
