@@ -1027,7 +1027,7 @@ def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
             "orders",
             6,
             InvalidVersionError,
-            "Removal version 6 is above the maximum allowed version 1.",
+            "Removal version 6 is above the maximum allowed version 5.",
         ),
         (
             "orders",
@@ -1050,8 +1050,9 @@ def test_remove_endpoint_accepts_the_inclusive_configured_version_boundary(
     clear_registry,
 ):
     registry.remove("orders", 1)
+    registry.remove("orders", 5)
 
-    assert registry._removal_boundaries["orders"] == {1}
+    assert registry._removal_boundaries["orders"] == {1, 5}
 
 
 def test_resolved_route_version_uses_complete_longest_suffix(clear_registry):
