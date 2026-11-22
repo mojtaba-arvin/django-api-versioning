@@ -390,9 +390,9 @@ def test_lifecycle_path_extraction_rejects_invalid_base_path_templates(monkeypat
     request = RequestFactory().get("/api/v2/orders/")
     monkeypatch.setattr(
         "django_api_versioning.lifecycle._get_api_setting",
-        lambda name, default=None: "api/v{version}/{version}/"
-        if name == "API_BASE_PATH"
-        else default,
+        lambda name, default=None: (
+            "api/v{version}/{version}/" if name == "API_BASE_PATH" else default
+        ),
     )
     assert _extract_version_from_path(request) is None
 
@@ -465,8 +465,7 @@ def test_endpoint_lifecycle_cache_is_separate_for_405_resolution(monkeypatch):
     request.resolver_match = object()
     assert _get_endpoint_lifecycle_state(request) is normal
     assert (
-        _get_endpoint_lifecycle_state(request, allow_unmapped_method=True)
-        is method_405
+        _get_endpoint_lifecycle_state(request, allow_unmapped_method=True) is method_405
     )
     assert _get_endpoint_lifecycle_state(request) is normal
     assert calls == [False, True]
@@ -538,9 +537,7 @@ def test_router_versioning_extracts_namespace_and_validates_allowed_version():
 
 def test_router_versioning_qualifies_view_names_once_with_full_namespace():
     versioning = VersionedRouterVersioning()
-    request = SimpleNamespace(
-        resolver_match=SimpleNamespace(namespace="outer:v2")
-    )
+    request = SimpleNamespace(resolver_match=SimpleNamespace(namespace="outer:v2"))
     assert (
         versioning.get_versioned_viewname("orders-list", request)
         == "outer:v2:orders-list"
