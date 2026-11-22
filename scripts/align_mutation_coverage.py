@@ -11,6 +11,7 @@ contexts from N+1 to N for the five mutation targets; never discard contexts.
 from __future__ import annotations
 
 import argparse
+import sqlite3
 from pathlib import Path
 
 from coverage import CoverageData
@@ -24,38 +25,70 @@ TARGET_SUFFIXES = (
 )
 
 
-def align_adjacent_contexts(
-    coverage_data: CoverageData,
-    target_suffixes: tuple[str, ...] = TARGET_SUFFIXES,
-) -> tuple[int, int]:
-    """Copy N+1's test contexts to N only when N has no test context.
+def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
+    """Load only surviving mutant locations from Mutmut's existing cache."""
+    if not cache_path.is_file():
+        return []
+    connection = sqlite3.connect(cache_path)
+    try:
+        rows = connection.execute("""
+            SELECT DISTINCT source.filename, line.line_number
+            FROM Mutant AS mutant
+            JOIN Line AS line ON line.id = mutant.line
+            JOIN SourceFile AS source ON source.id = line.sourcefile
+            WHERE lower(mutant.status) LIKE '%survived%'
+            ORDER BY source.filename, line.line_number
+            """).fetchall()
+    finally:
+        connection.close()
+    return [(str(filename), int(line_number)) for filename, line_number in rows]
 
-    Returns (number of aligned source lines, number of copied test contexts).
+
+def align_survivor_contexts(
+    coverage_data: CoverageData,
+    locations: list[tuple[str, int]],
+) -> tuple[int, int]:
+    """Copy N+1's test contexts to N for uncovered surviving-mutant locations.
+
+    Mutmut 2.5.1 can store the enclosing AST line (N) in its cache while the
+    changed statement is on N+1. Align only locations of previously surviving
+    mutants, and only when N has no test context. This avoids broadening test
+    selection for already-killed mutants.
     """
     aligned_lines = 0
     aligned_contexts = 0
+    measured = sorted(coverage_data.measured_files())
 
-    for filename in sorted(coverage_data.measured_files()):
-        normalized = filename.replace("\\", "/")
-        if not any(normalized.endswith(suffix) for suffix in target_suffixes):
+    for source_filename, line_number in locations:
+        suffix = "/" + source_filename.replace("\\", "/")
+        matches = [
+            path
+            for path in measured
+            if path.replace("\\", "/").endswith(suffix)
+        ]
+        if len(matches) != 1:
             continue
 
+        filename = matches[0]
         contexts_by_line = coverage_data.contexts_by_lineno(filename)
-        for line_number, contexts in sorted(contexts_by_line.items()):
-            if any(context for context in contexts):
-                continue
+        if any(context for context in contexts_by_line.get(line_number, ())):
+            continue
 
-            following_contexts = sorted(
-                {context for context in contexts_by_line.get(line_number + 1, ()) if context}
-            )
-            if not following_contexts:
-                continue
+        following_contexts = sorted(
+            {
+                context
+                for context in contexts_by_line.get(line_number + 1, ())
+                if context
+            }
+        )
+        if not following_contexts:
+            continue
 
-            for context in following_contexts:
-                coverage_data.set_context(context)
-                coverage_data.add_lines({filename: {line_number}})
-                aligned_contexts += 1
-            aligned_lines += 1
+        for context in following_contexts:
+            coverage_data.set_context(context)
+            coverage_data.add_lines({filename: {line_number}})
+            aligned_contexts += 1
+        aligned_lines += 1
 
     return aligned_lines, aligned_contexts
 
@@ -63,6 +96,7 @@ def align_adjacent_contexts(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--coverage", type=Path, default=Path(".coverage"))
+    parser.add_argument("--cache", type=Path, default=Path(".mutmut-cache"))
     args = parser.parse_args()
 
     if not args.coverage.is_file():
@@ -70,11 +104,13 @@ def main() -> None:
 
     coverage_data = CoverageData(basename=str(args.coverage))
     coverage_data.read()
-    aligned_lines, aligned_contexts = align_adjacent_contexts(coverage_data)
+    locations = load_survivor_locations(args.cache)
+    aligned_lines, aligned_contexts = align_survivor_contexts(coverage_data, locations)
     coverage_data.write()
     print(
         "Aligned per-test coverage contexts for "
-        f"{aligned_lines} mutation locations ({aligned_contexts} test contexts)."
+        f"{aligned_lines}/{len(locations)} surviving-mutant locations "
+        f"({aligned_contexts} test contexts)."
     )
 
 

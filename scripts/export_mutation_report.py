@@ -111,7 +111,7 @@ def mutation_line_number(diff: str, fallback: int) -> int:
     old_line: int | None = None
     for line in diff.splitlines():
         if line.startswith("@@"):
-            match = re.search(r"@@ -(\\d+)(?:,\\d+)? \\+\\d+(?:,\\d+)? @@", line)
+            match = re.search(r"@@ -(\d+)(?:,\d+)? \+\d+(?:,\d+)? @@", line)
             if match:
                 old_line = int(match.group(1))
             continue

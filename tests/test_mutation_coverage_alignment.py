@@ -2,7 +2,7 @@
 
 from coverage import CoverageData
 
-from scripts.align_mutation_coverage import align_adjacent_contexts
+from scripts.align_mutation_coverage import align_survivor_contexts
 from scripts.export_mutation_report import mutation_line_number
 
 
@@ -22,7 +22,8 @@ def test_alignment_copies_contexts_from_the_changed_statement_to_mutmut_ast_line
 
     data = CoverageData(basename=str(coverage_path))
     data.read()
-    assert align_adjacent_contexts(data) == (1, 1)
+    location = [("django_api_versioning/lifecycle.py", 1)]
+    assert align_survivor_contexts(data, location) == (1, 1)
     data.write()
 
     aligned = CoverageData(basename=str(coverage_path))
@@ -47,8 +48,9 @@ def test_alignment_is_idempotent_and_ignores_unrelated_files(tmp_path):
 
     data = CoverageData(basename=str(coverage_path))
     data.read()
-    assert align_adjacent_contexts(data) == (1, 1)
-    assert align_adjacent_contexts(data) == (0, 0)
+    locations = [("django_api_versioning/registry.py", 1)]
+    assert align_survivor_contexts(data, locations) == (1, 1)
+    assert align_survivor_contexts(data, locations) == (0, 0)
 
 
 def test_mutation_report_uses_changed_line_from_unified_diff():

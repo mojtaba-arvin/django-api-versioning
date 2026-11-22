@@ -78,7 +78,7 @@ jobs:
       - name: Restore coverage.py's expected data filename
         run: mv coverage.data .coverage
       - name: Align per-test contexts with Mutmut's function-line locations
-        run: python scripts/align_mutation_coverage.py --coverage .coverage
+        run: python scripts/align_mutation_coverage.py --coverage .coverage --cache .mutmut-cache
       - name: Run mutation analysis
         env:
           MUTATION_TARGET_ID: ${{ inputs.target_id }}
