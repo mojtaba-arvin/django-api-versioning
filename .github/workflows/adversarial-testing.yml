@@ -76,17 +76,9 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        include:
-          - id: decorators
-            path: django_api_versioning/decorators.py
-          - id: lifecycle
-            path: django_api_versioning/lifecycle.py
-          - id: negotiation
-            path: django_api_versioning/negotiation.py
-          - id: registry
-            path: django_api_versioning/registry.py
-          - id: routers
-            path: django_api_versioning/routers.py
+        # PRs run the decorator gate in isolation. Other mutation targets are
+        # deliberately withheld until this focused gate has passed.
+        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"id":"decorators","path":"django_api_versioning/decorators.py"}]') || fromJSON('[{"id":"decorators","path":"django_api_versioning/decorators.py"},{"id":"lifecycle","path":"django_api_versioning/lifecycle.py"},{"id":"negotiation","path":"django_api_versioning/negotiation.py"},{"id":"registry","path":"django_api_versioning/registry.py"},{"id":"routers","path":"django_api_versioning/routers.py"}]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -175,10 +167,8 @@ jobs:
             fi
           fi
 
-          detail_args=()
-          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            detail_args=(--details)
-          fi
+          # Preserve exact survivor diffs and test contexts on PR gate runs too.
+          detail_args=(--details)
           python scripts/export_mutation_report.py \
             --target "$MUTATION_TARGET_ID" \
             --cache .mutmut-cache \
@@ -223,7 +213,12 @@ jobs:
           import json
           from pathlib import Path
 
-          expected = {"decorators", "lifecycle", "negotiation", "registry", "routers"}
+          is_pull_request = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+          expected = (
+              {"decorators"}
+              if is_pull_request
+              else {"decorators", "lifecycle", "negotiation", "registry", "routers"}
+          )
           reports = {}
           for path in Path("mutation-reports").rglob("*.json"):
               report = json.loads(path.read_text())
@@ -251,11 +246,9 @@ jobs:
               raise SystemExit("Combined campaign contains unresolved mutant outcomes")
 
           score = 100.0 * totals["killed"] / totals["total"]
-          import os
-          is_pull_request = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
-          minimum = 0.0 if is_pull_request else 70.0
+          minimum = 70.0
           if is_pull_request:
-              print("PR mutation smoke score (focused tests; full-suite verification runs weekly):")
+              print("Decorator mutation gate (PR-isolated; other mutation targets remain blocked):")
           else:
               print("Full-suite mutation score:")
           print("Per-target mutation results:")
