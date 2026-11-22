@@ -7,7 +7,14 @@ from django.urls import path
 
 from django_api_versioning.negotiation import (
     VersionNegotiationMiddleware,
+    _header_version,
     _host_version,
+    _normalize_hostname,
+    _parse_accept_media_range,
+    _parse_accept_parameter_value,
+    _parse_version,
+    _path_version,
+    _split_quoted_header,
 )
 
 
@@ -609,3 +616,108 @@ def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
         "path_info": "/api/v2/orders/",
     }
     assert request.META["PATH_INFO"] == "/api/v2/orders/"
+
+
+
+@pytest.mark.parametrize("value", [True, None, "", "2.0", "٢"])
+def test_parse_version_rejects_values_outside_ascii_decimal_contract(value):
+    with pytest.raises(
+        ValueError, match=r"^A version must be an ASCII decimal integer\\.$"
+    ):
+        _parse_version(value)
+
+
+@override_settings(API_MAX_VERSION=3)
+def test_path_version_handles_supported_and_oversized_decimal_segments():
+    template = "api/v{version}/"
+
+    assert _path_version("/api/v3/orders/", template) == 3
+    assert _path_version("/api/v0002/orders/", template) == 2
+    assert _path_version("/api/v999/orders/", template) == -1
+
+
+@override_settings(ALLOWED_HOSTS=["*"])
+def test_hostname_normalization_removes_exactly_one_root_dot_and_applies_idna():
+    request = RequestFactory().get("/", HTTP_HOST="API.EXAMPLE.COM.")
+
+    assert _normalize_hostname("API.EXAMPLE.COM.") == "api.example.com"
+    assert _normalize_hostname("api.example.com..") is None
+    assert _host_version(request, {"api.example.com": 2}) == 2
+
+
+def test_quoted_header_split_preserves_escaped_delimiters():
+    value = r'profile="one\\",two;three", version=2'
+
+    assert _split_quoted_header(value, ",") == [
+        r'profile="one\\",two;three"',
+        " version=2",
+    ]
+
+
+@pytest.mark.parametrize("value", ['"one""two"', '"unterminated', '"bad\\x00value"'])
+def test_accept_parameter_parser_rejects_malformed_quoted_values(value):
+    with pytest.raises(ValueError):
+        _parse_accept_parameter_value(value)
+
+
+@pytest.mark.parametrize("value", ['"one\\\"two"', '"tab\\tvalue"'])
+def test_accept_parameter_parser_accepts_valid_quoted_pairs_and_horizontal_tab(value):
+    parsed, quoted = _parse_accept_parameter_value(value)
+
+    assert quoted is True
+    assert parsed
+
+
+def test_accept_parameter_parser_rejects_control_and_delete_characters_exactly():
+    for value in ('"bad\\x01value"', '"bad\\x7fvalue"'):
+        with pytest.raises(
+            ValueError,
+            match=r"^Accept contains an invalid quoted parameter\\.$",
+        ):
+            _parse_accept_parameter_value(value)
+
+
+@pytest.mark.parametrize(
+    "media_range, message",
+    [
+        ("*/json; version=2", "Accept contains an invalid media range."),
+        ("application/json; invalid parameter=x", "Accept contains an invalid media parameter."),
+        ("application/json; version=2; version=3", "Accept contains duplicate version parameters."),
+        ("application/json; q=1.1", "Accept contains an invalid quality value."),
+    ],
+)
+def test_accept_media_range_parser_preserves_validation_errors(media_range, message):
+    with pytest.raises(ValueError) as error:
+        _parse_accept_media_range(media_range)
+
+    assert str(error.value) == message
+
+
+def test_header_version_rejects_equal_quality_conflicts_with_exact_error():
+    request = RequestFactory().get(
+        "/",
+        HTTP_ACCEPT=(
+            "application/json; version=1; q=0.8, "
+            "text/csv; version=2; q=0.8"
+        ),
+    )
+
+    with pytest.raises(ValueError) as error:
+        _header_version(request, "Accept-Version")
+
+    assert str(error.value) == "Accept contains equally preferred conflicting API versions."
+
+
+def test_header_version_rejects_conflicting_dedicated_and_accept_values_exactly():
+    request = RequestFactory().get(
+        "/",
+        HTTP_ACCEPT_VERSION="2",
+        HTTP_ACCEPT="application/json; version=3",
+    )
+
+    with pytest.raises(ValueError) as error:
+        _header_version(request, "Accept-Version")
+
+    assert str(error.value) == (
+        "Accept-Version and Accept media-type version parameters conflict."
+    )
