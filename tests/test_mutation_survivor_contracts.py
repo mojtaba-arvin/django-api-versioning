@@ -2514,7 +2514,9 @@ def test_mutation100_negotiation_path_middleware_rejects_missing_and_bool_versio
     assert response.status_code == 400
     assert response.content == b"Invalid API version value."
 
-    hostname_middleware = VersionNegotiationMiddleware(downstream)
+    hostname_request = RequestFactory().get(
+        "/api/orders/", HTTP_HOST="unmapped.example"
+    )
     with override_settings(
         API_VERSIONING_SCHEME="hostname",
         API_VERSIONING_HOSTS={},
@@ -2522,13 +2524,15 @@ def test_mutation100_negotiation_path_middleware_rejects_missing_and_bool_versio
         API_BASE_PATH="api/v{version}/",
         ALLOWED_HOSTS=["unmapped.example"],
     ):
-        response = hostname_middleware(
-            RequestFactory().get("/api/orders/", HTTP_HOST="unmapped.example")
+        response = VersionNegotiationMiddleware(downstream)(hostname_request)
+        assert response.status_code == 406
+        _assert_exact_exception(
+            _UnsupportedVersion,
+            "The request hostname has no API version mapping.",
+            lambda: VersionNegotiationMiddleware._requested_version(
+                hostname_request, "hostname"
+            ),
         )
-    assert response.status_code == 406
-    assert response.content == (
-        b"The request hostname has no API version mapping."
-    )
 
 
 def test_mutation100_router_inclusive_removal_and_lifecycle_method_validation():
@@ -2568,7 +2572,7 @@ def test_mutation100_router_default_names_and_namespace_prefix_validation():
     assert router.root_view_name == "api-root"
 
     adapter = VersionedRouterVersioning()
-    adapter.allowed_versions = ["2"]
+    adapter.allowed_versions = []
     adapter.default_version = None
     mismatched = SimpleNamespace(
         resolver_match=SimpleNamespace(route="Xapi/v2/orders/", namespace="v2")
