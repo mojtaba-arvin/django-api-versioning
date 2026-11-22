@@ -113,6 +113,9 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # Reserve runner capacity for the package tests and adversarial checks that
+      # can run alongside this matrix on GitHub Free (20 concurrent jobs).
+      max-parallel: 10
       matrix:
         include:
           - env: py310-django42
