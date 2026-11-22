@@ -134,22 +134,10 @@ jobs:
     needs:
       - changes
       - unit-tests
-      - compatibility
-      - package-artifacts
-      - website
-      - agent-tooling
-      - openapi-contract
-      - dependency-review
     if: >-
       always() &&
       needs.changes.result == 'success' &&
-      (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') &&
-      (needs.compatibility.result == 'success' || needs.compatibility.result == 'skipped') &&
-      (needs.package-artifacts.result == 'success' || needs.package-artifacts.result == 'skipped') &&
-      (needs.website.result == 'success' || needs.website.result == 'skipped') &&
-      (needs.agent-tooling.result == 'success' || needs.agent-tooling.result == 'skipped') &&
-      (needs.openapi-contract.result == 'success' || needs.openapi-contract.result == 'skipped') &&
-      (needs.dependency-review.result == 'success' || needs.dependency-review.result == 'skipped')
+      (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped')
     uses: ./.github/workflows/adversarial-testing.yml
     permissions:
       contents: read
