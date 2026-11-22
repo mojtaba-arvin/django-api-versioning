@@ -624,7 +624,7 @@ def test_negotiation_hostname_normalization_is_idna_safe():
 
 
 def test_accept_parser_respects_quoted_delimiters_and_rejects_bad_escapes():
-        r'profile="one\,two;three"; version=2, application/json',
+    assert _split_quoted_header('profile="a,b;c"; version=2', ";") == [
         'profile="a,b;c"',
         " version=2",
     ]
