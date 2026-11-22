@@ -656,7 +656,7 @@ def test_accept_parameter_parser_rejects_malformed_quoted_values(value):
     with pytest.raises(ValueError):
         _parse_accept_parameter_value(value)
 
-
+@pytest.mark.parametrize("value", ['"one\"two"', '"tab\tvalue"'])
 @pytest.mark.parametrize("value", ['"one\\\"two"', '"tab\tvalue"'])
 def test_accept_parameter_parser_accepts_valid_quoted_pairs_and_horizontal_tab(value):
     parsed, quoted = _parse_accept_parameter_value(value)
@@ -700,8 +700,7 @@ def test_header_version_rejects_equal_quality_conflicts_with_exact_error():
     request = RequestFactory().get(
         "/",
         HTTP_ACCEPT=(
-            "application/json; version=1; q=0.8, "
-            "text/csv; version=2; q=0.8"
+            "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
         ),
     )
 
