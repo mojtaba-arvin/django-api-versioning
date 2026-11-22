@@ -581,9 +581,7 @@ def test_registry_canonical_route_key_only_normalizes_literal_anchored_regexes(
 def test_registry_resolved_route_match_requires_complete_segment_suffix(
     route, registered_route, expected
 ):
-    assert (
-        UrlRegistry._resolved_route_match_length(route, registered_route) == expected
-    )
+    assert UrlRegistry._resolved_route_match_length(route, registered_route) == expected
 
 
 def test_registry_resolves_nested_route_suffix_and_rejects_ambiguous_versions():
