@@ -1,12 +1,18 @@
 """Tests for the machine-readable Mutmut report exporter."""
 
-import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
+SPEC = spec_from_file_location(
+    "export_mutation_report", ROOT / "scripts" / "export_mutation_report.py"
+)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
 
-from export_mutation_report import parse_survivor_count, summarize_statuses
+parse_survivor_count = MODULE.parse_survivor_count
+summarize_statuses = MODULE.summarize_statuses
 
 
 def test_summarize_statuses_uses_cache_outcomes():
