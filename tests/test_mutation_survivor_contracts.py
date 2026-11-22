@@ -3142,7 +3142,7 @@ def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edge
     assert digit_key[0] == -len("api/v2/orders/")
     literal_route = re_path(r"^api/v2/orders/\.$", _view)
     literal_key = target._route_specificity_key(literal_route)
-    assert literal_key[0] == -len(r"api/v2/orders/\\.")
+    assert literal_key[0] == -len(r"api/v2/orders/\.")
 
     dynamic_at_start = path("<int:pk>/", _view)
     assert target._route_specificity_key(dynamic_at_start)[0] == 0
@@ -3150,7 +3150,7 @@ def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edge
     short_prefix_long_pattern = re_path(
         r"^a/(?:[0-9]|[a-z]){100}$", _view
     )
-    long_prefix_short_pattern = re_path(r"^api/v2/orders/\\d$", _view)
+    long_prefix_short_pattern = re_path(r"^api/v2/orders/\d$", _view)
     target.urlpatterns[:] = [
         short_prefix_long_pattern,
         long_prefix_short_pattern,
