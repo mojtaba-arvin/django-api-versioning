@@ -2456,3 +2456,263 @@ def test_mutation95_lifecycle_z_suffix_is_normalized_before_python310_parser(
     monkeypatch.setattr(lifecycle_module, "datetime", Python310DateTime)
     parsed = _parse_lifecycle_date("2000-01-01T00:00:00Z", "sunset")
     assert parsed == StandardDateTime(2000, 1, 1, tzinfo=timezone.utc)
+def test_mutation100_negotiation_path_host_and_accept_edge_contracts():
+    from types import SimpleNamespace
+
+    from django_api_versioning.negotiation import _host_version
+
+    # Leading X characters are path data, not characters to strip.
+    assert _path_version("Xapi/v2/orders/", "api/v{version}/") is None
+    assert _path_version("api/v2/orders/", "Xapi/v{version}/") is None
+
+    with override_settings(API_MAX_VERSION=1):
+        assert _path_version("/api/v99/orders/", "api/v{version}/") == -1
+
+    assert _host_version(SimpleNamespace(get_host=lambda: ""), {"xxxx": 7}) is None
+    assert _header_version(
+        RequestFactory().get("/api/orders/", HTTP_ACCEPT="application/json"),
+        "Accept-Version",
+    ) is None
+
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid quoted parameter.",
+        lambda: _parse_accept_parameter_value('x"'),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid quoted parameter.",
+        lambda: _parse_accept_parameter_value('"a\\\\\x7f"'),
+    )
+    assert _parse_accept_parameter_value('"a\\\\ b"') == ("a\\\\ b", True)
+    assert _parse_accept_parameter_value('"a\\\\\tb"') == ("a\\\\\tb", True)
+
+
+def test_mutation100_negotiation_path_middleware_rejects_missing_and_bool_versions():
+    def downstream(request):
+        return HttpResponse("ok")
+
+    path_middleware = VersionNegotiationMiddleware(downstream)
+    with override_settings(
+        API_VERSIONING_SCHEME="path",
+        API_BASE_PATH="api/v{version}/",
+    ):
+        response = path_middleware(RequestFactory().get("/ordinary/resource/"))
+    assert response.status_code == 200
+    assert response.content == b"ok"
+
+    query_middleware = VersionNegotiationMiddleware(downstream)
+    with override_settings(
+        API_VERSIONING_SCHEME="query",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_BASE_PATH="api/v{version}/",
+        API_DEFAULT_VERSION=True,
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        response = query_middleware(RequestFactory().get("/api/orders/"))
+    assert response.status_code == 400
+    assert response.content == b"Invalid API version value."
+
+    hostname_middleware = VersionNegotiationMiddleware(downstream)
+    with override_settings(
+        API_VERSIONING_SCHEME="hostname",
+        API_VERSIONING_HOSTS={},
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_BASE_PATH="api/v{version}/",
+    ):
+        response = hostname_middleware(
+            RequestFactory().get("/api/orders/", HTTP_HOST="unmapped.example")
+        )
+    assert response.status_code == 406
+    assert response.content == (
+        b"The request hostname has no API version mapping."
+    )
+
+
+def test_mutation100_router_inclusive_removal_and_lifecycle_method_validation():
+    from django_api_versioning.routers import _ROUTE_VERSION_ATTR
+
+    registry.clear()
+    router = VersionedRouter()
+    foreign_owner = object()
+    foreign = path("api/v2/orders/", _view, name="order-list")
+    setattr(foreign, registry._LOGICAL_ENDPOINT_ATTR, "orders:order-list")
+    setattr(foreign, _ROUTE_VERSION_ATTR, 2)
+    setattr(foreign, registry._SOURCE_VERSION_ATTR, 2)
+    setattr(foreign, registry._ROUTER_OWNER_ATTR, foreign_owner)
+    setattr(foreign, registry._ROUTER_PREFIX_ATTR, "api/v2/orders")
+    setattr(foreign, registry._ROUTER_TRAILING_SLASH_ATTR, True)
+    registry.urlpatterns.append(foreign)
+
+    _assert_exact_exception(
+        VersioningError,
+        "Cannot remove 'orders:order-list' from version 2: matching routes are "
+        "owned by another VersionedRouter instance.",
+        lambda: router.remove("orders", "order-list", from_version=2),
+    )
+
+    _assert_exact_exception(
+        VersioningError,
+        "HTTP method 'GET' is not registered for 'orders:order-list'.",
+        lambda: VersionedRouter._resolve_lifecycle_methods(
+            ["GET"], {"get": 7}, None, "orders:order-list"
+        ),
+    )
+
+
+def test_mutation100_router_default_names_and_namespace_prefix_validation():
+    router = VersionedDefaultRouter()
+    assert router.app_name == "django_api_versioning"
+    assert router.root_view_name == "api-root"
+
+    adapter = VersionedRouterVersioning(allowed_versions=["2"], default_version=None)
+    mismatched = SimpleNamespace(
+        resolver_match=SimpleNamespace(route="Xapi/v2/orders/", namespace="v2")
+    )
+    assert adapter.determine_version(mismatched) is None
+
+
+def test_mutation100_registry_remove_preserves_owner_and_inclusive_boundaries():
+    target = UrlRegistry()
+    owner_a = object()
+    owner_b = object()
+    pattern_a = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=owner_a
+    )
+    pattern_b = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=owner_b
+    )
+    target.urlpatterns[:] = [pattern_a, pattern_b]
+
+    target.remove("orders", 2, owner=owner_a)
+    assert pattern_a not in target.urlpatterns
+    assert pattern_b in target.urlpatterns
+
+    unowned = UrlRegistry()
+    unowned.register(
+        "api/v2/orders/",
+        _view,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    unowned.remove("orders", 2)
+    unowned.register(
+        "api/v2/orders/",
+        _view,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    assert unowned.urlpatterns == []
+    assert ("orders", 2) in unowned._removed_patterns
+
+
+def test_mutation100_registry_remove_scans_all_routes_and_preserves_only_newer_metadata():
+    target = UrlRegistry()
+    active = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=None
+    )
+    unrelated = path("health/", _view, name="health")
+    target.urlpatterns[:] = [active, unrelated]
+    target.remove("orders", 2)
+    assert active not in target.urlpatterns
+    assert unrelated in target.urlpatterns
+
+    preserving = UrlRegistry()
+    newer = _registered_pattern(
+        preserving,
+        version=3,
+        logical_endpoint="orders",
+        owner=None,
+    )
+    setattr(newer, preserving._SOURCE_VERSION_ATTR, 3)
+    other = path("health/", _view, name="health")
+    preserving.urlpatterns[:] = [other, newer]
+    lifecycle_key = ("orders", 3, None, None, None)
+    preserving._endpoint_lifecycle[lifecycle_key] = object()
+    preserving.remove("orders", 2)
+    assert preserving._endpoint_lifecycle[lifecycle_key] is not None
+
+    equal_source = UrlRegistry()
+    same_source = _registered_pattern(
+        equal_source,
+        version=2,
+        logical_endpoint="orders",
+        owner=None,
+    )
+    setattr(same_source, equal_source._SOURCE_VERSION_ATTR, 2)
+    equal_source.urlpatterns.append(same_source)
+    equal_key = ("orders", 2, None, None, None)
+    equal_source._endpoint_lifecycle[equal_key] = object()
+    equal_source.remove("orders", 2)
+    assert equal_key not in equal_source._endpoint_lifecycle
+
+
+def test_mutation100_registry_exact_resolver_identity_and_operation_contracts():
+    target = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    callback.actions = {"get": "list"}
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    setattr(pattern, target._LOGICAL_ENDPOINT_ATTR, "orders")
+    setattr(pattern, target._ROUTE_VERSION_ATTR, 2)
+    setattr(pattern, target._SOURCE_VERSION_ATTR, 1)
+    target.urlpatterns.append(pattern)
+
+    assert target.get_resolved_route_version_for_match(
+        SimpleNamespace(route=None, func=callback)
+    ) == (False, None)
+    assert target.get_resolved_route_version_for_match(
+        SimpleNamespace(
+            route="api/v2/orders/",
+            func=callback,
+            url_name="not-order-list",
+            tried=[[pattern]],
+        )
+    ) == (False, None)
+
+    operation = target.resolve_operation(
+        SimpleNamespace(
+            route="api/v2/orders/",
+            func=callback,
+            url_name=None,
+            namespaces=(),
+            tried=[[], [pattern]],
+        ),
+        "GET",
+    )
+    assert operation is not None
+    assert operation.namespace == ""
+    assert operation.route == "api/v2/orders/"
+    assert operation.registered_route == "api/v2/orders/"
+
+    assert target.resolve_registered_operation("orders", 2, "GET").action == "list"
+
+    callback.actions = {"get": 7}
+    assert target.resolve_registered_operation("orders", 2, "GET") is None
+
+
+def test_mutation100_registry_regex_and_synchronization_contracts():
+    target = UrlRegistry()
+    assert target._canonical_route_key(r"^api/v2/X-orders/$") == "api/v2/X-orders/"
+    assert target._canonical_route_key(r"^api/v2/<orders/$") == r"^api/v2/<orders/$"
+    assert target._resolved_route_match_length(
+        "nested/api/v2/orders/", r"^api/v2/orders/$"
+    ) == len("api/v2/orders/")
+
+    assert callable(getattr(UrlRegistry.get_endpoint_lifecycle, "__wrapped__", None))
+
+    class CallableWithAsView:
+        def __call__(self, request):
+            return None
+
+        def as_view(self):
+            return _view
+
+    instance = CallableWithAsView()
+    pattern = UrlRegistry._create_pattern("callable/", instance, "callable")
+    assert pattern.callback is instance
