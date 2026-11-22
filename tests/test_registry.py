@@ -1409,9 +1409,7 @@ def test_remove_rejects_non_integer_string_version(clear_registry):
         registry.remove("orders", "2")
 
 
-def test_remove_accepts_maximum_version_without_off_by_one(
-    clear_registry, monkeypatch
-):
+def test_remove_accepts_maximum_version_without_off_by_one(clear_registry, monkeypatch):
     """The configured maximum is inclusive for removal declarations."""
     from django_api_versioning.settings import api_settings
 
