@@ -447,8 +447,7 @@ def test_router_version_validation_keeps_zero_and_maximum_inclusive(monkeypatch)
         VersionedRouter._validate_version(True)
 
 
-def test_router_lifecycle_method_resolution_checks_duplicates_head_and_action():
-    actions = {"get": "list", "post": "create"}
+def test_router_lifecycle_method_resolution_checks_duplicates_head_and_action():    actions = {"get": "list", "post": "create"}
 
     assert VersionedRouter._resolve_lifecycle_methods(
         ["HEAD"], actions, None, "orders:order-list"
@@ -847,8 +846,7 @@ def test_negotiation_accept_version_header_and_hostname_mapping():
     with override_settings(
         ALLOWED_HOSTS=["example.com"],
         API_VERSIONING_HOSTS={"example.com": 2},
-    ):
-        request = RequestFactory().get("/", HTTP_HOST="example.com")
+    ):        request = RequestFactory().get("/", HTTP_HOST="example.com")
         assert VersionNegotiationMiddleware._requested_version(request, "hostname") == 2
 
 
@@ -1097,8 +1095,7 @@ def test_router_collects_only_owned_versioned_and_unversioned_patterns():
 def test_router_versioning_rejects_disallowed_namespace_version():
     versioning = VersionedRouterVersioning()
     versioning.default_version = "1"
-    versioning.allowed_versions = ["1", "2"]
-    request = SimpleNamespace(
+    versioning.allowed_versions = ["1", "2"]    request = SimpleNamespace(
         resolver_match=SimpleNamespace(route=None, namespace="outer:v9")
     )
 
@@ -1300,3 +1297,540 @@ def test_set_and_remove_endpoint_lifecycle_validate_absolute_postfix_and_app_pre
         deprecated_at="2027-01-01T00:00:00Z",
     )
     remove_endpoint("orders/", from_version=2, app_name="billing")
+
+def _assert_exact_exception(exception_type, message, operation):
+    with pytest.raises(exception_type) as captured:
+        operation()
+    assert str(captured.value) == message
+
+
+def test_mutation95_decorator_validation_and_warning_contracts(monkeypatch, caplog):
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 2)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 5)
+
+    _assert_exact_exception(
+        TypeError,
+        "app_name must be a string or None.",
+        lambda: _app_name_prefix(1),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "app_name must not have leading or trailing whitespace.",
+        lambda: _app_name_prefix(" billing"),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "app_name must be a relative path without empty, '.' or '..' segments.",
+        lambda: _app_name_prefix("billing//v1"),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "ver_range start (2) must be <= end (1).",
+        lambda: ver_range(2, 1),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "ver_range start must be a non-negative API version.",
+        lambda: ver_range(-1, 1),
+    )
+    _assert_exact_exception(
+        InvalidVersionError,
+        "Version 6 is above the maximum allowed version 5.",
+        lambda: ver_range(0, 6),
+    )
+    _assert_exact_exception(
+        VersionTypeError,
+        "ver_range start must be an integer.",
+        lambda: ver_range(True, 2),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "postfix must be relative and must not start with '/'.",
+        lambda: endpoint("/orders/"),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "Use either 'version' or 'versions', not both.",
+        lambda: endpoint("orders/", version=2, versions=[2]),
+    )
+    _assert_exact_exception(
+        VersionTypeError,
+        "'versions' must be a list of integers.",
+        lambda: endpoint("orders/", versions="2"),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "postfix must be relative and must not start with '/'.",
+        lambda: set_endpoint_lifecycle("/orders/", version=2),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "methods must be a non-empty list of HTTP methods.",
+        lambda: set_endpoint_lifecycle("orders/", version=2, methods=[]),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "methods must contain non-empty HTTP method strings.",
+        lambda: set_endpoint_lifecycle("orders/", version=2, methods=["GET", 1]),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "methods must not contain duplicates.",
+        lambda: set_endpoint_lifecycle(
+            "orders/", version=2, methods=["GET", " get "]
+        ),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "postfix must be relative and must not start with '/'.",
+        lambda: remove_endpoint("/orders/", from_version=2),
+    )
+
+    caplog.clear()
+    with caplog.at_level("WARNING"):
+        endpoint("old/", version=1)(_view)
+    assert [record.getMessage() for record in caplog.records] == [
+        "Endpoint 'old/' is declared for version 1, but API_MIN_VERSION is 2. "
+        "No routes will be registered."
+    ]
+
+    caplog.clear()
+    with caplog.at_level("WARNING"):
+        endpoint("orders/", versions=[1, 3])(_view)
+    assert [record.getMessage() for record in caplog.records] == [
+        "Endpoint 'orders/' is declared for version 1, but API_MIN_VERSION is 2. "
+        "Skipping this version."
+    ]
+    assert {
+        getattr(pattern, registry._ROUTE_VERSION_ATTR, None)
+        for pattern in registry.urlpatterns
+    } == {3}
+
+
+def test_mutation95_decorator_preserves_drf_viewset_class_metadata():
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    callback = OrdersViewSet.as_view({"get": "list"})
+    endpoint("orders/", version=2)(callback)
+
+    attribute = registry._LOGICAL_ENDPOINT_ATTR
+    assert getattr(callback, attribute) == "orders/"
+    assert getattr(OrdersViewSet, attribute) == "orders/"
+    assert any(
+        str(pattern.pattern) == "api/v2/orders/" and pattern.callback is callback
+        for pattern in registry.urlpatterns
+    )
+
+
+def test_mutation95_router_validation_errors_are_exact(monkeypatch):
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 5)
+
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    _assert_exact_exception(
+        VersioningError,
+        "app_name must be a non-empty string.",
+        lambda: VersionedRouter(app_name=" "),
+    )
+    _assert_exact_exception(
+        TypeError,
+        "trailing_slash must be a bool.",
+        lambda: VersionedRouter(trailing_slash=1),
+    )
+    _assert_exact_exception(
+        TypeError,
+        "use_regex_path must be a bool.",
+        lambda: VersionedRouter(use_regex_path=1),
+    )
+
+    router = VersionedRouter()
+    _assert_exact_exception(
+        TypeError,
+        "prefix must be a string.",
+        lambda: router.register(1, OrdersViewSet),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "prefix must be a non-empty relative path without leading or trailing '/'.",
+        lambda: router.register("/orders", OrdersViewSet),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "Use either 'version' or 'versions', not both.",
+        lambda: router.register("orders", OrdersViewSet, version=1, versions=[1]),
+    )
+    _assert_exact_exception(
+        VersionTypeError,
+        "'versions' must be a list of integers.",
+        lambda: router.register("orders", OrdersViewSet, versions=(1, 2)),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "'versions' must not contain duplicates.",
+        lambda: router.register("orders", OrdersViewSet, versions=[1, 1]),
+    )
+    _assert_exact_exception(
+        TypeError,
+        "route_name must be a string.",
+        lambda: router.remove("orders", 1, from_version=1),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "route_name must be a non-empty string.",
+        lambda: router.remove("orders", "", from_version=1),
+    )
+    _assert_exact_exception(
+        VersionTypeError,
+        "Version must be an integer.",
+        lambda: router.remove("orders", "order-list", from_version=True),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "Removal version 0 is below API_MIN_VERSION 1.",
+        lambda: router.remove("orders", "order-list", from_version=0),
+    )
+    _assert_exact_exception(
+        InvalidVersionError,
+        "Version 6 is above the maximum allowed version 5.",
+        lambda: router.remove("orders", "order-list", from_version=6),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "Router does not own an active route for 'orders:order-list'.",
+        lambda: router.remove("orders", "order-list", from_version=1),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "Expected one registered route for 'orders:order-list' in version 1; found 0.",
+        lambda: router.set_lifecycle("orders", "order-list", version=1),
+    )
+
+    _assert_exact_exception(
+        VersioningError,
+        "methods must not contain duplicates.",
+        lambda: VersionedRouter._resolve_lifecycle_methods(
+            ["GET", " get "], {"get": "list"}, None, "orders:order-list"
+        ),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "HTTP method 'PATCH' is not registered for 'orders:order-list'.",
+        lambda: VersionedRouter._resolve_lifecycle_methods(
+            ["PATCH"], {"get": "list"}, None, "orders:order-list"
+        ),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "HTTP method 'POST' maps to action 'create', not 'list'.",
+        lambda: VersionedRouter._resolve_lifecycle_methods(
+            ["POST"], {"post": "create"}, "list", "orders:order-list"
+        ),
+    )
+
+
+def test_mutation95_registry_validation_and_registration_errors_are_exact(monkeypatch):
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 5)
+    target = UrlRegistry()
+
+    _assert_exact_exception(
+        TypeError,
+        "logical_endpoint must be a non-empty string.",
+        lambda: target.remove("", 1),
+    )
+    _assert_exact_exception(
+        VersionTypeError,
+        "Removal version must be an integer.",
+        lambda: target.remove("orders", True),
+    )
+    _assert_exact_exception(
+        InvalidVersionError,
+        "Removal version 6 is above the maximum allowed version 5.",
+        lambda: target.remove("orders", 6),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "Removal version 0 is below the minimum allowed version 1.",
+        lambda: target.remove("orders", 0),
+    )
+    _assert_exact_exception(
+        TypeError,
+        "pattern must be a django.urls.URLPattern instance.",
+        lambda: target.register_urlpattern(object()),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "logical_endpoint must be a non-empty string.",
+        lambda: target.register_endpoint_lifecycle("", 2),
+    )
+    _assert_exact_exception(
+        VersionTypeError,
+        "Endpoint lifecycle version must be an integer.",
+        lambda: target.register_endpoint_lifecycle("orders", True),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "Endpoint lifecycle version 0 is below API_MIN_VERSION 1.",
+        lambda: target.register_endpoint_lifecycle("orders", 0),
+    )
+    _assert_exact_exception(
+        InvalidVersionError,
+        "Endpoint lifecycle version 6 is above API_MAX_VERSION 5.",
+        lambda: target.register_endpoint_lifecycle("orders", 6),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "Endpoint lifecycle method must be a string.",
+        lambda: target.register_endpoint_lifecycle("orders", 2, method=" "),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "Endpoint lifecycle action must be a string.",
+        lambda: target.register_endpoint_lifecycle("orders", 2, action=" "),
+    )
+
+    target.register_endpoint_lifecycle(
+        "orders", 2, deprecated_at="2027-01-01T00:00:00Z"
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "Conflicting endpoint lifecycle declarations for 'orders' version 2.",
+        lambda: target.register_endpoint_lifecycle(
+            "orders", 2, deprecated_at="2028-01-01T00:00:00Z"
+        ),
+    )
+
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+    _assert_exact_exception(
+        VersioningError,
+        "Route pattern 'api/v1/orders/' is already owned by a VersionedRouter; "
+        "decorator registration cannot replace it.",
+        lambda: registry.register(
+            "api/v1/orders/", _view, name="order-list", route_version=1
+        ),
+    )
+
+    _assert_exact_exception(
+        TypeError,
+        "Pass the view class 'View', not an instance. Use @endpoint(...) on the "
+        "class itself, or call View.as_view() before registering.",
+        lambda: UrlRegistry._create_pattern("orders/", View(), "orders"),
+    )
+
+
+def test_mutation95_negotiation_parser_errors_are_exact():
+    _assert_exact_exception(
+        ValueError,
+        "A version must be an ASCII decimal integer.",
+        lambda: _parse_version(None),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an unterminated quoted parameter.",
+        lambda: _split_quoted_header('profile="unfinished', ";"),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an empty media parameter value.",
+        lambda: _parse_accept_parameter_value(" "),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid quoted parameter.",
+        lambda: _parse_accept_parameter_value('"unfinished'),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid quoted parameter.",
+        lambda: _parse_accept_parameter_value('"bad\x01value"'),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid media parameter value.",
+        lambda: _parse_accept_parameter_value("not a token"),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid media range.",
+        lambda: _parse_accept_media_range("*/json; version=2"),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid media parameter.",
+        lambda: _parse_accept_media_range("application/json; version"),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid quality value.",
+        lambda: _parse_accept_media_range("application/json; q=0.5; q=0.7"),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains duplicate version parameters.",
+        lambda: _parse_accept_media_range(
+            "application/json; version=2; VERSION=3"
+        ),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains equally preferred conflicting API versions.",
+        lambda: _header_version(
+            RequestFactory().get(
+                "/",
+                HTTP_ACCEPT=(
+                    "application/json; version=2; q=0.8, "
+                    "application/json; version=3; q=0.8"
+                ),
+            ),
+            "Accept-Version",
+        ),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Accept-Version and Accept media-type version parameters conflict.",
+        lambda: _header_version(
+            RequestFactory().get(
+                "/",
+                HTTP_ACCEPT_VERSION="2",
+                HTTP_ACCEPT="application/json; version=3",
+            ),
+            "Accept-Version",
+        ),
+    )
+
+
+def test_mutation95_negotiation_middleware_response_contracts_are_exact():
+    middleware = VersionNegotiationMiddleware(lambda request: HttpResponse("ok"))
+    common = {
+        "API_VERSIONING_SCHEME": "query",
+        "API_VERSIONING_QUERY_PARAMETER": "version",
+        "API_UNVERSIONED_BASE_PATH": "api/",
+        "API_BASE_PATH": "api/v{version}/",
+        "API_DEFAULT_VERSION": None,
+        "API_MIN_VERSION": 1,
+        "API_MAX_VERSION": 3,
+    }
+
+    with override_settings(**common):
+        missing = middleware(RequestFactory().get("/api/orders/"))
+        invalid = middleware(RequestFactory().get("/api/orders/?version=abc"))
+        unsupported = middleware(RequestFactory().get("/api/orders/?version=4"))
+        path_version = middleware(RequestFactory().get("/api/v2/orders/"))
+
+    assert (missing.status_code, missing.content) == (
+        400,
+        b"An API version is required for this endpoint.",
+    )
+    assert (invalid.status_code, invalid.content) == (
+        400,
+        b"Invalid API version value.",
+    )
+    assert (unsupported.status_code, unsupported.content) == (
+        406,
+        b"The requested API version is not supported.",
+    )
+    assert (path_version.status_code, path_version.content) == (
+        400,
+        b"This deployment does not accept URL-path API versions.",
+    )
+
+    with override_settings(
+        API_VERSIONING_SCHEME="hostname",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_BASE_PATH="api/v{version}/",
+        API_DEFAULT_VERSION=None,
+        API_VERSIONING_HOSTS={"example.com": 2},
+        ALLOWED_HOSTS=["example.com", "other.example"],
+    ):
+        response = middleware(
+            RequestFactory().get("/api/orders/", HTTP_HOST="other.example")
+        )
+    assert (response.status_code, response.content) == (
+        406,
+        b"The requested API version is not available for this host.",
+    )
+
+    with override_settings(
+        API_VERSIONING_SCHEME="header",
+        API_VERSIONING_HEADER="Accept-Version",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_BASE_PATH="api/v{version}/",
+        API_DEFAULT_VERSION=None,
+    ):
+        response = middleware(
+            RequestFactory().get("/api/orders/", HTTP_ACCEPT_VERSION="not-a-version")
+        )
+    assert (response.status_code, response.content) == (
+        400,
+        b"Invalid API version value.",
+    )
+
+
+def test_mutation95_lifecycle_default_resolution_and_response_contracts(
+    monkeypatch, caplog
+):
+    calls = []
+
+    def resolve_operation(match, method, *, allow_unmapped_method=False):
+        calls.append((method, allow_unmapped_method))
+        return None
+
+    monkeypatch.setattr(registry, "resolve_operation", resolve_operation)
+    request = SimpleNamespace(resolver_match=object(), method="PATCH")
+    assert _get_endpoint_lifecycle_state(request) is None
+    assert calls == [("PATCH", False)]
+
+    with override_settings(
+        API_VERSION_LIFECYCLE={
+            2: {
+                "status": "retired",
+                "sunset": "2000-01-01T00:00:00Z",
+            }
+        }
+    ):
+        expired_request = RequestFactory().get("/api/v2/orders/")
+        gone = LifecycleMiddleware(lambda current: HttpResponse("ok")).process_view(
+            expired_request, _view, [], {}
+        )
+    assert gone.status_code == 410
+    assert gone.content == b"API version 2 has been retired as of 2000-01-01T00:00:00Z."
+
+    caplog.clear()
+    with override_settings(
+        API_VERSION_LIFECYCLE={
+            2: {
+                "status": "deprecated",
+                "deprecated_at": "not-a-date",
+            }
+        }
+    ):
+        invalid_date_request = RequestFactory().get("/api/v2/orders/")
+        original_response = HttpResponse("ok")
+        response = LifecycleMiddleware(lambda current: current).process_response(
+            invalid_date_request, original_response
+        )
+    assert response is original_response
+    assert [record.getMessage() for record in caplog.records] == [
+        "Invalid deprecation date 'not-a-date'; ignoring.",
+        "Deprecated API version 2 has no valid deprecated_at date; "
+        "omitting the Deprecation header.",
+    ]
+
+    no_version_request = RequestFactory().get("/health/")
+    untouched = HttpResponse("unchanged", status=202)
+    assert (
+        LifecycleMiddleware(lambda current: current).process_response(
+            no_version_request, untouched
+        )
+        is untouched
+    )
