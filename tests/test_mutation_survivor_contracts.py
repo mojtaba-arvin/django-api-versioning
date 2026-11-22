@@ -2383,6 +2383,8 @@ def test_mutation95_negotiation_query_uniqueness_and_internal_path_rewrite():
         "api_version": 2,
         "negotiated": True,
     }
+
+
 def test_mutation95_decorator_app_name_validation_reaches_both_entrypoints():
     _assert_exact_exception(
         VersioningError,
@@ -2412,9 +2414,7 @@ def test_mutation95_decorator_router_ownership_rejects_non_string_metadata():
     remove_endpoint("orders/", from_version=2)
 
 
-def test_mutation95_lifecycle_custom_x_prefix_and_default_base_path(
-    monkeypatch,
-):
+def test_mutation95_lifecycle_custom_x_prefix_and_default_base_path(monkeypatch):
     import importlib
 
     from django_api_versioning.lifecycle import _get_lifecycle_state
