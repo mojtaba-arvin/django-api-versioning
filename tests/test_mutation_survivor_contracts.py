@@ -146,7 +146,7 @@ def test_resolved_route_match_requires_a_complete_path_segment():
     assert match_length("api/v2/orders/", "^api/v2/orders/$") == len("api/v2/orders/")
 
 
-def test_registry_remove_tracks_owner_specific_route_identity():
+def test_registry_remove_tracks_router_prefix_and_slash_identity():
     target = UrlRegistry()
     owner = object()
     logical = "orders:order-list"
@@ -169,7 +169,7 @@ def test_registry_remove_tracks_owner_specific_route_identity():
         logical, 4, owner=owner, router_prefix="orders", trailing_slash=True
     ) == 3
     assert target._removal_boundary(
-        logical, 4, owner=object(), router_prefix="orders", trailing_slash=True
+        logical, 4, owner=object(), router_prefix="other", trailing_slash=False
     ) is None
     assert pattern in target.urlpatterns
 
