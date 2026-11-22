@@ -1,4 +1,4 @@
-"""Mutation-driven behavioral contracts for decorator registration APIs.
+""""Mutation-driven behavioral contracts for decorator registration APIs.
 
 These tests assert observable callable metadata, public validation messages, and
 router/decorator ownership isolation. They intentionally exercise behaviors that
@@ -46,9 +46,7 @@ def test_ver_range_reports_exact_maximum_version_error(monkeypatch):
     with pytest.raises(InvalidVersionError) as exc_info:
         ver_range(1, 6)
 
-    assert str(exc_info.value) == (
-        "Version 6 is above the maximum allowed version 5."
-    )
+    assert str(exc_info.value) == ("Version 6 is above the maximum allowed version 5.")
 
 
 def test_endpoint_rejects_duplicate_versions_with_exact_error():
@@ -83,9 +81,7 @@ def test_endpoint_rejects_non_list_versions_with_exact_error():
         (["get", "GET"], "methods must not contain duplicates."),
     ],
 )
-def test_set_endpoint_lifecycle_reports_exact_method_validation_error(
-    methods, message
-):
+def test_set_endpoint_lifecycle_reports_exact_method_validation_error(methods, message):
     with pytest.raises(VersioningError) as exc_info:
         set_endpoint_lifecycle("method-contract", version=1, methods=methods)
 
