@@ -38,8 +38,15 @@ def test_pull_request_selection_runs_every_test_context_for_the_mutated_line(
     mutmut_config.pre_mutation(context)
 
     command_args = shlex.split(context.config.test_command)
-    assert command_args[-2:] == [node_a, node_b]
+    assert node_a in command_args
+    assert node_b in command_args
     assert command_args.count(node_a) == 1
+    assert any(
+        node.startswith(
+            "tests/test_mutation_survivor_contracts.py::test_mutation100_decorator"
+        )
+        for node in command_args
+    )
 
 
 def test_decorator_mutations_without_line_context_fall_back_to_all_package_tests(
@@ -78,3 +85,18 @@ def test_init_rejects_missing_fallback_test_modules(monkeypatch):
         assert "does-not-exist.py" in str(error)
     else:
         raise AssertionError("Missing fallback tests must fail initialization")
+
+
+
+def test_domain_contract_probes_are_always_selected_for_each_mutation():
+    expected = {
+        "decorators.py": "test_mutation100_decorator",
+        "lifecycle.py": "test_mutation95_lifecycle",
+        "negotiation.py": "test_mutation100_negotiation",
+        "registry.py": "test_mutation100_registry",
+        "routers.py": "test_mutation100_router",
+    }
+    for source_name, prefix in expected.items():
+        node_ids = mutmut_config._contract_test_node_ids(source_name)
+        assert node_ids
+        assert all(prefix in node_id for node_id in node_ids)
