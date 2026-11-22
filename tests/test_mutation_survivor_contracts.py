@@ -235,11 +235,12 @@ def test_registry_resolver_trace_and_method_action_mapping_fail_closed():
         is None
     )
 
+    foreign_pattern = path("api/v2/other/", lambda request: None, name="other")
     foreign_match = SimpleNamespace(
         route="api/v2/orders/",
-        func=lambda request: None,
-        url_name="order-list",
-        tried=[[pattern]],
+        func=foreign_pattern.callback,
+        url_name="other",
+        tried=[[foreign_pattern]],
         namespaces=("v2",),
         namespace="v2",
     )
