@@ -2721,6 +2721,8 @@ def test_mutation100_registry_regex_and_synchronization_contracts():
     instance = CallableWithAsView()
     pattern = UrlRegistry._create_pattern("callable/", instance, "callable")
     assert pattern.callback is instance
+
+
 def test_mutation100_decorator_rollback_restores_none_on_slotted_callable(monkeypatch):
     import django_api_versioning.decorators as decorator_module
 
