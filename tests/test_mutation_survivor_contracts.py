@@ -26,9 +26,9 @@ from django_api_versioning.decorators import (
 )
 from django_api_versioning.exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
-    VersioningError,
 )
 from django_api_versioning.lifecycle import (
     _coerce_version,
@@ -40,7 +40,6 @@ from django_api_versioning.lifecycle import (
 )
 from django_api_versioning.negotiation import (
     VersionNegotiationMiddleware,
-    _UnsupportedVersion,
     _header_version,
     _normalize_hostname,
     _parse_accept_media_range,
@@ -48,6 +47,7 @@ from django_api_versioning.negotiation import (
     _parse_version,
     _path_version,
     _split_quoted_header,
+    _UnsupportedVersion,
 )
 from django_api_versioning.registry import (
     ResolvedOperation,
