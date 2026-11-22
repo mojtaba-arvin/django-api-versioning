@@ -11,7 +11,11 @@ from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.lifecycle import (
     _coerce_version,
     _extract_version_from_value,
+    _get_endpoint_lifecycle_state,
     _get_lifecycle_state,
+    _extract_version_from_path,
+    _is_past,
+    LifecycleMiddleware,
     _parse_lifecycle_date,
 )
 from django_api_versioning.negotiation import (
@@ -363,3 +367,84 @@ def test_header_version_rejects_conflicting_dedicated_and_accept_versions():
 def test_header_version_uses_dedicated_header_when_accept_is_empty():
     request = RequestFactory().get("/api/orders/", HTTP_ACCEPT="", HTTP_ACCEPT_VERSION="4")
     assert _header_version(request, "Accept-Version") == 4
+
+
+def test_lifecycle_path_fallback_uses_request_path_when_path_info_is_empty():
+    request = RequestFactory().get("/api/v2/orders/")
+    request.path_info = ""
+    assert _extract_version_from_path(request) == 2
+
+
+def test_lifecycle_path_extraction_rejects_invalid_base_path_templates(monkeypatch):
+    request = RequestFactory().get("/api/v2/orders/")
+    monkeypatch.setattr(
+        "django_api_versioning.lifecycle._get_api_setting",
+        lambda name, default=None: "api/v{version}/{version}/"
+        if name == "API_BASE_PATH"
+        else default,
+    )
+    assert _extract_version_from_path(request) is None
+
+
+def test_lifecycle_date_parser_warns_and_ignores_non_string_and_invalid_values(caplog):
+    assert _parse_lifecycle_date(None, "sunset") is None
+    assert _parse_lifecycle_date("not-a-date", "sunset") is None
+    assert "Invalid sunset date" in caplog.text
+
+
+def test_lifecycle_date_parser_handles_utc_offset_and_extreme_overflow():
+    assert _parse_lifecycle_date("2030-01-01T03:00:00+03:00", "sunset") == datetime(
+        2030, 1, 1, tzinfo=timezone.utc
+    )
+    assert _parse_lifecycle_date("0001-01-01T00:00:00+14:00", "sunset") is None
+
+
+def test_lifecycle_is_past_uses_strict_utc_comparison(monkeypatch):
+    fixed_now = datetime(2030, 1, 1, tzinfo=timezone.utc)
+
+    class FixedDateTime:
+        @staticmethod
+        def now(tz=None):
+            assert tz is timezone.utc
+            return fixed_now
+
+    monkeypatch.setattr("django_api_versioning.lifecycle.datetime", FixedDateTime)
+    assert _is_past(datetime(2029, 12, 31, tzinfo=timezone.utc)) is True
+    assert _is_past(fixed_now) is False
+    assert _is_past(datetime(2030, 1, 2, tzinfo=timezone.utc)) is False
+
+
+def test_lifecycle_process_view_marks_enforced_sunset_response(monkeypatch):
+    request = RequestFactory().get("/api/v2/orders/")
+    state = (2, {"sunset": "2020-01-01"}, None, datetime(2020, 1, 1, tzinfo=timezone.utc))
+    monkeypatch.setattr("django_api_versioning.lifecycle._get_lifecycle_state", lambda _request: state)
+    monkeypatch.setattr("django_api_versioning.lifecycle._is_past", lambda _date: True)
+    response = LifecycleMiddleware(lambda _request: None).process_view(request, lambda: None, [], {})
+    assert response.status_code == 410
+    assert request._django_api_version_lifecycle_sunset_enforced is True
+
+
+def test_endpoint_lifecycle_cache_is_separate_for_405_resolution(monkeypatch):
+    request = RequestFactory().get("/api/v2/orders/")
+    normal = object()
+    method_405 = object()
+    calls = []
+
+    def resolve(_match, _method, allow_unmapped_method=False):
+        calls.append(allow_unmapped_method)
+        return normal if not allow_unmapped_method else method_405
+
+    monkeypatch.setattr("django_api_versioning.lifecycle.registry.resolve_operation", resolve)
+    monkeypatch.setattr(
+        "django_api_versioning.lifecycle.registry.get_endpoint_lifecycle",
+        lambda operation: operation,
+    )
+    request.resolver_match = object()
+    assert _get_endpoint_lifecycle_state(request) is normal
+    assert _get_endpoint_lifecycle_state(request, allow_unmapped_method=True) is method_405
+    assert _get_endpoint_lifecycle_state(request) is normal
+    assert calls == [False, True]
+
+
+def test_lifecycle_version_coercion_rejects_oversized_decimal_strings():
+    assert _coerce_version("9" * 5000) is None
