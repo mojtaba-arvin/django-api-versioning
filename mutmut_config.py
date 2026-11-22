@@ -1,10 +1,10 @@
-"""Line-level test selection for mutmut, with a full-suite safety net.
+"""Context-aware Mutmut selection plus focused domain contract probes.
 
-Pytest-cov contexts identify every test node ID that executed a mutated line.
-All recorded contexts are run: selecting an arbitrary first test can produce
-false survivors because line coverage does not identify which assertion checks
-the mutated behavior. Import-time and otherwise uncontextualized mutations use
-the complete package test suite as a conservative fallback.
+Pytest-cov contexts identify tests that executed a mutated line. Those tests
+are combined with every contract test for the mutated domain, so a survivor is
+always checked against the focused regression suite even when coverage contexts
+are broad or a test body changed without changing its node ID. Import-time and
+otherwise uncontextualized mutations retain the complete-suite fallback.
 """
 
 import os
@@ -14,6 +14,16 @@ from pathlib import Path
 ALL_TEST_MODULES = tuple(
     path.as_posix() for path in sorted(Path("tests").glob("test_*.py"))
 )
+
+CONTRACT_TEST_PREFIXES = {
+    "decorators.py": ("test_mutation95_decorator", "test_mutation100_decorator"),
+    "lifecycle.py": ("test_mutation95_lifecycle", "test_mutation100_lifecycle"),
+    "negotiation.py": ("test_mutation95_negotiation", "test_mutation100_negotiation"),
+    "registry.py": ("test_mutation95_registry", "test_mutation100_registry"),
+    "routers.py": ("test_mutation95_router", "test_mutation100_router"),
+}
+
+CONTRACT_TEST_MODULE = "tests/test_mutation_survivor_contracts.py"
 
 TESTS_BY_SOURCE = {
     "decorators.py": ALL_TEST_MODULES,
@@ -66,8 +76,28 @@ def init():
         raise RuntimeError(f"mutmut test selection references missing files: {missing}")
 
 
+def _contract_test_node_ids(source_name):
+    """Return all targeted test node IDs for a source domain."""
+    prefixes = CONTRACT_TEST_PREFIXES.get(source_name, ())
+    if not prefixes:
+        return []
+
+    test_file = Path(CONTRACT_TEST_MODULE)
+    if not test_file.is_file():
+        raise RuntimeError(f"Missing mutation contract test module: {test_file}")
+
+    node_ids = []
+    for line in test_file.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("def test_"):
+            continue
+        name = line[len("def ") :].split("(", 1)[0]
+        if name.startswith(prefixes):
+            node_ids.append(f"{CONTRACT_TEST_MODULE}::{name}")
+    return sorted(node_ids)
+
+
 def pre_mutation(context):
-    """Run every test covering this line; fall back to conservative test modules."""
+    """Run line contexts and all focused tests for the mutated source domain."""
     source_name = Path(context.filename).name
     coverage_data = context.config.coverage_data or {}
     source_path = os.path.abspath(context.filename)
@@ -75,13 +105,13 @@ def pre_mutation(context):
     # Mutmut's Context.current_line_index is zero-based; Coverage.py uses 1-based lines.
     line_contexts = contexts_by_line.get(context.current_line_index + 1, [])
 
-    node_ids = sorted(
-        {
-            context_name.split("|", 1)[0]
-            for context_name in line_contexts
-            if context_name
-        }
-    )
+    node_ids = {
+        context_name.split("|", 1)[0]
+        for context_name in line_contexts
+        if context_name
+    }
+    node_ids.update(_contract_test_node_ids(source_name))
+    node_ids = sorted(node_ids)
     if node_ids:
         context.config.test_command = (
             "python -m pytest -x -q -p no:pytest_cov -o addopts= "
