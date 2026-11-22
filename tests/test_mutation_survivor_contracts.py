@@ -2435,8 +2435,9 @@ def test_mutation95_lifecycle_custom_x_prefix_and_default_base_path(monkeypatch)
 def test_mutation95_lifecycle_z_suffix_is_normalized_before_python310_parser(
     monkeypatch,
 ):
-    from datetime import datetime as StandardDateTime, timezone
     import importlib
+    from datetime import datetime as StandardDateTime
+    from datetime import timezone
 
     lifecycle_module = importlib.import_module("django_api_versioning.lifecycle")
 
@@ -2720,3 +2721,416 @@ def test_mutation100_registry_regex_and_synchronization_contracts():
     instance = CallableWithAsView()
     pattern = UrlRegistry._create_pattern("callable/", instance, "callable")
     assert pattern.callback is instance
+def test_mutation100_decorator_rollback_restores_none_on_slotted_callable(monkeypatch):
+    import django_api_versioning.decorators as decorator_module
+
+    attribute_name = registry._LOGICAL_ENDPOINT_ATTR
+
+    class SlottedCallable:
+        __slots__ = (attribute_name,)
+
+        def __init__(self):
+            setattr(self, attribute_name, None)
+
+        def __call__(self, request):
+            return None
+
+    view = SlottedCallable()
+
+    def fail_registration(*args, **kwargs):
+        raise RuntimeError("forced registration failure")
+
+    monkeypatch.setattr(
+        decorator_module, "_register_endpoint_routes", fail_registration
+    )
+    with pytest.raises(RuntimeError, match="forced registration failure"):
+        endpoint("orders/", version=2)(view)
+
+    assert getattr(view, attribute_name) is None
+
+
+def test_mutation100_decorator_app_name_and_postfix_contracts_are_exact():
+    registry.clear()
+    _assert_exact_exception(
+        VersioningError,
+        "postfix must be relative and must not start with '/'.",
+        lambda: set_endpoint_lifecycle("/orders/", version=2),
+    )
+
+    set_endpoint_lifecycle(
+        "orders/", version=2, app_name="billing", deprecated_at="2027-01-01"
+    )
+    assert ("billing/orders/", 2, None, None, None) in registry._endpoint_lifecycle
+
+    registry.clear()
+    registry.register(
+        "api/v2/billing/orders/",
+        _view,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="billing/orders/",
+    )
+    remove_endpoint("orders/", from_version=2, app_name="billing")
+    assert registry.urlpatterns == []
+    assert ("billing/orders/", 2) in registry._removed_patterns
+
+
+def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    registry.clear()
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=2, basename="order")
+    router.remove("orders", "order-list", from_version=2)
+    router.remove("orders", "order-list", from_version=2)
+    assert not [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+        == "orders:order-list"
+    ]
+
+    _assert_exact_exception(
+        TypeError,
+        "prefix must be a string.",
+        lambda: router.remove(1, "order-list", from_version=2),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "prefix must be a non-empty relative path without leading or trailing '/'.",
+        lambda: router.register("", OrdersViewSet, version=2, basename="empty"),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "route_name must be a non-empty string.",
+        lambda: router.set_lifecycle("orders", 7, version=2),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "action must be a non-empty string.",
+        lambda: router.set_lifecycle("orders", "order-list", version=2, action=7),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "Action 'missing' is not registered for 'orders:order-list'.",
+        lambda: router.set_lifecycle(
+            "orders", "order-list", version=2, action="missing"
+        ),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "methods must be a non-empty list of HTTP methods.",
+        lambda: VersionedRouter._resolve_lifecycle_methods(
+            [], {"get": "list"}, None, "orders:order-list"
+        ),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "methods must contain non-empty HTTP method strings.",
+        lambda: VersionedRouter._resolve_lifecycle_methods(
+            [None], {"get": "list"}, None, "orders:order-list"
+        ),
+    )
+    _assert_exact_exception(
+        VersionRangeError,
+        "Version must be a non-negative API version.",
+        lambda: VersionedRouter._validate_version(-1),
+    )
+
+
+def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypatch):
+    import importlib
+    import inspect
+
+    import django_api_versioning.routers as router_module
+
+    router_module = importlib.reload(router_module)
+    defaults = inspect.signature(
+        router_module.VersionedDefaultRouter.__init__
+    ).parameters
+    assert defaults["app_name"].default == "django_api_versioning"
+    assert defaults["root_view_name"].default == "api-root"
+    assert (
+        router_module.VersionedRouterVersioning.invalid_version_message
+        == "The URL namespace does not identify an allowed API version."
+    )
+
+    adapter = router_module.VersionedRouterVersioning()
+    assert adapter.get_versioned_viewname(
+        "orders-list", SimpleNamespace(resolver_match=SimpleNamespace())
+    ) == "orders-list"
+
+    captured = {}
+    monkeypatch.setattr(
+        router_module.NamespaceVersioning,
+        "reverse",
+        lambda self, *args, **kwargs: "/orders/",
+    )
+
+    def record_format(url, version, *, scheme=None):
+        captured.update(url=url, version=version, scheme=scheme)
+        return url
+
+    monkeypatch.setattr(router_module, "format_negotiated_url", record_format)
+    request = SimpleNamespace(
+        version=None,
+        _request=SimpleNamespace(api_version=2, api_versioning_scheme="query"),
+    )
+    assert adapter.reverse("orders-list", request=request) == "/orders/"
+    assert captured == {
+        "url": "/orders/",
+        "version": 2,
+        "scheme": "query",
+    }
+
+
+def test_mutation100_router_namespace_matching_uses_the_configured_path(monkeypatch):
+    import django_api_versioning.routers as router_module
+
+    adapter = router_module.VersionedRouterVersioning()
+    adapter.allowed_versions = []
+    adapter.default_version = None
+    monkeypatch.setattr(api_settings, "API_BASE_PATH", "api/v{version}/")
+    monkeypatch.setattr(registry, "get_resolved_route_version", lambda route: None)
+    mismatch = SimpleNamespace(
+        resolver_match=SimpleNamespace(
+            route="Xapi/v2/orders/",
+            namespace="v2",
+        )
+    )
+    assert adapter.determine_version(mismatch) is None
+
+    monkeypatch.setattr(api_settings, "API_BASE_PATH", "Xapi/v{version}/X/")
+    matching = SimpleNamespace(
+        resolver_match=SimpleNamespace(
+            route="Xapi/v2/X/orders/",
+            namespace="v2",
+        )
+    )
+    assert adapter.determine_version(matching) == "2"
+
+
+def test_mutation100_registry_tombstone_ownership_and_unowned_boundaries():
+    target = UrlRegistry()
+    owner = object()
+    existing_unowned = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=None
+    )
+    incoming_owned = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=owner
+    )
+    target._removed_patterns[("orders", 2)] = existing_unowned
+    target._record_removed(incoming_owned, "orders")
+    assert target._removed_patterns[("orders", 2)] is existing_unowned
+
+    target.remove("orders", 2)
+    assert target._removal_boundaries["orders"] == {2}
+    assert target._router_removal_boundaries == {}
+
+
+def test_mutation100_registry_removal_skips_unversioned_same_endpoint_before_target():
+    target = UrlRegistry()
+    active = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=None
+    )
+    unversioned = path("orders/unversioned/", _view, name="orders-unversioned")
+    setattr(unversioned, target._LOGICAL_ENDPOINT_ATTR, "orders")
+    setattr(unversioned, target._ROUTE_VERSION_ATTR, None)
+    setattr(unversioned, target._SOURCE_VERSION_ATTR, None)
+    target.urlpatterns[:] = [active, unversioned]
+
+    target.remove("orders", 2)
+    assert active not in target.urlpatterns
+    assert unversioned in target.urlpatterns
+
+
+def test_mutation100_registry_preserves_lifecycle_only_for_same_router_owner():
+    target = UrlRegistry()
+    owner_a = object()
+    owner_b = object()
+    removed = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=owner_a
+    )
+    newer_foreign = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=owner_b
+    )
+    setattr(newer_foreign, target._SOURCE_VERSION_ATTR, 3)
+    target.urlpatterns[:] = [removed, newer_foreign]
+    lifecycle_key = ("orders", 2, None, None, owner_a)
+    target._endpoint_lifecycle[lifecycle_key] = object()
+
+    target.remove("orders", 2, owner=owner_a)
+    assert removed not in target.urlpatterns
+    assert newer_foreign in target.urlpatterns
+    assert lifecycle_key not in target._endpoint_lifecycle
+
+
+def test_mutation100_registry_urlpattern_cross_owner_collision_is_rejected():
+    target = UrlRegistry()
+    owner_a = object()
+    owner_b = object()
+    existing = path("api/v2/orders/", _view, name="existing")
+    setattr(existing, target._ROUTER_OWNER_ATTR, owner_a)
+    setattr(existing, target._ROUTER_PREFIX_ATTR, "api/v2/orders")
+    setattr(existing, target._ROUTER_TRAILING_SLASH_ATTR, True)
+    setattr(existing, target._ROUTE_VERSION_ATTR, 2)
+    target.urlpatterns.append(existing)
+
+    incoming = path("api/v2/orders/archive/", _view, name="archive")
+    setattr(incoming, target._ROUTER_OWNER_ATTR, owner_b)
+    setattr(incoming, target._ROUTER_PREFIX_ATTR, "api/v2/orders")
+    setattr(incoming, target._ROUTER_TRAILING_SLASH_ATTR, True)
+    _assert_exact_exception(
+        VersioningError,
+        "Router prefix 'api/v2/orders' in version 2 is already registered by "
+        "another VersionedRouter instance.",
+        lambda: target.register_urlpattern(
+            incoming,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="orders:archive",
+        ),
+    )
+
+
+def test_mutation100_registry_logical_matrix_disambiguates_duplicate_routes():
+    target = UrlRegistry()
+    first = path("api/v2/orders/", _view, name="orders-a")
+    second = path("nested/api/v2/orders/", _view, name="orders-b")
+    for pattern in (first, second):
+        setattr(pattern, target._LOGICAL_ENDPOINT_ATTR, "orders")
+        setattr(pattern, target._ROUTE_VERSION_ATTR, 2)
+    target.urlpatterns[:] = [first, second]
+
+    matrix = target.get_logical_version_matrix()
+    assert len(matrix) == 2
+    assert all("route=" in key for key in matrix)
+
+
+def test_mutation100_registry_router_matrix_labels_and_regex_edges():
+    target = UrlRegistry()
+    owner_a = object()
+    owner_b = object()
+    first = _registered_pattern(
+        target,
+        version=2,
+        logical_endpoint="orders",
+        owner=owner_a,
+        prefix="orders",
+    )
+    second = _registered_pattern(
+        target,
+        version=2,
+        logical_endpoint="orders",
+        owner=owner_b,
+        prefix="ordersX",
+    )
+    target.urlpatterns[:] = [first, second]
+    matrix = target.get_logical_version_matrix()
+    assert len(matrix) == 2
+    assert all("router=" in key for key in matrix)
+
+    assert target._canonical_route_key("^api/v2/orders") == "^api/v2/orders"
+    assert target._canonical_route_key("api/v2/orders/$") == "api/v2/orders/$"
+    assert target._canonical_route_key("^api/v2/orders/>$") == "^api/v2/orders/>$"
+
+
+def test_mutation100_registry_resolver_operation_rejects_bad_method_and_uses_exact_pattern():
+    target = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    callback.actions = {"get": "list", "head": "head"}
+    valid = path("api/v2/orders/", callback, name="order-list")
+    setattr(valid, target._LOGICAL_ENDPOINT_ATTR, "orders")
+    setattr(valid, target._ROUTE_VERSION_ATTR, 2)
+    setattr(valid, target._SOURCE_VERSION_ATTR, 1)
+    unrelated = path("health/", _view, name="health")
+    target.urlpatterns[:] = [unrelated, valid]
+
+    match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="order-list",
+        namespace="",
+        namespaces=(),
+        tried=[[valid]],
+    )
+    operation = target.resolve_operation(match, "HEAD")
+    assert operation is not None and operation.action == "head"
+
+    wrong_name = SimpleNamespace(
+        route=match.route,
+        func=callback,
+        url_name="not-order-list",
+        namespace="",
+        namespaces=(),
+        tried=[[valid]],
+    )
+    assert target.resolve_operation(wrong_name, "GET") is None
+
+    assert target.resolve_registered_operation("", 2, "GET") is None
+    assert target.resolve_registered_operation("orders", True, "GET") is None
+    assert target.resolve_registered_operation("orders", 2, 1) is None
+
+
+def test_mutation100_registry_create_pattern_signature_and_synchronization(monkeypatch):
+    import inspect
+
+    from django_api_versioning import registry as registry_module
+
+    assert callable(
+        getattr(UrlRegistry.get_endpoint_lifecycle, "__wrapped__", None)
+    )
+
+    class RequiredActionsView:
+        @classmethod
+        def as_view(cls, actions):
+            return _view
+
+    with pytest.raises(TypeError, match="cannot be registered directly"):
+        UrlRegistry._create_pattern("orders/", RequiredActionsView, "orders")
+
+    class OptionalActionsView:
+        @classmethod
+        def as_view(cls, actions=None):
+            return _view
+
+    pattern = UrlRegistry._create_pattern(
+        "orders/", OptionalActionsView, "orders"
+    )
+    assert pattern.callback is _view
+
+    monkeypatch.setattr(
+        inspect,
+        "signature",
+        lambda value: (_ for _ in ()).throw(ValueError("opaque signature")),
+    )
+    with pytest.raises(TypeError, match="cannot be registered directly"):
+        UrlRegistry._create_pattern("orders/", RequiredActionsView, "orders")
+
+
+def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edges():
+    target = UrlRegistry()
+    assert target._canonical_route_key(r"^api/v2/orders/\d$") == (
+        r"^api/v2/orders/\d$"
+    )
+    assert target._canonical_route_key(r"^api/v2/orders/\.$") == (
+        "api/v2/orders/."
+    )
+
+    trailing_backslash = "^api/v2/orders/\\"
+    key = target._route_specificity_key(re_path(trailing_backslash, _view))
+    assert key[0] == -len(trailing_backslash[1:])
+
+    dynamic_at_start = path("<int:pk>/", _view)
+    assert target._route_specificity_key(dynamic_at_start)[0] == 0
+
+    short_dynamic = re_path(r"^api/v2/a/[0-9]+/$", _view)
+    long_dynamic = re_path(r"^api/v2/orders/[0-9]+/$", _view)
+    target.urlpatterns[:] = [short_dynamic, long_dynamic]
+    target._sort_urlpatterns()
+    assert target.urlpatterns[0] is long_dynamic
