@@ -646,7 +646,7 @@ def test_hostname_normalization_removes_exactly_one_root_dot_and_applies_idna():
 
 
 def test_quoted_header_split_preserves_escaped_delimiters():
-    value = r'profile="one\\",two;three", version=2'
+    value = r'profile="one\",two;three", version=2'
 
     assert _split_quoted_header(value, ",") == [
         r'profile="one\",two;three"',
