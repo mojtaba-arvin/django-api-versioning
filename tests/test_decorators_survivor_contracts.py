@@ -166,9 +166,7 @@ def test_register_endpoint_routes_skips_segment_below_minimum(monkeypatch):
         decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k))
     )
 
-    _register_endpoint_routes(
-        "orders", "", lambda request: None, None, 1, None, 2, 4
-    )
+    _register_endpoint_routes("orders", "", lambda request: None, None, 1, None, 2, 4)
     assert calls == []
 
 
@@ -177,9 +175,7 @@ def test_register_endpoint_routes_registers_inclusive_segment(monkeypatch):
     monkeypatch.setattr(
         decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k))
     )
-    _register_endpoint_routes(
-        "orders", "", lambda request: None, None, 2, None, 1, 4
-    )
+    _register_endpoint_routes("orders", "", lambda request: None, None, 2, None, 1, 4)
     assert [call[0][4] for call in calls] == [2, 3, 4]
     assert [call[1]["source_version"] for call in calls] == [2, 2, 2]
 
@@ -188,7 +184,9 @@ def test_register_endpoint_routes_skips_only_explicit_versions_below_minimum(
     monkeypatch,
 ):
     calls = []
-    monkeypatch.setattr(decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k)))
+    monkeypatch.setattr(
+        decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k))
+    )
     _register_endpoint_routes(
         "orders", "", lambda request: None, None, None, [1, 2, 4], 2, 4
     )
@@ -254,7 +252,11 @@ def test_lifecycle_method_names_are_normalized_before_registration(monkeypatch):
     ("postfix", "exception", "message"),
     [
         (None, TypeError, "postfix must be a string."),
-        ("/orders", VersioningError, "postfix must be relative and must not start with '/'."),
+        (
+            "/orders",
+            VersioningError,
+            "postfix must be relative and must not start with '/'.",
+        ),
     ],
 )
 def test_remove_endpoint_postfix_validation_has_exact_errors(
