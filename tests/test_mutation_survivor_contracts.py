@@ -742,12 +742,18 @@ def test_registry_lifecycle_registration_validates_identity_scope_and_conflicts(
         target.register_endpoint_lifecycle("orders", 2, action="")
 
     target.register_endpoint_lifecycle(
-        "orders", 2, method="GET", action="list",
+        "orders",
+        2,
+        method="GET",
+        action="list",
         deprecated_at="2027-01-01T00:00:00Z",
     )
     with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
         target.register_endpoint_lifecycle(
-            "orders", 2, method="GET", action="list",
+            "orders",
+            2,
+            method="GET",
+            action="list",
             deprecated_at="2028-01-01T00:00:00Z",
         )
 
