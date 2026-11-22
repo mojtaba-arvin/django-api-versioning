@@ -129,6 +129,31 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr-only: true
 
+  adversarial:
+    name: Adversarial release-readiness campaigns
+    needs:
+      - changes
+      - unit-tests
+      - compatibility
+      - package-artifacts
+      - website
+      - agent-tooling
+      - openapi-contract
+      - dependency-review
+    if: >-
+      always() &&
+      needs.changes.result == 'success' &&
+      (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') &&
+      (needs.compatibility.result == 'success' || needs.compatibility.result == 'skipped') &&
+      (needs.package-artifacts.result == 'success' || needs.package-artifacts.result == 'skipped') &&
+      (needs.website.result == 'success' || needs.website.result == 'skipped') &&
+      (needs.agent-tooling.result == 'success' || needs.agent-tooling.result == 'skipped') &&
+      (needs.openapi-contract.result == 'success' || needs.openapi-contract.result == 'skipped') &&
+      (needs.dependency-review.result == 'success' || needs.dependency-review.result == 'skipped')
+    uses: ./.github/workflows/adversarial-testing.yml
+    permissions:
+      contents: read
+
   gate:
     name: PR gate
     if: always()
@@ -141,6 +166,7 @@ jobs:
       - agent-tooling
       - openapi-contract
       - dependency-review
+      - adversarial
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -180,5 +206,11 @@ jobs:
               print("\n".join(failures), file=sys.stderr)
               raise SystemExit(1)
 
-          print("All checks required by this pull request passed.")
+          if not failures and needs["adversarial"]["result"] != "success":
+              failures.append(
+                  "adversarial: expected success after Tier 0/1, got "
+                  + needs["adversarial"]["result"]
+              )
+
+          print("All Tier 0/1 checks and the dependent adversarial Tier 2 campaign passed.")
           PY
