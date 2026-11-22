@@ -26,7 +26,7 @@ def test_pull_request_selection_runs_every_test_context_for_the_mutated_line(
     node_b = "tests/test_decorators_survivor_contracts.py::test_second"
     coverage = {
         str(source): {
-            17: [
+            18: [
                 f"{node_b}|run",
                 f"{node_a}|run",
                 f"{node_a}|teardown",
