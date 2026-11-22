@@ -122,7 +122,9 @@ def test_register_endpoint_view_restores_state_after_late_failure(
     assert getattr(new_view, attribute) == "pre-existing-value"
 
 
-@pytest.mark.parametrize("app_name", ["accounts%2Fadmin", "accounts?next=admin", "accounts%"])
+@pytest.mark.parametrize(
+    "app_name", ["accounts%2Fadmin", "accounts?next=admin", "accounts%"]
+)
 def test_app_name_prefix_delegates_url_safety_validation(app_name):
     with pytest.raises(VersioningError):
         _app_name_prefix(app_name)
