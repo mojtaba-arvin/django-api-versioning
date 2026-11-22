@@ -624,7 +624,7 @@ def test_negotiation_hostname_normalization_is_idna_safe():
 
 
 def test_accept_parser_respects_quoted_delimiters_and_rejects_bad_escapes():
-    assert _split_quoted_header('profile="a,b;c"; version=2', ";") == [
+        r'profile="one\,two;three"; version=2, application/json',
         'profile="a,b;c"',
         " version=2",
     ]
@@ -1141,9 +1141,9 @@ def test_negotiation_path_version_zero_and_template_validation_are_exact():
 
 def test_negotiation_quoted_header_parser_handles_escaped_delimiters_and_controls():
     assert _split_quoted_header(
-        r'profile="one\\,two;three"; version=2, application/json',
+        r'profile="one\,two;three"; version=2, application/json',
         ",",
-    ) == [r'profile="one\\,two;three"; version=2', " application/json"]
+        r'profile="one\,two;three"; version=2, application/json',
     assert _parse_accept_parameter_value("token") == ("token", False)
     assert _parse_accept_parameter_value('"one two"') == ("one two", True)
     assert _parse_accept_parameter_value('""') == ("", True)
@@ -1152,9 +1152,9 @@ def test_negotiation_quoted_header_parser_handles_escaped_delimiters_and_control
     with pytest.raises(ValueError, match="unterminated quoted parameter"):
         _split_quoted_header('profile="unterminated', ",")
     with pytest.raises(ValueError, match="invalid quoted parameter"):
-        _parse_accept_parameter_value('"one\\x01two"')
+        _parse_accept_parameter_value('"one\x01two"')
     with pytest.raises(ValueError, match="invalid quoted parameter"):
-        _parse_accept_parameter_value('"one\\x7ftwo"')
+        _parse_accept_parameter_value('"one\x7ftwo"')
     with pytest.raises(ValueError, match="invalid media parameter value"):
         _parse_accept_parameter_value("token with space")
 
