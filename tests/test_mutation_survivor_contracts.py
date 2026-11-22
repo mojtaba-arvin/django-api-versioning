@@ -13,7 +13,6 @@ import pytest
 from django.test import RequestFactory
 from django.urls import path
 from django.views import View
-from rest_framework.exceptions import NotFound
 from rest_framework.viewsets import ViewSet
 
 from django_api_versioning.decorators import (
