@@ -146,3 +146,38 @@ def test_alignment_merges_following_contexts_even_when_ast_line_is_covered(
     contexts = aligned.contexts_by_lineno(str(source))
     assert existing in contexts[2]
     assert changed in contexts[2]
+
+
+
+def test_alignment_looks_through_signature_and_docstring_to_function_body(
+    tmp_path,
+):
+    source = tmp_path / "django_api_versioning" / "lifecycle.py"
+    source.parent.mkdir()
+    source.write_text(
+        "def resolve(\n"
+        "    request,\n"
+        "    *,\n"
+        "    allow_unmapped_method=False,\n"
+        "):\n"
+        '    """Resolve one operation."""\n'
+        "    return request\n"
+    )
+    coverage_path = tmp_path / ".coverage"
+
+    data = CoverageData(basename=str(coverage_path))
+    context = "tests.test_lifecycle::test_signature_default|run"
+    data.set_context(context)
+    data.add_lines({str(source): {7}})
+    data.write()
+
+    data = CoverageData(basename=str(coverage_path))
+    data.read()
+    assert align_survivor_contexts(
+        data, [("django_api_versioning/lifecycle.py", 1)]
+    ) == (1, 1)
+    data.write()
+
+    aligned = CoverageData(basename=str(coverage_path))
+    aligned.read()
+    assert context in aligned.contexts_by_lineno(str(source))[1]
