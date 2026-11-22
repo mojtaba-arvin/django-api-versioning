@@ -2315,9 +2315,7 @@ def test_mutation95_negotiation_query_uniqueness_and_internal_path_rewrite():
     _assert_exact_exception(
         ValueError,
         "The API version query parameter must appear once.",
-        lambda: VersionNegotiationMiddleware._requested_version(
-            duplicate, "query"
-        ),
+        lambda: VersionNegotiationMiddleware._requested_version(duplicate, "query"),
     )
     _assert_exact_exception(
         ValueError,
@@ -2363,9 +2361,7 @@ def test_mutation95_negotiation_query_uniqueness_and_internal_path_rewrite():
         API_MIN_VERSION=1,
         API_MAX_VERSION=3,
     ):
-        response = middleware(
-            RequestFactory().get("/api/orders/?version=2")
-        )
+        response = middleware(RequestFactory().get("/api/orders/?version=2"))
 
     assert response.status_code == 200
     assert observed == {
@@ -2392,9 +2388,7 @@ def test_mutation95_decorator_app_name_validation_reaches_both_entrypoints():
         VersioningError,
         "app_name must not contain percent-encoded path separators or "
         "query/fragment delimiters.",
-        lambda: remove_endpoint(
-            "orders/", from_version=2, app_name="billing%2Fadmin"
-        ),
+        lambda: remove_endpoint("orders/", from_version=2, app_name="billing%2Fadmin"),
     )
 
 
@@ -2469,10 +2463,13 @@ def test_mutation100_negotiation_path_host_and_accept_edge_contracts():
         assert _path_version("/api/v99/orders/", "api/v{version}/") == -1
 
     assert _host_version(SimpleNamespace(get_host=lambda: ""), {"xxxx": 7}) is None
-    assert _header_version(
-        RequestFactory().get("/api/orders/", HTTP_ACCEPT="application/json"),
-        "Accept-Version",
-    ) is None
+    assert (
+        _header_version(
+            RequestFactory().get("/api/orders/", HTTP_ACCEPT="application/json"),
+            "Accept-Version",
+        )
+        is None
+    )
 
     _assert_exact_exception(
         ValueError,
