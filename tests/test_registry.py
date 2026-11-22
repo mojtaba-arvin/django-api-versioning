@@ -1460,9 +1460,7 @@ def test_endpoint_lifecycle_accepts_inclusive_version_boundaries(
         )
         assert registry.get_endpoint_lifecycle(operation) == expected
 
-def test_route_specificity_marks_leading_path_converter_as_dynamic(
-    clear_registry,
-):
+def test_route_specificity_marks_leading_path_converter_as_dynamic(clear_registry):
     """A converter at the first character is still a dynamic route."""
     pattern = path("<slug:slug>/", lambda request, slug: None)
 
