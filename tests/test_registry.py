@@ -1452,13 +1452,15 @@ def test_endpoint_lifecycle_accepts_inclusive_version_boundaries(
         )
 
     expected = EndpointLifecycle(
-        deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc)
+        deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
+        sunset=None,
     )
     for version in (1, 5):
         operation = _lifecycle_test_operation(
             logical_endpoint="orders", route_version=version
         )
         assert registry.get_endpoint_lifecycle(operation) == expected
+
 
 def test_route_specificity_marks_leading_path_converter_as_dynamic(clear_registry):
     """A converter at the first character is still a dynamic route."""
