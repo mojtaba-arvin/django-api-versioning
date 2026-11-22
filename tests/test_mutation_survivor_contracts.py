@@ -850,6 +850,7 @@ def test_negotiation_accept_version_header_and_hostname_mapping():
         request = RequestFactory().get("/", HTTP_HOST="example.com")
         assert VersionNegotiationMiddleware._requested_version(request, "hostname") == 2
 
+
 urlpatterns = [path("api/v2/orders/", _view, name="order-list")]
 
 
@@ -1298,6 +1299,7 @@ def test_set_and_remove_endpoint_lifecycle_validate_absolute_postfix_and_app_pre
     )
     remove_endpoint("orders/", from_version=2, app_name="billing")
 
+
 def _assert_exact_exception(exception_type, message, operation):
     with pytest.raises(exception_type) as captured:
         operation()
@@ -1597,7 +1599,8 @@ def test_mutation95_registry_validation_and_registration_errors_are_exact(monkey
     target.register_endpoint_lifecycle(
         "orders", 2, deprecated_at="2027-01-01T00:00:00Z"
     )
-    _assert_exact_exception(        VersioningError,
+    _assert_exact_exception(
+        VersioningError,
         "Conflicting endpoint lifecycle declarations for 'orders' version 2.",
         lambda: target.register_endpoint_lifecycle(
             "orders", 2, deprecated_at="2028-01-01T00:00:00Z"
