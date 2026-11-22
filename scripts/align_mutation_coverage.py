@@ -71,9 +71,7 @@ def align_survivor_contexts(
     for source_filename, line_number in locations:
         suffix = "/" + source_filename.replace("\\", "/")
         matches = [
-            path
-            for path in measured
-            if path.replace("\\", "/").endswith(suffix)
+            path for path in measured if path.replace("\\", "/").endswith(suffix)
         ]
         if len(matches) != 1:
             continue

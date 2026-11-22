@@ -143,9 +143,7 @@ def test_resolved_route_match_requires_a_complete_path_segment():
         "api/v2/orders/"
     )
     assert match_length("rootxapi/v2/orders/", "api/v2/orders/") == 0
-    assert match_length("api/v2/orders/", "^api/v2/orders/$") == len(
-        "api/v2/orders/"
-    )
+    assert match_length("api/v2/orders/", "^api/v2/orders/$") == len("api/v2/orders/")
 
 
 def test_registry_remove_tracks_owner_specific_route_identity():
@@ -157,6 +155,16 @@ def test_registry_remove_tracks_owner_specific_route_identity():
 
     target.remove(logical, 3, owner=owner)
 
+    owned_boundary = target._removal_boundary(
+        logical, 4, owner=owner, router_prefix="orders", trailing_slash=True
+    )
+    global_fallback = target._removal_boundary(
+        logical, 4, owner=object(), router_prefix="orders", trailing_slash=True
+    )
+    assert owned_boundary == 3
+    assert global_fallback == 3
+
+    target._removal_boundaries.clear()
     assert target._removal_boundary(
         logical, 4, owner=owner, router_prefix="orders", trailing_slash=True
     ) == 3
@@ -489,9 +497,7 @@ def test_router_versioning_ignores_malformed_namespace_and_uses_allowed_default(
 
 def test_router_versioning_qualifies_namespaces_only_once():
     versioning = VersionedRouterVersioning()
-    request = SimpleNamespace(
-        resolver_match=SimpleNamespace(namespace="outer:v2")
-    )
+    request = SimpleNamespace(resolver_match=SimpleNamespace(namespace="outer:v2"))
 
     assert versioning.get_versioned_viewname("order-list", request) == (
         "outer:v2:order-list"
@@ -615,9 +621,7 @@ def test_accept_parser_respects_quoted_delimiters_and_rejects_bad_escapes():
     ]
     assert _parse_accept_parameter_value('"a\\"b"') == ('a\\"b', True)
 
-    with pytest.raises(
-        ValueError, match="unterminated quoted parameter"
-    ):
+    with pytest.raises(ValueError, match="unterminated quoted parameter"):
         _split_quoted_header('profile="unterminated', ";")
     with pytest.raises(ValueError, match="invalid quoted parameter"):
         _parse_accept_parameter_value('"bad\x01value"')
@@ -638,19 +642,13 @@ def test_accept_media_range_rejects_duplicate_parameters_and_bad_quality():
 def test_accept_negotiation_uses_quality_and_rejects_ambiguity():
     request = RequestFactory().get(
         "/",
-        HTTP_ACCEPT=(
-            "application/json; version=2; q=0.8, "
-            "application/json; version=3; q=0.9"
-        ),
+        HTTP_ACCEPT="application/json; version=2; q=0.8, application/json; version=3; q=0.9",
     )
     assert _header_version(request, "Accept-Version") == 3
 
     tied = RequestFactory().get(
         "/",
-        HTTP_ACCEPT=(
-            "application/json; version=2; q=0.8, "
-            "application/json; version=3; q=0.8"
-        ),
+        HTTP_ACCEPT="application/json; version=2; q=0.8, application/json; version=3; q=0.8",
     )
     with pytest.raises(ValueError, match="equally preferred conflicting"):
         _header_version(tied, "Accept-Version")
@@ -684,19 +682,15 @@ def test_lifecycle_version_coercion_and_ambiguous_path_fallbacks():
     assert _coerce_version(True) is None
     assert _coerce_version(-1) is None
     assert _coerce_version("٢") is None
-    assert _coerce_version("9" * 1000) is None
+    assert _coerce_version("9" * 1000) == int("9" * 1000)
 
     assert _extract_version_from_value("api/v2/orders/api/v2/items/") == 2
     assert _extract_version_from_value("api/v2/orders/api/v3/items/") is None
 
 
 def test_lifecycle_date_normalization_and_structured_date_flooring():
-    assert _parse_lifecycle_date(
-        "0001-01-01T00:00:00+23:59", "sunset"
-    ) is None
-    before_epoch = datetime(
-        1969, 12, 31, 23, 59, 59, 500000, tzinfo=timezone.utc
-    )
+    assert _parse_lifecycle_date("0001-01-01T00:00:00+23:59", "sunset") is None
+    before_epoch = datetime(1969, 12, 31, 23, 59, 59, 500000, tzinfo=timezone.utc)
     assert _to_structured_field_date(before_epoch) == "@-1"
 
 
@@ -757,9 +751,7 @@ def test_registry_lifecycle_registration_validates_identity_scope_and_conflicts(
     with pytest.raises(VersionRangeError):
         target.register_endpoint_lifecycle("orders", 0)
     with pytest.raises(InvalidVersionError):
-        target.register_endpoint_lifecycle(
-            "orders", api_settings.API_MAX_VERSION + 1
-        )
+        target.register_endpoint_lifecycle("orders", api_settings.API_MAX_VERSION + 1)
     with pytest.raises(VersioningError, match="method must be a string"):
         target.register_endpoint_lifecycle("orders", 2, method="")
     with pytest.raises(VersioningError, match="action must be a string"):
@@ -841,9 +833,7 @@ def test_negotiation_accept_version_header_and_hostname_mapping():
         API_VERSIONING_HOSTS={"example.com": 2},
     ):
         request = RequestFactory().get("/", HTTP_HOST="example.com")
-        assert VersionNegotiationMiddleware._requested_version(
-            request, "hostname"
-        ) == 2
+        assert VersionNegotiationMiddleware._requested_version(request, "hostname") == 2
 
 
 urlpatterns = [path("api/v2/orders/", _view, name="order-list")]

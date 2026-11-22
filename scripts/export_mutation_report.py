@@ -226,9 +226,7 @@ def main() -> None:
                     text=True,
                     check=False,
                 )
-                changed_line = mutation_line_number(
-                    shown.stdout, mutant["line_number"]
-                )
+                changed_line = mutation_line_number(shown.stdout, mutant["line_number"])
                 record = {
                     "target": args.target,
                     "mutant_id": mutant["mutant_id"],
