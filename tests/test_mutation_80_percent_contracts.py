@@ -15,11 +15,15 @@ from django_api_versioning.lifecycle import (
     _parse_lifecycle_date,
 )
 from django_api_versioning.negotiation import (
+    _header_version,
+    _host_version,
     _normalize_hostname,
+    _parse_version,
     _parse_accept_media_range,
     _parse_accept_parameter_value,
     _path_version,
     _split_quoted_header,
+    _UnsupportedVersion,
 )
 from django_api_versioning.registry import ResolvedOperation, UrlRegistry
 from django_api_versioning.routers import VersionedRouter
@@ -273,3 +277,89 @@ def test_router_lifecycle_method_resolution_rejects_duplicate_and_unmapped_metho
         VersionedRouter._resolve_lifecycle_methods(
             ["PATCH"], {"get": "list"}, None, "orders:order-list"
         )
+
+
+@pytest.mark.parametrize("value", [None, True, False, "", "  ", "٢", "2.0", "-1"])
+def test_negotiation_version_parser_rejects_non_ascii_decimal_values(value):
+    with pytest.raises(ValueError, match="ASCII decimal integer"):
+        _parse_version(value)
+
+
+def test_negotiation_version_parser_trims_ascii_decimal_and_accepts_zero():
+    assert _parse_version("  0002  ") == 2
+    assert _parse_version("0") == 0
+
+
+def test_path_version_handles_leading_zeroes_and_oversized_segments():
+    assert _path_version("/api/v0002/orders/", "api/v{version}/") == 2
+    assert _path_version("/api/v999999999999/orders/", "api/v{version}/") == -1
+    assert _path_version("/api/v2/orders/", "api/v{version}/extra") is None
+
+
+@pytest.mark.parametrize("template", [None, "api/v1/", "api/{version}/{version}/"])
+def test_path_version_rejects_invalid_templates(template):
+    assert _path_version("/api/v2/orders/", template) is None
+
+
+def test_host_version_normalizes_request_and_configured_idna_hostnames():
+    request = type("Request", (), {"get_host": lambda self: "XN--BCHER-KVA.EXAMPLE."})()
+    assert _host_version(request, {"bücher.example": 4}) == 4
+    assert _host_version(request, {"other.example": 4}) is None
+
+
+def test_quoted_header_splitter_rejects_unterminated_quote_and_escape():
+    with pytest.raises(ValueError, match="unterminated quoted"):
+        _split_quoted_header('application/json; profile="unfinished', ",")
+    with pytest.raises(ValueError, match="unterminated quoted"):
+        _split_quoted_header('application/json; profile="unfinished\\\\', ",")
+
+
+def test_accept_parameter_parser_allows_escaped_quote_but_rejects_control_bytes():
+    assert _parse_accept_parameter_value('"one\\\\\\"two"') == ('one\\"two', True)
+    with pytest.raises(ValueError, match="invalid quoted"):
+        _parse_accept_parameter_value('"bad\\x01value"')
+
+
+def test_accept_media_range_rejects_duplicate_version_and_malformed_quality():
+    with pytest.raises(ValueError, match="duplicate version"):
+        _parse_accept_media_range("application/json; version=2; VERSION=3")
+    with pytest.raises(ValueError, match="invalid quality"):
+        _parse_accept_media_range("application/json; q=1.001; version=2")
+
+
+def test_header_version_prefers_highest_quality_and_ignores_unversioned_ranges():
+    request = RequestFactory().get(
+        "/api/orders/",
+        HTTP_ACCEPT="text/plain, application/json;version=2;q=0.4, application/xml;version=3;q=0.8",
+    )
+    assert _header_version(request, "Accept-Version") == 3
+
+
+def test_header_version_rejects_equal_quality_conflicts_and_all_zero_quality():
+    conflict = RequestFactory().get(
+        "/api/orders/",
+        HTTP_ACCEPT="application/json;version=2;q=0.8, application/xml;version=3;q=0.8",
+    )
+    with pytest.raises(ValueError, match="equally preferred"):
+        _header_version(conflict, "Accept-Version")
+
+    unacceptable = RequestFactory().get(
+        "/api/orders/", HTTP_ACCEPT="application/json;version=2;q=0"
+    )
+    with pytest.raises(_UnsupportedVersion, match="q=0"):
+        _header_version(unacceptable, "Accept-Version")
+
+
+def test_header_version_rejects_conflicting_dedicated_and_accept_versions():
+    request = RequestFactory().get(
+        "/api/orders/",
+        HTTP_ACCEPT="application/json;version=3",
+        HTTP_ACCEPT_VERSION="2",
+    )
+    with pytest.raises(ValueError, match="conflict"):
+        _header_version(request, "Accept-Version")
+
+
+def test_header_version_uses_dedicated_header_when_accept_is_empty():
+    request = RequestFactory().get("/api/orders/", HTTP_ACCEPT="", HTTP_ACCEPT_VERSION="4")
+    assert _header_version(request, "Accept-Version") == 4
