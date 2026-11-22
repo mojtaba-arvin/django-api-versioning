@@ -6,7 +6,7 @@ from coverage import CoverageData
 
 from scripts.align_mutation_coverage import (
     align_survivor_contexts,
-    prepare_survivors_for_rerun,
+    load_survivor_locations,
 )
 from scripts.export_mutation_report import mutation_line_number
 
@@ -59,21 +59,18 @@ def test_alignment_is_idempotent_and_ignores_unrelated_files(tmp_path):
 
 
 def test_mutation_report_uses_changed_line_from_unified_diff():
-    diff = "\\n".join(
-        [
-            "--- django_api_versioning/lifecycle.py",
-            "+++ django_api_versioning/lifecycle.py",
-            "@@ -295,7 +295,7 @@",
-            "",
-            "",
-            " def is_past(value):",
-            "-    return value < 0",
-            "+    return value <= 0",
-            "",
-            "",
-            " def to_http_date(value):",
-        ]
-    )
+    diff = """--- django_api_versioning/lifecycle.py
++++ django_api_versioning/lifecycle.py
+@@ -295,7 +295,7 @@
+ 
+ 
+ def is_past(value):
+-    return value < 0
++    return value <= 0
+ 
+ 
+ def to_http_date(value):
+"""
     assert mutation_line_number(diff, 297) == 298
 
 
@@ -81,7 +78,8 @@ def test_mutation_report_falls_back_when_diff_has_no_hunk():
     assert mutation_line_number("mutmut show returned no diff", 17) == 17
 
 
-def test_cache_preparation_resets_only_surviving_mutants(tmp_path):
+
+def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
     cache = tmp_path / ".mutmut-cache"
     connection = sqlite3.connect(cache)
     connection.executescript(
@@ -95,27 +93,22 @@ def test_cache_preparation_resets_only_surviving_mutants(tmp_path):
         CREATE TABLE Mutant (
             id INTEGER PRIMARY KEY,
             line INTEGER NOT NULL,
-            status TEXT NOT NULL,
-            tested_against_hash TEXT NOT NULL
+            status TEXT NOT NULL
         );
         INSERT INTO SourceFile VALUES (1, 'django_api_versioning/registry.py');
         INSERT INTO Line VALUES (1, 1, 427);
         INSERT INTO Line VALUES (2, 1, 428);
-        INSERT INTO Mutant VALUES (1, 1, 'bad_survived', 'old-hash');
-        INSERT INTO Mutant VALUES (2, 2, 'ok_killed', 'old-hash');
+        INSERT INTO Mutant VALUES (1, 1, 'bad_survived');
+        INSERT INTO Mutant VALUES (2, 2, 'ok_killed');
         """
     )
     connection.commit()
     connection.close()
 
-    assert prepare_survivors_for_rerun(cache) == [
+    assert load_survivor_locations(cache) == [
         ("django_api_versioning/registry.py", 427)
     ]
-    connection = sqlite3.connect(cache)
-    statuses = connection.execute("SELECT status FROM Mutant ORDER BY id").fetchall()
-    connection.close()
-    assert statuses == [("not_checked",), ("ok_killed",)]
 
 
-def test_cache_preparation_handles_a_missing_cache(tmp_path):
-    assert prepare_survivors_for_rerun(tmp_path / "missing-cache") == []
+def test_cache_loader_handles_a_missing_cache(tmp_path):
+    assert load_survivor_locations(tmp_path / "missing-cache") == []

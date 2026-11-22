@@ -17,8 +17,8 @@ from pathlib import Path
 from coverage import CoverageData
 
 
-def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
-    """Reset surviving mutants so the corrected coverage selection reruns them."""
+def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
+    """Load surviving mutant locations from Mutmut's existing cache."""
     if not cache_path.is_file():
         return []
     connection = sqlite3.connect(cache_path)
@@ -31,6 +31,18 @@ def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
             WHERE lower(mutant.status) LIKE '%survived%'
             ORDER BY source.filename, line.line_number
             """).fetchall()
+    finally:
+        connection.close()
+    return [(str(filename), int(line_number)) for filename, line_number in rows]
+
+
+def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
+    """Reset surviving mutants so the corrected coverage selection reruns them."""
+    locations = load_survivor_locations(cache_path)
+    if not cache_path.is_file():
+        return locations
+    connection = sqlite3.connect(cache_path)
+    try:
         connection.execute(
             "UPDATE Mutant SET status = 'not_checked', tested_against_hash = '' "
             "WHERE lower(status) LIKE '%survived%'"
@@ -38,7 +50,7 @@ def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
         connection.commit()
     finally:
         connection.close()
-    return [(str(filename), int(line_number)) for filename, line_number in rows]
+    return locations
 
 
 def align_survivor_contexts(
