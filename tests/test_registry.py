@@ -1451,13 +1451,14 @@ def test_endpoint_lifecycle_accepts_inclusive_version_boundaries(
             deprecated_at="2027-01-01T00:00:00Z",
         )
 
-    assert registry.get_endpoint_lifecycle(
-        _lifecycle_test_operation(logical_endpoint="orders", route_version=1)
-    ) == EndpointLifecycle(deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
-    assert registry.get_endpoint_lifecycle(
-        _lifecycle_test_operation(logical_endpoint="orders", route_version=5)
-    ) == EndpointLifecycle(deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
-
+    expected = EndpointLifecycle(
+        deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc)
+    )
+    for version in (1, 5):
+        operation = _lifecycle_test_operation(
+            logical_endpoint="orders", route_version=version
+        )
+        assert registry.get_endpoint_lifecycle(operation) == expected
 
 def test_route_specificity_marks_leading_path_converter_as_dynamic(
     clear_registry,
