@@ -90,7 +90,7 @@ def _contract_test_node_ids(source_name):
     for line in test_file.read_text(encoding="utf-8").splitlines():
         if not line.startswith("def test_"):
             continue
-        name = line[len("def ") :].split("(", 1)[0]
+        name = line[len("def "):].split("(", 1)[0]
         if name.startswith(prefixes):
             node_ids.append(f"{CONTRACT_TEST_MODULE}::{name}")
     return sorted(node_ids)
