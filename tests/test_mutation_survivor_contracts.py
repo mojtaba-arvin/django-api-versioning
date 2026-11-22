@@ -850,8 +850,6 @@ urlpatterns = [path("api/v2/orders/", _view, name="order-list")]
 
 
 def test_router_reverse_uses_underlying_api_version_when_request_version_is_missing():
-    from django.test import override_settings
-
     with override_settings(
         ROOT_URLCONF=__name__,
         API_BASE_PATH="api/v{version}/",
