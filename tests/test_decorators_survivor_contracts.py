@@ -298,6 +298,7 @@ def test_decorator_transaction_wrappers_enter_and_exit_for_public_operations(
 def test_remove_endpoint_does_not_remove_unrelated_router_owned_tombstone():
     from rest_framework import viewsets
     from rest_framework.response import Response
+
     from django_api_versioning.routers import VersionedRouter
 
     class OrdersViewSet(viewsets.ViewSet):
