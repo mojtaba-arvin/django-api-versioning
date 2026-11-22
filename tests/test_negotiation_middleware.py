@@ -622,7 +622,7 @@ def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
 @pytest.mark.parametrize("value", [True, None, "", "2.0", "٢"])
 def test_parse_version_rejects_values_outside_ascii_decimal_contract(value):
     with pytest.raises(
-        ValueError, match=r"^A version must be an ASCII decimal integer\\.$"
+        ValueError, match=r"^A version must be an ASCII decimal integer\.$"
     ):
         _parse_version(value)
 
@@ -649,18 +649,18 @@ def test_quoted_header_split_preserves_escaped_delimiters():
     value = r'profile="one\\",two;three", version=2'
 
     assert _split_quoted_header(value, ",") == [
-        r'profile="one\\",two;three"',
+        r'profile="one\",two;three"',
         " version=2",
     ]
 
 
-@pytest.mark.parametrize("value", ['"one""two"', '"unterminated', '"bad\\x00value"'])
+@pytest.mark.parametrize("value", ['"one""two"', '"unterminated', '"bad\x00value"'])
 def test_accept_parameter_parser_rejects_malformed_quoted_values(value):
     with pytest.raises(ValueError):
         _parse_accept_parameter_value(value)
 
 
-@pytest.mark.parametrize("value", ['"one\\\"two"', '"tab\\tvalue"'])
+@pytest.mark.parametrize("value", ['"one\\\"two"', '"tab\tvalue"'])
 def test_accept_parameter_parser_accepts_valid_quoted_pairs_and_horizontal_tab(value):
     parsed, quoted = _parse_accept_parameter_value(value)
 
@@ -669,10 +669,10 @@ def test_accept_parameter_parser_accepts_valid_quoted_pairs_and_horizontal_tab(v
 
 
 def test_accept_parameter_parser_rejects_control_and_delete_characters_exactly():
-    for value in ('"bad\\x01value"', '"bad\\x7fvalue"'):
+    for value in ('"bad\x01value"', '"bad\x7fvalue"'):
         with pytest.raises(
             ValueError,
-            match=r"^Accept contains an invalid quoted parameter\\.$",
+            match=r"^Accept contains an invalid quoted parameter\.$",
         ):
             _parse_accept_parameter_value(value)
 
@@ -681,8 +681,14 @@ def test_accept_parameter_parser_rejects_control_and_delete_characters_exactly()
     "media_range, message",
     [
         ("*/json; version=2", "Accept contains an invalid media range."),
-        ("application/json; invalid parameter=x", "Accept contains an invalid media parameter."),
-        ("application/json; version=2; version=3", "Accept contains duplicate version parameters."),
+        (
+            "application/json; invalid parameter=x",
+            "Accept contains an invalid media parameter.",
+        ),
+        (
+            "application/json; version=2; version=3",
+            "Accept contains duplicate version parameters.",
+        ),
         ("application/json; q=1.1", "Accept contains an invalid quality value."),
     ],
 )
@@ -705,7 +711,9 @@ def test_header_version_rejects_equal_quality_conflicts_with_exact_error():
     with pytest.raises(ValueError) as error:
         _header_version(request, "Accept-Version")
 
-    assert str(error.value) == "Accept contains equally preferred conflicting API versions."
+    assert str(error.value) == (
+        "Accept contains equally preferred conflicting API versions."
+    )
 
 
 def test_header_version_rejects_conflicting_dedicated_and_accept_values_exactly():
