@@ -1,8 +1,13 @@
 """Tests for the coverage-context alignment used by mutation shards."""
 
+import sqlite3
+
 from coverage import CoverageData
 
-from scripts.align_mutation_coverage import align_survivor_contexts
+from scripts.align_mutation_coverage import (
+    align_survivor_contexts,
+    load_survivor_locations,
+)
 from scripts.export_mutation_report import mutation_line_number
 
 
@@ -71,3 +76,39 @@ def test_mutation_report_uses_changed_line_from_unified_diff():
 
 def test_mutation_report_falls_back_when_diff_has_no_hunk():
     assert mutation_line_number("mutmut show returned no diff", 17) == 17
+
+
+
+def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
+    cache = tmp_path / ".mutmut-cache"
+    connection = sqlite3.connect(cache)
+    connection.executescript(
+        """
+        CREATE TABLE SourceFile (id INTEGER PRIMARY KEY, filename TEXT NOT NULL);
+        CREATE TABLE Line (
+            id INTEGER PRIMARY KEY,
+            sourcefile INTEGER NOT NULL,
+            line_number INTEGER NOT NULL
+        );
+        CREATE TABLE Mutant (
+            id INTEGER PRIMARY KEY,
+            line INTEGER NOT NULL,
+            status TEXT NOT NULL
+        );
+        INSERT INTO SourceFile VALUES (1, 'django_api_versioning/registry.py');
+        INSERT INTO Line VALUES (1, 1, 427);
+        INSERT INTO Line VALUES (2, 1, 428);
+        INSERT INTO Mutant VALUES (1, 1, 'bad_survived');
+        INSERT INTO Mutant VALUES (2, 2, 'ok_killed');
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    assert load_survivor_locations(cache) == [
+        ("django_api_versioning/registry.py", 427)
+    ]
+
+
+def test_cache_loader_handles_a_missing_cache(tmp_path):
+    assert load_survivor_locations(tmp_path / "missing-cache") == []
