@@ -754,9 +754,9 @@ def test_registry_lifecycle_registration_validates_identity_scope_and_conflicts(
         target.register_endpoint_lifecycle("orders", 0)
     with pytest.raises(InvalidVersionError):
         target.register_endpoint_lifecycle("orders", api_settings.API_MAX_VERSION + 1)
-    with pytest.raises(VersioningError, match="method must be a string"):
+    with pytest.raises(VersioningError, match="method must be a non-empty string"):
         target.register_endpoint_lifecycle("orders", 2, method="")
-    with pytest.raises(VersioningError, match="action must be a string"):
+    with pytest.raises(VersioningError, match="action must be a non-empty string"):
         target.register_endpoint_lifecycle("orders", 2, action="")
 
     target.register_endpoint_lifecycle(
