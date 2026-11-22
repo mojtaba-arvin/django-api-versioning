@@ -1,7 +1,6 @@
 """High-value mutation contracts across negotiation, lifecycle, registry and routers."""
 
 from datetime import datetime, timezone
-
 from types import SimpleNamespace
 
 import pytest
@@ -11,22 +10,22 @@ from django.urls import path, re_path
 from django_api_versioning.decorators import _app_name_prefix, _register_endpoint_routes
 from django_api_versioning.exceptions import VersioningError
 from django_api_versioning.lifecycle import (
+    LifecycleMiddleware,
     _coerce_version,
+    _extract_version_from_path,
     _extract_version_from_value,
     _get_endpoint_lifecycle_state,
     _get_lifecycle_state,
-    _extract_version_from_path,
     _is_past,
-    LifecycleMiddleware,
     _parse_lifecycle_date,
 )
 from django_api_versioning.negotiation import (
     _header_version,
     _host_version,
     _normalize_hostname,
-    _parse_version,
     _parse_accept_media_range,
     _parse_accept_parameter_value,
+    _parse_version,
     _path_version,
     _split_quoted_header,
     _UnsupportedVersion,
@@ -548,3 +547,203 @@ def test_router_versioning_qualifies_view_names_once_with_full_namespace():
     )
     request.resolver_match.namespace = ""
     assert versioning.get_versioned_viewname("orders-list", request) == "orders-list"
+
+
+
+@pytest.mark.parametrize(
+    ("route", "expected"),
+    [
+        ("^api/v2/orders/$", "api/v2/orders/"),
+        (r"^api/v2/orders/\\.$", "api/v2/orders/."),
+        (r"^api/v2/orders/\\d+/$", r"^api/v2/orders/\\d+/$"),
+        ("^api/v2/<int:pk>/$", "^api/v2/<int:pk>/$"),
+        ("^api/v2/orders/.*$", "^api/v2/orders/.*$"),
+        ("api/v2/orders/", "api/v2/orders/"),
+        (r"^api/v2/orders/\\$", r"^api/v2/orders/\\$"),
+    ],
+)
+def test_registry_canonical_route_key_only_normalizes_literal_anchored_regexes(
+    route, expected
+):
+    assert UrlRegistry._canonical_route_key(route) == expected
+
+
+@pytest.mark.parametrize(
+    ("route", "registered_route", "expected"),
+    [
+        ("api/v2/orders/", "api/v2/orders/", len("api/v2/orders/")),
+        ("prefix/api/v2/orders/", "api/v2/orders/", len("api/v2/orders/")),
+        ("^prefix/api/v2/orders/$", "^api/v2/orders/$", len("api/v2/orders/")),
+        ("xapi/v2/orders/", "api/v2/orders/", 0),
+        ("prefix-api/v2/orders/", "api/v2/orders/", 0),
+        ("api/v2/orders-extra/", "api/v2/orders/", 0),
+    ],
+)
+def test_registry_resolved_route_match_requires_complete_segment_suffix(
+    route, registered_route, expected
+):
+    assert (
+        UrlRegistry._resolved_route_match_length(route, registered_route) == expected
+    )
+
+
+def test_registry_resolves_nested_route_suffix_and_rejects_ambiguous_versions():
+    registry = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/orders/",
+        callback,
+        "orders-list",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:list",
+    )
+    assert registry.get_resolved_route_version("prefix/api/v2/orders/") == 2
+    assert registry.get_resolved_route_version("prefix/api/v3/orders/") is None
+
+    duplicate = path("api/v2/orders/", callback, name="orders-list")
+    setattr(duplicate, registry._ROUTE_VERSION_ATTR, 3)
+    registry.urlpatterns.append(duplicate)
+    assert registry.get_resolved_route_version("prefix/api/v2/orders/") is None
+
+
+def test_registry_resolved_route_match_requires_callback_name_and_tried_identity():
+    registry = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/orders/",
+        callback,
+        "orders-list",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:list",
+    )
+    pattern = registry.urlpatterns[0]
+    match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="orders-list",
+        tried=[[pattern]],
+    )
+    assert registry.get_resolved_route_version_for_match(match) == (True, 2)
+
+    match.tried = []
+    assert registry.get_resolved_route_version_for_match(match) == (False, None)
+    match.tried = [[pattern]]
+    match.url_name = "other-name"
+    assert registry.get_resolved_route_version_for_match(match) == (False, None)
+
+
+def test_registry_resolve_operation_checks_namespace_and_maps_head_and_405():
+    registry = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    callback.actions = {"get": "list", "post": "create"}
+    registry.register(
+        "api/v2/orders/",
+        callback,
+        "orders-list",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders:list",
+    )
+    pattern = registry.urlpatterns[0]
+    match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="orders-list",
+        namespaces=("v2",),
+        namespace="v2",
+        tried=[[pattern]],
+    )
+    operation = registry.resolve_operation(match, "HEAD")
+    assert operation is not None
+    assert operation.method == "HEAD"
+    assert operation.action == "list"
+
+    match.namespaces = ("v3",)
+    assert registry.resolve_operation(match, "GET") is None
+    match.namespaces = ("v2",)
+    assert registry.resolve_operation(match, "DELETE") is None
+    operation = registry.resolve_operation(match, "DELETE", allow_unmapped_method=True)
+    assert operation is not None
+    assert operation.action is None
+
+
+def test_router_versioning_uses_route_version_when_namespace_prefix_disagrees(
+    monkeypatch,
+):
+    versioning = VersionedRouterVersioning()
+    versioning.allowed_versions = ["2", "3"]
+    versioning.default_version = None
+    monkeypatch.setattr(
+        "django_api_versioning.routers.registry.get_resolved_route_version",
+        lambda route: 3,
+    )
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(
+            namespace="outer:v2", route="api/v3/orders/", tried=None
+        )
+    )
+    assert versioning.determine_version(request) == "3"
+
+    request.resolver_match.route = "api/v2/orders/"
+    assert versioning.determine_version(request) == "2"
+
+
+def test_negotiation_accept_quality_accepts_rfc_qvalue_boundaries():
+    for quality in ("0", "0.001", "0.5", "1", "1.000"):
+        assert _parse_accept_media_range(
+            f"application/json; q={quality}; version=2"
+        ) == ("2", float(quality))
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "application/json; q=1.001; version=2",
+        "application/json; q=0.0001; version=2",
+        'application/json; q="0.5"; version=2',
+        "application/json; q=+0.5; version=2",
+        "application/json; q=-0.1; version=2",
+    ],
+)
+def test_negotiation_accept_rejects_non_rfc_quality_values(header):
+    with pytest.raises(ValueError, match="invalid quality"):
+        _parse_accept_media_range(header)
+
+
+def test_lifecycle_process_response_does_not_repeat_version_sunset_after_enforcement(
+    monkeypatch,
+):
+    from django.http import HttpResponse
+
+    request = RequestFactory().get("/api/v2/orders/")
+    state = (
+        2,
+        {"status": "retired", "sunset": "2020-01-01"},
+        None,
+        datetime(2020, 1, 1, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        "django_api_versioning.lifecycle._get_lifecycle_state",
+        lambda _request: state,
+    )
+    monkeypatch.setattr(
+        "django_api_versioning.lifecycle._get_endpoint_lifecycle_state",
+        lambda _request, allow_unmapped_method=False: None,
+    )
+    request._django_api_version_lifecycle_sunset_enforced = True
+    response = LifecycleMiddleware(lambda _request: None).process_response(
+        request, HttpResponse("already handled", status=410)
+    )
+    assert response.status_code == 410
+    assert response.content == b"already handled"
