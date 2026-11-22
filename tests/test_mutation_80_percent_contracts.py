@@ -3,8 +3,9 @@
 from datetime import datetime, timezone
 
 import pytest
+from types import SimpleNamespace
 from django.test import RequestFactory
-from django.urls import re_path
+from django.urls import path, re_path
 
 from django_api_versioning.decorators import _app_name_prefix, _register_endpoint_routes
 from django_api_versioning.exceptions import VersioningError
@@ -30,7 +31,11 @@ from django_api_versioning.negotiation import (
     _UnsupportedVersion,
 )
 from django_api_versioning.registry import ResolvedOperation, UrlRegistry
-from django_api_versioning.routers import VersionedRouter
+from django_api_versioning.routers import (
+    VersionedDefaultRouter,
+    VersionedRouter,
+    VersionedRouterVersioning,
+)
 
 
 def test_app_name_prefix_rejects_encoded_and_query_path_components():
@@ -448,3 +453,74 @@ def test_endpoint_lifecycle_cache_is_separate_for_405_resolution(monkeypatch):
 
 def test_lifecycle_version_coercion_rejects_oversized_decimal_strings():
     assert _coerce_version("9" * 5000) is None
+
+
+def test_default_router_options_control_root_and_suffix_generation():
+    router = VersionedDefaultRouter(
+        include_root_view=False,
+        include_format_suffixes=False,
+        root_view_name="root",
+    )
+    assert router.include_root_view is False
+    assert router.include_format_suffixes is False
+    assert router.root_view_name == "root"
+    assert router._build_default_urls() == []
+
+
+def test_default_router_rejects_invalid_root_configuration():
+    with pytest.raises(TypeError, match="include_root_view must be a bool"):
+        VersionedDefaultRouter(include_root_view=1)
+    with pytest.raises(TypeError, match="include_format_suffixes must be a bool"):
+        VersionedDefaultRouter(include_format_suffixes=1)
+    with pytest.raises(VersioningError, match="root_view_name"):
+        VersionedDefaultRouter(root_view_name="  ")
+
+
+def test_router_builds_version_namespaces_in_numeric_order():
+    router = VersionedRouter()
+    pattern_three = path("three/", lambda request: None, name="three")
+    pattern_two = path("two/", lambda request: None, name="two")
+    patterns = router._build_namespaced_urlpatterns(
+        {3: [pattern_three], 2: [pattern_two]}, []
+    )
+    assert [pattern.namespace for pattern in patterns] == ["v2", "v3"]
+    assert [pattern.app_name for pattern in patterns] == [
+        "django_api_versioning",
+        "django_api_versioning",
+    ]
+
+
+def test_router_versioning_allowed_versions_include_default_and_explicit_values():
+    versioning = VersionedRouterVersioning()
+    versioning.allowed_versions = [2, 3]
+    versioning.default_version = "1"
+    assert versioning.is_allowed_version("1") is True
+    assert versioning.is_allowed_version("2") is True
+    assert versioning.is_allowed_version("4") is False
+    versioning.allowed_versions = []
+    assert versioning.is_allowed_version("anything") is True
+
+
+def test_router_versioning_extracts_namespace_and_validates_allowed_version():
+    versioning = VersionedRouterVersioning()
+    versioning.allowed_versions = ["2"]
+    versioning.default_version = None
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(namespace="outer:v2", route=None)
+    )
+    assert versioning.determine_version(request) == "2"
+
+    versioning.allowed_versions = ["3"]
+    with pytest.raises(Exception, match="allowed API version"):
+        versioning.determine_version(request)
+
+
+def test_router_versioning_qualifies_view_names_once_with_full_namespace():
+    versioning = VersionedRouterVersioning()
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(namespace="outer:v2")
+    )
+    assert versioning.get_versioned_viewname("orders-list", request) == "outer:v2:orders-list"
+    assert versioning.get_versioned_viewname("outer:v2:orders-list", request) == "outer:v2:orders-list"
+    request.resolver_match.namespace = ""
+    assert versioning.get_versioned_viewname("orders-list", request) == "orders-list"
