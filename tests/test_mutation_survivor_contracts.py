@@ -1836,6 +1836,8 @@ def test_mutation95_lifecycle_default_resolution_and_response_contracts(
         )
         is untouched
     )
+
+
 def test_mutation95_registry_import_time_contracts_are_exercised():
     import importlib
     import importlib.util
@@ -2178,6 +2180,7 @@ def test_mutation95_router_error_messages_are_exact(monkeypatch):
         lambda: router.register("orders", OrdersViewSet, version=2, basename="orders"),
     )
 
+    registry.clear()
     other_router = VersionedRouter()
     other_router.register("orders", OrdersViewSet, version=1, basename="shared")
     _assert_exact_exception(
