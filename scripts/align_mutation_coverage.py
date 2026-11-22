@@ -16,6 +16,7 @@ from pathlib import Path
 
 from coverage import CoverageData
 
+
 def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
     """Reset surviving mutants so the corrected coverage selection reruns them."""
     if not cache_path.is_file():

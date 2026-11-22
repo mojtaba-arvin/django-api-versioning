@@ -95,13 +95,14 @@ def test_cache_preparation_resets_only_surviving_mutants(tmp_path):
         CREATE TABLE Mutant (
             id INTEGER PRIMARY KEY,
             line INTEGER NOT NULL,
-            status TEXT NOT NULL
+            status TEXT NOT NULL,
+            tested_against_hash TEXT NOT NULL
         );
         INSERT INTO SourceFile VALUES (1, 'django_api_versioning/registry.py');
         INSERT INTO Line VALUES (1, 1, 427);
         INSERT INTO Line VALUES (2, 1, 428);
-        INSERT INTO Mutant VALUES (1, 1, 'bad_survived');
-        INSERT INTO Mutant VALUES (2, 2, 'ok_killed');
+        INSERT INTO Mutant VALUES (1, 1, 'bad_survived', 'old-hash');
+        INSERT INTO Mutant VALUES (2, 2, 'ok_killed', 'old-hash');
         """
     )
     connection.commit()
@@ -116,5 +117,5 @@ def test_cache_preparation_resets_only_surviving_mutants(tmp_path):
     assert statuses == [("not_checked",), ("ok_killed",)]
 
 
-def test_cache_loader_handles_a_missing_cache(tmp_path):
+def test_cache_preparation_handles_a_missing_cache(tmp_path):
     assert prepare_survivors_for_rerun(tmp_path / "missing-cache") == []
