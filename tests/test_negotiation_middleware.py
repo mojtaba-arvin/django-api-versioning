@@ -618,7 +618,6 @@ def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
     assert request.META["PATH_INFO"] == "/api/v2/orders/"
 
 
-
 @pytest.mark.parametrize("value", [True, None, "", "2.0", "٢"])
 def test_parse_version_rejects_values_outside_ascii_decimal_contract(value):
     with pytest.raises(
