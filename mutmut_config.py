@@ -11,7 +11,9 @@ import os
 import shlex
 from pathlib import Path
 
-ALL_TEST_MODULES = tuple(path.as_posix() for path in sorted(Path("tests").glob("test_*.py")))
+ALL_TEST_MODULES = tuple(
+    path.as_posix() for path in sorted(Path("tests").glob("test_*.py"))
+)
 
 TESTS_BY_SOURCE = {
     "decorators.py": ALL_TEST_MODULES,
