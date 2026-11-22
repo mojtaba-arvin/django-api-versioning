@@ -553,12 +553,12 @@ def test_router_versioning_qualifies_view_names_once_with_full_namespace():
     ("route", "expected"),
     [
         ("^api/v2/orders/$", "api/v2/orders/"),
-        (r"^api/v2/orders/\\.$", "api/v2/orders/."),
+        (r"^api/v2/orders/\.$", "api/v2/orders/."),
         (r"^api/v2/orders/\\d+/$", r"^api/v2/orders/\\d+/$"),
         ("^api/v2/<int:pk>/$", "^api/v2/<int:pk>/$"),
         ("^api/v2/orders/.*$", "^api/v2/orders/.*$"),
         ("api/v2/orders/", "api/v2/orders/"),
-        (r"^api/v2/orders/\\$", r"^api/v2/orders/\\$"),
+        (r"^api/v2/orders/\$", "api/v2/orders/$"),
     ],
 )
 def test_registry_canonical_route_key_only_normalizes_literal_anchored_regexes(
