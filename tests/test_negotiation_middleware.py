@@ -525,7 +525,6 @@ def test_accept_equal_quality_conflicting_versions_are_rejected():
     _, response = _dispatch(
         "/api/orders/",
             "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
-        ),
     )
 
     assert response.status_code == 400
