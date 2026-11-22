@@ -59,8 +59,7 @@ def validate_commit_subjects(subjects: list[str]) -> list[str]:
     errors: list[str] = []
     for index, subject in enumerate(subjects, start=1):
         errors.extend(
-            f"commit {index}: {error}"
-            for error in validate_commit_message(subject)
+            f"commit {index}: {error}" for error in validate_commit_message(subject)
         )
     return errors
 
