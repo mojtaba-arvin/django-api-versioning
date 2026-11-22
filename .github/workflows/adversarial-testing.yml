@@ -66,140 +66,107 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  mutation:
+  mutation-decorators:
     if: github.event_name != 'push'
-    name: Mutation shard (${{ matrix.id }})
+    name: Decorator mutation shard
     needs: mutation-coverage
+    uses: ./.github/workflows/mutation-shard.yml
+    with:
+      target_id: decorators
+      target_path: django_api_versioning/decorators.py
+    permissions:
+      contents: read
+
+  decorator-score:
+    if: github.event_name != 'push'
+    name: Decorator mutation gate (minimum 98/139)
+    needs: mutation-decorators
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 15 || 60 }}
-    strategy:
-      fail-fast: false
-      max-parallel: 5
-      matrix:
-        # PRs run the decorator gate in isolation. Other mutation targets are
-        # deliberately withheld until this focused gate has passed.
-        include: ${{ github.event_name == 'pull_request' && fromJSON('[{"id":"decorators","path":"django_api_versioning/decorators.py"}]') || fromJSON('[{"id":"decorators","path":"django_api_versioning/decorators.py"},{"id":"lifecycle","path":"django_api_versioning/lifecycle.py"},{"id":"negotiation","path":"django_api_versioning/negotiation.py"},{"id":"registry","path":"django_api_versioning/registry.py"},{"id":"routers","path":"django_api_versioning/routers.py"}]') }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: requirements-ci.txt
-      - name: Restore target-specific mutation cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: |
-            .mutmut-cache
-            mutants
-          key: mutmut-${{ runner.os }}-${{ matrix.id }}-${{ github.event_name }}-contexts-v3-sample1-${{ hashFiles(matrix.path, 'tests/**/*.py', 'setup.cfg', 'mutmut_config.py', 'requirements-ci.txt') }}
-      - name: Install test and mutation dependencies
-        run: |
-          python -m pip install -e . -r requirements-ci.txt "mutmut==2.5.1"
-      - name: Scope mutation generation to this shard
-        env:
-          MUTATION_TARGET: ${{ matrix.path }}
-        run: |
-          python - <<'PY'
-          import os
-          import re
-          from pathlib import Path
-
-          config = Path("setup.cfg")
-          source = config.read_text()
-          updated, replacements = re.subn(
-              r"(?m)^paths_to_mutate\s*=.*$",
-              f"paths_to_mutate = {os.environ['MUTATION_TARGET']}",
-              source,
-          )
-          if replacements != 1:
-              raise SystemExit("Expected exactly one [mutmut] paths_to_mutate setting")
-
-          depth = 4 if os.environ["GITHUB_EVENT_NAME"] == "pull_request" else 8
-          updated, depth_replacements = re.subn(
-              r"(?m)^max_stack_depth\s*=.*$",
-              f"max_stack_depth = {depth}",
-              updated,
-          )
-          if depth_replacements != 1:
-              raise SystemExit("Expected exactly one [mutmut] max_stack_depth setting")
-          config.write_text(updated)
-          PY
-      - name: Download shared mutation coverage data
+      - name: Download decorator mutation report
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
-          name: mutation-coverage-data
-          path: .
-      - name: Restore coverage.py's expected data filename
-        run: mv coverage.data .coverage
-      - name: Run mutation analysis
-        env:
-          MUTATION_TARGET_ID: ${{ matrix.id }}
-        shell: bash
+          name: mutmut-decorators
+          path: mutation-report
+      - name: Enforce the fixed decorator baseline and threshold
         run: |
-          set -euo pipefail
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            mutation_args=(--use-coverage)
-          else
-            mutation_args=(--use-coverage --rerun-all)
-          fi
-          if mutmut run "${mutation_args[@]}" > "$RUNNER_TEMP/mutmut-run.log" 2>&1; then
-            mutation_status=0
-          else
-            mutation_status=$?
-          fi
-          tail -n 30 "$RUNNER_TEMP/mutmut-run.log"
-          if [ "$mutation_status" -ne 0 ] && [ "$mutation_status" -ne 2 ]; then
-            echo "Mutation runner failed with exit code $mutation_status" >&2
-            exit "$mutation_status"
-          fi
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
 
-          if mutmut results > "$RUNNER_TEMP/${MUTATION_TARGET_ID}-results.txt"; then
-            :
-          else
-            results_status=$?
-            if [ "$results_status" -ne 2 ] || [ ! -s "$RUNNER_TEMP/${MUTATION_TARGET_ID}-results.txt" ]; then
-              echo "Unable to collect mutmut's per-mutant report (exit $results_status)" >&2
-              exit "$results_status"
-            fi
-          fi
+          reports = list(Path("mutation-report").rglob("decorators.json"))
+          if len(reports) != 1:
+              raise SystemExit(f"Expected one decorator report, found {len(reports)}")
+          report = json.loads(reports[0].read_text())
+          if report.get("target") != "decorators":
+              raise SystemExit("Decorator report target mismatch")
 
-          # Preserve exact survivor diffs and test contexts on PR gate runs too.
-          detail_args=(--details)
-          python scripts/export_mutation_report.py \
-            --target "$MUTATION_TARGET_ID" \
-            --cache .mutmut-cache \
-            --coverage .coverage \
-            --results "$RUNNER_TEMP/${MUTATION_TARGET_ID}-results.txt" \
-            --run-log "$RUNNER_TEMP/mutmut-run.log" \
-            --runner-exit "$mutation_status" \
-            --summary "$RUNNER_TEMP/${MUTATION_TARGET_ID}.json" \
-            --report "$RUNNER_TEMP/${MUTATION_TARGET_ID}-mutants.ndjson" \
-            "${detail_args[@]}"
-      - name: Preserve shard diagnostics
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          name: mutmut-${{ matrix.id }}
-          path: |
-            ${{ runner.temp }}/${{ matrix.id }}.json
-            ${{ runner.temp }}/mutmut-run.log
-            ${{ runner.temp }}/${{ matrix.id }}-results.txt
-            ${{ runner.temp }}/${{ matrix.id }}-mutants.ndjson
-            .mutmut-cache
-            mutants
-          if-no-files-found: ignore
-          include-hidden-files: true
-          retention-days: 14
+          expected_total = 139
+          if report["total"] != expected_total:
+              raise SystemExit(
+                  f"Decorator mutant baseline changed: expected {expected_total}, "
+                  f"got {report['total']}; review baseline before proceeding"
+              )
+          if report["completed"] != report["total"]:
+              raise SystemExit("Decorator mutation campaign is incomplete")
+          outcomes = sum(
+              report[key]
+              for key in ("killed", "survived", "timed_out", "suspicious", "skipped")
+          )
+          if outcomes != report["total"]:
+              raise SystemExit("Decorator mutation outcomes do not reconcile")
+          if report["timed_out"] or report["suspicious"] or report["skipped"]:
+              raise SystemExit("Decorator campaign has unresolved mutant outcomes")
+
+          required_kills = max(98, math.ceil(report["total"] * 0.70))
+          score = 100.0 * report["killed"] / report["total"]
+          print(
+              f"Decorator mutation score: {score:.2f}% "
+              f"({report['killed']}/{report['total']} killed); "
+              f"required: {required_kills}/{expected_total}"
+          )
+          if report["killed"] < required_kills:
+              raise SystemExit(
+                  f"Decorator gate failed by {required_kills - report['killed']} kills"
+              )
+          PY
+
+  mutation-others:
+    if: github.event_name != 'pull_request' && github.event_name != 'push'
+    name: Downstream mutation shard (${{ matrix.id }})
+    needs: decorator-score
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - id: lifecycle
+            path: django_api_versioning/lifecycle.py
+          - id: negotiation
+            path: django_api_versioning/negotiation.py
+          - id: registry
+            path: django_api_versioning/registry.py
+          - id: routers
+            path: django_api_versioning/routers.py
+    uses: ./.github/workflows/mutation-shard.yml
+    with:
+      target_id: ${{ matrix.id }}
+      target_path: ${{ matrix.path }}
+    permissions:
+      contents: read
 
   mutation-score:
-    if: github.event_name != 'push'
+    if: >-
+      always() &&
+      github.event_name != 'push' &&
+      needs.decorator-score.result == 'success' &&
+      (needs.mutation-others.result == 'success' || needs.mutation-others.result == 'skipped')
     name: Mutation score (combined)
     runs-on: ubuntu-latest
-    needs: mutation
+    needs:
+      - decorator-score
+      - mutation-others
     steps:
       - name: Download all mutation shard reports
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
@@ -249,9 +216,9 @@ jobs:
           score = 100.0 * totals["killed"] / totals["total"]
           minimum = 70.0
           if is_pull_request:
-              print("Decorator mutation gate (PR-isolated; other mutation targets remain blocked):")
+              print("Decorator mutation gate passed; downstream mutation targets remain locked:")
           else:
-              print("Full-suite mutation score:")
+              print("Full-suite mutation score after decorator gate:")
           print("Per-target mutation results:")
           for target in sorted(reports):
               report = reports[target]
