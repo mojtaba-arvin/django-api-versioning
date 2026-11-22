@@ -657,7 +657,7 @@ def test_accept_parameter_parser_rejects_malformed_quoted_values(value):
         _parse_accept_parameter_value(value)
 
 
-@pytest.mark.parametrize("value", ['"one\"two"', '"tab\tvalue"'])
+@pytest.mark.parametrize("value", ['"one\\"two"', '"tab\tvalue"'])
 def test_accept_parameter_parser_accepts_valid_quoted_pairs_and_horizontal_tab(value):
     parsed, quoted = _parse_accept_parameter_value(value)
 
