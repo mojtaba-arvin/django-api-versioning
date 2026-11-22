@@ -964,12 +964,12 @@ def test_registry_logical_matrix_disambiguates_router_ownership_and_slash_policy
 
     matrix = target.get_logical_version_matrix()
 
-    assert matrix[
-        "orders:order-list [router='orders', trailing_slash=True]"
-    ][2] is _view
-    assert matrix[
-        "orders:order-list [router='orders', trailing_slash=False]"
-    ][2] is _view
+    assert (
+        matrix["orders:order-list [router='orders', trailing_slash=True]"][2] is _view
+    )
+    assert (
+        matrix["orders:order-list [router='orders', trailing_slash=False]"][2] is _view
+    )
     assert len(matrix) == 2
 
 
@@ -1210,9 +1210,9 @@ def test_negotiation_middleware_rewrites_every_django_path_representation():
         API_MAX_VERSION=3,
     ):
         request = RequestFactory().get("/api/orders/?v=2")
-        response = VersionNegotiationMiddleware(
-            lambda current: HttpResponse("ok")
-        )(request)
+        response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(
+            request
+        )
 
     assert response.status_code == 200
     assert request.original_path_info == "/api/orders/"
@@ -1241,9 +1241,9 @@ def test_negotiation_path_scheme_preserves_zero_and_header_scheme_sets_vary():
         API_VERSIONING_SCHEME="header",
         API_VERSIONING_HEADER="Accept-Version",
     ):
-        response = VersionNegotiationMiddleware(
-            lambda current: HttpResponse("ok")
-        )(RequestFactory().get("/unrelated/"))
+        response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(
+            RequestFactory().get("/unrelated/")
+        )
 
     assert set(response.headers["Vary"].split(", ")) == {"Accept-Version", "Accept"}
 
