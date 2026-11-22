@@ -205,6 +205,22 @@
         "Treats a repository example or CI workflow as a package runtime capability.",
         "Claims PyPI publication or feature availability without verifying the exact version-specific artifact."
       ]
+    },
+    {
+      "id": "conventional-commit-hygiene",
+      "profile": "agent-maintenance",
+      "task": "Complete a multi-file repository change that will be squash-merged to main. Ensure the agent's commit and pull-request titles follow the repository's required commit-message convention.",
+      "checks": [
+        "Chooses one coherent Conventional Commit subject with a lowercase imperative summary, optional lowercase scope, no trailing period, and at most 100 characters.",
+        "Validates the proposed subject with scripts/check_commit_message.py before committing.",
+        "Uses the same valid Conventional Commit subject as the pull-request title because squash merge copies that title to the main commit.",
+        "Does not split a coherent change into per-file or progress-style commits."
+      ],
+      "failure_modes": [
+        "Uses a generic or narrative commit subject such as updates, work, fix stuff, or finished.",
+        "Assumes a local instruction or hook alone can protect the main branch from an invalid squash-merge title.",
+        "Opens a pull request with a title that does not pass the repository's mandatory title validator."
+      ]
     }
   ]
 }

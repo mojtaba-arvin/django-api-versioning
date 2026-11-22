@@ -37,7 +37,7 @@ Do not reuse a completed branch for unrelated work. Dependabot branches are temp
 
 Prefer a small number of commits, each representing one coherent and independently understandable change. Do not create a commit for every edited file, formatter run, generated timestamp, or intermediate checkpoint.
 
-Use the established Conventional Commit style:
+Use the established Conventional Commit style. The subject is also the final squash-merge commit subject, so the PR title must follow exactly the same rule and is checked by the required PR gate:
 
 - `feat:` — new user-visible behavior
 - `fix:` — user-visible bug fix
@@ -45,6 +45,21 @@ Use the established Conventional Commit style:
 - `test:` — tests without production behavior changes
 - `refactor:` — behavior-preserving restructuring
 - `chore:`, `build:`, `ci:` — maintenance, packaging, or automation
+
+Use a lowercase imperative summary, no trailing period, and keep the complete subject at or below 100 characters. A scope is optional; use `!` after the type/scope for an intentional breaking change. Put motivation, implementation details, and test evidence in the body—not in a long or multi-topic subject. Avoid vague subjects such as `updates`, `fix stuff`, `work`, `changes`, or progress narration. Examples:
+
+```text
+feat(router): support nested route prefixes
+fix(negotiation): reject malformed version headers
+test(registry): cover concurrent registration
+chore(ci): enforce conventional commit subjects
+```
+
+Validate a proposed subject before committing:
+
+```bash
+python scripts/check_commit_message.py --message "fix(negotiation): reject malformed version headers"
+```
 
 Add a scope where useful, such as `fix(registry): preserve endpoint precedence`. Mark an intentional breaking change with `!` or a `BREAKING CHANGE:` footer. Commit prefixes are for readable history; release impact must be determined from actual diffs, not prefixes alone.
 
@@ -56,7 +71,16 @@ git status --short
 git diff
 ```
 
-Stage explicit paths, inspect the staged diff, and verify the commit identity. Never commit credentials, local environment files, non-canonical generated files, or unrelated user work. When pre-commit is installed, activate both the commit and push hooks with `pre-commit install` and `pre-commit install --hook-type pre-push`. The commit hooks format and check changed Python files; the pre-push hook runs `tox run -e lint` when Python or lint configuration changes. They provide local feedback, while the required PR gate remains authoritative.
+Stage explicit paths, inspect the staged diff, and verify the commit identity. Never commit credentials, local environment files, non-canonical generated files, or unrelated user work. Configure the repository commit template and activate the commit-message, commit, and push hooks (the template is a local Git setting and must be enabled once per clone):
+
+```bash
+git config commit.template .gitmessage
+pre-commit install --hook-type commit-msg
+pre-commit install
+pre-commit install --hook-type pre-push
+```
+
+The `commit-msg` hook rejects non-conforming subjects before Git creates a commit. The other commit hooks format and check changed Python files; the pre-push hook runs `tox run -e lint` when Python or lint configuration changes. These local hooks are defense in depth, not the authority: the required PR gate independently validates the PR title because GitHub squash-merges use that title as the `main` commit subject. Changing a PR title reruns the check.
 
 ## Pull requests to main
 
