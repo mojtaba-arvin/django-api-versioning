@@ -1836,3 +1836,547 @@ def test_mutation95_lifecycle_default_resolution_and_response_contracts(
         )
         is untouched
     )
+def test_mutation95_registry_import_time_contracts_are_exercised():
+    import importlib
+    import importlib.util
+    import sys
+
+    registry_module = importlib.import_module("django_api_versioning.registry")
+    module_name = "django_api_versioning._mutation_probe_registry"
+    spec = importlib.util.spec_from_file_location(module_name, registry_module.__file__)
+    assert spec is not None and spec.loader is not None
+    probe = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = probe
+    try:
+        spec.loader.exec_module(probe)
+        assert probe.REMOVED_ROUTE is not None
+        assert probe.ViewType is not None
+        assert probe.UrlRegistry._SOURCE_VERSION_ATTR == (
+            "_django_api_versioning_source_version"
+        )
+        assert probe.UrlRegistry._ROUTE_VERSION_ATTR == (
+            "_django_api_versioning_route_version"
+        )
+        assert probe.UrlRegistry._LOGICAL_ENDPOINT_ATTR == (
+            "_django_api_versioning_logical_endpoint"
+        )
+        assert probe.UrlRegistry._ROUTER_OWNER_ATTR == (
+            "_django_api_versioning_router_owner"
+        )
+        assert probe.UrlRegistry._ROUTER_PREFIX_ATTR == (
+            "_django_api_versioning_router_prefix"
+        )
+        assert probe.UrlRegistry._ROUTER_TRAILING_SLASH_ATTR == (
+            "_django_api_versioning_router_trailing_slash"
+        )
+
+        operation = probe.ResolvedOperation(
+            logical_endpoint="orders",
+            route_version=2,
+            source_version=1,
+            method="GET",
+            action="list",
+            route_name="order-list",
+            namespace="v2",
+            route="api/v2/orders/",
+            registered_route="api/v2/orders/",
+        )
+        assert not hasattr(operation, "__dict__")
+        with pytest.raises(FrozenInstanceError):
+            operation.route = "api/v1/orders/"
+
+        synchronized_methods = (
+            "clear",
+            "remove",
+            "register",
+            "register_urlpattern",
+            "get_route_version",
+            "get_version_matrix",
+            "get_logical_version_matrix",
+            "get_resolved_route_version_for_match",
+            "get_resolved_route_version",
+            "resolve_operation",
+            "resolve_registered_operation",
+            "register_endpoint_lifecycle",
+        )
+        for method_name in synchronized_methods:
+            method = getattr(probe.UrlRegistry, method_name)
+            assert method.__name__ == method_name
+            assert callable(getattr(method, "__wrapped__", None))
+    finally:
+        sys.modules.pop(module_name, None)
+
+
+def test_mutation95_registry_removal_boundaries_are_inclusive_and_source_aware(
+    monkeypatch,
+):
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 3)
+
+    target = UrlRegistry()
+    target.register(
+        "api/v1/orders/",
+        _view,
+        source_version=1,
+        route_version=1,
+        logical_endpoint="orders",
+    )
+    target.register(
+        "api/v2/orders/",
+        _view,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    target.register(
+        "api/v3/orders/",
+        _view,
+        source_version=2,
+        route_version=3,
+        logical_endpoint="orders",
+    )
+    target.register_endpoint_lifecycle(
+        "orders", 2, deprecated_at="2027-01-01T00:00:00Z"
+    )
+    target.register_endpoint_lifecycle(
+        "orders", 3, deprecated_at="2028-01-01T00:00:00Z"
+    )
+
+    target.remove("orders", 2)
+
+    assert {
+        getattr(pattern, target._ROUTE_VERSION_ATTR)
+        for pattern in target.urlpatterns
+    } == {1}
+    assert set(target._removed_patterns) == {("orders", 2), ("orders", 3)}
+    assert all(key[1] < 2 for key in target._endpoint_lifecycle)
+
+    newer_source = UrlRegistry()
+    newer_source.register(
+        "api/v2/orders/",
+        _view,
+        source_version=3,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    newer_source.register_endpoint_lifecycle(
+        "orders", 2, deprecated_at="2029-01-01T00:00:00Z"
+    )
+    newer_source.remove("orders", 2)
+    assert len(newer_source.urlpatterns) == 1
+    assert ("orders", 2, None, None, None) in newer_source._endpoint_lifecycle
+
+
+def test_mutation95_registry_router_removal_is_owner_and_route_identity_scoped():
+    target = UrlRegistry()
+    owner_with_slash = object()
+    owner_without_slash = object()
+
+    with_slash = path("api/v2/orders/", _view, name="orders")
+    without_slash = path("api/v2/orders", _view, name="orders")
+    for pattern, owner, trailing_slash in (
+        (with_slash, owner_with_slash, True),
+        (without_slash, owner_without_slash, False),
+    ):
+        setattr(pattern, target._ROUTER_OWNER_ATTR, owner)
+        setattr(pattern, target._ROUTER_PREFIX_ATTR, "orders")
+        setattr(pattern, target._ROUTER_TRAILING_SLASH_ATTR, trailing_slash)
+        target.register_urlpattern(
+            pattern,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="orders",
+        )
+
+    target.remove("orders", 2, owner=owner_with_slash)
+
+    assert with_slash not in target.urlpatterns
+    assert without_slash in target.urlpatterns
+    assert target._router_removal_boundaries == {
+        ("orders", "orders", True): {2}
+    }
+
+
+def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
+    target = UrlRegistry()
+    version_one = path("api/v1/orders/", _view, name="order-list")
+    version_two = path("api/v2/orders/", _view, name="order-list")
+    version_three = path("api/v2/orders/", _view, name="order-list")
+    for pattern, version in (
+        (version_one, 1),
+        (version_two, 2),
+        (version_three, 3),
+    ):
+        setattr(pattern, target._ROUTE_VERSION_ATTR, version)
+    target.urlpatterns[:] = [version_one, version_two, version_three]
+
+    exact = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name=None,
+        tried=[[version_two]],
+    )
+    assert target.get_resolved_route_version_for_match(exact) == (True, 2)
+
+    empty_trace = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name=None,
+        tried=[[]],
+    )
+    assert target.get_resolved_route_version_for_match(empty_trace) == (False, None)
+
+    ambiguous = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name="order-list",
+        tried=[[version_two], [version_three]],
+    )
+    assert target.get_resolved_route_version_for_match(ambiguous) == (True, None)
+
+    wrong_name = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name="missing",
+        tried=[[version_two]],
+    )
+    assert target.get_resolved_route_version_for_match(wrong_name) == (False, None)
+
+    longest = UrlRegistry()
+    short = path("orders/", _view, name="order-list")
+    long = path("api/v2/orders/", _view, name="order-list")
+    setattr(short, longest._ROUTE_VERSION_ATTR, 1)
+    setattr(long, longest._ROUTE_VERSION_ATTR, 2)
+    longest.urlpatterns[:] = [short, long]
+    fallback = SimpleNamespace(
+        route="nested/api/v2/orders/",
+        func=_view,
+        url_name=None,
+        tried=None,
+    )
+    assert longest.get_resolved_route_version_for_match(fallback) == (True, 2)
+    assert longest._resolved_route_match_length(
+        "nested/api/v2/orders/", "api/v2/orders/"
+    ) == len("api/v2/orders/")
+    assert longest._resolved_route_match_length(
+        "prefixapi/v2/orders/", "api/v2/orders/"
+    ) == 0
+
+
+def test_mutation95_registry_operation_resolution_fails_closed_on_bad_identity():
+    target = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    callback.actions = {"get": "list"}
+    pattern = path("api/v2/orders/", callback, name="order-list")
+    setattr(pattern, target._LOGICAL_ENDPOINT_ATTR, "orders")
+    setattr(pattern, target._ROUTE_VERSION_ATTR, 2)
+    setattr(pattern, target._SOURCE_VERSION_ATTR, 1)
+    target.urlpatterns.append(pattern)
+
+    match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name=None,
+        namespace="v2",
+        namespaces=("v2",),
+        tried=[[pattern]],
+    )
+    operation = target.resolve_operation(match, "HEAD")
+    assert operation is not None
+    assert operation.logical_endpoint == "orders"
+    assert operation.route_version == 2
+    assert operation.source_version == 1
+    assert operation.method == "HEAD"
+    assert operation.action == "list"
+    assert operation.namespace == "v2"
+
+    assert target.resolve_operation(match, "PATCH") is None
+    unmapped = target.resolve_operation(
+        match, "PATCH", allow_unmapped_method=True
+    )
+    assert unmapped is not None and unmapped.action is None
+
+    wrong_namespace = SimpleNamespace(
+        route=match.route,
+        func=callback,
+        url_name=None,
+        namespace="v3",
+        namespaces=("v3",),
+        tried=[[pattern]],
+    )
+    assert target.resolve_operation(wrong_namespace, "GET") is None
+
+    invalid_endpoint = path("api/v2/orders/", callback, name="order-list")
+    setattr(invalid_endpoint, target._LOGICAL_ENDPOINT_ATTR, "")
+    setattr(invalid_endpoint, target._ROUTE_VERSION_ATTR, 2)
+    invalid_version = path("api/v2/orders/", callback, name="order-list")
+    setattr(invalid_version, target._LOGICAL_ENDPOINT_ATTR, "orders")
+    setattr(invalid_version, target._ROUTE_VERSION_ATTR, True)
+
+    for invalid_pattern in (invalid_endpoint, invalid_version):
+        invalid_registry = UrlRegistry()
+        invalid_registry.urlpatterns.append(invalid_pattern)
+        invalid_match = SimpleNamespace(
+            route="api/v2/orders/",
+            func=callback,
+            url_name=None,
+            namespace="",
+            namespaces=(),
+            tried=[[invalid_pattern]],
+        )
+        assert invalid_registry.resolve_operation(invalid_match, "GET") is None
+
+    assert target.resolve_registered_operation("orders", 2, "HEAD").action == "list"
+    assert target.resolve_registered_operation("orders", True, "GET") is None
+    assert target.resolve_registered_operation("orders", 2, "") is None
+
+
+def test_mutation95_registry_regex_canonicalization_and_specificity_boundaries():
+    target = UrlRegistry()
+    assert target._canonical_route_key(r"^api/v2/orders/\.$") == "api/v2/orders/."
+    assert target._canonical_route_key(r"^api/v2/orders/\d/$") == (
+        r"^api/v2/orders/\d/$"
+    )
+    assert target._canonical_route_key(r"^api/v2/orders/\\") == (
+        r"^api/v2/orders/\\"
+    )
+
+    static_path = path("api/v2/orders/search/", _view)
+    dynamic_path = path("api/v2/orders/<int:pk>/", _view)
+    assert target._route_specificity_key(static_path) < target._route_specificity_key(
+        dynamic_path
+    )
+
+    static_regex = re_path(r"^api/v2/orders/\.$", _view)
+    dynamic_regex = re_path(r"^api/v2/orders/\d/$", _view)
+    assert target._route_specificity_key(
+        static_regex
+    ) < target._route_specificity_key(dynamic_regex)
+
+
+def test_mutation95_router_error_messages_are_exact(monkeypatch):
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 2)
+
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    class InvoicesViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=1, basename="order")
+    _assert_exact_exception(
+        VersioningError,
+        "ViewSets registered for prefix 'orders' must use the same basename "
+        "across versions; got 'order' and 'orders'. Pass an explicit basename.",
+        lambda: router.register("orders", OrdersViewSet, version=2, basename="orders"),
+    )
+
+    other_router = VersionedRouter()
+    other_router.register("orders", OrdersViewSet, version=1, basename="shared")
+    _assert_exact_exception(
+        VersioningError,
+        "Basename 'shared' is already registered for prefix 'orders'; use a "
+        "unique basename for prefix 'invoices'.",
+        lambda: other_router.register(
+            "invoices", InvoicesViewSet, version=1, basename="shared"
+        ),
+    )
+
+    _assert_exact_exception(
+        TypeError,
+        "include_root_view must be a bool.",
+        lambda: VersionedDefaultRouter(include_root_view=1),
+    )
+    _assert_exact_exception(
+        TypeError,
+        "include_format_suffixes must be a bool.",
+        lambda: VersionedDefaultRouter(include_format_suffixes=1),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "root_view_name must be a non-empty string.",
+        lambda: VersionedDefaultRouter(root_view_name=" "),
+    )
+
+
+def test_mutation95_lifecycle_cache_and_unversioned_metadata_contracts(
+    monkeypatch, caplog
+):
+    from django_api_versioning.lifecycle import _get_lifecycle_state
+
+    with override_settings(API_VERSION_LIFECYCLE={}):
+        request = RequestFactory().get("/api/v2/orders/")
+        assert _get_lifecycle_state(request) == (2, None, None, None)
+        assert request._django_api_version_lifecycle_state == (2, None, None, None)
+
+    calls = []
+
+    def resolve_operation(match, method, *, allow_unmapped_method=False):
+        calls.append((method, allow_unmapped_method))
+        return None
+
+    monkeypatch.setattr(registry, "resolve_operation", resolve_operation)
+    request = SimpleNamespace(resolver_match=object(), method="GET")
+    assert _get_endpoint_lifecycle_state(request) is None
+    assert request._django_api_endpoint_lifecycle_state is None
+    assert not hasattr(request, "_django_api_endpoint_lifecycle_state_405")
+    assert _get_endpoint_lifecycle_state(
+        request, allow_unmapped_method=True
+    ) is None
+    assert request._django_api_endpoint_lifecycle_state_405 is None
+    assert calls == [("GET", False), ("GET", True)]
+
+    caplog.clear()
+    with caplog.at_level("WARNING"):
+        assert _parse_lifecycle_date(None, "sunset") is None
+    assert [record.getMessage() for record in caplog.records] == [
+        "Invalid sunset date None; ignoring."
+    ]
+
+
+def test_mutation95_lifecycle_default_is_false_at_definition_time():
+    import importlib
+    import importlib.util
+    import inspect
+    import sys
+
+    lifecycle_module = importlib.import_module("django_api_versioning.lifecycle")
+    module_name = "django_api_versioning._mutation_probe_lifecycle"
+    spec = importlib.util.spec_from_file_location(module_name, lifecycle_module.__file__)
+    assert spec is not None and spec.loader is not None
+    probe = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = probe
+    try:
+        spec.loader.exec_module(probe)
+        default = inspect.signature(
+            probe._get_endpoint_lifecycle_state
+        ).parameters["allow_unmapped_method"].default
+        assert default is False
+    finally:
+        sys.modules.pop(module_name, None)
+
+
+def test_mutation95_lifecycle_process_response_preserves_retirement_body():
+    with override_settings(
+        API_VERSION_LIFECYCLE={
+            2: {
+                "status": "retired",
+                "sunset": "2000-01-01T00:00:00Z",
+            }
+        }
+    ):
+        request = RequestFactory().get("/api/v2/orders/")
+        response = LifecycleMiddleware(lambda current: HttpResponse("ok")).process_response(
+            request, HttpResponse("ok")
+        )
+    assert response.status_code == 410
+    assert response.content == (
+        b"API version 2 has been retired as of 2000-01-01T00:00:00Z."
+    )
+
+
+def test_mutation95_decorator_url_prefix_labels_and_router_prefix_boundaries(
+    monkeypatch,
+):
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 2)
+
+    _assert_exact_exception(
+        VersioningError,
+        "app_name must not contain percent-encoded path separators or "
+        "query/fragment delimiters.",
+        lambda: _app_name_prefix("billing%2Fadmin"),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "postfix must not contain percent-encoded path separators or "
+        "query/fragment delimiters.",
+        lambda: endpoint("orders%2Fadmin"),
+    )
+
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    router = VersionedRouter()
+    router.register("orders", OrdersViewSet, version=2, basename="order")
+    remove_endpoint("orders-archive/", from_version=2)
+    router.register("ordersX", OrdersViewSet, version=2, basename="order_x")
+    with pytest.raises(VersioningError):
+        remove_endpoint("ordersX/", from_version=2)
+
+
+def test_mutation95_negotiation_query_uniqueness_and_internal_path_rewrite():
+    duplicate = RequestFactory().get("/api/orders/?version=2&version=3")
+    _assert_exact_exception(
+        ValueError,
+        "The API version query parameter must appear once.",
+        lambda: VersionNegotiationMiddleware._requested_version(
+            duplicate, "query"
+        ),
+    )
+    _assert_exact_exception(
+        ValueError,
+        "Unsupported API versioning scheme: 'bogus'.",
+        lambda: VersionNegotiationMiddleware._requested_version(
+            RequestFactory().get("/api/orders/"), "bogus"
+        ),
+    )
+
+    from django_api_versioning.negotiation import _header_version
+
+    _assert_exact_exception(
+        _UnsupportedVersion,
+        "All requested API versions have q=0.",
+        lambda: _header_version(
+            RequestFactory().get(
+                "/api/orders/",
+                HTTP_ACCEPT="application/json; version=2; q=0",
+            ),
+            "Accept-Version",
+        ),
+    )
+
+    observed = {}
+
+    def downstream(request):
+        observed["path"] = request.path
+        observed["path_info"] = request.path_info
+        observed["meta_path"] = request.META["PATH_INFO"]
+        observed["original_path_info"] = request.original_path_info
+        observed["version"] = request.version
+        observed["api_version"] = request.api_version
+        observed["negotiated"] = request._django_api_version_negotiated
+        return HttpResponse("ok")
+
+    middleware = VersionNegotiationMiddleware(downstream)
+    with override_settings(
+        API_VERSIONING_SCHEME="query",
+        API_VERSIONING_QUERY_PARAMETER="version",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_BASE_PATH="api/v{version}/",
+        API_DEFAULT_VERSION=None,
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        response = middleware(
+            RequestFactory().get("/api/orders/?version=2")
+        )
+
+    assert response.status_code == 200
+    assert observed == {
+        "path": "/api/v2/orders/",
+        "path_info": "/api/v2/orders/",
+        "meta_path": "/api/v2/orders/",
+        "original_path_info": "/api/orders/",
+        "version": "2",
+        "api_version": 2,
+        "negotiated": True,
+    }
