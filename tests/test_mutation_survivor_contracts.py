@@ -128,8 +128,8 @@ def test_registry_synchronization_and_wrapper_metadata_are_preserved():
 def test_registry_canonical_route_key_only_normalizes_literal_regex_paths():
     canonical = UrlRegistry._canonical_route_key
 
-    assert canonical(r"^api/v1/orders/\$") == "api/v1/orders/$"
-    assert canonical(r"^api/v1/orders/\.") == "api/v1/orders/."
+    assert canonical(r"^api/v1/orders/\$/items/$") == "api/v1/orders/$/items/"
+    assert canonical(r"^api/v1/orders/\./$") == "api/v1/orders/./"
     assert canonical(r"^api/v\d+/orders/$") == r"^api/v\d+/orders/$"
     assert canonical(r"^api/v1/<int:pk>/$") == r"^api/v1/<int:pk>/$"
     assert canonical("api/v1/orders/") == "api/v1/orders/"
