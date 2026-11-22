@@ -84,8 +84,7 @@ def load_mutants(cache_path: Path) -> list[dict[str, Any]]:
     connection = sqlite3.connect(cache_path)
     connection.row_factory = sqlite3.Row
     try:
-        rows = connection.execute(
-            """
+        rows = connection.execute("""
             SELECT
                 mutant.id AS mutant_id,
                 mutant."index" AS mutation_index,
