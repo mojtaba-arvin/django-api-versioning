@@ -325,9 +325,9 @@ def test_quoted_header_splitter_rejects_unterminated_quote_and_escape():
 
 
 def test_accept_parameter_parser_allows_escaped_quote_but_rejects_control_bytes():
-    assert _parse_accept_parameter_value('"one\\\\\\"two"') == ('one\\"two', True)
+    assert _parse_accept_parameter_value('"one\\"two"') == ('one\\"two', True)
     with pytest.raises(ValueError, match="invalid quoted"):
-        _parse_accept_parameter_value('"bad\\x01value"')
+        _parse_accept_parameter_value('"bad\x01value"')
 
 
 def test_accept_media_range_rejects_duplicate_version_and_malformed_quality():
