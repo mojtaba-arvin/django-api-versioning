@@ -1452,10 +1452,10 @@ def test_endpoint_lifecycle_accepts_inclusive_version_boundaries(
         )
 
     assert registry.get_endpoint_lifecycle(
-        _lifecycle_test_operation(route_version=1)
+        _lifecycle_test_operation(logical_endpoint="orders", route_version=1)
     ) == EndpointLifecycle(deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
     assert registry.get_endpoint_lifecycle(
-        _lifecycle_test_operation(route_version=5)
+        _lifecycle_test_operation(logical_endpoint="orders", route_version=5)
     ) == EndpointLifecycle(deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
 
 
