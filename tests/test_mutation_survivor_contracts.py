@@ -1095,7 +1095,8 @@ def test_router_collects_only_owned_versioned_and_unversioned_patterns():
 def test_router_versioning_rejects_disallowed_namespace_version():
     versioning = VersionedRouterVersioning()
     versioning.default_version = "1"
-    versioning.allowed_versions = ["1", "2"]    request = SimpleNamespace(
+    versioning.allowed_versions = ["1", "2"]
+    request = SimpleNamespace(
         resolver_match=SimpleNamespace(route=None, namespace="outer:v9")
     )
     with pytest.raises(NotFound, match="allowed API version"):
