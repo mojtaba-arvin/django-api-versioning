@@ -447,8 +447,8 @@ def test_router_version_validation_keeps_zero_and_maximum_inclusive(monkeypatch)
         VersionedRouter._validate_version(True)
 
 
-def test_router_lifecycle_method_resolution_checks_duplicates_head_and_action():    actions = {"get": "list", "post": "create"}
-
+def test_router_lifecycle_method_resolution_checks_duplicates_head_and_action():
+    actions = {"get": "list", "post": "create"}
     assert VersionedRouter._resolve_lifecycle_methods(
         ["HEAD"], actions, None, "orders:order-list"
     ) == [("HEAD", "list")]
@@ -846,9 +846,9 @@ def test_negotiation_accept_version_header_and_hostname_mapping():
     with override_settings(
         ALLOWED_HOSTS=["example.com"],
         API_VERSIONING_HOSTS={"example.com": 2},
-    ):        request = RequestFactory().get("/", HTTP_HOST="example.com")
+    ):
+        request = RequestFactory().get("/", HTTP_HOST="example.com")
         assert VersionNegotiationMiddleware._requested_version(request, "hostname") == 2
-
 
 urlpatterns = [path("api/v2/orders/", _view, name="order-list")]
 
@@ -1098,7 +1098,6 @@ def test_router_versioning_rejects_disallowed_namespace_version():
     versioning.allowed_versions = ["1", "2"]    request = SimpleNamespace(
         resolver_match=SimpleNamespace(route=None, namespace="outer:v9")
     )
-
     with pytest.raises(NotFound, match="allowed API version"):
         versioning.determine_version(request)
 
@@ -1397,8 +1396,7 @@ def test_mutation95_decorator_validation_and_warning_contracts(monkeypatch, capl
     caplog.clear()
     with caplog.at_level("WARNING"):
         endpoint("orders/", versions=[1, 3])(_view)
-    assert [record.getMessage() for record in caplog.records] == [
-        "Endpoint 'orders/' is declared for version 1, but API_MIN_VERSION is 2. "
+    assert [record.getMessage() for record in caplog.records] == [        "Endpoint 'orders/' is declared for version 1, but API_MIN_VERSION is 2. "
         "Skipping this version."
     ]
     assert {
@@ -1597,8 +1595,7 @@ def test_mutation95_registry_validation_and_registration_errors_are_exact(monkey
     target.register_endpoint_lifecycle(
         "orders", 2, deprecated_at="2027-01-01T00:00:00Z"
     )
-    _assert_exact_exception(
-        VersioningError,
+    _assert_exact_exception(        VersioningError,
         "Conflicting endpoint lifecycle declarations for 'orders' version 2.",
         lambda: target.register_endpoint_lifecycle(
             "orders", 2, deprecated_at="2028-01-01T00:00:00Z"
