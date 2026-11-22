@@ -18,7 +18,7 @@ class ProductViewSetV1(viewsets.GenericViewSet):
 
     queryset = []
     serializer_class = ProductV1Serializer
-    lookup_value_regex = r"\d+"
+    lookup_value_regex = r"[0-9]+"
 
     @extend_schema(responses=ProductV1Serializer(many=True))
     def list(self, request, *args, **kwargs):
@@ -60,7 +60,7 @@ class ProductViewSetV2(viewsets.GenericViewSet):
 
     queryset = []
     serializer_class = ProductV2Serializer
-    lookup_value_regex = r"\d+"
+    lookup_value_regex = r"[0-9]+"
 
     @extend_schema(responses=ProductV2Serializer(many=True))
     def list(self, request, *args, **kwargs):
