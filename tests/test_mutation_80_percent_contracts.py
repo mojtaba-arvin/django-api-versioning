@@ -2,8 +2,9 @@
 
 from datetime import datetime, timezone
 
-import pytest
 from types import SimpleNamespace
+
+import pytest
 from django.test import RequestFactory
 from django.urls import path, re_path
 
@@ -137,7 +138,7 @@ def test_accept_parameter_value_unwraps_valid_quoted_and_token_values(raw, expec
 
 @pytest.mark.parametrize(
     "raw",
-    ["", '"unterminated', 'token with space', '"embedded"quote"', '"trailing\\'],
+    ["", '"unterminated', "token with space", '"embedded"quote"', '"trailing\\'],
 )
 def test_accept_parameter_value_rejects_malformed_values(raw):
     with pytest.raises(ValueError):
@@ -339,7 +340,10 @@ def test_accept_media_range_rejects_duplicate_version_and_malformed_quality():
 def test_header_version_prefers_highest_quality_and_ignores_unversioned_ranges():
     request = RequestFactory().get(
         "/api/orders/",
-        HTTP_ACCEPT="text/plain, application/json;version=2;q=0.4, application/xml;version=3;q=0.8",
+        HTTP_ACCEPT=(
+            "text/plain, application/json;version=2;q=0.4, "
+            "application/xml;version=3;q=0.8"
+        ),
     )
     assert _header_version(request, "Accept-Version") == 3
 
@@ -370,7 +374,9 @@ def test_header_version_rejects_conflicting_dedicated_and_accept_versions():
 
 
 def test_header_version_uses_dedicated_header_when_accept_is_empty():
-    request = RequestFactory().get("/api/orders/", HTTP_ACCEPT="", HTTP_ACCEPT_VERSION="4")
+    request = RequestFactory().get(
+        "/api/orders/", HTTP_ACCEPT="", HTTP_ACCEPT_VERSION="4"
+    )
     assert _header_version(request, "Accept-Version") == 4
 
 
@@ -421,10 +427,20 @@ def test_lifecycle_is_past_uses_strict_utc_comparison(monkeypatch):
 
 def test_lifecycle_process_view_marks_enforced_sunset_response(monkeypatch):
     request = RequestFactory().get("/api/v2/orders/")
-    state = (2, {"sunset": "2020-01-01"}, None, datetime(2020, 1, 1, tzinfo=timezone.utc))
-    monkeypatch.setattr("django_api_versioning.lifecycle._get_lifecycle_state", lambda _request: state)
+    state = (
+        2,
+        {"sunset": "2020-01-01"},
+        None,
+        datetime(2020, 1, 1, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        "django_api_versioning.lifecycle._get_lifecycle_state",
+        lambda _request: state,
+    )
     monkeypatch.setattr("django_api_versioning.lifecycle._is_past", lambda _date: True)
-    response = LifecycleMiddleware(lambda _request: None).process_view(request, lambda: None, [], {})
+    response = LifecycleMiddleware(lambda _request: None).process_view(
+        request, lambda: None, [], {}
+    )
     assert response.status_code == 410
     assert request._django_api_version_lifecycle_sunset_enforced is True
 
@@ -439,14 +455,19 @@ def test_endpoint_lifecycle_cache_is_separate_for_405_resolution(monkeypatch):
         calls.append(allow_unmapped_method)
         return normal if not allow_unmapped_method else method_405
 
-    monkeypatch.setattr("django_api_versioning.lifecycle.registry.resolve_operation", resolve)
+    monkeypatch.setattr(
+        "django_api_versioning.lifecycle.registry.resolve_operation", resolve
+    )
     monkeypatch.setattr(
         "django_api_versioning.lifecycle.registry.get_endpoint_lifecycle",
         lambda operation: operation,
     )
     request.resolver_match = object()
     assert _get_endpoint_lifecycle_state(request) is normal
-    assert _get_endpoint_lifecycle_state(request, allow_unmapped_method=True) is method_405
+    assert (
+        _get_endpoint_lifecycle_state(request, allow_unmapped_method=True)
+        is method_405
+    )
     assert _get_endpoint_lifecycle_state(request) is normal
     assert calls == [False, True]
 
@@ -520,7 +541,13 @@ def test_router_versioning_qualifies_view_names_once_with_full_namespace():
     request = SimpleNamespace(
         resolver_match=SimpleNamespace(namespace="outer:v2")
     )
-    assert versioning.get_versioned_viewname("orders-list", request) == "outer:v2:orders-list"
-    assert versioning.get_versioned_viewname("outer:v2:orders-list", request) == "outer:v2:orders-list"
+    assert (
+        versioning.get_versioned_viewname("orders-list", request)
+        == "outer:v2:orders-list"
+    )
+    assert (
+        versioning.get_versioned_viewname("outer:v2:orders-list", request)
+        == "outer:v2:orders-list"
+    )
     request.resolver_match.namespace = ""
     assert versioning.get_versioned_viewname("orders-list", request) == "orders-list"
