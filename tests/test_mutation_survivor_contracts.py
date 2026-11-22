@@ -1086,11 +1086,10 @@ def test_router_collects_only_owned_versioned_and_unversioned_patterns():
     assert unversioned
     assert all(pattern.name.startswith("health-") for pattern in unversioned)
     assert all(
-        getattr(pattern, registry._ROUTER_OWNER_ATTR) is second._registry_owner
-        is False
+        getattr(pattern, registry._ROUTER_OWNER_ATTR) is not second._registry_owner
         for patterns in versioned.values()
         for pattern in patterns
-    ) is False
+    )
 
 
 def test_router_versioning_rejects_disallowed_namespace_version():
@@ -1146,7 +1145,7 @@ def test_negotiation_quoted_header_parser_handles_escaped_delimiters_and_control
     assert _parse_accept_parameter_value("token") == ("token", False)
     assert _parse_accept_parameter_value('"one two"') == ("one two", True)
     assert _parse_accept_parameter_value('""') == ("", True)
-    assert _parse_accept_parameter_value('"one\\ttwo"') == ("one\\ttwo", True)
+    assert _parse_accept_parameter_value('"one\ttwo"') == ("one\ttwo", True)
 
     with pytest.raises(ValueError, match="unterminated quoted parameter"):
         _split_quoted_header('profile="unterminated', ",")
