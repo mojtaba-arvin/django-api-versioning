@@ -129,7 +129,7 @@ jobs:
   mutation-others:
     if: github.event_name != 'push'
     name: Downstream mutation shard (${{ matrix.id }})
-    needs: decorator-score
+    needs: mutation-coverage
     strategy:
       fail-fast: false
       max-parallel: 4
