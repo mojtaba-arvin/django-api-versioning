@@ -165,12 +165,18 @@ def test_registry_remove_tracks_router_prefix_and_slash_identity():
     assert global_fallback == 3
 
     target._removal_boundaries.clear()
-    assert target._removal_boundary(
-        logical, 4, owner=owner, router_prefix="orders", trailing_slash=True
-    ) == 3
-    assert target._removal_boundary(
-        logical, 4, owner=object(), router_prefix="other", trailing_slash=False
-    ) is None
+    assert (
+        target._removal_boundary(
+            logical, 4, owner=owner, router_prefix="orders", trailing_slash=True
+        )
+        == 3
+    )
+    assert (
+        target._removal_boundary(
+            logical, 4, owner=object(), router_prefix="other", trailing_slash=False
+        )
+        is None
+    )
     assert pattern in target.urlpatterns
 
 
