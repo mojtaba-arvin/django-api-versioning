@@ -32,7 +32,12 @@ def test_view_typevar_name_is_preserved_for_runtime_introspection():
 
 @pytest.mark.parametrize(
     ("value", "expected"),
-    [(None, ""), ("", ""), ("billing", "billing/"), ("billing/invoices", "billing/invoices/")],
+    [
+        (None, ""),
+        ("", ""),
+        ("billing", "billing/"),
+        ("billing/invoices", "billing/invoices/"),
+    ],
 )
 def test_app_name_prefix_returns_exact_relative_prefix(value, expected):
     assert _app_name_prefix(value) == expected
@@ -54,20 +59,34 @@ def test_app_name_prefix_rejects_outer_whitespace_with_exact_error(value):
 
 @pytest.mark.parametrize(
     "value",
-    ["/billing", "billing/", "billing//invoices", ".", "..", "billing/./invoices", "billing/../invoices"],
+    [
+        "/billing",
+        "billing/",
+        "billing//invoices",
+        ".",
+        "..",
+        "billing/./invoices",
+        "billing/../invoices",
+    ],
 )
 def test_app_name_prefix_rejects_empty_and_dot_segments(value):
     with pytest.raises(VersioningError) as exc:
         _app_name_prefix(value)
-    assert str(exc.value) == "app_name must be a relative path without empty, '.' or '..' segments."
+    assert (
+        str(exc.value)
+        == "app_name must be a relative path without empty, '.' or '..' segments."
+    )
 
 
-@pytest.mark.parametrize(("start", "end", "message"), [
-    (True, 2, "ver_range start must be an integer."),
-    ("1", 2, "ver_range start must be an integer."),
-    (1, True, "ver_range end must be an integer."),
-    (1, "2", "ver_range end must be an integer."),
-])
+@pytest.mark.parametrize(
+    ("start", "end", "message"),
+    [
+        (True, 2, "ver_range start must be an integer."),
+        ("1", 2, "ver_range start must be an integer."),
+        (1, True, "ver_range end must be an integer."),
+        (1, "2", "ver_range end must be an integer."),
+    ],
+)
 def test_ver_range_rejects_invalid_integer_types_exactly(start, end, message):
     with pytest.raises(VersionTypeError) as exc:
         ver_range(start, end)
@@ -108,16 +127,22 @@ def test_ver_range_rejects_end_above_maximum_with_exact_error(monkeypatch):
         (6, InvalidVersionError, "Version 6 is above the maximum allowed version 5."),
     ],
 )
-def test_validate_version_enforces_type_range_and_maximum(monkeypatch, version, exception, message):
+def test_validate_version_enforces_type_range_and_maximum(
+    monkeypatch, version, exception, message
+):
     with pytest.raises(exception) as exc:
         _validate_version(version, 5)
     assert str(exc.value) == message
 
 
-def test_register_endpoint_route_builds_versioned_path_and_logical_identity(monkeypatch):
+def test_register_endpoint_route_builds_versioned_path_and_logical_identity(
+    monkeypatch,
+):
     calls = []
     monkeypatch.setattr(api_settings, "API_BASE_PATH", "api/v{version}/")
-    monkeypatch.setattr(registry, "register", lambda *args, **kwargs: calls.append((args, kwargs)))
+    monkeypatch.setattr(
+        registry, "register", lambda *args, **kwargs: calls.append((args, kwargs))
+    )
 
     def view(request):
         return None
@@ -137,24 +162,36 @@ def test_register_endpoint_routes_skips_segment_below_minimum(monkeypatch):
     calls = []
     monkeypatch.setattr(decorators.settings, "API_MIN_VERSION", 2)
     monkeypatch.setattr(decorators.settings, "API_MAX_VERSION", 4)
-    monkeypatch.setattr(decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k)))
+    monkeypatch.setattr(
+        decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k))
+    )
 
-    _register_endpoint_routes("orders", "", lambda request: None, None, 1, None, 2, 4)
+    _register_endpoint_routes(
+        "orders", "", lambda request: None, None, 1, None, 2, 4
+    )
     assert calls == []
 
 
 def test_register_endpoint_routes_registers_inclusive_segment(monkeypatch):
     calls = []
-    monkeypatch.setattr(decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k)))
-    _register_endpoint_routes("orders", "", lambda request: None, None, 2, None, 1, 4)
+    monkeypatch.setattr(
+        decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k))
+    )
+    _register_endpoint_routes(
+        "orders", "", lambda request: None, None, 2, None, 1, 4
+    )
     assert [call[0][4] for call in calls] == [2, 3, 4]
     assert [call[1]["source_version"] for call in calls] == [2, 2, 2]
 
 
-def test_register_endpoint_routes_skips_only_explicit_versions_below_minimum(monkeypatch):
+def test_register_endpoint_routes_skips_only_explicit_versions_below_minimum(
+    monkeypatch,
+):
     calls = []
     monkeypatch.setattr(decorators, "_register_endpoint_route", lambda *a, **k: calls.append((a, k)))
-    _register_endpoint_routes("orders", "", lambda request: None, None, None, [1, 2, 4], 2, 4)
+    _register_endpoint_routes(
+        "orders", "", lambda request: None, None, None, [1, 2, 4], 2, 4
+    )
     assert [call[0][4] for call in calls] == [2, 4]
     assert [call[1]["source_version"] for call in calls] == [2, 4]
 
@@ -163,10 +200,16 @@ def test_register_endpoint_routes_skips_only_explicit_versions_below_minimum(mon
     ("postfix", "exception", "message"),
     [
         (None, TypeError, "postfix must be a string."),
-        ("/orders", VersioningError, "postfix must be relative and must not start with '/'."),
+        (
+            "/orders",
+            VersioningError,
+            "postfix must be relative and must not start with '/'.",
+        ),
     ],
 )
-def test_endpoint_postfix_validation_has_exact_public_errors(postfix, exception, message):
+def test_endpoint_postfix_validation_has_exact_public_errors(
+    postfix, exception, message
+):
     with pytest.raises(exception) as exc:
         endpoint(postfix, version=1)
     assert str(exc.value) == message
@@ -200,7 +243,9 @@ def test_lifecycle_method_validation_has_exact_errors(methods, message):
 
 def test_lifecycle_method_names_are_normalized_before_registration(monkeypatch):
     calls = []
-    monkeypatch.setattr(registry, "register_endpoint_lifecycle", lambda *a, **k: calls.append((a, k)))
+    monkeypatch.setattr(
+        registry, "register_endpoint_lifecycle", lambda *a, **k: calls.append((a, k))
+    )
     set_endpoint_lifecycle("orders", version=2, methods=[" get ", "post"])
     assert [call[1]["method"] for call in calls] == ["GET", "POST"]
 
@@ -212,13 +257,17 @@ def test_lifecycle_method_names_are_normalized_before_registration(monkeypatch):
         ("/orders", VersioningError, "postfix must be relative and must not start with '/'."),
     ],
 )
-def test_remove_endpoint_postfix_validation_has_exact_errors(postfix, exception, message):
+def test_remove_endpoint_postfix_validation_has_exact_errors(
+    postfix, exception, message
+):
     with pytest.raises(exception) as exc:
         remove_endpoint(postfix, from_version=1)
     assert str(exc.value) == message
 
 
-def test_decorator_transaction_wrappers_enter_and_exit_for_public_operations(monkeypatch):
+def test_decorator_transaction_wrappers_enter_and_exit_for_public_operations(
+    monkeypatch,
+):
     events = []
 
     @contextmanager
