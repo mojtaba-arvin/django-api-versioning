@@ -202,15 +202,15 @@ jobs:
               elif not should_run and result not in {"success", "skipped"}:
                   failures.append(f"{job}: unexpected result {result}")
 
-          if failures:
-              print("\n".join(failures), file=sys.stderr)
-              raise SystemExit(1)
-
           if not failures and needs["adversarial"]["result"] != "success":
               failures.append(
                   "adversarial: expected success after Tier 0/1, got "
                   + needs["adversarial"]["result"]
               )
+
+          if failures:
+              print("\\n".join(failures), file=sys.stderr)
+              raise SystemExit(1)
 
           print("All Tier 0/1 checks and the dependent adversarial Tier 2 campaign passed.")
           PY
