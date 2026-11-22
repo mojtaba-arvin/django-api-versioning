@@ -4,10 +4,10 @@ These tests assert observable boundaries and ownership semantics rather than
 raising mutation thresholds or excluding difficult code paths.
 """
 
+import re
 from dataclasses import FrozenInstanceError
 from datetime import datetime, timezone
 from types import SimpleNamespace
-import re
 
 import pytest
 from django.test import RequestFactory
@@ -317,8 +317,8 @@ def test_registry_route_specificity_prefers_static_and_longer_dynamic_routes():
     short_dynamic = path("orders/<int:pk>/", _view)
     long_dynamic = path("orders/<int:pk>/archive/", _view)
 
-    assert UrlRegistry._route_specificity_key(static) < UrlRegistry._route_specificity_key(
-        short_dynamic
+    assert UrlRegistry._route_specificity_key(static) < (
+        UrlRegistry._route_specificity_key(short_dynamic)
     )
     assert UrlRegistry._route_specificity_key(long_dynamic) < (
         UrlRegistry._route_specificity_key(short_dynamic)
@@ -423,7 +423,9 @@ def test_router_lifecycle_method_resolution_checks_duplicates_head_and_action():
         )
     with pytest.raises(
         VersioningError,
-        match=re.escape("HTTP method 'PATCH' is not registered for 'orders:order-list'."),
+        match=re.escape(
+            "HTTP method 'PATCH' is not registered for 'orders:order-list'."
+        ),
     ):
         VersionedRouter._resolve_lifecycle_methods(
             ["PATCH"], actions, None, "orders:order-list"
