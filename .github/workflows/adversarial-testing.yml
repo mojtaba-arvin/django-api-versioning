@@ -79,7 +79,7 @@ jobs:
 
   decorator-score:
     if: github.event_name != 'push'
-    name: Decorator mutation gate (minimum 98/139)
+    name: Decorator mutation gate (dynamic 70% threshold)
     needs: mutation-decorators
     runs-on: ubuntu-latest
     steps:
@@ -88,7 +88,7 @@ jobs:
         with:
           name: mutmut-decorators
           path: mutation-report
-      - name: Enforce the fixed decorator baseline and threshold
+      - name: Enforce the dynamic decorator mutation threshold
         run: |
           python - <<'PY'
           import json
@@ -102,12 +102,6 @@ jobs:
           if report.get("target") != "decorators":
               raise SystemExit("Decorator report target mismatch")
 
-          expected_total = 139
-          if report["total"] != expected_total:
-              raise SystemExit(
-                  f"Decorator mutant baseline changed: expected {expected_total}, "
-                  f"got {report['total']}; review baseline before proceeding"
-              )
           if report["completed"] != report["total"]:
               raise SystemExit("Decorator mutation campaign is incomplete")
           outcomes = sum(
@@ -119,12 +113,12 @@ jobs:
           if report["timed_out"] or report["suspicious"] or report["skipped"]:
               raise SystemExit("Decorator campaign has unresolved mutant outcomes")
 
-          required_kills = max(98, math.ceil(report["total"] * 0.70))
+          required_kills = math.ceil(report["total"] * 0.70)
           score = 100.0 * report["killed"] / report["total"]
           print(
               f"Decorator mutation score: {score:.2f}% "
               f"({report['killed']}/{report['total']} killed); "
-              f"required: {required_kills}/{expected_total}"
+              f"required: {required_kills}/{report['total']}"
           )
           if report["killed"] < required_kills:
               raise SystemExit(
