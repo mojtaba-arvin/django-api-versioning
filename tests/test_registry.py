@@ -1433,3 +1433,36 @@ def test_unowned_removal_boundary_reads_global_boundaries(clear_registry):
     registry.remove("orders", 2)
 
     assert registry._removal_boundary("orders", 3, owner=None) == 2
+
+
+def test_endpoint_lifecycle_accepts_inclusive_version_boundaries(
+    clear_registry, monkeypatch
+):
+    """The configured minimum and maximum versions are both inclusive."""
+    from django_api_versioning.settings import api_settings
+
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 5)
+
+    for version in (1, 5):
+        registry.register_endpoint_lifecycle(
+            "orders",
+            version,
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
+
+    assert registry.get_endpoint_lifecycle(
+        _lifecycle_test_operation(route_version=1)
+    ) == EndpointLifecycle(deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
+    assert registry.get_endpoint_lifecycle(
+        _lifecycle_test_operation(route_version=5)
+    ) == EndpointLifecycle(deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc))
+
+
+def test_route_specificity_marks_leading_path_converter_as_dynamic(
+    clear_registry,
+):
+    """A converter at the first character is still a dynamic route."""
+    pattern = path("<slug:slug>/", lambda request, slug: None)
+
+    assert registry._route_specificity_key(pattern)[1] is True
