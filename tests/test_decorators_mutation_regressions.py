@@ -3,6 +3,7 @@
 from contextlib import contextmanager
 
 import pytest
+
 from django_api_versioning.decorators import (
     _app_name_prefix,
     _register_endpoint_view,
