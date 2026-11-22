@@ -2,10 +2,9 @@
 """Repair Mutmut's one-line AST-location offset in coverage-based test selection.
 
 Mutmut 2.5.1 can store a mutation's enclosing AST line in its cache, while the
-changed statement is the following physical source line. With --use-coverage,
-that mismatch can leave a mutant with no selected tests even though tests
-execute and assert the changed statement. Copy only the missing per-test
-contexts from N+1 to N for the five mutation targets; never discard contexts.
+changed statement is the following physical source line. This mismatch can
+leave mutants untested even though tests execute and assert the changed
+statement. Copy missing per-test contexts from N+1 to N for unresolved mutants.
 """
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ from coverage import CoverageData
 
 
 def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
-    """Load surviving mutant locations from Mutmut's existing cache."""
+    """Load surviving and previously untested mutant locations."""
     if not cache_path.is_file():
         return []
     connection = sqlite3.connect(cache_path)
@@ -29,6 +28,7 @@ def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
             JOIN Line AS line ON line.id = mutant.line
             JOIN SourceFile AS source ON source.id = line.sourcefile
             WHERE lower(mutant.status) LIKE '%survived%'
+               OR lower(mutant.status) IN ('not_checked', 'not_run', 'skipped')
             ORDER BY source.filename, line.line_number
             """).fetchall()
     finally:
@@ -37,7 +37,7 @@ def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
 
 
 def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
-    """Reset surviving mutants so the corrected coverage selection reruns them."""
+    """Reset surviving mutants and retain unresolved mutants for context alignment."""
     locations = load_survivor_locations(cache_path)
     if not cache_path.is_file():
         return locations
@@ -45,7 +45,8 @@ def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
     try:
         connection.execute(
             "UPDATE Mutant SET status = 'not_checked', tested_against_hash = '' "
-            "WHERE lower(status) LIKE '%survived%'"
+            "WHERE lower(status) LIKE '%survived%' "
+            "OR lower(status) IN ('not_checked', 'not_run', 'skipped')"
         )
         connection.commit()
     finally:
@@ -57,12 +58,12 @@ def align_survivor_contexts(
     coverage_data: CoverageData,
     locations: list[tuple[str, int]],
 ) -> tuple[int, int]:
-    """Copy N+1's test contexts to N for uncovered surviving-mutant locations.
+    """Merge N+1 test contexts into N for unresolved mutant locations.
 
-    Mutmut 2.5.1 can store the enclosing AST line (N) in its cache while the
-    changed statement is on N+1. Align only locations of previously surviving
-    mutants, and only when N has no test context. This avoids broadening test
-    selection for already-killed mutants.
+    The cache may have contexts at N from other statements in the same AST
+    node. Those contexts are not evidence that tests cover the changed
+    statement on N+1, so merge the following line's contexts rather than
+    skipping alignment whenever N already has any contexts.
     """
     aligned_lines = 0
     aligned_contexts = 0
@@ -78,14 +79,12 @@ def align_survivor_contexts(
 
         filename = matches[0]
         contexts_by_line = coverage_data.contexts_by_lineno(filename)
-        if any(context for context in contexts_by_line.get(line_number, ())):
-            continue
-
+        existing_contexts = set(contexts_by_line.get(line_number, ()))
         following_contexts = sorted(
             {
                 context
                 for context in contexts_by_line.get(line_number + 1, ())
-                if context
+                if context and context not in existing_contexts
             }
         )
         if not following_contexts:
@@ -116,8 +115,8 @@ def main() -> None:
     coverage_data.write()
     print(
         "Aligned per-test coverage contexts for "
-        f"{aligned_lines}/{len(locations)} surviving-mutant locations "
-        f"({aligned_contexts} test contexts)."
+        f"{aligned_lines}/{len(locations)} unresolved-mutant locations "
+        f"({aligned_contexts} additional test contexts)."
     )
 
 
