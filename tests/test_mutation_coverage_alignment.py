@@ -59,24 +59,26 @@ def test_alignment_is_idempotent_and_ignores_unrelated_files(tmp_path):
 
 
 def test_mutation_report_uses_changed_line_from_unified_diff():
-    diff = """--- django_api_versioning/lifecycle.py
-+++ django_api_versioning/lifecycle.py
-@@ -295,7 +295,7 @@
- 
- 
- def is_past(value):
--    return value < 0
-+    return value <= 0
- 
- 
- def to_http_date(value):
-"""
+    diff = "\\n".join(
+        [
+            "--- django_api_versioning/lifecycle.py",
+            "+++ django_api_versioning/lifecycle.py",
+            "@@ -295,7 +295,7 @@",
+            "",
+            "",
+            " def is_past(value):",
+            "-    return value < 0",
+            "+    return value <= 0",
+            "",
+            "",
+            " def to_http_date(value):",
+        ]
+    )
     assert mutation_line_number(diff, 297) == 298
 
 
 def test_mutation_report_falls_back_when_diff_has_no_hunk():
     assert mutation_line_number("mutmut show returned no diff", 17) == 17
-
 
 
 def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
