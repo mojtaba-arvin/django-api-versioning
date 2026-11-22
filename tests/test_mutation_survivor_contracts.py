@@ -2310,6 +2310,7 @@ def test_mutation95_decorator_url_prefix_labels_and_router_prefix_boundaries(
     router = VersionedRouter()
     router.register("orders", OrdersViewSet, version=2, basename="order")
     remove_endpoint("orders-archive/", from_version=2)
+    registry.clear()
     router.register("ordersX", OrdersViewSet, version=2, basename="order_x")
     with pytest.raises(VersioningError):
         remove_endpoint("ordersX/", from_version=2)
@@ -2382,3 +2383,82 @@ def test_mutation95_negotiation_query_uniqueness_and_internal_path_rewrite():
         "api_version": 2,
         "negotiated": True,
     }
+def test_mutation95_decorator_app_name_validation_reaches_both_entrypoints():
+    _assert_exact_exception(
+        VersioningError,
+        "app_name must not contain percent-encoded path separators or "
+        "query/fragment delimiters.",
+        lambda: set_endpoint_lifecycle(
+            "orders/", version=2, app_name="billing%2Fadmin"
+        ),
+    )
+    _assert_exact_exception(
+        VersioningError,
+        "app_name must not contain percent-encoded path separators or "
+        "query/fragment delimiters.",
+        lambda: remove_endpoint(
+            "orders/", from_version=2, app_name="billing%2Fadmin"
+        ),
+    )
+
+
+def test_mutation95_decorator_router_ownership_rejects_non_string_metadata():
+    registry.clear()
+    pattern = path("api/v2/orders/", _view, name="orders")
+    setattr(pattern, registry._ROUTER_OWNER_ATTR, object())
+    setattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, None)
+    registry.urlpatterns.append(pattern)
+
+    remove_endpoint("orders/", from_version=2)
+
+
+def test_mutation95_lifecycle_custom_x_prefix_and_default_base_path(
+    monkeypatch,
+):
+    import importlib
+
+    from django_api_versioning.lifecycle import _get_lifecycle_state
+
+    lifecycle_module = importlib.import_module("django_api_versioning.lifecycle")
+    defaults = []
+    original_get_setting = lifecycle_module._get_api_setting
+
+    def recording_get_setting(name, default):
+        if name == "API_BASE_PATH":
+            defaults.append(default)
+        return original_get_setting(name, default)
+
+    monkeypatch.setattr(lifecycle_module, "_get_api_setting", recording_get_setting)
+    with override_settings(API_VERSION_LIFECYCLE={2: {"status": "active"}}):
+        request = RequestFactory().get("/api/v2/orders/")
+        state = _get_lifecycle_state(request)
+    assert state[0] == 2
+    assert "api/v{version}/" in defaults
+
+    with override_settings(
+        API_BASE_PATH="Xapi/v{version}/",
+        API_VERSION_LIFECYCLE={2: {"status": "active"}},
+    ):
+        request = RequestFactory().get("/Xapi/v2/orders/")
+        state = _get_lifecycle_state(request)
+    assert state[0] == 2
+
+
+def test_mutation95_lifecycle_z_suffix_is_normalized_before_python310_parser(
+    monkeypatch,
+):
+    from datetime import datetime as StandardDateTime, timezone
+    import importlib
+
+    lifecycle_module = importlib.import_module("django_api_versioning.lifecycle")
+
+    class Python310DateTime(StandardDateTime):
+        @classmethod
+        def fromisoformat(cls, value):
+            if value.endswith("Z"):
+                raise ValueError("Python 3.10 does not accept a Z suffix")
+            return super().fromisoformat(value)
+
+    monkeypatch.setattr(lifecycle_module, "datetime", Python310DateTime)
+    parsed = _parse_lifecycle_date("2000-01-01T00:00:00Z", "sunset")
+    assert parsed == StandardDateTime(2000, 1, 1, tzinfo=timezone.utc)
