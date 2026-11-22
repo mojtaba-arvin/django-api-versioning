@@ -97,8 +97,7 @@ def load_mutants(cache_path: Path) -> list[dict[str, Any]]:
             JOIN Line AS line ON line.id = mutant.line
             JOIN SourceFile AS source ON source.id = line.sourcefile
             ORDER BY source.filename, line.line_number, mutant.id
-            """
-        ).fetchall()
+            """).fetchall()
     finally:
         connection.close()
     return [dict(row) for row in rows]
@@ -159,7 +158,9 @@ def main() -> None:
     if args.runner_exit not in {0, 2}:
         raise SystemExit(f"Unexpected mutmut runner exit code: {args.runner_exit}")
     if args.runner_exit == 2 and summary["survived"] == 0:
-        raise SystemExit("mutmut returned survivor exit code 2 but cache has no survivors")
+        raise SystemExit(
+            "mutmut returned survivor exit code 2 but cache has no survivors"
+        )
 
     progress = parse_progress_summary(
         args.run_log.read_text(encoding="utf-8", errors="replace")
@@ -189,7 +190,9 @@ def main() -> None:
     args.summary.parent.mkdir(parents=True, exist_ok=True)
     args.summary.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
 
-    survivors = [item for item in mutants if status_bucket(item["status"]) == "survived"]
+    survivors = [
+        item for item in mutants if status_bucket(item["status"]) == "survived"
+    ]
     if args.details:
         coverage_data = CoverageData(basename=str(args.coverage))
         coverage_data.read()
