@@ -211,6 +211,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import os
           from pathlib import Path
 
           is_pull_request = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
