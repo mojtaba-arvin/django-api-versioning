@@ -68,7 +68,7 @@ def test_app_name_prefix_rejects_dot_segments(app_name):
         _app_name_prefix(app_name)
 
 
-def test_register_endpoint_view_restores_routes_tombstones_and_view_attribute_on_late_failure(
+def test_register_endpoint_view_restores_state_after_late_failure(
     monkeypatch,
 ):
     def existing_view(request):
