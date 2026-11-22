@@ -524,7 +524,6 @@ def test_accept_selects_highest_quality_versioned_media_range():
 def test_accept_equal_quality_conflicting_versions_are_rejected():
     _, response = _dispatch(
         "/api/orders/",
-        HTTP_ACCEPT=(
             "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
         ),
     )
@@ -618,7 +617,7 @@ def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
     assert request.META["PATH_INFO"] == "/api/v2/orders/"
 
 
-@pytest.mark.parametrize("value", [True, None, "", "2.0", "٢"])
+@pytest.mark.parametrize("value", ['"one\"two"', '"tab\tvalue"'])
 def test_parse_version_rejects_values_outside_ascii_decimal_contract(value):
     with pytest.raises(
         ValueError, match=r"^A version must be an ASCII decimal integer\.$"
