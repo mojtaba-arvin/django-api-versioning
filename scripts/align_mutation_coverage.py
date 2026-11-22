@@ -83,7 +83,8 @@ def align_survivor_contexts(
         following_contexts = sorted(
             {
                 context
-                for context in contexts_by_line.get(line_number + 1, ())
+                for offset in range(1, 7)
+                for context in contexts_by_line.get(line_number + offset, ())
                 if context and context not in existing_contexts
             }
         )
