@@ -2456,9 +2456,9 @@ def test_mutation95_lifecycle_z_suffix_is_normalized_before_python310_parser(
     monkeypatch.setattr(lifecycle_module, "datetime", Python310DateTime)
     parsed = _parse_lifecycle_date("2000-01-01T00:00:00Z", "sunset")
     assert parsed == StandardDateTime(2000, 1, 1, tzinfo=timezone.utc)
-def test_mutation100_negotiation_path_host_and_accept_edge_contracts():
-    from types import SimpleNamespace
 
+
+def test_mutation100_negotiation_path_host_and_accept_edge_contracts():
     from django_api_versioning.negotiation import _host_version
 
     # Leading X characters are path data, not characters to strip.
