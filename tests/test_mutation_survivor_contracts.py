@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.urls import path
 from django.views import View
 from rest_framework.viewsets import ViewSet
@@ -705,3 +705,112 @@ def test_lifecycle_405_resolution_uses_a_separate_cache(monkeypatch):
     assert _get_endpoint_lifecycle_state(request) == "normal"
     assert _get_endpoint_lifecycle_state(request, allow_unmapped_method=True) == "405"
     assert calls == [False, True]
+
+
+def test_registry_source_version_replacement_is_last_write_only_when_unversioned():
+    target = UrlRegistry()
+    existing = path("orders/", _view)
+    setattr(existing, target._SOURCE_VERSION_ATTR, 3)
+
+    assert target._should_replace(existing, None) is True
+    assert target._should_replace(existing, 2) is False
+    assert target._should_replace(existing, 3) is True
+    assert target._should_replace(existing, 4) is True
+
+    setattr(existing, target._SOURCE_VERSION_ATTR, None)
+    assert target._should_replace(existing, 1) is True
+
+
+def test_registry_lifecycle_registration_validates_identity_scope_and_conflicts():
+    target = UrlRegistry()
+
+    with pytest.raises(
+        VersioningError, match="logical_endpoint must be a non-empty string"
+    ):
+        target.register_endpoint_lifecycle("", 2)
+    with pytest.raises(VersionTypeError, match="version must be an integer"):
+        target.register_endpoint_lifecycle("orders", True)
+    with pytest.raises(VersionRangeError):
+        target.register_endpoint_lifecycle("orders", 0)
+    with pytest.raises(InvalidVersionError):
+        target.register_endpoint_lifecycle(
+            "orders", api_settings.API_MAX_VERSION + 1
+        )
+    with pytest.raises(VersioningError, match="method must be a string"):
+        target.register_endpoint_lifecycle("orders", 2, method="")
+    with pytest.raises(VersioningError, match="action must be a string"):
+        target.register_endpoint_lifecycle("orders", 2, action="")
+
+    target.register_endpoint_lifecycle(
+        "orders", 2, method="GET", action="list",
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        target.register_endpoint_lifecycle(
+            "orders", 2, method="GET", action="list",
+            deprecated_at="2028-01-01T00:00:00Z",
+        )
+
+
+def test_router_removal_does_not_cross_trailing_slash_ownership():
+    class OrdersViewSet(ViewSet):
+        def list(self, request):
+            return None
+
+    slash_router = VersionedRouter(trailing_slash=True)
+    no_slash_router = VersionedRouter(trailing_slash=False)
+    slash_router.register("orders", OrdersViewSet, version=1, basename="order")
+    no_slash_router.register("orders", OrdersViewSet, version=1, basename="order")
+    no_slash_patterns = [
+        pattern
+        for pattern in registry.urlpatterns
+        if getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+        is no_slash_router._registry_owner
+    ]
+    assert no_slash_patterns
+
+    slash_router.remove("orders", "order-list", from_version=1)
+
+    assert all(pattern in registry.urlpatterns for pattern in no_slash_patterns)
+
+
+def test_nested_router_namespace_uses_the_innermost_version():
+    versioning = VersionedRouterVersioning()
+    versioning.default_version = "1"
+    versioning.allowed_versions = ["1", "3"]
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(route=None, namespace="outer:v2:v3")
+    )
+
+    assert versioning.determine_version(request) == "3"
+
+
+def test_decorator_lifecycle_rolls_back_earlier_methods_on_late_conflict():
+    registry.register_endpoint_lifecycle(
+        "orders/", 2, method="POST", deprecated_at="2027-01-01T00:00:00Z"
+    )
+    before = dict(registry._endpoint_lifecycle)
+
+    with pytest.raises(VersioningError, match="Conflicting endpoint lifecycle"):
+        set_endpoint_lifecycle(
+            "orders/",
+            version=2,
+            methods=["GET", "POST"],
+            deprecated_at="2028-01-01T00:00:00Z",
+        )
+
+    assert registry._endpoint_lifecycle == before
+
+
+def test_negotiation_accept_version_header_and_hostname_mapping():
+    dedicated = RequestFactory().get("/", HTTP_ACCEPT_VERSION="2")
+    assert _header_version(dedicated, "Accept-Version") == 2
+
+    with override_settings(
+        ALLOWED_HOSTS=["example.com"],
+        API_VERSIONING_HOSTS={"example.com": 2},
+    ):
+        request = RequestFactory().get("/", HTTP_HOST="example.com")
+        assert VersionNegotiationMiddleware._requested_version(
+            request, "hostname"
+        ) == 2
