@@ -1378,9 +1378,7 @@ def test_mutation95_decorator_validation_and_warning_contracts(monkeypatch, capl
     _assert_exact_exception(
         VersioningError,
         "methods must not contain duplicates.",
-        lambda: set_endpoint_lifecycle(
-            "orders/", version=2, methods=["GET", " get "]
-        ),
+        lambda: set_endpoint_lifecycle("orders/", version=2, methods=["GET", " get "]),
     )
     _assert_exact_exception(
         VersioningError,
@@ -1679,9 +1677,7 @@ def test_mutation95_negotiation_parser_errors_are_exact():
     _assert_exact_exception(
         ValueError,
         "Accept contains duplicate version parameters.",
-        lambda: _parse_accept_media_range(
-            "application/json; version=2; VERSION=3"
-        ),
+        lambda: _parse_accept_media_range("application/json; version=2; VERSION=3"),
     )
     _assert_exact_exception(
         ValueError,
@@ -1947,8 +1943,7 @@ def test_mutation95_registry_removal_boundaries_are_inclusive_and_source_aware(
     target.remove("orders", 2)
 
     assert {
-        getattr(pattern, target._ROUTE_VERSION_ATTR)
-        for pattern in target.urlpatterns
+        getattr(pattern, target._ROUTE_VERSION_ATTR) for pattern in target.urlpatterns
     } == {1}
     assert set(target._removed_patterns) == {("orders", 2), ("orders", 3)}
     assert all(key[1] < 2 for key in target._endpoint_lifecycle)
@@ -2060,9 +2055,10 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
     assert longest._resolved_route_match_length(
         "nested/api/v2/orders/", "api/v2/orders/"
     ) == len("api/v2/orders/")
-    assert longest._resolved_route_match_length(
-        "prefixapi/v2/orders/", "api/v2/orders/"
-    ) == 0
+    assert (
+        longest._resolved_route_match_length("prefixapi/v2/orders/", "api/v2/orders/")
+        == 0
+    )
 
 
 def test_mutation95_registry_operation_resolution_fails_closed_on_bad_identity():
@@ -2096,9 +2092,7 @@ def test_mutation95_registry_operation_resolution_fails_closed_on_bad_identity()
     assert operation.namespace == "v2"
 
     assert target.resolve_operation(match, "PATCH") is None
-    unmapped = target.resolve_operation(
-        match, "PATCH", allow_unmapped_method=True
-    )
+    unmapped = target.resolve_operation(match, "PATCH", allow_unmapped_method=True)
     assert unmapped is not None and unmapped.action is None
 
     wrong_namespace = SimpleNamespace(
@@ -2226,9 +2220,7 @@ def test_mutation95_lifecycle_cache_and_unversioned_metadata_contracts(
     assert _get_endpoint_lifecycle_state(request) is None
     assert request._django_api_endpoint_lifecycle_state is None
     assert not hasattr(request, "_django_api_endpoint_lifecycle_state_405")
-    assert _get_endpoint_lifecycle_state(
-        request, allow_unmapped_method=True
-    ) is None
+    assert _get_endpoint_lifecycle_state(request, allow_unmapped_method=True) is None
     assert request._django_api_endpoint_lifecycle_state_405 is None
     assert calls == [("GET", False), ("GET", True)]
 
@@ -2257,9 +2249,11 @@ def test_mutation95_lifecycle_default_is_false_at_definition_time():
     sys.modules[module_name] = probe
     try:
         spec.loader.exec_module(probe)
-        default = inspect.signature(
-            probe._get_endpoint_lifecycle_state
-        ).parameters["allow_unmapped_method"].default
+        default = (
+            inspect.signature(probe._get_endpoint_lifecycle_state)
+            .parameters["allow_unmapped_method"]
+            .default
+        )
         assert default is False
     finally:
         sys.modules.pop(module_name, None)
