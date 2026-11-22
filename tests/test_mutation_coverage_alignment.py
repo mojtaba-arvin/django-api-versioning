@@ -79,7 +79,7 @@ def test_mutation_report_falls_back_when_diff_has_no_hunk():
 
 
 
-def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
+def test_cache_loader_returns_survivors_and_previously_untested_locations(tmp_path):
     cache = tmp_path / ".mutmut-cache"
     connection = sqlite3.connect(cache)
     connection.executescript(
@@ -100,15 +100,49 @@ def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
         INSERT INTO Line VALUES (2, 1, 428);
         INSERT INTO Mutant VALUES (1, 1, 'bad_survived');
         INSERT INTO Mutant VALUES (2, 2, 'ok_killed');
+        INSERT INTO Mutant VALUES (3, 2, 'not_checked');
         """
     )
     connection.commit()
     connection.close()
 
     assert load_survivor_locations(cache) == [
-        ("django_api_versioning/registry.py", 427)
+        ("django_api_versioning/registry.py", 427),
+        ("django_api_versioning/registry.py", 428),
     ]
 
 
 def test_cache_loader_handles_a_missing_cache(tmp_path):
     assert load_survivor_locations(tmp_path / "missing-cache") == []
+
+
+
+def test_alignment_merges_following_contexts_even_when_ast_line_is_covered(
+    tmp_path,
+):
+    source = tmp_path / "django_api_versioning" / "registry.py"
+    source.parent.mkdir()
+    source.write_text("def remove(value):\n    if value:\n        return True\n")
+    coverage_path = tmp_path / ".coverage"
+
+    data = CoverageData(basename=str(coverage_path))
+    existing = "tests.test_registry::test_existing|run"
+    changed = "tests.test_registry::test_changed_statement|run"
+    data.set_context(existing)
+    data.add_lines({str(source): {2}})
+    data.set_context(changed)
+    data.add_lines({str(source): {3}})
+    data.write()
+
+    data = CoverageData(basename=str(coverage_path))
+    data.read()
+    assert align_survivor_contexts(
+        data, [("django_api_versioning/registry.py", 2)]
+    ) == (1, 1)
+    data.write()
+
+    aligned = CoverageData(basename=str(coverage_path))
+    aligned.read()
+    contexts = aligned.contexts_by_lineno(str(source))
+    assert existing in contexts[2]
+    assert changed in contexts[2]
