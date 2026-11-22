@@ -185,9 +185,7 @@ def test_registry_does_not_transfer_a_removed_route_between_owners():
     target._record_removed(first, logical)
     target._record_removed(second, logical)
 
-    assert target._removed_patterns[
-        (logical, 2, "orders", True)
-    ] is first
+    assert target._removed_patterns[(logical, 2, "orders", True)] is first
 
 
 def test_registry_suppression_allows_only_a_newer_source_to_reintroduce_route():
@@ -643,8 +641,7 @@ def test_accept_negotiation_uses_quality_and_rejects_ambiguity():
     request = RequestFactory().get(
         "/",
         HTTP_ACCEPT=(
-            "application/json; version=2; q=0.8, "
-            "application/json; version=3; q=0.9"
+            "application/json; version=2; q=0.8, " "application/json; version=3; q=0.9"
         ),
     )
     assert _header_version(request, "Accept-Version") == 3
@@ -652,8 +649,7 @@ def test_accept_negotiation_uses_quality_and_rejects_ambiguity():
     tied = RequestFactory().get(
         "/",
         HTTP_ACCEPT=(
-            "application/json; version=2; q=0.8, "
-            "application/json; version=3; q=0.8"
+            "application/json; version=2; q=0.8, " "application/json; version=3; q=0.8"
         ),
     )
     with pytest.raises(ValueError, match="equally preferred conflicting"):
