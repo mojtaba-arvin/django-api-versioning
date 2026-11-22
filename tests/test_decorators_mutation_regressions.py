@@ -52,13 +52,17 @@ def test_app_name_prefix_normalizes_only_the_valid_relative_prefix(app_name, exp
     assert _app_name_prefix(app_name) == expected
 
 
-@pytest.mark.parametrize("app_name", [" ", " accounts", "accounts ", "/accounts", "accounts/"])
+@pytest.mark.parametrize(
+    "app_name", [" ", " accounts", "accounts ", "/accounts", "accounts/"]
+)
 def test_app_name_prefix_rejects_whitespace_and_empty_segments(app_name):
     with pytest.raises(VersioningError):
         _app_name_prefix(app_name)
 
 
-@pytest.mark.parametrize("app_name", [".", "..", "accounts/./users", "accounts/../users"])
+@pytest.mark.parametrize(
+    "app_name", [".", "..", "accounts/./users", "accounts/../users"]
+)
 def test_app_name_prefix_rejects_dot_segments(app_name):
     with pytest.raises(VersioningError):
         _app_name_prefix(app_name)
@@ -151,7 +155,9 @@ def test_set_endpoint_lifecycle_restores_all_methods_after_late_conflict(monkeyp
             raise RuntimeError("second method rejected")
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(registry, "register_endpoint_lifecycle", fail_on_second_method)
+    monkeypatch.setattr(
+        registry, "register_endpoint_lifecycle", fail_on_second_method
+    )
     before = dict(registry._endpoint_lifecycle)
 
     with pytest.raises(RuntimeError, match="second method rejected"):
