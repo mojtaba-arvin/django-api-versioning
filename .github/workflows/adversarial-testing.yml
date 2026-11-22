@@ -166,6 +166,7 @@ jobs:
           pattern: mutmut-*
           path: mutation-reports
           merge-multiple: true
+        continue-on-error: true
       - name: Validate complete mutation campaign and enforce aggregate score
         run: |
           python - <<'PY'
@@ -195,12 +196,28 @@ jobs:
           totals = {key: sum(report[key] for report in reports.values()) for key in (
               "completed", "total", "killed", "survived", "timed_out", "suspicious", "skipped"
           )}
-          if totals["total"] == 0 or totals["completed"] != totals["total"]:
-              raise SystemExit("Combined mutation campaign did not complete all generated mutants")
-          if totals["killed"] + totals["survived"] + totals["timed_out"] + totals["suspicious"] + totals["skipped"] != totals["total"]:
-              raise SystemExit("Combined mutation totals do not reconcile")
           if missing:
               print(f"PARTIAL campaign; missing reports: {sorted(missing)}")
+          if is_decorator_only:
+              print("Decorator-only mutation campaign; downstream mutation targets remain locked:")
+          else:
+              print("Full-suite mutation score after decorator gate:")
+          print("Available shard results:")
+          for target in sorted(reports):
+              report = reports[target]
+              target_total = report["total"]
+              target_score = 100.0 * report["killed"] / target_total if target_total else 0.0
+              print(
+                  f"  {target}: {target_score:.2f}% "
+                  f"({report['killed']} killed, {report['survived']} survived, "
+                  f"{report['completed']}/{target_total} completed)"
+              )
+          if totals["total"] == 0:
+              raise SystemExit("No mutation shard reports were produced")
+          if totals["completed"] != totals["total"]:
+              raise SystemExit("Mutation campaign is partial; see available shard totals above")
+          if totals["killed"] + totals["survived"] + totals["timed_out"] + totals["suspicious"] + totals["skipped"] != totals["total"]:
+              raise SystemExit("Combined mutation totals do not reconcile")
           if totals["timed_out"] or totals["suspicious"] or totals["skipped"]:
               raise SystemExit("Combined campaign contains unresolved mutant outcomes")
           if missing:
@@ -208,18 +225,6 @@ jobs:
 
           score = 100.0 * totals["killed"] / totals["total"]
           minimum = 70.0
-          if is_decorator_only:
-              print("Decorator-only mutation campaign; downstream mutation targets remain locked:")
-          else:
-              print("Full-suite mutation score after decorator gate:")
-          print("Per-target mutation results:")
-          for target in sorted(reports):
-              report = reports[target]
-              target_score = 100.0 * report["killed"] / report["total"]
-              print(
-                  f"  {target}: {target_score:.2f}% "
-                  f"({report['killed']}/{report['total']} killed)"
-              )
           print(
               f"Combined mutation score: {score:.2f}% "
               f"({totals['killed']} killed, {totals['survived']} survived, "
