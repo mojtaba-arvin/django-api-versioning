@@ -122,6 +122,57 @@ def test_register_endpoint_view_restores_state_after_late_failure(
     assert getattr(new_view, attribute) == "pre-existing-value"
 
 
+@pytest.mark.parametrize("app_name", ["accounts%2Fadmin", "accounts?next=admin", "accounts%"])
+def test_app_name_prefix_delegates_url_safety_validation(app_name):
+    with pytest.raises(VersioningError):
+        _app_name_prefix(app_name)
+
+
+def test_register_endpoint_view_restores_replaced_tombstone_after_late_failure(
+    monkeypatch,
+):
+    def previous_view(request):
+        return None
+
+    def replacement_view(request):
+        return None
+
+    registry.register(
+        "api/v1/replaced-resource/",
+        previous_view,
+        source_version=1,
+        route_version=1,
+        logical_endpoint="replaced-resource/",
+    )
+    registry.remove("replaced-resource/", from_version=1)
+    original_removed = dict(registry._removed_patterns)
+    original_register = registry.register
+    calls = 0
+
+    def fail_on_second_route(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise RuntimeError("late registration failure")
+        return original_register(*args, **kwargs)
+
+    monkeypatch.setattr(registry, "register", fail_on_second_route)
+
+    with pytest.raises(RuntimeError, match="late registration failure"):
+        _register_endpoint_view(
+            replacement_view,
+            "replaced-resource/",
+            1,
+            None,
+            None,
+            None,
+        )
+
+    assert calls == 2
+    assert registry.urlpatterns == []
+    assert registry._removed_patterns == original_removed
+
+
 def test_register_endpoint_view_removes_attribute_it_introduced_when_registration_fails(
     monkeypatch,
 ):
