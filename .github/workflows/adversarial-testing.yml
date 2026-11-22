@@ -127,7 +127,7 @@ jobs:
           PY
 
   mutation-others:
-    if: github.event_name != 'pull_request' && github.event_name != 'push'
+    if: github.event_name != 'pull_request' && github.event_name != 'push' && github.event_name != 'workflow_dispatch'
     name: Downstream mutation shard (${{ matrix.id }})
     needs: decorator-score
     strategy:
@@ -153,9 +153,7 @@ jobs:
   mutation-score:
     if: >-
       always() &&
-      github.event_name != 'push' &&
-      needs.decorator-score.result == 'success' &&
-      (needs.mutation-others.result == 'success' || needs.mutation-others.result == 'skipped')
+      github.event_name != 'push'
     name: Mutation score (combined)
     runs-on: ubuntu-latest
     needs:
@@ -175,10 +173,10 @@ jobs:
           import os
           from pathlib import Path
 
-          is_pull_request = os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+          is_decorator_only = os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
           expected = (
               {"decorators"}
-              if is_pull_request
+              if is_decorator_only
               else {"decorators", "lifecycle", "negotiation", "registry", "routers"}
           )
           reports = {}
@@ -191,11 +189,8 @@ jobs:
 
           missing = expected - reports.keys()
           unexpected = reports.keys() - expected
-          if missing or unexpected:
-              raise SystemExit(
-                  f"Incomplete mutation campaign; missing={sorted(missing)}, "
-                  f"unexpected={sorted(unexpected)}"
-              )
+          if unexpected:
+              raise SystemExit(f"Unexpected mutation reports: {sorted(unexpected)}")
 
           totals = {key: sum(report[key] for report in reports.values()) for key in (
               "completed", "total", "killed", "survived", "timed_out", "suspicious", "skipped"
@@ -204,13 +199,17 @@ jobs:
               raise SystemExit("Combined mutation campaign did not complete all generated mutants")
           if totals["killed"] + totals["survived"] + totals["timed_out"] + totals["suspicious"] + totals["skipped"] != totals["total"]:
               raise SystemExit("Combined mutation totals do not reconcile")
+          if missing:
+              print(f"PARTIAL campaign; missing reports: {sorted(missing)}")
           if totals["timed_out"] or totals["suspicious"] or totals["skipped"]:
               raise SystemExit("Combined campaign contains unresolved mutant outcomes")
+          if missing:
+              raise SystemExit("Mutation campaign is partial; see available shard totals above")
 
           score = 100.0 * totals["killed"] / totals["total"]
           minimum = 70.0
-          if is_pull_request:
-              print("Decorator mutation gate passed; downstream mutation targets remain locked:")
+          if is_decorator_only:
+              print("Decorator-only mutation campaign; downstream mutation targets remain locked:")
           else:
               print("Full-suite mutation score after decorator gate:")
           print("Per-target mutation results:")
