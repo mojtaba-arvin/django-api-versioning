@@ -1,4 +1,4 @@
-""""Mutation-driven behavioral contracts for decorator registration APIs.
+"""Mutation-driven behavioral contracts for decorator registration APIs.
 
 These tests assert observable callable metadata, public validation messages, and
 router/decorator ownership isolation. They intentionally exercise behaviors that
