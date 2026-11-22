@@ -1,4 +1,14 @@
 repos:
+  - repo: local
+    hooks:
+      - id: conventional-commit-message
+        name: Enforce Conventional Commit message
+        entry: python scripts/check_commit_message.py
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+        always_run: true
+
 
   # Black for code formatting
   - repo: https://github.com/psf/black
