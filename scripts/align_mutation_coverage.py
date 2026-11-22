@@ -16,17 +16,8 @@ from pathlib import Path
 
 from coverage import CoverageData
 
-TARGET_SUFFIXES = (
-    "/django_api_versioning/decorators.py",
-    "/django_api_versioning/lifecycle.py",
-    "/django_api_versioning/negotiation.py",
-    "/django_api_versioning/registry.py",
-    "/django_api_versioning/routers.py",
-)
-
-
-def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
-    """Load only surviving mutant locations from Mutmut's existing cache."""
+def prepare_survivors_for_rerun(cache_path: Path) -> list[tuple[str, int]]:
+    """Reset surviving mutants so the corrected coverage selection reruns them."""
     if not cache_path.is_file():
         return []
     connection = sqlite3.connect(cache_path)
@@ -39,6 +30,11 @@ def load_survivor_locations(cache_path: Path) -> list[tuple[str, int]]:
             WHERE lower(mutant.status) LIKE '%survived%'
             ORDER BY source.filename, line.line_number
             """).fetchall()
+        connection.execute(
+            "UPDATE Mutant SET status = 'not_checked', tested_against_hash = '' "
+            "WHERE lower(status) LIKE '%survived%'"
+        )
+        connection.commit()
     finally:
         connection.close()
     return [(str(filename), int(line_number)) for filename, line_number in rows]
@@ -104,7 +100,7 @@ def main() -> None:
 
     coverage_data = CoverageData(basename=str(args.coverage))
     coverage_data.read()
-    locations = load_survivor_locations(args.cache)
+    locations = prepare_survivors_for_rerun(args.cache)
     aligned_lines, aligned_contexts = align_survivor_contexts(coverage_data, locations)
     coverage_data.write()
     print(

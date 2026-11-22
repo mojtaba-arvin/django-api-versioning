@@ -6,7 +6,7 @@ from coverage import CoverageData
 
 from scripts.align_mutation_coverage import (
     align_survivor_contexts,
-    load_survivor_locations,
+    prepare_survivors_for_rerun,
 )
 from scripts.export_mutation_report import mutation_line_number
 
@@ -81,7 +81,7 @@ def test_mutation_report_falls_back_when_diff_has_no_hunk():
     assert mutation_line_number("mutmut show returned no diff", 17) == 17
 
 
-def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
+def test_cache_preparation_resets_only_surviving_mutants(tmp_path):
     cache = tmp_path / ".mutmut-cache"
     connection = sqlite3.connect(cache)
     connection.executescript(
@@ -107,10 +107,14 @@ def test_cache_loader_returns_only_surviving_mutant_locations(tmp_path):
     connection.commit()
     connection.close()
 
-    assert load_survivor_locations(cache) == [
+    assert prepare_survivors_for_rerun(cache) == [
         ("django_api_versioning/registry.py", 427)
     ]
+    connection = sqlite3.connect(cache)
+    statuses = connection.execute("SELECT status FROM Mutant ORDER BY id").fetchall()
+    connection.close()
+    assert statuses == [("not_checked",), ("ok_killed",)]
 
 
 def test_cache_loader_handles_a_missing_cache(tmp_path):
-    assert load_survivor_locations(tmp_path / "missing-cache") == []
+    assert prepare_survivors_for_rerun(tmp_path / "missing-cache") == []
