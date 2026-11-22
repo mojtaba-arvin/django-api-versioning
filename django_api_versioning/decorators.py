@@ -1,4 +1,5 @@
 import logging
+from functools import wraps
 from typing import Callable, TypeVar
 
 from .exceptions import (
@@ -12,6 +13,17 @@ from .settings import api_settings as settings
 
 logger = logging.getLogger(__name__)
 ViewT = TypeVar("ViewT", bound=Callable)
+
+
+def _registry_transaction(function):
+    """Keep multi-route decorator registration atomic across threads."""
+
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        with registry.transaction():
+            return function(*args, **kwargs)
+
+    return wrapper
 
 
 def _app_name_prefix(app_name: str | None) -> str:
@@ -134,6 +146,7 @@ def _register_endpoint_routes(
         )
 
 
+@_registry_transaction
 def _register_endpoint_view(
     view: Callable,
     postfix: str,
@@ -267,6 +280,7 @@ def endpoint(
     return decorator
 
 
+@_registry_transaction
 def set_endpoint_lifecycle(
     postfix: str,
     *,
@@ -339,6 +353,7 @@ def _validate_version(version: int, max_version: int) -> None:
         )
 
 
+@_registry_transaction
 def remove_endpoint(
     postfix: str,
     *,

@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from time import sleep
 from types import ModuleType
 
 import pytest
@@ -1175,3 +1177,203 @@ def test_literal_path_with_regex_anchor_characters_does_not_collide_with_regex_r
     assert len(registry.urlpatterns) == 2
     assert registry.urlpatterns[0].callback is regex_view
     assert registry.urlpatterns[1].callback is literal_path_view
+
+
+@pytest.mark.parametrize("regex_first", [True, False])
+def test_unowned_static_path_and_regex_routes_share_one_registry_identity(
+    clear_registry, regex_first
+):
+    """Static path() and anchored literal re_path() forms must collide consistently."""
+
+    def first_view(request):
+        return None
+
+    def second_view(request):
+        return None
+
+    regex_pattern = re_path(
+        r"^api/v1/static-users/$",
+        first_view,
+        name="static-users",
+    )
+    path_route = "api/v1/static-users/"
+
+    if regex_first:
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register(
+            path_route,
+            second_view,
+            name="static-users",
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+    else:
+        registry.register(
+            path_route,
+            first_view,
+            name="static-users",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is (
+        second_view if regex_first else regex_pattern.callback
+    )
+    assert getattr(registry.urlpatterns[0], registry._ROUTE_VERSION_ATTR) == 2
+
+
+def test_concurrent_registration_of_same_route_is_serialized(
+    clear_registry, monkeypatch
+):
+    """A racing registration cannot append duplicate URLPatterns."""
+
+    def view(request):
+        return None
+
+    original_create_pattern = registry._create_pattern
+
+    def slow_create_pattern(route, callback, name):
+        # Widen the check-then-create race window for deterministic contention.
+        sleep(0.01)
+        return original_create_pattern(route, callback, name)
+
+    monkeypatch.setattr(registry, "_create_pattern", slow_create_pattern)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(
+            executor.map(
+                lambda _: registry.register(
+                    "api/v1/racing/",
+                    view,
+                    name="racing",
+                    source_version=1,
+                    route_version=1,
+                    logical_endpoint="racing",
+                ),
+                range(24),
+            )
+        )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is view
+
+
+@pytest.mark.parametrize("regex_first", [True, False])
+def test_escaped_literal_regex_and_path_routes_share_identity(
+    clear_registry, regex_first
+):
+    def first_view(request):
+        return None
+
+    def second_view(request):
+        return None
+
+    regex_pattern = re_path(
+        r"^api/v1/static\.users/$",
+        first_view,
+        name="static-users",
+    )
+    path_route = "api/v1/static.users/"
+
+    if regex_first:
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register(
+            path_route,
+            second_view,
+            name="static-users",
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+    else:
+        registry.register(
+            path_route,
+            first_view,
+            name="static-users",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="static-users",
+        )
+        registry.register_urlpattern(
+            regex_pattern,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="static-users",
+        )
+
+    assert len(registry.urlpatterns) == 1
+    assert registry.urlpatterns[0].callback is (
+        second_view if regex_first else regex_pattern.callback
+    )
+
+
+@pytest.mark.parametrize("static_first", [True, False])
+@pytest.mark.parametrize(
+    "regex_route",
+    [r"^api/v1/orders/\d/$", r"^api/v1/orders/./$"],
+)
+def test_literal_route_precedes_single_segment_regex_route(
+    clear_registry, static_first, regex_route
+):
+    def digit_view(request):
+        return None
+
+    def static_view(request):
+        return None
+
+    digit_pattern = re_path(
+        regex_route,
+        digit_view,
+        name="order-digit",
+    )
+    if static_first:
+        registry.register(
+            "api/v1/orders/7/",
+            static_view,
+            name="order-seven",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-seven",
+        )
+        registry.register_urlpattern(
+            digit_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-digit",
+        )
+    else:
+        registry.register_urlpattern(
+            digit_pattern,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-digit",
+        )
+        registry.register(
+            "api/v1/orders/7/",
+            static_view,
+            name="order-seven",
+            source_version=1,
+            route_version=1,
+            logical_endpoint="order-seven",
+        )
+
+    assert registry.urlpatterns[0].callback is static_view

@@ -6,6 +6,7 @@ This module is optional: importing the core package does not require DRF.
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from functools import wraps
 from typing import Any
 
 from django.urls import URLPattern, URLResolver, include, path
@@ -31,6 +32,18 @@ from .reverse import format_negotiated_url
 from .settings import api_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _registry_transaction(function):
+    """Serialize multi-route router mutations against other registrations."""
+
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        with registry.transaction():
+            return function(*args, **kwargs)
+
+    return wrapper
+
 
 _ROUTE_VERSION_ATTR = registry._ROUTE_VERSION_ATTR
 
@@ -65,6 +78,7 @@ class VersionedRouter:
         self._basenames: dict[str, str] = {}
         self._basename_prefixes: dict[str, str] = {}
 
+    @_registry_transaction
     def register(
         self,
         prefix: str,
@@ -159,6 +173,7 @@ class VersionedRouter:
             self._basename_prefixes.update(basename_prefixes)
             raise
 
+    @_registry_transaction
     def remove(self, prefix: str, route_name: str, *, from_version: int) -> None:
         """Remove one logical DRF route from a concrete version onward.
 
@@ -243,6 +258,7 @@ class VersionedRouter:
 
         registry.remove(logical_endpoint, from_version, owner=self._registry_owner)
 
+    @_registry_transaction
     def set_lifecycle(
         self,
         prefix: str,
@@ -320,6 +336,7 @@ class VersionedRouter:
                 action=normalized_action,
                 deprecated_at=deprecated_at,
                 sunset=sunset,
+                owner=self._registry_owner,
             )
             return
 
@@ -335,6 +352,7 @@ class VersionedRouter:
             registrations,
             deprecated_at,
             sunset,
+            self._registry_owner,
         )
 
     @staticmethod
@@ -382,6 +400,7 @@ class VersionedRouter:
         registrations: list[tuple[str, str]],
         deprecated_at: str | None,
         sunset: str | None,
+        owner: object | None = None,
     ) -> None:
         # Conflicting existing declarations can fail during insertion. Restore
         # the prior registry state so multi-method declarations are atomic.
@@ -395,6 +414,7 @@ class VersionedRouter:
                     action=mapped_action,
                     deprecated_at=deprecated_at,
                     sunset=sunset,
+                    owner=owner,
                 )
         except Exception:
             registry._endpoint_lifecycle.clear()
@@ -523,8 +543,9 @@ class VersionedRouter:
         The URL path itself includes API_BASE_PATH. The namespace is used by
         DRF's version-aware reverse implementation, including nested includes.
         """
-        versioned, unversioned = self._collect_registered_patterns()
-        return self._build_namespaced_urlpatterns(versioned, unversioned)
+        with registry.transaction():
+            versioned, unversioned = self._collect_registered_patterns()
+            return self._build_namespaced_urlpatterns(versioned, unversioned)
 
 
 class VersionedDefaultRouter(VersionedRouter):
@@ -577,6 +598,10 @@ class VersionedDefaultRouter(VersionedRouter):
     @property
     def urls(self) -> list[URLPattern | URLResolver]:
         """Return versioned URL patterns with optional roots and suffixes."""
+        with registry.transaction():
+            return self._build_default_urls()
+
+    def _build_default_urls(self) -> list[URLPattern | URLResolver]:
         registered_versioned, registered_unversioned = (
             self._collect_registered_patterns()
         )

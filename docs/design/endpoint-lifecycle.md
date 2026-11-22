@@ -37,7 +37,7 @@ Treat endpoint lifecycle as metadata attached to a stable logical operation iden
 Identity components:
 
 - Decorator endpoint: the existing logical endpoint key (`app_name + postfix`).
-- DRF operation: router prefix plus the stable generated route name/action identity already used by endpoint removal.
+- DRF operation: router owner identity, router prefix, stable generated route name/action identity, and concrete API version. Owner identity prevents lifecycle metadata from leaking between independent routers that intentionally use different route patterns for the same logical name.
 - Concrete API version: the version whose resolved route is being served.
 
 The declaration should be metadata-only and must not register, delete, or mutate URL patterns. The public API uses adapter-specific declarations over one normalized registry record: set_endpoint_lifecycle() for decorator endpoints and VersionedRouter.set_lifecycle() for DRF routes. Their concrete signatures are recorded in D7 and the canonical reference.
@@ -181,7 +181,7 @@ The runtime implementation is present in main after PR #71:
 
 - Decorator and DRF route registrations retain stable logical endpoint identity and concrete route-version metadata on their registered URLPatterns.
 - The merged implementation adds immutable normalized operation identity based on the actual Django ResolverMatch, concrete HTTP method, namespace/route metadata, and DRF action map. Ambiguous matches fail closed.
-- The merged implementation adds one normalized lifecycle registry and adapter-specific public declarations. The decorator declaration uses the same app_name + postfix identity as @endpoint; the router declaration uses prefix + generated route name + concrete version.
+- The merged implementation adds one normalized lifecycle registry and adapter-specific public declarations. The decorator declaration uses the same app_name + postfix identity as @endpoint; the router declaration uses owner identity + prefix + generated route name + concrete version.
 - The merged middleware applies endpoint headers from the resolved operation. It composes version-wide and endpoint-level dates independently, choosing the earliest instant for each header. Version-wide past-Sunset 410 remains authoritative; endpoint-level past Sunset is headers-only.
 - The merged optional drf-spectacular AutoSchema integration supports VersionedRouter and decorator-backed DRF views. The adapter does not import drf-spectacular from the package root or add it to runtime dependencies.
 - Tests cover method/action separation, version isolation, route ambiguity, actual Django request resolution, headers, past-Sunset precedence, and generated OpenAPI operation flags.

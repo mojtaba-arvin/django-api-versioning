@@ -1,6 +1,7 @@
 import logging
 import re
 from datetime import datetime, timezone
+from email.utils import format_datetime
 from typing import Any, Callable
 
 from django.conf import settings as django_settings
@@ -298,7 +299,8 @@ def _is_past(date: datetime) -> bool:
 
 
 def _to_http_date(date: datetime) -> str:
-    return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    """Format an HTTP-date with locale-independent English day/month names."""
+    return format_datetime(date.astimezone(timezone.utc), usegmt=True)
 
 
 def _to_structured_field_date(date: datetime) -> str:

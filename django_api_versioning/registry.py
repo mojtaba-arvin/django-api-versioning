@@ -1,5 +1,8 @@
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import wraps
+from threading import RLock
 from typing import Callable
 
 from django.http import HttpResponse
@@ -32,9 +35,21 @@ class ResolvedOperation:
     namespace: str
     route: str
     registered_route: str
+    router_owner: object | None = None
 
 
 ViewType = Callable[..., HttpResponse] | type[View]
+
+
+def _synchronized(method):
+    """Serialize registry mutations and keep multi-step checks atomic."""
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 class UrlRegistry:
@@ -48,6 +63,7 @@ class UrlRegistry:
     _ROUTER_TRAILING_SLASH_ATTR = "_django_api_versioning_router_trailing_slash"
 
     def __init__(self) -> None:
+        self._lock = RLock()
         self.urlpatterns: list[URLPattern] = []
         self._removal_boundaries: dict[str, set[int]] = {}
         self._router_removal_boundaries: dict[
@@ -55,9 +71,16 @@ class UrlRegistry:
         ] = {}
         self._removed_patterns: dict[tuple[object, ...], URLPattern] = {}
         self._endpoint_lifecycle: dict[
-            tuple[str, int, str | None, str | None], EndpointLifecycle
+            tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
         ] = {}
 
+    @contextmanager
+    def transaction(self) -> Iterator[None]:
+        """Hold the re-entrant lock for an atomic multi-operation transaction."""
+        with self._lock:
+            yield
+
+    @_synchronized
     def clear(self) -> None:
         """Clear active routes and removal declarations."""
         self.urlpatterns.clear()
@@ -66,6 +89,7 @@ class UrlRegistry:
         self._removed_patterns.clear()
         self._endpoint_lifecycle.clear()
 
+    @_synchronized
     def remove(
         self,
         logical_endpoint: str,
@@ -139,6 +163,8 @@ class UrlRegistry:
         for pattern in self.urlpatterns:
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
                 continue
+            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
+                continue
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
             source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
             if (
@@ -149,9 +175,10 @@ class UrlRegistry:
             ):
                 preserved_versions.add(route_version)
         for key in list(self._endpoint_lifecycle):
-            endpoint, version, _, _ = key
+            endpoint, version, _, _, metadata_owner = key
             if (
-                endpoint == logical_endpoint
+                metadata_owner is owner
+                and endpoint == logical_endpoint
                 and version >= from_version
                 and version not in preserved_versions
             ):
@@ -222,6 +249,7 @@ class UrlRegistry:
 
         self._removed_patterns[key] = pattern
 
+    @_synchronized
     def register(
         self,
         route: str,
@@ -275,6 +303,7 @@ class UrlRegistry:
 
         self._sort_urlpatterns()
 
+    @_synchronized
     def register_urlpattern(
         self,
         pattern: URLPattern,
@@ -297,7 +326,6 @@ class UrlRegistry:
         route_index = self._find_route_index(
             route_key,
             regex_route=isinstance(pattern.pattern, RegexPattern),
-            new_owner=getattr(pattern, self._ROUTER_OWNER_ATTR, None),
         )
 
         if route_index is None:
@@ -416,6 +444,7 @@ class UrlRegistry:
 
         self._sort_urlpatterns()
 
+    @_synchronized
     def get_route_version(self, route: str) -> int | None:
         """Return the concrete version registered for a resolved route."""
         route_index = next(
@@ -437,6 +466,7 @@ class UrlRegistry:
             None,
         )
 
+    @_synchronized
     def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{route: {route_version: callback}}``.
@@ -457,6 +487,7 @@ class UrlRegistry:
             )
         return matrix
 
+    @_synchronized
     def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
         """
         Return ``{logical_endpoint: {route_version: callback}}``.
@@ -465,42 +496,97 @@ class UrlRegistry:
         by check_versions to correctly identify gaps within each logical
         endpoint's version span, avoiding false warnings.
         """
-        matrix: dict[str, dict[int | None, Callable]] = {}
+        entries = []
         for pattern in self.urlpatterns:
-            # Use logical endpoint if available, else fall back to route pattern
             logical_id = getattr(
                 pattern, self._LOGICAL_ENDPOINT_ATTR, str(pattern.pattern)
             )
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            matrix.setdefault(logical_id, {})[route_version] = pattern.callback
-        for key, _pattern in self._removed_patterns.items():
+            entries.append((logical_id, route_version, pattern, pattern.callback))
+
+        for key, pattern in self._removed_patterns.items():
             logical_id, route_version = key[:2]
-            matrix.setdefault(logical_id, {}).setdefault(route_version, REMOVED_ROUTE)
+            entries.append((logical_id, route_version, pattern, REMOVED_ROUTE))
+
+        # A logical endpoint/version can intentionally have more than one
+        # physical route when independent routers use different trailing-slash
+        # policies. A plain {logical_endpoint: version} map silently overwrites
+        # one callback. Keep the familiar key for unambiguous operations and
+        # add a stable router/route discriminator only when a collision exists.
+        counts = {}
+        owner_groups = {}
+        for logical_id, route_version, pattern, _callback in entries:
+            identity = (logical_id, route_version)
+            counts[identity] = counts.get(identity, 0) + 1
+
+            owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            if owner is None:
+                owner_identity = ("unowned",)
+            else:
+                owner_identity = (
+                    "router",
+                    getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
+                    getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
+                )
+            owner_groups.setdefault(logical_id, set()).add(owner_identity)
+
+        matrix: dict[str, dict[int | None, Callable]] = {}
+        for logical_id, route_version, pattern, callback in entries:
+            owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
+            has_multiple_owners = len(owner_groups[logical_id]) > 1
+            has_same_version_collision = counts[(logical_id, route_version)] > 1
+
+            if has_multiple_owners or has_same_version_collision:
+                if owner is not None:
+                    discriminator = (
+                        f"router={getattr(pattern, self._ROUTER_PREFIX_ATTR, None)!r}, "
+                        "trailing_slash="
+                        f"{getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)!r}"
+                    )
+                else:
+                    discriminator = f"route={str(pattern.pattern)!r}"
+                matrix_key = f"{logical_id} [{discriminator}]"
+            else:
+                matrix_key = logical_id
+            matrix.setdefault(matrix_key, {})[route_version] = callback
         return matrix
 
     @staticmethod
     def _canonical_route_key(route: str) -> str:
-        """Normalize simple anchored regex routes to their literal path form.
-
-        DRF regex routes use ^literal/path/$ while Django path() uses
-        literal/path/. Treat them as identical only for static literal paths.
-        """
+        """Normalize anchored regexes containing only literal path text."""
         if not (route.startswith("^") and route.endswith("$")):
             return route
 
         literal = route[1:-1]
         if "<" in literal or ">" in literal:
             return route
-        if any(character in literal for character in r".^$*+?{}[]\\|()"):
+
+        normalized = []
+        escaped = False
+        for character in literal:
+            if escaped:
+                # Escaped punctuation is literal; alphanumeric escapes such
+                # as \\d and \\w are regex classes, not static path text.
+                if character.isalnum():
+                    return route
+                normalized.append(character)
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character in ".^$*+?{}[]|()":
+                return route
+            else:
+                normalized.append(character)
+
+        if escaped:
             return route
-        return literal
+        return "".join(normalized)
 
     def _find_route_index(
         self,
         route: str,
         *,
         regex_route: bool = False,
-        new_owner: object | None = None,
     ) -> int | None:
         """Return the index of a registered route, or None if absent."""
         for index, pattern in enumerate(self.urlpatterns):
@@ -508,10 +594,6 @@ class UrlRegistry:
             existing_is_regex = isinstance(pattern.pattern, RegexPattern)
             if existing_pattern_text == route and existing_is_regex == regex_route:
                 return index
-
-            existing_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if new_owner is None and existing_owner is None:
-                continue
 
             route_key = self._canonical_route_key(route) if regex_route else route
             existing_key = (
@@ -547,6 +629,7 @@ class UrlRegistry:
                 matched_length = max(matched_length, len(pattern_candidate))
         return matched_length
 
+    @_synchronized
     def get_resolved_route_version_for_match(
         self, resolver_match: object
     ) -> tuple[bool, int | None]:
@@ -615,6 +698,7 @@ class UrlRegistry:
             return True, None
         return True, next(iter(versions))
 
+    @_synchronized
     def get_resolved_route_version(self, route: str) -> int | None:
         """Resolve a version from the longest registered route suffix.
 
@@ -643,6 +727,7 @@ class UrlRegistry:
         versions = {version for length, version in matches if length == longest}
         return next(iter(versions)) if len(versions) == 1 else None
 
+    @_synchronized
     def resolve_operation(
         self,
         resolver_match: object,
@@ -762,8 +847,10 @@ class UrlRegistry:
             namespace=namespace,
             route=route,
             registered_route=str(pattern.pattern),
+            router_owner=getattr(pattern, self._ROUTER_OWNER_ATTR, None),
         )
 
+    @_synchronized
     def resolve_registered_operation(
         self, logical_endpoint: str, route_version: int, method: str
     ) -> ResolvedOperation | None:
@@ -814,6 +901,7 @@ class UrlRegistry:
             registered_route=pattern_text,
         )
 
+    @_synchronized
     def register_endpoint_lifecycle(
         self,
         logical_endpoint: str,
@@ -823,6 +911,7 @@ class UrlRegistry:
         action: str | None = None,
         deprecated_at: str | None = None,
         sunset: str | None = None,
+        owner: object | None = None,
     ) -> None:
         """Register lifecycle dates for a route, HTTP method, or DRF action."""
         if not isinstance(logical_endpoint, str) or not logical_endpoint:
@@ -858,6 +947,7 @@ class UrlRegistry:
             route_version,
             normalized_method,
             normalized_action,
+            owner,
         )
         existing = self._endpoint_lifecycle.get(key)
         if existing is not None and existing != lifecycle:
@@ -867,6 +957,7 @@ class UrlRegistry:
             )
         self._endpoint_lifecycle[key] = lifecycle
 
+    @_synchronized
     def get_endpoint_lifecycle(
         self, operation: ResolvedOperation
     ) -> EndpointLifecycle | None:
@@ -901,6 +992,7 @@ class UrlRegistry:
                     operation.route_version,
                     method,
                     action,
+                    operation.router_owner,
                 )
             )
             if record is not None:
@@ -999,31 +1091,55 @@ class UrlRegistry:
                 raise
         return path(route, view, name=name)
 
+    @staticmethod
+    def _route_specificity_key(pattern: URLPattern) -> tuple[int, bool, int]:
+        """Prefer longer literal prefixes before generic converter/regex routes."""
+        route_text = str(pattern.pattern)
+        if isinstance(pattern.pattern, RegexPattern):
+            source = route_text[1:] if route_text.startswith("^") else route_text
+            source = source[:-1] if source.endswith("$") else source
+            escaped = False
+            dynamic_start = len(source)
+            for index, character in enumerate(source):
+                if escaped:
+                    escaped = False
+                    continue
+                if character == "\\":
+                    if index + 1 < len(source) and source[index + 1].isalnum():
+                        dynamic_start = index
+                        break
+                    escaped = True
+                    continue
+                if character in "([?*+{.^$|)]}":
+                    dynamic_start = index
+                    break
+            literal_prefix = source[:dynamic_start]
+            has_dynamic = dynamic_start < len(source)
+        else:
+            dynamic_start = route_text.find("<")
+            literal_prefix = (
+                route_text if dynamic_start < 0 else route_text[:dynamic_start]
+            )
+            has_dynamic = dynamic_start >= 0
+
+        return (-len(literal_prefix), has_dynamic, -len(route_text))
+
     def _sort_urlpatterns(self) -> None:
-        """Order unversioned routes first, then versioned routes by version."""
-        unversioned: list[URLPattern] = []
-        versioned: list[URLPattern] = []
+        """Order versions first, then static and specific routes before catch-alls."""
 
-        for pattern in self.urlpatterns:
-            route_version = getattr(
-                pattern,
-                self._ROUTE_VERSION_ATTR,
-                None,
+        def sort_key(pattern: URLPattern) -> tuple[bool, int, bool, int, int]:
+            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
+            specificity = self._route_specificity_key(pattern)
+            has_dynamic = specificity[1]
+            return (
+                route_version is not None,
+                route_version if route_version is not None else -1,
+                has_dynamic,
+                specificity[0] if has_dynamic else 0,
+                specificity[2] if has_dynamic else 0,
             )
 
-            if route_version is None:
-                unversioned.append(pattern)
-            else:
-                versioned.append(pattern)
-
-        versioned.sort(
-            key=lambda p: getattr(
-                p,
-                self._ROUTE_VERSION_ATTR,
-            )
-        )
-
-        self.urlpatterns[:] = unversioned + versioned
+        self.urlpatterns.sort(key=sort_key)
 
 
 registry = UrlRegistry()
