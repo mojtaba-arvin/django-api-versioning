@@ -24,11 +24,13 @@ TESTS_BY_SOURCE = {
         "tests/test_lifecycle_route_identity.py",
         "tests/test_management_commands.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_mutation_survivor_contracts.py",
     ),
     "negotiation.py": (
         "tests/test_negotiation_middleware.py",
         "tests/test_negotiation_properties.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_mutation_survivor_contracts.py",
     ),
     "registry.py": (
         "tests/test_registry.py",
@@ -36,6 +38,7 @@ TESTS_BY_SOURCE = {
         "tests/test_segment_model.py",
         "tests/test_route_removal.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_mutation_survivor_contracts.py",
     ),
     "routers.py": (
         "tests/test_routers.py",
@@ -46,6 +49,7 @@ TESTS_BY_SOURCE = {
         "tests/test_urls.py",
         "tests/test_route_removal.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_mutation_survivor_contracts.py",
     ),
 }
 
@@ -68,7 +72,8 @@ def pre_mutation(context):
     coverage_data = context.config.coverage_data or {}
     source_path = os.path.abspath(context.filename)
     contexts_by_line = coverage_data.get(source_path, {})
-    line_contexts = contexts_by_line.get(context.current_line_index, [])
+    # Mutmut's Context.current_line_index is zero-based; Coverage.py uses 1-based lines.
+    line_contexts = contexts_by_line.get(context.current_line_index + 1, [])
 
     node_ids = sorted(
         {
