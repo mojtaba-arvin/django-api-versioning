@@ -518,7 +518,9 @@ def test_decorator_rollback_preserves_an_inherited_metadata_attribute():
     attribute = registry._LOGICAL_ENDPOINT_ATTR
 
     class BaseView:
-        _django_api_versioning_logical_endpoint = "base:route"
+        pass
+
+    setattr(BaseView, attribute, "base:route")
 
     class InheritedView(BaseView):
         def __call__(self, request):
