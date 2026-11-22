@@ -1019,19 +1019,39 @@ def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
 
 
 @pytest.mark.parametrize(
-    ("logical_endpoint", "from_version", "error"),
+    ("logical_endpoint", "from_version", "error", "message"),
     [
-        ("", 2, TypeError),
-        ("orders", True, VersionTypeError),
-        ("orders", 6, InvalidVersionError),
-        ("orders", 0, VersionRangeError),
+        ("", 2, TypeError, "logical_endpoint must be a non-empty string."),
+        ("orders", True, VersionTypeError, "Removal version must be an integer."),
+        (
+            "orders",
+            6,
+            InvalidVersionError,
+            "Removal version 6 is above the maximum allowed version 1.",
+        ),
+        (
+            "orders",
+            0,
+            VersionRangeError,
+            "Removal version 0 is below the minimum allowed version 1.",
+        ),
     ],
 )
 def test_remove_endpoint_validates_identity_and_version(
-    clear_registry, logical_endpoint, from_version, error
+    clear_registry, logical_endpoint, from_version, error, message
 ):
-    with pytest.raises(error):
+    with pytest.raises(error) as exc_info:
         registry.remove(logical_endpoint, from_version)
+
+    assert str(exc_info.value) == message
+
+
+def test_remove_endpoint_accepts_the_inclusive_configured_version_boundary(
+    clear_registry,
+):
+    registry.remove("orders", 1)
+
+    assert registry._removal_boundaries["orders"] == {1}
 
 
 def test_resolved_route_version_uses_complete_longest_suffix(clear_registry):
