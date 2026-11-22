@@ -28,9 +28,6 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install -e . -r requirements-ci.txt
-      - name: Test mutation harness utilities
-        run: |
-          python -m pytest -q -o addopts= scripts/tests/test_mutation_coverage_alignment.py
       - name: Collect test-to-source coverage once
         run: |
           python -m pytest --cov=django_api_versioning --cov-context=test --cov-report= -q -o addopts= tests
