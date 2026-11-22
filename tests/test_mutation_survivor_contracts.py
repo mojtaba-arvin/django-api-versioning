@@ -2249,7 +2249,9 @@ def test_mutation95_lifecycle_default_is_false_at_definition_time():
 
     lifecycle_module = importlib.import_module("django_api_versioning.lifecycle")
     module_name = "django_api_versioning._mutation_probe_lifecycle"
-    spec = importlib.util.spec_from_file_location(module_name, lifecycle_module.__file__)
+    spec = importlib.util.spec_from_file_location(
+        module_name, lifecycle_module.__file__
+    )
     assert spec is not None and spec.loader is not None
     probe = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = probe
@@ -2273,9 +2275,9 @@ def test_mutation95_lifecycle_process_response_preserves_retirement_body():
         }
     ):
         request = RequestFactory().get("/api/v2/orders/")
-        response = LifecycleMiddleware(lambda current: HttpResponse("ok")).process_response(
-            request, HttpResponse("ok")
-        )
+        response = LifecycleMiddleware(
+            lambda current: HttpResponse("ok")
+        ).process_response(request, HttpResponse("ok"))
     assert response.status_code == 410
     assert response.content == (
         b"API version 2 has been retired as of 2000-01-01T00:00:00Z."
