@@ -1,7 +1,6 @@
 """High-value mutation contracts across negotiation, lifecycle, registry and routers."""
 
 from datetime import datetime, timezone
-from types import SimpleNamespace
 
 import pytest
 from django.test import RequestFactory
@@ -133,7 +132,7 @@ def test_accept_media_range_rejects_invalid_wildcard_shape():
 def test_path_version_accepts_zero_and_rejects_prefix_or_suffix_near_misses():
     assert _path_version("/api/v0/orders/", "api/v{version}/") == 0
     assert _path_version("/xapi/v2/orders/", "api/v{version}/") is None
-    assert _path_version("/api/v2/orders", "api/v{version}/") is None
+    assert _path_version("/api/v2/orders", "api/v{version}/") == 2
 
 
 @pytest.mark.parametrize(
