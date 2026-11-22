@@ -1,7 +1,6 @@
 """Regression tests for conservative Mutmut test selection."""
 
 import shlex
-from pathlib import Path
 from types import SimpleNamespace
 
 import mutmut_config
