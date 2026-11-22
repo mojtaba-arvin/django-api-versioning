@@ -2792,30 +2792,34 @@ def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
         == "orders:order-list"
     ]
 
+    registry.clear()
+    validation_router = VersionedRouter()
+    validation_router.register("orders", OrdersViewSet, version=2, basename="order")
+
     _assert_exact_exception(
         TypeError,
         "prefix must be a string.",
-        lambda: router.remove(1, "order-list", from_version=2),
+        lambda: validation_router.remove(1, "order-list", from_version=2),
     )
     _assert_exact_exception(
         VersioningError,
         "prefix must be a non-empty relative path without leading or trailing '/'.",
-        lambda: router.register("", OrdersViewSet, version=2, basename="empty"),
+        lambda: validation_router.register("", OrdersViewSet, version=2, basename="empty"),
     )
     _assert_exact_exception(
         VersioningError,
         "route_name must be a non-empty string.",
-        lambda: router.set_lifecycle("orders", 7, version=2),
+        lambda: validation_router.set_lifecycle("orders", 7, version=2),
     )
     _assert_exact_exception(
         VersioningError,
         "action must be a non-empty string.",
-        lambda: router.set_lifecycle("orders", "order-list", version=2, action=7),
+        lambda: validation_router.set_lifecycle("orders", "order-list", version=2, action=7),
     )
     _assert_exact_exception(
         VersioningError,
         "Action 'missing' is not registered for 'orders:order-list'.",
-        lambda: router.set_lifecycle(
+        lambda: validation_router.set_lifecycle(
             "orders", "order-list", version=2, action="missing"
         ),
     )
@@ -2921,9 +2925,22 @@ def test_mutation100_registry_tombstone_ownership_and_unowned_boundaries():
     incoming_owned = _registered_pattern(
         target, version=2, logical_endpoint="orders", owner=owner
     )
-    target._removed_patterns[("orders", 2)] = existing_unowned
+    target._removed_patterns[("orders", 2, "orders", True)] = existing_unowned
     target._record_removed(incoming_owned, "orders")
-    assert target._removed_patterns[("orders", 2)] is existing_unowned
+    assert (
+        target._removed_patterns[("orders", 2, "orders", True)]
+        is existing_unowned
+    )
+
+    existing_owned = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=owner
+    )
+    incoming_unowned = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=None
+    )
+    target._removed_patterns[("orders", 2)] = existing_owned
+    target._record_removed(incoming_unowned, "orders")
+    assert target._removed_patterns[("orders", 2)] is existing_owned
 
     target.remove("orders", 2)
     assert target._removal_boundaries["orders"] == {2}
@@ -3080,8 +3097,6 @@ def test_mutation100_registry_resolver_operation_rejects_bad_method_and_uses_exa
 def test_mutation100_registry_create_pattern_signature_and_synchronization(monkeypatch):
     import inspect
 
-    from django_api_versioning import registry as registry_module
-
     assert callable(
         getattr(UrlRegistry.get_endpoint_lifecycle, "__wrapped__", None)
     )
@@ -3122,9 +3137,12 @@ def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edge
         "api/v2/orders/."
     )
 
-    trailing_backslash = "^api/v2/orders/\\"
-    key = target._route_specificity_key(re_path(trailing_backslash, _view))
-    assert key[0] == -len(trailing_backslash[1:])
+    digit_route = re_path(r"^api/v2/orders/\\d$", _view)
+    digit_key = target._route_specificity_key(digit_route)
+    assert digit_key[0] == -len("api/v2/orders/")
+    literal_route = re_path(r"^api/v2/orders/\\.$", _view)
+    literal_key = target._route_specificity_key(literal_route)
+    assert literal_key[0] == -len("api/v2/orders/.")
 
     dynamic_at_start = path("<int:pk>/", _view)
     assert target._route_specificity_key(dynamic_at_start)[0] == 0
@@ -3134,3 +3152,148 @@ def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edge
     target.urlpatterns[:] = [short_dynamic, long_dynamic]
     target._sort_urlpatterns()
     assert target.urlpatterns[0] is long_dynamic
+def test_mutation100_negotiation_escaped_control_characters_and_exact_errors():
+    assert _parse_accept_parameter_value(r'"a\ b"') == (r"a\ b", True)
+    assert _parse_accept_parameter_value('"a\\\tb"') == ("a\\\tb", True)
+    for invalid in ('"a\\\x7f"', '"a\\\x00"'):
+        _assert_exact_exception(
+            ValueError,
+            "Accept contains an invalid quoted parameter.",
+            lambda invalid=invalid: _parse_accept_parameter_value(invalid),
+        )
+    _assert_exact_exception(
+        ValueError,
+        "Accept contains an invalid quoted parameter.",
+        lambda: _parse_accept_parameter_value('"a"b"'),
+    )
+
+
+def test_mutation100_negotiation_uses_explicit_settings_over_fallbacks(monkeypatch):
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_BASE_PATH="Xapi/v{version}/X",
+            API_MAX_VERSION=1,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_MAX_VERSION=99),
+    )
+    assert _path_version("Xapi/v99/X/orders/", "Xapi/v{version}/X") == -1
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(API_BASE_PATH="Xapi/v{version}/X"),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_MAX_VERSION=3),
+    )
+    request = RequestFactory().get("/Xapi/v2/X/orders/")
+    response = VersionNegotiationMiddleware(
+        lambda current: HttpResponse("ok")
+    )(request)
+    assert response.status_code == 200
+    assert request.api_version == 2
+
+
+def test_mutation100_negotiation_query_header_and_path_fallback_defaults(monkeypatch):
+    import django_api_versioning.negotiation as negotiation_module
+
+    # Exercise the documented defaults by withholding settings attributes.
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(API_VERSIONING_SCHEME="query"),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_VERSIONING_SCHEME="query"),
+    )
+    request = RequestFactory().get("/api/orders/?version=1")
+    response = VersionNegotiationMiddleware(
+        lambda current: HttpResponse("ok")
+    )(request)
+    assert response.status_code == 200
+    assert request.path_info == "/api/v1/orders/"
+
+    # A custom query parameter must win over the package fallback.
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="query",
+            API_VERSIONING_QUERY_PARAMETER="v",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_BASE_PATH="api/v{version}/",
+            API_DEFAULT_VERSION=None,
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_VERSIONING_QUERY_PARAMETER="version"),
+    )
+    request = RequestFactory().get("/api/orders/?v=2")
+    response = VersionNegotiationMiddleware(
+        lambda current: HttpResponse("ok")
+    )(request)
+    assert response.status_code == 200
+    assert request.path_info == "/api/v2/orders/"
+
+    # The default path scheme is selected when no setting is present.
+    monkeypatch.setattr(
+        negotiation_module, "django_settings", SimpleNamespace(API_BASE_PATH="api/v{version}/")
+    )
+    monkeypatch.setattr(
+        negotiation_module, "api_settings", SimpleNamespace(API_MAX_VERSION=3)
+    )
+    request = RequestFactory().get("/api/v2/orders/")
+    response = VersionNegotiationMiddleware(
+        lambda current: HttpResponse("ok")
+    )(request)
+    assert response.status_code == 200
+    assert request.api_version == 2
+
+
+def test_mutation100_negotiation_header_default_and_hostname_error_are_observable(
+    monkeypatch,
+):
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_VERSIONING_HEADER="X-Api-Version",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_BASE_PATH="api/v{version}/",
+            API_DEFAULT_VERSION=None,
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_VERSIONING_HEADER="Accept-Version"),
+    )
+    request = RequestFactory().get(
+        "/api/orders/", HTTP_X_API_VERSION="2"
+    )
+    response = VersionNegotiationMiddleware(
+        lambda current: HttpResponse("ok")
+    )(request)
+    assert response.status_code == 200
+    assert request.path_info == "/api/v2/orders/"
