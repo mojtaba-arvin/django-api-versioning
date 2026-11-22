@@ -1396,7 +1396,8 @@ def test_mutation95_decorator_validation_and_warning_contracts(monkeypatch, capl
     caplog.clear()
     with caplog.at_level("WARNING"):
         endpoint("orders/", versions=[1, 3])(_view)
-    assert [record.getMessage() for record in caplog.records] == [        "Endpoint 'orders/' is declared for version 1, but API_MIN_VERSION is 2. "
+    assert [record.getMessage() for record in caplog.records] == [
+        "Endpoint 'orders/' is declared for version 1, but API_MIN_VERSION is 2. "
         "Skipping this version."
     ]
     assert {
