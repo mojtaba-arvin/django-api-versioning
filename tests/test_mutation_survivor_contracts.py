@@ -642,13 +642,19 @@ def test_accept_media_range_rejects_duplicate_parameters_and_bad_quality():
 def test_accept_negotiation_uses_quality_and_rejects_ambiguity():
     request = RequestFactory().get(
         "/",
-        HTTP_ACCEPT="application/json; version=2; q=0.8, application/json; version=3; q=0.9",
+        HTTP_ACCEPT=(
+            "application/json; version=2; q=0.8, "
+            "application/json; version=3; q=0.9"
+        ),
     )
     assert _header_version(request, "Accept-Version") == 3
 
     tied = RequestFactory().get(
         "/",
-        HTTP_ACCEPT="application/json; version=2; q=0.8, application/json; version=3; q=0.8",
+        HTTP_ACCEPT=(
+            "application/json; version=2; q=0.8, "
+            "application/json; version=3; q=0.8"
+        ),
     )
     with pytest.raises(ValueError, match="equally preferred conflicting"):
         _header_version(tied, "Accept-Version")
@@ -809,7 +815,10 @@ def test_nested_router_namespace_uses_the_innermost_version():
 
 def test_decorator_lifecycle_rolls_back_earlier_methods_on_late_conflict():
     registry.register_endpoint_lifecycle(
-        "orders/", 2, method="POST", deprecated_at="2027-01-01T00:00:00Z"
+        "orders/",
+        2,
+        method="POST",
+        deprecated_at="2027-01-01T00:00:00Z",
     )
     before = dict(registry._endpoint_lifecycle)
 
