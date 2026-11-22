@@ -155,9 +155,7 @@ def test_set_endpoint_lifecycle_restores_all_methods_after_late_conflict(monkeyp
             raise RuntimeError("second method rejected")
         return original(*args, **kwargs)
 
-    monkeypatch.setattr(
-        registry, "register_endpoint_lifecycle", fail_on_second_method
-    )
+    monkeypatch.setattr(registry, "register_endpoint_lifecycle", fail_on_second_method)
     before = dict(registry._endpoint_lifecycle)
 
     with pytest.raises(RuntimeError, match="second method rejected"):
