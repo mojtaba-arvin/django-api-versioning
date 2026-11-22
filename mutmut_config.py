@@ -105,14 +105,14 @@ def pre_mutation(context):
     # Mutmut's Context.current_line_index is zero-based; Coverage.py uses 1-based lines.
     line_contexts = contexts_by_line.get(context.current_line_index + 1, [])
 
-    node_ids = {
+    line_node_ids = {
         context_name.split("|", 1)[0]
         for context_name in line_contexts
         if context_name
     }
-    node_ids.update(_contract_test_node_ids(source_name))
-    node_ids = sorted(node_ids)
-    if node_ids:
+    contract_node_ids = set(_contract_test_node_ids(source_name))
+    if line_node_ids:
+        node_ids = sorted(line_node_ids | contract_node_ids)
         context.config.test_command = (
             "python -m pytest -x -q -p no:pytest_cov -o addopts= "
             + " ".join(shlex.quote(node_id) for node_id in node_ids)
@@ -122,6 +122,8 @@ def pre_mutation(context):
     test_paths = TESTS_BY_SOURCE.get(source_name)
     if not test_paths:
         return
+    fallback_targets = list(test_paths) + sorted(contract_node_ids)
     context.config.test_command = (
-        "python -m pytest -x -q -p no:pytest_cov -o addopts= " + " ".join(test_paths)
+        "python -m pytest -x -q -p no:pytest_cov -o addopts= "
+        + " ".join(shlex.quote(target) for target in fallback_targets)
     )
