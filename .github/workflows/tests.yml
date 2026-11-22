@@ -79,6 +79,5 @@ jobs:
 
   adversarial:
     name: Adversarial release-readiness campaigns
-    if: github.event_name != 'pull_request'
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
