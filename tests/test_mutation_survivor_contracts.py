@@ -906,7 +906,9 @@ def test_registry_remove_validates_all_version_boundaries_and_tombstones(monkeyp
 def test_registry_pattern_identity_constants_and_dataclass_shape_are_stable():
     assert UrlRegistry._SOURCE_VERSION_ATTR == "_django_api_versioning_source_version"
     assert UrlRegistry._ROUTE_VERSION_ATTR == "_django_api_versioning_route_version"
-    assert UrlRegistry._LOGICAL_ENDPOINT_ATTR == "_django_api_versioning_logical_endpoint"
+    assert UrlRegistry._LOGICAL_ENDPOINT_ATTR == (
+        "_django_api_versioning_logical_endpoint"
+    )
     assert UrlRegistry._ROUTER_OWNER_ATTR == "_django_api_versioning_router_owner"
     assert UrlRegistry._ROUTER_PREFIX_ATTR == "_django_api_versioning_router_prefix"
     assert (
@@ -971,7 +973,7 @@ def test_registry_logical_matrix_disambiguates_router_ownership_and_slash_policy
     assert len(matrix) == 2
 
 
-def test_registry_resolve_operation_normalizes_methods_and_fails_closed_on_bad_actions():
+def test_registry_resolve_operation_normalizes_methods_and_rejects_bad_actions():
     target = UrlRegistry()
 
     def callback(request):
@@ -1139,9 +1141,9 @@ def test_negotiation_path_version_zero_and_template_validation_are_exact():
 
 def test_negotiation_quoted_header_parser_handles_escaped_delimiters_and_controls():
     assert _split_quoted_header(
-        'profile="one\\\\,two;three"; version=2, application/json',
+        r'profile="one\\,two;three"; version=2, application/json',
         ",",
-    ) == ['profile="one\\\\,two;three"; version=2', " application/json"]
+    ) == [r'profile="one\\,two;three"; version=2', " application/json"]
     assert _parse_accept_parameter_value("token") == ("token", False)
     assert _parse_accept_parameter_value('"one two"') == ("one two", True)
     assert _parse_accept_parameter_value('""') == ("", True)
@@ -1268,9 +1270,9 @@ def test_lifecycle_process_response_requests_route_only_resolution_for_405():
             path_info="/unrelated/",
             path="/unrelated/",
         )
-        response = LifecycleMiddleware(lambda current: HttpResponse(status=405)).process_response(
-            request, HttpResponse(status=405)
-        )
+        response = LifecycleMiddleware(
+            lambda current: HttpResponse(status=405)
+        ).process_response(request, HttpResponse(status=405))
     finally:
         monkeypatch.undo()
 
