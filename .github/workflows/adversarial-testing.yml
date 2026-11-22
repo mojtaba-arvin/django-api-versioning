@@ -127,7 +127,7 @@ jobs:
           PY
 
   mutation-others:
-    if: github.event_name != 'pull_request' && github.event_name != 'push' && github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'push'
     name: Downstream mutation shard (${{ matrix.id }})
     needs: decorator-score
     strategy:
@@ -168,13 +168,15 @@ jobs:
           merge-multiple: true
         continue-on-error: true
       - name: Validate complete mutation campaign and enforce aggregate score
+        env:
+          MUTATION_OTHERS_RESULT: ${{ needs.mutation-others.result }}
         run: |
           python - <<'PY'
           import json
           import os
           from pathlib import Path
 
-          is_decorator_only = os.environ.get("GITHUB_EVENT_NAME") in {"pull_request", "workflow_dispatch"}
+          is_decorator_only = os.environ.get("MUTATION_OTHERS_RESULT") == "skipped"
           expected = (
               {"decorators"}
               if is_decorator_only
