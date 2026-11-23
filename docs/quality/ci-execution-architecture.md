@@ -37,7 +37,7 @@ The full matrix is no longer run alongside the PR smoke matrix for the same PR. 
 
 ## 4. Evidence fingerprints and reuse
 
-A passing test run is useful beyond the commit on which it was produced only when its effective inputs are identical. [`scripts/quality_fingerprint.py`](../../scripts/quality_fingerprint.py) computes two deterministic SHA-256 fingerprints:
+A passing test run is useful beyond the commit on which it was produced only when its effective inputs are identical. [`scripts/quality_fingerprint.py`](../../scripts/quality_fingerprint.py) computes three deterministic SHA-256 fingerprints:
 
 - **Deep-quality fingerprint:** package source, tests, real-consumer examples, dependency inputs, and the effective test/mutation/adversarial workflow configuration.
 - **Compatibility fingerprint:** dependency and Python/Django matrix inputs, matrix validation, the classifier, and fingerprint implementation.
