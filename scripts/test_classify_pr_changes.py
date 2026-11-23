@@ -123,18 +123,22 @@ version = "1.4.0"
 dependencies = ["Django>=4.2"]
 """
         base_lock = """version = 1
-content-hash = "old"
 
 [[package]]
 name = "django-api-versioning"
 version = "1.3.0"
+
+[metadata]
+content-hash = "old"
 """
         head_lock = """version = 1
-content-hash = "new"
 
 [[package]]
 name = "django-api-versioning"
 version = "1.4.0"
+
+[metadata]
+content-hash = "new"
 """
         self.assertTrue(
             is_version_only_metadata_change(
