@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   mutation-coverage:
-    if: inputs.run_mutation || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'schedule'
+    if: always()
     name: Mutation test coverage baseline
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -79,7 +79,7 @@ jobs:
           retention-days: 1
 
   mutation-decorators:
-    if: inputs.run_mutation || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'schedule'
+    if: always()
     name: Decorator mutation shard
     needs: mutation-coverage
     uses: ./.github/workflows/mutation-shard.yml
@@ -90,7 +90,7 @@ jobs:
       contents: read
 
   decorator-score:
-    if: inputs.run_mutation || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'schedule'
+    if: always()
     name: Decorator mutation gate (100% threshold)
     needs: mutation-decorators
     runs-on: ubuntu-latest
@@ -135,7 +135,7 @@ jobs:
           PY
 
   mutation-others:
-    if: inputs.run_mutation || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'schedule'
+    if: always()
     name: Downstream mutation shard (${{ matrix.id }})
     needs: mutation-coverage
     strategy:
@@ -159,14 +159,7 @@ jobs:
       contents: read
 
   mutation-score:
-    if: >-
-      always() &&
-      (
-        inputs.run_mutation ||
-        github.event_name == 'pull_request' ||
-        github.event_name == 'push' ||
-        github.event_name == 'schedule'
-      )
+    if: always()
     name: Mutation score (combined)
     runs-on: ubuntu-latest
     needs:
