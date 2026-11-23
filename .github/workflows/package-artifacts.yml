@@ -2,8 +2,8 @@ name: Python package artifacts
 
 on:
   workflow_call:
-  # PR checks run when review starts, not on every commit in a long review branch.
-  # Use workflow_dispatch for deliberate checkpoints; main remains fully automatic.
+  # Build artifacts for applicable PRs or deliberate manual checkpoints.
+  # The tag workflow performs the separate final build that is published.
   workflow_dispatch:
 permissions:
   contents: read
