@@ -114,8 +114,12 @@ jobs:
 
   adversarial:
     name: Adversarial release-readiness campaigns
-    if: inputs.run_adversarial || github.event_name == 'push'
+    if: >-
+      inputs.run_adversarial ||
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_call'
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
     with:
-      run_mutation: ${{ inputs.run_adversarial || github.event_name == 'push' }}
+      run_mutation: true
