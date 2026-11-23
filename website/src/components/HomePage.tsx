@@ -21,6 +21,7 @@ export function HomePage({ articles = [] }: { articles?: ArticleMeta[] }) {
       <main>
         <Hero />
         <Features />
+        <DecisionGuide />
 
         <QuickStart />
         <Patterns />
@@ -139,6 +140,42 @@ function Features() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  )
+}
+
+function DecisionGuide() {
+  return (
+    <section id="decision-guide" className="border-t border-line py-20">
+      <div className="mx-auto max-w-6xl px-5">
+        <SectionHead
+          eyebrow="Choose the right tool"
+          title="Is declarative versioned routing right for your API?"
+          body="The package is focused on one job: selecting the correct endpoint implementation for each API version while carrying unchanged routes forward."
+        />
+        <div className="mt-10 grid gap-4 lg:grid-cols-2">
+          <div className="card p-6">
+            <h3 className="font-semibold text-leaf-2">A good fit when you need to</h3>
+            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-mute">
+              <li>• Change only selected endpoints between API versions without cloning every URL pattern.</li>
+              <li>• Keep version-to-view ownership explicit for Django views or DRF ViewSets.</li>
+              <li>• Inspect and regression-test the effective route matrix as the API evolves.</li>
+              <li>• Introduce versioned routing incrementally while keeping application business logic in your views.</li>
+            </ul>
+          </div>
+          <div className="card p-6">
+            <h3 className="font-semibold">You may not need it when</h3>
+            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-mute">
+              <li>• DRF's built-in versioning already solves your only requirement: identifying the requested version.</li>
+              <li>• Your main need is serializer or response transformation, tenant-specific version policy, or automatic semantic compatibility.</li>
+              <li>• You intentionally want to maintain a separate URL configuration for every API version.</li>
+            </ul>
+          </div>
+        </div>
+        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-mute">
+          Django REST Framework is optional for Django-native endpoints. The package manages route registration and view selection; your project remains responsible for response contracts, authorization, and business-level compatibility. See the <Link to="/reference/" className="text-leaf-2 underline underline-offset-4 hover:text-leaf">reference</Link> for exact boundaries.
+        </p>
       </div>
     </section>
   )
