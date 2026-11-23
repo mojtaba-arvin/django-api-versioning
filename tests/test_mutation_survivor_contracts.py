@@ -1849,15 +1849,18 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     assert registry_module.REMOVED_ROUTE is not None
     assert registry_module.ViewType is not None
     assert registry_module.VersionKey == int | None
-    assert registry_module.VersionMatrix == dict[
-        str, dict[registry_module.VersionKey, Callable]
-    ]
-    assert registry_module.ResolvedRouteCandidate == tuple[
-        int, URLPattern, str, int, registry_module.VersionKey
-    ]
-    assert registry_module.RouteSortKey == tuple[
-        bool, registry_module.VersionKey, bool, int, int
-    ]
+    assert (
+        registry_module.VersionMatrix
+        == dict[str, dict[registry_module.VersionKey, Callable]]
+    )
+    assert (
+        registry_module.ResolvedRouteCandidate
+        == tuple[int, URLPattern, str, int, registry_module.VersionKey]
+    )
+    assert (
+        registry_module.RouteSortKey
+        == tuple[bool, registry_module.VersionKey, bool, int, int]
+    )
     assert registry_module._UNOWNED_OWNER_IDENTITY is not None
     assert registry_module._ROUTER_OWNER_IDENTITY is not None
     assert (
@@ -2952,9 +2955,10 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     # import-time mutants and make these contracts ineffective.
     assert router_module.RoutePattern == URLPattern | URLResolver
     assert router_module.VersionRange == int | None
-    assert router_module.VersionDeclaration == tuple[
-        router_module.VersionRange, router_module.VersionRange
-    ]
+    assert (
+        router_module.VersionDeclaration
+        == tuple[router_module.VersionRange, router_module.VersionRange]
+    )
 
     defaults = inspect.signature(
         router_module.VersionedDefaultRouter.__init__
