@@ -34,8 +34,12 @@ class QualityFingerprintTests(unittest.TestCase):
         dependency_change = dict(before)
         dependency_change["pyproject.toml"] = b'[project]\nname = "django-api-versioning"\nversion = "1.3.0"\ndependencies = ["Django>=5.0"]\n'
         baseline = fingerprint_files(before, scope="deep")
-        self.assertNotEqual(baseline, fingerprint_files(runtime_change, scope="deep"))
-        self.assertNotEqual(baseline, fingerprint_files(dependency_change, scope="deep"))
+        self.assertNotEqual(
+            baseline, fingerprint_files(runtime_change, scope="deep")
+        )
+        self.assertNotEqual(
+            baseline, fingerprint_files(dependency_change, scope="deep")
+        )
 
     def test_compatibility_fingerprint_tracks_matrix_and_dependency_inputs(self):
         before = {
