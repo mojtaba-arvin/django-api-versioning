@@ -82,13 +82,14 @@ jobs:
     if: always()
     name: Decorator mutation shard
     needs: mutation-coverage
-    uses: ./.github/workflows/mutation-shard.yml
-    with:
-      target_id: decorators
-      target_path: django_api_versioning/decorators.py
-    permissions:
-      contents: read
-
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
+    steps:
+      - name: Run Decorators mutation campaign
+        uses: ./.github/actions/mutation-shard
+        with:
+          target_id: decorators
+          target_path: django_api_versioning/decorators.py
   decorator-score:
     if: always()
     name: Decorator mutation gate (100% threshold)
@@ -138,6 +139,8 @@ jobs:
     if: always()
     name: Downstream mutation shard (${{ matrix.id }})
     needs: mutation-coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -151,13 +154,12 @@ jobs:
             path: django_api_versioning/registry.py
           - id: routers
             path: django_api_versioning/routers.py
-    uses: ./.github/workflows/mutation-shard.yml
-    with:
-      target_id: ${{ matrix.id }}
-      target_path: ${{ matrix.path }}
-    permissions:
-      contents: read
-
+    steps:
+      - name: Run ${{ matrix.id }} mutation campaign
+        uses: ./.github/actions/mutation-shard
+        with:
+          target_id: ${{ matrix.id }}
+          target_path: ${{ matrix.path }}
   mutation-score:
     if: always()
     name: Mutation score (combined)
