@@ -167,6 +167,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         result = classify_paths(["requirements-extra.txt"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
+        self.assertTrue(result["compatibility_full"])
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
 
@@ -198,6 +199,8 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             with self.subTest(path=path):
                 result = classify_paths([path])
                 self.assertTrue(result[expected])
+                if path == ".github/workflows/compatibility.yml":
+                    self.assertTrue(result["compatibility_full"])
                 self.assertTrue(result["agent"])
 
     def test_publish_workflow_runs_compatibility_and_openapi_checks(self):
