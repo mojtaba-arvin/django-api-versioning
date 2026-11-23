@@ -96,7 +96,8 @@ def fingerprint_files(files: Mapping[str, bytes], *, scope: str) -> str:
     for path, content in files.items():
         if scope == "compatibility":
             include = path.startswith(COMPATIBILITY_PREFIXES) or (
-                path in COMPATIBILITY_FILES
+                path.endswith(".py")
+                or path in COMPATIBILITY_FILES
                 or (path.startswith("requirements") and path.endswith(".txt"))
             )
         elif scope == "openapi":
@@ -135,6 +136,7 @@ def tracked_files() -> dict[str, bytes]:
             or path in OPENAPI_FILES
             or path in QUALITY_FILES
             or path in COMPATIBILITY_FILES
+            or path.endswith(".py")
             or (path.startswith("requirements") and path.endswith(".txt"))
         ):
             files[path] = Path(path).read_bytes()
