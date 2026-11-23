@@ -82,12 +82,19 @@ jobs:
               continue
             fi
 
-            if error="$(gh api --method DELETE "repos/$repository/git/refs/heads/$branch" 2>&1)"; then
-              echo "Deleted obsolete branch: $branch"
-            elif grep -Eq "HTTP 404|Reference does not exist" <<< "$error"; then
-              echo "Already absent: $branch"
+            # Git refs are a single path parameter. Encode the complete ref so
+            # branch names containing slashes are addressed as one ref.
+            encoded_ref="$(jq -rn --arg ref "heads/$branch" '$ref | @uri')"
+            ref_endpoint="repos/$repository/git/ref/$encoded_ref"
+
+            if gh api "$ref_endpoint" >/dev/null 2>&1; then
+              if error="$(gh api --method DELETE "$ref_endpoint" 2>&1)"; then
+                echo "Deleted obsolete branch: $branch"
+              else
+                echo "Could not delete $branch: $error" >&2
+                exit 1
+              fi
             else
-              echo "Could not delete $branch: $error" >&2
-              exit 1
+              echo "Already absent: $branch"
             fi
           done <<< "$candidates"
