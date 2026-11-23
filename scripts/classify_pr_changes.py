@@ -151,7 +151,11 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
     is_compatibility = is_python or any(
         path in COMPATIBILITY_PATHS for path in normalized
     )
-    compatibility_full = not release_metadata_only and any(
+    has_runtime_changes = any(path.startswith(PYTHON_PATHS) for path in normalized)
+    compatibility_full = (
+        not release_metadata_only
+        and not has_runtime_changes
+        and any(
         path in PYTHON_DEPENDENCIES
         or path in {
             ".github/workflows/compatibility.yml",
@@ -159,6 +163,7 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
         }
         or (path.startswith("requirements") and path.endswith(".txt"))
         for path in normalized
+        )
     )
     is_package = any(
         path.startswith(("django_api_versioning/", "tests/", "LICENSE"))
