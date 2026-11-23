@@ -80,6 +80,26 @@ def parse_progress_summary(run_log: str) -> dict[str, int] | None:
     }
 
 
+def progress_disagrees_with_cache(
+    progress: dict[str, int] | None, summary: dict[str, int]
+) -> bool:
+    """Return whether Mutmut's run progress conflicts with its persisted cache."""
+    if progress is None:
+        return False
+    return any(
+        progress[key] != summary[key]
+        for key in (
+            "completed",
+            "total",
+            "killed",
+            "timed_out",
+            "suspicious",
+            "survived",
+            "skipped",
+        )
+    )
+
+
 def load_mutants(cache_path: Path) -> list[dict[str, Any]]:
     connection = sqlite3.connect(cache_path)
     connection.row_factory = sqlite3.Row
@@ -192,20 +212,8 @@ def main() -> None:
             "target": args.target,
             "runner_exit": args.runner_exit,
             "progress_summary": progress,
-            "progress_disagrees_with_cache": (
-                progress is not None
-                and any(
-                    progress[key] != summary[key]
-                    for key in (
-                        "completed",
-                        "total",
-                        "killed",
-                        "timed_out",
-                        "suspicious",
-                        "survived",
-                        "skipped",
-                    )
-                )
+            "progress_disagrees_with_cache": progress_disagrees_with_cache(
+                progress, summary
             ),
         }
     )
@@ -242,6 +250,9 @@ def main() -> None:
                     "classification": "unclassified",
                 }
                 report_file.write(json.dumps(record, sort_keys=True) + "\n")
+
+    if summary["progress_disagrees_with_cache"]:
+        raise SystemExit("Mutmut progress summary disagrees with the persisted cache")
 
 
 if __name__ == "__main__":
