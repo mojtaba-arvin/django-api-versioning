@@ -91,6 +91,19 @@ class QualityFingerprintTests(unittest.TestCase):
             fingerprint_files(after, scope="compatibility"),
         )
 
+
+    def test_compatibility_fingerprint_tracks_all_python_files_linted_by_tox(self):
+        before = {
+            "scripts/release_tags.py": b"def release(): pass\\n",
+            "tox.ini": b"[tox]\\nenvlist = py312\\n",
+        }
+        after = dict(before)
+        after["scripts/release_tags.py"] = b"def release(): return True\\n"
+        self.assertNotEqual(
+            fingerprint_files(before, scope="compatibility"),
+            fingerprint_files(after, scope="compatibility"),
+        )
+
     def test_documentation_is_not_part_of_runtime_quality_fingerprint(self):
         files = {
             "django_api_versioning/routers.py": b"class Router: pass\n",
