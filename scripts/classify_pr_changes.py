@@ -44,6 +44,7 @@ COMPATIBILITY_PATHS = {
     "tox.ini",
     ".github/workflows/compatibility.yml",
     ".github/workflows/publish.yml",
+    ".github/workflows/agent-tooling.yml",
     "scripts/check_tox_workflow_matrix.py",
     "scripts/classify_pr_changes.py",
     "scripts/test_classify_pr_changes.py",
