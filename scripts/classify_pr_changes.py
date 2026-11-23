@@ -69,6 +69,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "pytest.ini",
             ".github/workflows/tests.yml",
             ".github/workflows/adversarial-testing.yml",
+            ".github/actions/mutation-shard/action.yml",
             ".github/workflows/mutation-shard.yml",
             ".github/workflows/pull-request-gate.yml",
             ".github/workflows/compatibility.yml",
