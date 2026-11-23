@@ -40,6 +40,7 @@ OPENAPI_FILES = {
     "scripts/check_coverage_thresholds.py",
     "requirements-ci.txt",
     "requirements.txt",
+    "pytest.ini",
 }
 COMPATIBILITY_FILES = {
     "pyproject.toml",
