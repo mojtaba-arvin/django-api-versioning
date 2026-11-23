@@ -84,7 +84,7 @@ Every PR to `main` must pass the always-running [PR gate](../../.github/workflow
 
 A skipped child is acceptable only when the classifier establishes that its scope is unchanged. A version-only change is identified by comparing parsed `pyproject.toml` and `uv.lock` against the PR base; path names alone are insufficient.
 
-Successful Deep Quality and full compatibility workflows publish separate 90-day evidence artifacts. The tag workflow recomputes the fingerprints from the tagged source and reuses only successful artifacts whose fingerprints match exactly. The fingerprint includes package source, tests, real-consumer examples, dependencies, and effective CI configuration; it normalizes only the package's own version metadata. A documentation or version-only release therefore does not require rerunning mutation and fuzz campaigns. A source, dependency, test, matrix, or quality-workflow change invalidates the relevant evidence.
+Successful Deep Quality, OpenAPI consumer-contract, and full compatibility workflows publish separate 90-day evidence artifacts. The tag workflow recomputes the fingerprints from the tagged source and reuses only successful artifacts whose fingerprints match exactly. The fingerprint includes package source, tests, real-consumer examples, dependencies, and effective CI configuration; it normalizes only the package's own version metadata. A documentation or version-only release therefore does not require rerunning mutation and fuzz campaigns. A source, dependency, test, matrix, or quality-workflow change invalidates the relevant evidence.
 
 If matching evidence is absent or expired, publication is blocked. Run the relevant workflow deliberately on the candidate source; never bypass the gate. The implementation and manual recovery commands are documented in the [CI execution architecture](ci-execution-architecture.md).
 
@@ -92,10 +92,11 @@ A package release additionally requires:
 
 1. A reviewed release PR with a user-visible changelog entry and accurate version-specific documentation.
 2. Matching full compatibility evidence for the tagged source fingerprint.
-3. Matching Deep Quality evidence for the tagged source fingerprint, including complete mutation and coverage results, public API contracts, and real-consumer tests.
-4. Applicable security/adversarial checks.
-5. A fresh wheel and sdist build from the exact tag, metadata checks, distribution-content checks, an isolated installed-wheel smoke test, and the automated two-build SHA-256 reproducibility check in `scripts/check_reproducible_build.py`.
-6. Explicit authorization for a concrete package version before version bump, tag creation, or publication.
+3. Matching Deep Quality evidence for the tagged source fingerprint, including complete mutation and coverage results plus package and real-consumer tests.
+4. Matching OpenAPI consumer-contract evidence for the tagged source fingerprint.
+5. Applicable security/adversarial checks.
+6. A fresh wheel and sdist build from the exact tag, metadata checks, distribution-content checks, an isolated installed-wheel smoke test, and the automated two-build SHA-256 reproducibility check in `scripts/check_reproducible_build.py`.
+7. Explicit authorization for a concrete package version before version bump, tag creation, or publication.
 
 The package release procedure is maintained in [the release skill](../../.agents/skills/release/references/release-procedure.md). Never infer a release result from a version string, a configured matrix, a previous artifact with a different fingerprint, or a partial workflow-job listing.
 
