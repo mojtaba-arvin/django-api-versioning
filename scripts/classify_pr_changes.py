@@ -45,6 +45,10 @@ COMPATIBILITY_PATHS = {
     ".github/workflows/compatibility.yml",
     ".github/workflows/publish.yml",
     "scripts/check_tox_workflow_matrix.py",
+    "scripts/classify_pr_changes.py",
+    "scripts/test_classify_pr_changes.py",
+    "scripts/quality_fingerprint.py",
+    "scripts/test_quality_fingerprint.py",
     "scripts/release_bootstrap.sh",
     "Makefile",
 }
@@ -143,27 +147,29 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
             "scripts/smoke_installed_wheel.py",
             "scripts/check_coverage_thresholds.py",
             "scripts/check_reproducible_build.py",
+            "scripts/classify_pr_changes.py",
+            "scripts/test_classify_pr_changes.py",
+            "scripts/quality_fingerprint.py",
+            "scripts/test_quality_fingerprint.py",
+            "scripts/verify_release_evidence.py",
         }
         or path in PYTHON_DEPENDENCIES
         or (path.startswith("requirements") and path.endswith(".txt"))
         for path in normalized
-    )
-    is_compatibility = is_python or any(
-        path in COMPATIBILITY_PATHS for path in normalized
     )
     has_runtime_changes = any(path.startswith(PYTHON_PATHS) for path in normalized)
     compatibility_full = (
         not release_metadata_only
         and not has_runtime_changes
         and any(
-        path in PYTHON_DEPENDENCIES
-        or path in {
-            ".github/workflows/compatibility.yml",
-            "scripts/check_tox_workflow_matrix.py",
-        }
-        or (path.startswith("requirements") and path.endswith(".txt"))
-        for path in normalized
+            path in PYTHON_DEPENDENCIES
+            or path in COMPATIBILITY_PATHS
+            or (path.startswith("requirements") and path.endswith(".txt"))
+            for path in normalized
         )
+    )
+    is_compatibility = compatibility_full or is_python or any(
+        path in COMPATIBILITY_PATHS for path in normalized
     )
     is_package = any(
         path.startswith(("django_api_versioning/", "tests/", "LICENSE"))
