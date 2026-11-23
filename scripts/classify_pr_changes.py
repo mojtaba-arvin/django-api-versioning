@@ -58,11 +58,11 @@ OPENAPI_EXPLICIT_PATHS = {
 }
 
 
-def classify_paths(paths: list[str]) -> dict[str, bool]:
+def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> dict[str, bool]:
     """Return the workflows required for repository-relative changed paths."""
     normalized = [path.strip().removeprefix("./") for path in paths if path.strip()]
 
-    is_python = any(
+    is_python = not release_metadata_only and any(
         path.startswith(PYTHON_PATHS)
         or path
         in {
@@ -110,14 +110,19 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
     # Website examples are verified against the package checkout. A package,
     # test, or evidence-harness change must therefore run the website gate too.
     is_website = any(
-        path.startswith(WEBSITE_PATHS + PYTHON_PATHS)
-        or path in WEBSITE_EXAMPLE_PATHS
-        or (path.startswith("requirements") and path.endswith(".txt"))
-        or path
-        in {
-            ".github/workflows/website-data-preflight.yml",
-            "scripts/verify_website_examples.py",
-        }
+        path.startswith(WEBSITE_PATHS)
+        or (
+            not release_metadata_only
+            and (
+                path.startswith(PYTHON_PATHS)
+                or path in WEBSITE_EXAMPLE_PATHS
+                or (path.startswith("requirements") and path.endswith(".txt"))
+                or path in {
+                    ".github/workflows/website-data-preflight.yml",
+                    "scripts/verify_website_examples.py",
+                }
+            )
+        )
         for path in normalized
     )
     is_agent = any(
@@ -146,20 +151,22 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         or path.startswith("scripts/agent_tests/")
         for path in normalized
     )
-    needs_dependency_review = any(
+    needs_dependency_review = not release_metadata_only and any(
         path in PYTHON_DEPENDENCIES
         or path in {"website/package.json", "website/pnpm-lock.yaml"}
         or path.startswith("requirements")
         or path.endswith("/requirements.txt")
         for path in normalized
     )
-    is_openapi = is_python or any(
+    is_openapi = not release_metadata_only and (is_python or any(
         path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
         for path in normalized
-    )
+    ))
 
     return {
         "python": is_python,
+        "deep": is_python,
+        "metadata": any(path in {"pyproject.toml", "uv.lock"} for path in normalized),
         "compatibility": is_compatibility,
         "package": is_package,
         "website": is_website,
@@ -170,15 +177,16 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in {3, 4}:
         print(
-            "Usage: classify_pr_changes.py <changed-files.txt> <github-output>",
+            "Usage: classify_pr_changes.py <changed-files.txt> <github-output> [release-metadata-only]",
             file=sys.stderr,
         )
         return 2
 
     changed_files = Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
-    outputs = classify_paths(changed_files)
+    metadata_only = len(sys.argv) == 4 and sys.argv[3] == "true"
+    outputs = classify_paths(changed_files, release_metadata_only=metadata_only)
     with Path(sys.argv[2]).open("a", encoding="utf-8") as output_file:
         for name, enabled in outputs.items():
             output_file.write(f"{name}={'true' if enabled else 'false'}\n")
@@ -186,6 +194,7 @@ def main() -> int:
     print("Changed paths:")
     for path in changed_files:
         print(f"  {path}")
+    print(f"Release metadata-only change: {metadata_only}")
     print("Required checks:")
     for name, enabled in outputs.items():
         print(f"  {name}: {'yes' if enabled else 'no'}")
