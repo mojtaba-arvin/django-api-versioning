@@ -3,21 +3,6 @@ name: Website static build and distribution checks
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - "website/**"
-      - "docs/articles/**"
-      - "django_api_versioning/**"
-      - "tests/**"
-      - "integration_test_project/**"
-      - "pyproject.toml"
-      - "pytest.ini"
-      - "requirements-ci.txt"
-      - "requirements.txt"
-      - "scripts/verify_website_examples.py"
-      - ".github/workflows/website-data-preflight.yml"
-
 permissions:
   contents: read
 
