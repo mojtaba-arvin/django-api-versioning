@@ -465,9 +465,9 @@ It is also a responsibility. Carry-forward is routing behavior, not proof that t
 
 ## 6. ViewSets and router-based endpoints
 
-The examples above use DRF generic views. For resource-shaped `ModelViewSet` endpoints, use `VersionedRouter` when you want package-managed route inheritance; plain per-version DRF routers remain a manual alternative.
+The examples above use DRF generic views. For resource-shaped `ModelViewSet` endpoints, use `VersionedRouter` or `VersionedDefaultRouter` (1.4.0+) when you want package-managed route inheritance; plain per-version DRF routers remain a manual alternative.
 
-The `@endpoint` decorator cannot decorate a `ModelViewSet` class directly because it calls `.as_view()` without the action mapping required by a ViewSet. The separate `VersionedRouter` integration supplies that router/action-mapping boundary.
+The `@endpoint` decorator cannot decorate a `ModelViewSet` class directly because it calls `.as_view()` without the action mapping required by a ViewSet. The package router integrations supply that router/action-mapping boundary.
 
 A configured callable such as:
 
@@ -482,11 +482,12 @@ can be registered for one explicitly configured route. It is not a replacement f
 
 For mixed projects:
 
-- Use `VersionedRouter` for package-managed resource-shaped ViewSets.
-- Use plain DRF routers when manually managing per-version URL prefixes or when relying on `DefaultRouter` behavior.
+- Use `VersionedRouter` for package-managed resource-shaped ViewSets (SimpleRouter behavior).
+- Use `VersionedDefaultRouter` when you also need a version-specific API root and format-suffix routes (package version 1.4.0+).
+- Use plain DRF routers when you prefer to manage each version's URL configuration yourself, or when you depend on DefaultRouter extensions the package does not reimplement.
 - Use `@endpoint` for non-resource views and generic views that benefit from declarative version registration.
 
-`VersionedRouter` integrates DRF's `SimpleRouter` patterns with the package registry; arbitrary `SimpleRouter` and `DefaultRouter` instances remain separate.
+`VersionedRouter` and `VersionedDefaultRouter` integrate DRF-generated patterns with the package registry. Arbitrary plain `SimpleRouter` and `DefaultRouter` instances remain separate unless you register through those package routers.
 
 ## 7. Trade-offs and scope
 
@@ -498,7 +499,7 @@ For mixed projects:
 
 The package requires explicit module imports during URLconf initialization because it does not automatically discover decorated view modules. Its exported `urlpatterns` is the registry's shared list, not a frozen copy. It manages routing, not HTTP caching, DRF version negotiation, semantic compatibility, or automatic schema versioning.
 
-When the benefit is smaller: for a single-version API, a project that depends on `DefaultRouter` API-root/format-suffix behavior, or an application whose generic views require a custom header/query negotiation scheme, a DRF-native routing/versioning setup may require less architectural change. `VersionedRouter` supplies `request.version` for its ViewSets.
+When the benefit is smaller: for a single-version API, or when you need DefaultRouter extensions beyond the package's version-specific API root and format suffixes, a DRF-native routing setup may require less architectural change. Header, query, and hostname negotiation are available through `API_VERSIONING_SCHEME` and `VersionNegotiationMiddleware` (package version 1.3.0+); use them when you want one registry with a non-path transport. `VersionedRouter` / `VersionedDefaultRouter` plus `VersionedRouterVersioning` supply `request.version` for their ViewSets.
 
 For details about how Django handles cache keys and `Vary` headers, see [Django's cache framework documentation](https://docs.djangoproject.com/en/6.1/topics/cache/).
 
