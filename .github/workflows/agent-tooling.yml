@@ -2,37 +2,6 @@ name: Agent tooling
 
 on:
   workflow_call:
-  push:
-    branches: [main]
-    paths:
-      - "AGENTS.md"
-      - "website/AGENTS.md"
-      - "website/.agents/**"
-      - "website/.claude/**"
-      - "CLAUDE.md"
-      - ".claude/skills/**"
-      - ".agents/skills/**"
-      - ".agents/evals/**"
-      - ".github/copilot-instructions.md"
-      - ".github/skills/**"
-      - ".github/workflows/**"
-      - ".claude/push.sh"
-      - "docs/agent-engineering.md"
-      - "requirements-dev.txt"
-      - "scripts/agent.py"
-      - "scripts/verify_repository_policy.py"
-      - "scripts/configure_github_repository.sh"
-      - "scripts/maintain.sh"
-      - "scripts/release_bootstrap.sh"
-      - "Makefile"
-      - "scripts/release_tags.py"
-      - "scripts/test_release_tags.py"
-      - "scripts/classify_pr_changes.py"
-      - "scripts/test_classify_pr_changes.py"
-      - "scripts/quality_fingerprint.py"
-      - "scripts/test_quality_fingerprint.py"
-      - "scripts/verify_release_evidence.py"
-      - "scripts/agent_tests/**"
   workflow_dispatch:
 
 permissions:
