@@ -1130,8 +1130,8 @@ class UrlRegistry:
                 route_version is not None,
                 route_version,
                 has_dynamic,
-                specificity[0],
-                specificity[2],
+                specificity[0] * int(has_dynamic),
+                specificity[2] * int(has_dynamic),
             )
 
         self.urlpatterns.sort(key=sort_key)

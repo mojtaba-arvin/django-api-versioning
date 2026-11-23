@@ -78,7 +78,7 @@ def _registered_pattern(
     *,
     version=2,
     logical_endpoint="orders:order-list",
-    owner=None,
+    pattern_owner=None,
     prefix="orders",
     trailing_slash=True,
 ):
@@ -1014,13 +1014,13 @@ def test_registry_lifecycle_metadata_isolated_by_router_owner():
         "orders:order-list",
         2,
         deprecated_at="2027-01-01T00:00:00Z",
-        owner=first_owner,
+        pattern_owner=first_owner,
     )
     target.register_endpoint_lifecycle(
         "orders:order-list",
         2,
         deprecated_at="2028-01-01T00:00:00Z",
-        owner=second_owner,
+        pattern_owner=second_owner,
     )
 
     def operation(owner):
@@ -2069,7 +2069,7 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         tried=None,
     )
     assert named.get_resolved_route_version_for_match(
-        named_match, require_exact_pattern=False
+        named_match
     ) == (True, 2)
 
     named.urlpatterns[:] = [named_other, named_order]
@@ -2090,7 +2090,7 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         tried=None,
     )
     assert named.get_resolved_route_version_for_match(
-        name_fallback, require_exact_pattern=False
+        name_fallback
     ) == (True, 2)
 
     namespace_fallback = SimpleNamespace(
@@ -2101,7 +2101,7 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         tried=None,
     )
     assert named.get_resolved_route_version_for_match(
-        namespace_fallback, require_exact_pattern=False
+        namespace_fallback
     ) == (True, 2)
 
     assert longest._resolved_route_match_length(
@@ -2694,7 +2694,7 @@ def test_mutation100_registry_remove_scans_all_routes_and_preserves_only_newer_m
         preserving,
         version=3,
         logical_endpoint="orders",
-        owner=None,
+        pattern_owner=None,
     )
     setattr(newer, preserving._SOURCE_VERSION_ATTR, 3)
     other = path("health/", _view, name="health")
@@ -2709,7 +2709,7 @@ def test_mutation100_registry_remove_scans_all_routes_and_preserves_only_newer_m
         equal_source,
         version=2,
         logical_endpoint="orders",
-        owner=None,
+        pattern_owner=None,
     )
     setattr(same_source, equal_source._SOURCE_VERSION_ATTR, 2)
     equal_source.urlpatterns.append(same_source)
@@ -2965,10 +2965,10 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     ) == [("GET", "list")]
     router._register_lifecycle_methods("orders", 2, [], None, None, object())
 
-    router.register("unversioned", ViewSet)
+    router.register("unversioned", ViewSet, basename="unversioned")
     with override_settings(API_MIN_VERSION=2):
         with caplog.at_level("WARNING"):
-            router.register("below-min", ViewSet, version=1)
+            router.register("below-min", ViewSet, version=1, basename="below-min")
     expected_warning = (
         "ViewSet prefix 'below-min' starts at version 1, below "
         "API_MIN_VERSION 2. No routes will be registered."
@@ -3561,7 +3561,7 @@ def test_mutation100_router_namespace_and_route_version_validation(monkeypatch):
     mismatched_namespace = SimpleNamespace(
         resolver_match=SimpleNamespace(namespace="v3", route="api/v2/orders/")
     )
-    assert adapter.determine_version(mismatched_namespace) == 2
+    assert adapter.determine_version(mismatched_namespace) == "2"
 
     monkeypatch.setattr(
         router_module.registry, "get_resolved_route_version", lambda route: True
@@ -3635,7 +3635,7 @@ def test_mutation95_registry_does_not_treat_missing_router_prefixes_as_equal():
         source_version=1,
         route_version=2,
         logical_endpoint="orders",
-        owner=first_owner,
+        pattern_owner=first_owner,
         router_prefix=None,
         trailing_slash=False,
     )
@@ -3645,7 +3645,7 @@ def test_mutation95_registry_does_not_treat_missing_router_prefixes_as_equal():
             source_version=2,
             route_version=2,
             logical_endpoint="orders",
-            owner=second_owner,
+            pattern_owner=second_owner,
             router_prefix=None,
             trailing_slash=False,
         )
@@ -3678,7 +3678,7 @@ def test_mutation95_registry_rejects_non_string_endpoints_and_boolean_versions()
         namespaces=(),
         tried=[[bad_endpoint]],
     )
-    assert target.get_resolved_route_version_for_match(endpoint_match) == (False, None)
+    assert target.resolve_operation(endpoint_match, "GET") is None
 
     bad_version = path("api/v2/orders/", _view)
     setattr(bad_version, target._LOGICAL_ENDPOINT_ATTR, "orders")
@@ -3691,7 +3691,7 @@ def test_mutation95_registry_rejects_non_string_endpoints_and_boolean_versions()
         namespaces=(),
         tried=[[bad_version]],
     )
-    assert target.get_resolved_route_version_for_match(version_match) == (False, None)
+    assert target.resolve_operation(version_match, "GET") is None
 
 
 def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
@@ -3705,7 +3705,7 @@ def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
         source_version=1,
         route_version=2,
         logical_endpoint="orders",
-        owner=first_owner,
+        pattern_owner=first_owner,
         router_prefix="orders",
         trailing_slash=False,
     )
@@ -3715,7 +3715,7 @@ def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
             source_version=1,
             route_version=2,
             logical_endpoint="orders",
-            owner=second_owner,
+            pattern_owner=second_owner,
             router_prefix="orders",
             trailing_slash=False,
         )
@@ -3733,7 +3733,7 @@ def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
         source_version=1,
         route_version=2,
         logical_endpoint="orders",
-        owner=None,
+        pattern_owner=None,
     )
     with pytest.raises(VersioningError) as exc:
         different_owner.register_urlpattern(
@@ -3741,7 +3741,7 @@ def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
             source_version=2,
             route_version=2,
             logical_endpoint="orders",
-            owner=second_owner,
+            pattern_owner=second_owner,
         )
     assert str(exc.value) == (
         "Route pattern 'api/v2/orders/' is already registered by a "
