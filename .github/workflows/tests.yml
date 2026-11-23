@@ -80,6 +80,6 @@ jobs:
   adversarial:
     name: Adversarial release-readiness campaigns
     # Validation branches opt in to the expensive mutation and fuzz campaigns.
-    if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'validation/')
+    if: github.event_name != 'pull_request' || startsWith(github.event.pull_request.head.ref, 'validation/')
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
