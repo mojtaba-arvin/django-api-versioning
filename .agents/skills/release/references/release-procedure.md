@@ -94,21 +94,21 @@ The push helper pushes the current short-lived branch and refuses `main`. If pus
 
 Open a PR from `release/vX.Y.Z` to `main`. Include the version, changelog summary, technical-impact classification, approved article changes, and verification plan.
 
-Require successful results for every workflow relevant to the PR's changed paths. For the package's quality contract, inspect at least:
+Require the always-running `PR gate` to pass for the exact latest PR head SHA. The gate selects checks using changed paths and parsed release metadata:
 
-- Python unit and integration tests;
-- all five mutation domains (Decorators, Lifecycle, Negotiation, Registry, Routers) at exactly 100%, with complete reports and no surviving, skipped, suspicious, timed-out, or unaccounted mutants;
-- independent line and branch coverage of at least 95% each, measured after the package and real-consumer test suites contribute to the same coverage data;
-- the complete compatibility matrix, including every environment configured by current `tox.ini` (15 Python/Django combinations plus lint, 16 tox environments total);
-- public API contract tests and the executable Django consumer/OpenAPI contract, including schema validation and `oasdiff` checks;
-- security and adversarial campaigns (CodeQL, Atheris, Schemathesis, and property-based tests) relevant to the changed paths;
-- wheel/sdist build, metadata validation, installed-wheel smoke test, distribution-content checks, and the automated two-build SHA-256 reproducibility check in `scripts/check_reproducible_build.py`; the script normalizes sdist container metadata but never modifies package file contents.
+- Version-only edits to `pyproject.toml` and `uv.lock` run lockfile validation and package distribution build checks; they do not rerun package runtime tests, mutation/fuzz campaigns, OpenAPI consumer tests, dependency review, or the compatibility matrix when parsed metadata proves dependencies and configuration are unchanged.
+- Runtime, test, dependency, and quality-policy changes run Deep Quality: package unit and real-consumer integration tests, five mutation domains at exactly 100%, independent line and branch coverage of at least 95%, public API/consumer contracts, and applicable security/adversarial checks.
+- Ordinary runtime changes run the PR compatibility smoke scope and the full 16-environment compatibility matrix once after merge to `main`.
+- Dependency-only or compatibility-matrix changes run the full matrix on the PR. Do not run the full matrix and PR smoke matrix together.
+- Website/article and agent-policy checks run only when their inputs change.
 
-If website/article files changed, also inspect Website build and static verification. If agent instructions or skills changed, inspect Agent tooling.
+Successful Deep Quality, OpenAPI consumer-contract, and full compatibility runs upload separate 90-day evidence artifacts. Each artifact records fingerprints for the relevant source, tests, dependency inputs, and effective CI configuration. The tag workflow reuses only successful artifacts whose fingerprints match the tagged source. A package-version bump and documentation-only edit do not invalidate the evidence; a source, dependency, test, matrix, classifier, or quality-workflow change does.
 
-Require the always-running `PR gate` to pass for the exact latest PR head SHA. A successful historical run, partial matrix page, or passing boundary smoke test is not a substitute for the full configured matrix and exact-head release evidence. The current thresholds and evidence rules are summarized in [`docs/quality/release-gates.md`](../../../../docs/quality/release-gates.md). The gate invokes every path-relevant reusable workflow; a child workflow may be skipped only when the path classifier marks its scope unchanged. Independently inspect CodeQL results for package or website source changes. A failed, pending, or stale applicable check is not a pass. Fix failures on the same release branch; do not bypass a relevant failing check.
+The exact thresholds and implementation are maintained in [the release-gates contract](../../../../docs/quality/release-gates.md) and [the CI execution architecture](../../../../docs/quality/ci-execution-architecture.md). A skipped child is acceptable only when the classifier proves its scope unchanged. A missing, expired, failed, or mismatched evidence artifact blocks publication. If evidence is missing, deliberately run the required workflows on the candidate source; never bypass the gate.
 
-Merge the PR through GitHub only after relevant checks pass. Never push the release branch directly to `main`.
+Independently inspect CodeQL results for package or website source changes. A failed, pending, stale, or non-applicable check must not be represented as a pass. Fix failures on the same release branch.
+
+Merge the PR through GitHub only after applicable checks pass. Never push the release branch directly to `main`.
 
 ## 6. Tag the exact merged commit
 
@@ -152,8 +152,7 @@ test -n "$REMOTE_TAG_SHA" && test "$LOCAL_TAG_SHA" = "$REMOTE_TAG_SHA" || {
 
 ## 7. Verify publication and create the GitHub release
 
-The v* tag triggers .github/workflows/publish.yml. The main-branch push must already have completed the full compatibility matrix successfully for the exact tagged commit. The tag workflow verifies and reuses that run instead of running the full matrix a second time, then runs the OpenAPI contract, builds and validates wheel/sdist, smoke-tests the installed wheel, verifies distribution boundaries, and publishes the verified artifact to PyPI using trusted publishing. Create the tag only after the exact main-branch compatibility run is successful. The publish job alone receives `id-token: write`.
-
+The v* tag triggers `.github/workflows/publish.yml`. Before building or publishing, the tag workflow recomputes the Deep Quality, OpenAPI consumer-contract, and compatibility fingerprints from the tagged source and searches successful CI runs for matching 90-day evidence artifacts. It does not rerun mutation/fuzz campaigns, the OpenAPI consumer contract, or the full matrix when equivalent evidence exists. Missing or mismatched evidence blocks publication; use the manual workflow-dispatch recovery commands in the [CI execution architecture](../../../../docs/quality/ci-execution-architecture.md) to create fresh evidence. The tag workflow then builds and validates wheel/sdist from the exact tag, smoke-tests the installed wheel, verifies distribution boundaries and reproducibility, and publishes those verified artifacts to PyPI using trusted publishing. The publish job alone receives `id-token: write`.
 Do not announce success while the workflow is pending or failed. Verify the exact version endpoint:
 
 ```bash

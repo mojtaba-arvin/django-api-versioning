@@ -39,84 +39,31 @@ jobs:
           }
 
   verify-main-compatibility:
-    name: Verify full matrix passed on the tagged main commit
+    name: Reuse source-matched quality and compatibility evidence
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
     steps:
-      - name: Require a successful main-branch matrix for this exact commit
+      - name: Check out the tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+
+      - name: Require matching deep-quality and full-matrix evidence
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow compatibility.yml --commit "$COMMIT_SHA" --json databaseId,status,conclusion,event,headSha --limit 20)"
-          RUNS="$runs" python - <<'PY'
-          import json
-          import os
-
-          runs = json.loads(os.environ["RUNS"])
-          successful = [
-              run for run in runs
-              if run["headSha"] == os.environ["COMMIT_SHA"]
-              and run["event"] == "push"
-              and run["status"] == "completed"
-              and run["conclusion"] == "success"
-          ]
-          if not successful:
-              raise SystemExit(
-                  "No successful full compatibility.yml push run exists for "
-                  f"{os.environ['COMMIT_SHA']}. Wait for the main-branch matrix "
-                  "to finish successfully before creating the release tag."
-              )
-          print(
-              "Reusing successful full compatibility matrix run "
-              f"#{successful[0]['databaseId']} for {os.environ['COMMIT_SHA']}."
-          )
-          PY
-
-      - name: Require passing Python, mutation, and adversarial gates on this exact commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow tests.yml --commit "$COMMIT_SHA" --json databaseId,status,conclusion,event,headSha --limit 20)"
-          RUNS="$runs" python - <<'PY'
-          import json
-          import os
-
-          runs = json.loads(os.environ["RUNS"])
-          successful = [
-              run for run in runs
-              if run["headSha"] == os.environ["COMMIT_SHA"]
-              and run["event"] == "push"
-              and run["status"] == "completed"
-              and run["conclusion"] == "success"
-          ]
-          if not successful:
-              raise SystemExit(
-                  "No successful tests.yml main-push run exists for "
-                  f"{os.environ['COMMIT_SHA']}. This gate includes package and "
-                  "integration tests plus the five-domain mutation and "
-                  "adversarial campaigns; do not publish before it succeeds."
-              )
-          print(
-              "Reusing successful Python and adversarial quality run "
-              f"#{successful[0]['databaseId']} for {os.environ['COMMIT_SHA']}."
-          )
-          PY
-
-  openapi-contract:
-    name: Versioned OpenAPI consumer contract
-    uses: ./.github/workflows/openapi-contract.yml
-    permissions:
-      contents: read
+        run: python scripts/verify_release_evidence.py --scope all
 
   build:
     name: Build and verify distributions
-    needs: [verify-release-ref, verify-main-compatibility, openapi-contract]
+    needs: [verify-release-ref, verify-main-compatibility]
     runs-on: ubuntu-latest
     permissions:
       contents: read

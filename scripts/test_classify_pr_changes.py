@@ -2,7 +2,10 @@
 
 import unittest
 
-from scripts.classify_pr_changes import classify_paths
+from scripts.classify_pr_changes import (
+    classify_paths,
+    is_version_only_metadata_change,
+)
 
 
 class ClassifyPullRequestChangesTests(unittest.TestCase):
@@ -10,6 +13,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         result = classify_paths(["django_api_versioning/registry.py"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
+        self.assertFalse(result["compatibility_full"])
         self.assertTrue(result["package"])
         self.assertTrue(result["website"])
         self.assertTrue(result["openapi"])
@@ -24,7 +28,10 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             "django_api_versioning/urls.py",
         ):
             with self.subTest(path=path):
-                self.assertTrue(classify_paths([path])["openapi"])
+                result = classify_paths([path])
+                self.assertTrue(result["openapi"])
+                if path.startswith("examples/"):
+                    self.assertTrue(result["deep"])
 
     def test_openapi_example_and_design_changes_run_the_contract(self):
         for path in (
@@ -91,16 +98,128 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["agent"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
-        self.assertTrue(result["openapi"])
+        self.assertFalse(result["openapi"])
 
-    def test_pyproject_runs_all_python_release_checks_and_website_verification(self):
+    def test_pyproject_dependency_changes_run_deep_quality_and_release_checks(self):
         result = classify_paths(["pyproject.toml"])
         self.assertTrue(result["python"])
+        self.assertTrue(result["deep"])
         self.assertTrue(result["compatibility"])
+        self.assertTrue(result["compatibility_full"])
         self.assertTrue(result["package"])
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
         self.assertTrue(result["openapi"])
+
+    def test_release_metadata_detection_accepts_only_self_version_changes(self):
+        base_project = """[project]
+name = "django-api-versioning"
+version = "1.3.0"
+dependencies = ["Django>=4.2"]
+"""
+        head_project = """[project]
+name = "django-api-versioning"
+version = "1.4.0"
+dependencies = ["Django>=4.2"]
+"""
+        base_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.3.0"
+
+[metadata]
+content-hash = "old"
+"""
+        head_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.4.0"
+
+[metadata]
+content-hash = "new"
+"""
+        self.assertTrue(
+            is_version_only_metadata_change(
+                base_project, head_project, base_lock, head_lock
+            )
+        )
+
+    def test_release_metadata_detection_rejects_dependency_or_stale_lock_changes(self):
+        base_project = """[project]
+name = "django-api-versioning"
+version = "1.3.0"
+dependencies = ["Django>=4.2"]
+"""
+        changed_dependency = """[project]
+name = "django-api-versioning"
+version = "1.4.0"
+dependencies = ["Django>=5.0"]
+"""
+        head_project = """[project]
+name = "django-api-versioning"
+version = "1.4.0"
+dependencies = ["Django>=4.2"]
+"""
+        base_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.3.0"
+
+[metadata]
+content-hash = "old"
+"""
+        updated_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.4.0"
+
+[metadata]
+content-hash = "new"
+"""
+        stale_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.3.0"
+
+[metadata]
+content-hash = "new"
+"""
+        self.assertFalse(
+            is_version_only_metadata_change(
+                base_project, changed_dependency, base_lock, updated_lock
+            )
+        )
+        self.assertFalse(
+            is_version_only_metadata_change(
+                base_project, head_project, base_lock, stale_lock
+            )
+        )
+
+    def test_python_tooling_changes_require_full_compatibility_lint(self):
+        result = classify_paths(["scripts/release_tags.py"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["compatibility_full"])
+        self.assertFalse(result["deep"])
+
+    def test_version_only_release_metadata_skips_unrelated_deep_gates(self):
+        result = classify_paths(
+            ["pyproject.toml", "uv.lock", "CHANGELOG.md", "docs/reference/index.md"],
+            release_metadata_only=True,
+        )
+        self.assertFalse(result["python"])
+        self.assertFalse(result["deep"])
+        self.assertFalse(result["compatibility"])
+        self.assertFalse(result["compatibility_full"])
+        self.assertTrue(result["metadata"])
+        self.assertTrue(result["package"])
+        self.assertFalse(result["dependency"])
+        self.assertTrue(result["website"])
+        self.assertFalse(result["openapi"])
 
     def test_python_test_and_coverage_gate_changes_run_openapi_coverage(self):
         for path in (
@@ -112,7 +231,10 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             with self.subTest(path=path):
                 result = classify_paths([path])
                 self.assertTrue(result["python"])
-                self.assertTrue(result["openapi"])
+                self.assertEqual(
+                    result["openapi"],
+                    path != ".github/workflows/tests.yml",
+                )
 
     def test_quality_pipeline_workflow_changes_run_their_own_quality_gates(self):
         for path in (
@@ -125,12 +247,29 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ".github/workflows/openapi-contract.yml",
             ".github/workflows/package-artifacts.yml",
             ".github/workflows/publish.yml",
+            ".github/workflows/agent-tooling.yml",
         ):
             with self.subTest(path=path):
                 result = classify_paths([path])
                 self.assertTrue(result["python"])
                 self.assertTrue(result["compatibility"])
-                self.assertTrue(result["openapi"])
+                self.assertEqual(
+                    result["openapi"],
+                    path
+                    in {
+                        ".github/workflows/openapi-contract.yml",
+                        ".github/workflows/publish.yml",
+                    },
+                )
+
+    def test_fuzz_inputs_run_deep_quality_without_openapi_contract(self):
+        corpus = classify_paths(["fuzz_corpus/negotiation/seed"])
+        script = classify_paths(["scripts/fuzz_negotiation.py"])
+        self.assertTrue(corpus["deep"])
+        self.assertFalse(corpus["openapi"])
+        self.assertTrue(script["deep"])
+        self.assertFalse(script["openapi"])
+        self.assertTrue(script["compatibility_full"])
 
     def test_workflow_policy_updates_run_agent_validation(self):
         result = classify_paths([".github/dependabot.yml"])
@@ -149,6 +288,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         result = classify_paths(["requirements-extra.txt"])
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
+        self.assertTrue(result["compatibility_full"])
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
 
@@ -180,6 +320,8 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             with self.subTest(path=path):
                 result = classify_paths([path])
                 self.assertTrue(result[expected])
+                if path == ".github/workflows/compatibility.yml":
+                    self.assertTrue(result["compatibility_full"])
                 self.assertTrue(result["agent"])
 
     def test_publish_workflow_runs_compatibility_and_openapi_checks(self):
@@ -192,7 +334,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["package"])
-        self.assertTrue(result["openapi"])
+        self.assertFalse(result["openapi"])
 
     def test_classifier_self_test_runs_agent_validation(self):
         result = classify_paths(["scripts/test_classify_pr_changes.py"])

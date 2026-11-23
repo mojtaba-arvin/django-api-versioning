@@ -2,34 +2,6 @@ name: Agent tooling
 
 on:
   workflow_call:
-  push:
-    branches: [main]
-    paths:
-      - "AGENTS.md"
-      - "website/AGENTS.md"
-      - "website/.agents/**"
-      - "website/.claude/**"
-      - "CLAUDE.md"
-      - ".claude/skills/**"
-      - ".agents/skills/**"
-      - ".agents/evals/**"
-      - ".github/copilot-instructions.md"
-      - ".github/skills/**"
-      - ".github/workflows/**"
-      - ".claude/push.sh"
-      - "docs/agent-engineering.md"
-      - "requirements-dev.txt"
-      - "scripts/agent.py"
-      - "scripts/verify_repository_policy.py"
-      - "scripts/configure_github_repository.sh"
-      - "scripts/maintain.sh"
-      - "scripts/release_bootstrap.sh"
-      - "Makefile"
-      - "scripts/release_tags.py"
-      - "scripts/test_release_tags.py"
-      - "scripts/classify_pr_changes.py"
-      - "scripts/test_classify_pr_changes.py"
-      - "scripts/agent_tests/**"
   workflow_dispatch:
 
 permissions:
@@ -53,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
-          python-version: "3.10"
+          python-version: "3.12"
 
       - name: Validate agent configuration and helper tests
         run: python scripts/agent.py verify
@@ -63,6 +35,8 @@ jobs:
         run: python scripts/verify_repository_policy.py
       - name: Test pull-request path classification
         run: python -m unittest scripts.test_classify_pr_changes
+      - name: Test reusable quality fingerprints
+        run: python -m unittest scripts.test_quality_fingerprint
       - name: Test release tag detection and safety
         run: python -m unittest scripts.test_release_tags
       - name: Validate shell helper syntax
