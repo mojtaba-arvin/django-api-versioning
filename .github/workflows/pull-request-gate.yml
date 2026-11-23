@@ -67,7 +67,7 @@ jobs:
     if: needs.changes.outputs.python == 'true'
     uses: ./.github/workflows/tests.yml
     with:
-      run_adversarial: ${{ startsWith(github.event.pull_request.head.ref, 'validation/') || startsWith(github.event.pull_request.head.ref, 'audit/mutation-') }}
+      run_adversarial: true
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     permissions:
