@@ -102,7 +102,7 @@ def is_version_only_metadata_change(
             (old_lock, old_version),
             (new_lock, new_version),
         ):
-            lock.pop("content-hash", None)
+            lock.get("metadata", {}).pop("content-hash", None)
             matches = [
                 item
                 for item in lock.get("package", [])
