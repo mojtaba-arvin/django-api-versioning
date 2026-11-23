@@ -76,6 +76,21 @@ class QualityFingerprintTests(unittest.TestCase):
             fingerprint_files(after, scope="openapi"),
         )
 
+
+    def test_compatibility_fingerprint_tracks_runtime_and_consumer_test_inputs(self):
+        before = {
+            "django_api_versioning/routers.py": b"class Router: pass\\n",
+            "tests/test_router.py": b"def test_router(): pass\\n",
+            "integration_test_project/urls.py": b"urlpatterns = []\\n",
+            "tox.ini": b"[tox]\\nenvlist = py312\\n",
+        }
+        after = dict(before)
+        after["django_api_versioning/routers.py"] = b"class Router: changed\\n"
+        self.assertNotEqual(
+            fingerprint_files(before, scope="compatibility"),
+            fingerprint_files(after, scope="compatibility"),
+        )
+
     def test_documentation_is_not_part_of_runtime_quality_fingerprint(self):
         files = {
             "django_api_versioning/routers.py": b"class Router: pass\n",
