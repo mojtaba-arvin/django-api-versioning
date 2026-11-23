@@ -12,6 +12,8 @@ PYTHON_PATHS = (
     "django_api_versioning/",
     "tests/",
     "integration_test_project/",
+    "examples/openapi_contract/",
+    "examples/consumer_migration/",
 )
 WEBSITE_PATHS = ("website/", "docs/articles/", "docs/reference/")
 WEBSITE_EXAMPLE_PATHS = {
