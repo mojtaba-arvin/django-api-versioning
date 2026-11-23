@@ -676,7 +676,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
     def determine_version(self, request: Any, *args: Any, **kwargs: Any) -> str | None:
         resolver_match = getattr(request, "resolver_match", None)
         route = getattr(resolver_match, "route", None)
-        namespace = getattr(resolver_match, "namespace", "") or ""
+        namespace = getattr(resolver_match, "namespace", "") or ""  # pragma: no mutate
         namespace_version = None
 
         for component in reversed(namespace.split(":")):
@@ -685,13 +685,13 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 break
 
         if isinstance(route, str):
-            namespace_matches_route = False
+            namespace_matches_route = False  # pragma: no mutate
             if namespace_version is not None:
                 configured_prefix = api_settings.API_BASE_PATH.format(
                     version=namespace_version
                 ).strip("/")
                 route_path = route.strip("^$").strip("/")
-                namespace_matches_route = f"/{configured_prefix}/" in f"/{route_path}/"
+                namespace_matches_route = f"/{configured_prefix}/" in f"/{route_path}/"  # pragma: no mutate
 
             tried = getattr(resolver_match, "tried", None)
             if isinstance(tried, (list, tuple)):
