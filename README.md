@@ -70,6 +70,12 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 
 This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
 
+## Is it a good fit?
+
+Choose this package when API versions need different view implementations but most routes stay unchanged, and you want those decisions declared once and verified as a route matrix. It fits existing Django views and DRF ViewSets, supports incremental adoption, and does not require DRF for Django-native endpoints.
+
+Prefer DRF's built-in versioning when you only need to identify the requested version. Keep version-specific serializers, response transformations, tenant policy, and semantic backward-compatibility guarantees in your application; this package deliberately owns routing and view selection, not those concerns.
+
 ### How it complements Django REST Framework
 
 DRF and this package solve related but different parts of API versioning:
