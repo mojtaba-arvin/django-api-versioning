@@ -163,9 +163,7 @@ def main() -> int:
             capture_output=True,
             text=True,
         ).stdout.strip(),
-        "deep_quality_fingerprint": fingerprint_files(
-            tracked_files(), scope="deep"
-        ),
+        "deep_quality_fingerprint": fingerprint_files(tracked_files(), scope="deep"),
         "compatibility_fingerprint": fingerprint_files(
             tracked_files(), scope="compatibility"
         ),
