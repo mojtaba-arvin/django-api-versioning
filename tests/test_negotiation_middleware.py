@@ -729,6 +729,7 @@ def test_header_version_rejects_conflicting_dedicated_and_accept_values_exactly(
 
 def test_header_mode_uses_default_header_name_when_settings_omit_it(monkeypatch):
     from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
@@ -773,6 +774,7 @@ def test_header_mode_honors_custom_header_in_vary_and_dispatch():
 
 def test_header_mode_defaults_maximum_version_to_one(monkeypatch):
     from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
@@ -799,6 +801,7 @@ def test_header_mode_defaults_maximum_version_to_one(monkeypatch):
 
 def test_header_mode_rejects_path_version_using_default_base_path(monkeypatch):
     from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
