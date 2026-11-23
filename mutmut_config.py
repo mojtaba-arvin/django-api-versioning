@@ -24,6 +24,7 @@ CONTRACT_TEST_PREFIXES = {
 }
 
 CONTRACT_TEST_MODULE = "tests/test_mutation_survivor_contracts.py"
+MAX_LINE_CONTEXTS = 500
 
 TESTS_BY_SOURCE = {
     "decorators.py": ALL_TEST_MODULES,
@@ -35,6 +36,7 @@ TESTS_BY_SOURCE = {
         "tests/test_management_commands.py",
         "tests/test_adversarial_router_combinations.py",
         "tests/test_mutation_survivor_contracts.py",
+        "tests/test_mutation_80_percent_contracts.py",
     ),
     "negotiation.py": (
         "tests/test_negotiation_middleware.py",
@@ -96,6 +98,13 @@ def _contract_test_node_ids(source_name):
     return sorted(node_ids)
 
 
+def _fallback_targets(test_paths, contract_node_ids):
+    targets = list(test_paths)
+    if CONTRACT_TEST_MODULE not in targets:
+        targets.extend(sorted(contract_node_ids))
+    return targets
+
+
 def pre_mutation(context):
     """Run line contexts and all focused tests for the mutated source domain."""
     source_name = Path(context.filename).name
@@ -109,7 +118,8 @@ def pre_mutation(context):
         context_name.split("|", 1)[0] for context_name in line_contexts if context_name
     }
     contract_node_ids = set(_contract_test_node_ids(source_name))
-    if line_node_ids:
+    test_paths = TESTS_BY_SOURCE.get(source_name)
+    if line_node_ids and len(line_node_ids) <= MAX_LINE_CONTEXTS:
         node_ids = sorted(line_node_ids | contract_node_ids)
         context.config.test_command = (
             "python -m pytest -x -q -p no:pytest_cov -o addopts= "
@@ -117,10 +127,9 @@ def pre_mutation(context):
         )
         return
 
-    test_paths = TESTS_BY_SOURCE.get(source_name)
     if not test_paths:
         return
-    fallback_targets = list(test_paths) + sorted(contract_node_ids)
+    fallback_targets = _fallback_targets(test_paths, contract_node_ids)
     context.config.test_command = (
         "python -m pytest -x -q -p no:pytest_cov -o addopts= "
         + " ".join(shlex.quote(target) for target in fallback_targets)

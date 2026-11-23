@@ -2,6 +2,8 @@
 
 import os
 import shlex
+
+import pytest
 from types import SimpleNamespace
 
 from mutmut_config import _contract_test_node_ids, pre_mutation
@@ -96,3 +98,40 @@ def test_pre_mutation_runs_every_context_recorded_for_the_mutated_line(tmp_path)
 
     for node_id in node_ids:
         assert node_id in context.config.test_command
+
+
+@pytest.mark.parametrize(
+    "source_name",
+    ["decorators.py", "lifecycle.py", "negotiation.py", "registry.py", "routers.py"],
+)
+def test_pre_mutation_uses_domain_fallback_for_excessive_contexts(
+    tmp_path, source_name
+):
+    source_path = tmp_path / source_name
+    broad_contexts = [
+        f"tests/test_unrelated.py::test_context_{index}|run"
+        for index in range(501)
+    ]
+    context = _context(
+        source_path,
+        0,
+        {os.path.abspath(source_path): {1: broad_contexts}},
+    )
+
+    pre_mutation(context)
+
+    selected = set(shlex.split(context.config.test_command))
+    assert "tests/test_mutation_survivor_contracts.py" in selected
+    assert "tests/test_unrelated.py::test_context_0" not in selected
+    assert "tests/test_unrelated.py::test_context_500" not in selected
+
+
+def test_pre_mutation_fallback_does_not_duplicate_contract_module(tmp_path):
+    source_path = tmp_path / "registry.py"
+    context = _context(source_path, 0, {os.path.abspath(source_path): {}})
+
+    pre_mutation(context)
+
+    selected = shlex.split(context.config.test_command)
+    assert selected.count("tests/test_mutation_survivor_contracts.py") == 1
+    assert not any("::test_mutation" in item for item in selected)
