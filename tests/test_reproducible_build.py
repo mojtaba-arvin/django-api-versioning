@@ -50,9 +50,7 @@ def test_artifact_hashes_reject_missing_distribution(tmp_path):
     output.mkdir()
     (output / "package-1.0-py3-none-any.whl").write_bytes(b"wheel")
 
-    with pytest.raises(
-        ReproducibilityError, match="Expected one wheel and one sdist"
-    ):
+    with pytest.raises(ReproducibilityError, match="Expected one wheel and one sdist"):
         artifact_hashes(output)
 
 
@@ -66,9 +64,7 @@ def test_compare_artifact_hashes_reports_byte_differences():
     first = {"package.whl": "abc", "package.tar.gz": "def"}
     second = {"package.whl": "changed", "package.tar.gz": "def"}
 
-    with pytest.raises(
-        ReproducibilityError, match="not byte-for-byte reproducible"
-    ):
+    with pytest.raises(ReproducibilityError, match="not byte-for-byte reproducible"):
         compare_artifact_hashes(first, second)
 
 

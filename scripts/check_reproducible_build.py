@@ -47,9 +47,7 @@ def artifact_hashes(directory: Path) -> dict[str, str]:
     return digests
 
 
-def compare_artifact_hashes(
-    first: dict[str, str], second: dict[str, str]
-) -> None:
+def compare_artifact_hashes(first: dict[str, str], second: dict[str, str]) -> None:
     """Fail with an actionable diff when two artifact sets differ."""
     if first != second:
         names = sorted(first.keys() | second.keys())
@@ -186,12 +184,8 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="django-api-versioning-repro-") as temp:
         root = Path(temp)
-        first_dir = build_once(
-            archive_bytes, root, "one", environment, source_epoch
-        )
-        second_dir = build_once(
-            archive_bytes, root, "two", environment, source_epoch
-        )
+        first_dir = build_once(archive_bytes, root, "one", environment, source_epoch)
+        second_dir = build_once(archive_bytes, root, "two", environment, source_epoch)
         first = artifact_hashes(first_dir)
         second = artifact_hashes(second_dir)
         compare_artifact_hashes(first, second)
