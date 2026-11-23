@@ -112,6 +112,23 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
                 self.assertTrue(result["python"])
                 self.assertTrue(result["openapi"])
 
+    def test_quality_pipeline_workflow_changes_run_their_own_quality_gates(self):
+        for path in (
+            ".github/workflows/tests.yml",
+            ".github/workflows/adversarial-testing.yml",
+            ".github/workflows/mutation-shard.yml",
+            ".github/workflows/pull-request-gate.yml",
+            ".github/workflows/compatibility.yml",
+            ".github/workflows/openapi-contract.yml",
+            ".github/workflows/package-artifacts.yml",
+            ".github/workflows/publish.yml",
+        ):
+            with self.subTest(path=path):
+                result = classify_paths([path])
+                self.assertTrue(result["python"])
+                self.assertTrue(result["compatibility"])
+                self.assertTrue(result["openapi"])
+
     def test_workflow_policy_updates_run_agent_validation(self):
         result = classify_paths([".github/dependabot.yml"])
         self.assertTrue(result["agent"])
