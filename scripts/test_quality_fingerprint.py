@@ -23,6 +23,10 @@ class QualityFingerprintTests(unittest.TestCase):
             fingerprint_files(before, scope="deep"),
             fingerprint_files(after, scope="deep"),
         )
+        self.assertEqual(
+            fingerprint_files(before, scope="openapi"),
+            fingerprint_files(after, scope="openapi"),
+        )
 
     def test_runtime_or_dependency_changes_invalidate_deep_evidence(self):
         before = {
@@ -51,6 +55,23 @@ class QualityFingerprintTests(unittest.TestCase):
         self.assertNotEqual(
             fingerprint_files(before, scope="compatibility"),
             fingerprint_files(after, scope="compatibility"),
+        )
+
+
+    def test_openapi_fingerprint_tracks_consumer_schemas_and_contract_workflow(self):
+        before = {
+            "django_api_versioning/routers.py": b"class Router: pass\\n",
+            "examples/openapi_contract/schemas/v1/openapi.yaml": b"openapi: 3.1.0\\n",
+            ".github/workflows/openapi-contract.yml": b"workflow_call: {}\\n",
+            "docs/design/versioned-openapi-contract.md": b"Contract v1\\n",
+        }
+        after = dict(before)
+        after["examples/openapi_contract/schemas/v1/openapi.yaml"] = (
+            b"openapi: 3.1.1\\n"
+        )
+        self.assertNotEqual(
+            fingerprint_files(before, scope="openapi"),
+            fingerprint_files(after, scope="openapi"),
         )
 
     def test_documentation_is_not_part_of_runtime_quality_fingerprint(self):
