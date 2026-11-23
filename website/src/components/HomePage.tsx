@@ -101,7 +101,7 @@ function Hero() {
             <ul className="mt-3 space-y-1.5 font-mono text-xs">
               {versions.map((v) => (
                 <li key={v} className="flex items-center justify-between gap-3">
-                  <span className="text-paper">/api/v{v}/invoices/<id>/</span>
+                  <span className="text-paper">/api/v{v}/invoices/{'<id>'}/</span>
                   {v < 2 ? (
                     <span className="rounded bg-ink-3 px-2 py-0.5 text-mute">404</span>
                   ) : (
