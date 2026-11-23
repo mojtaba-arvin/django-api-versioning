@@ -2,7 +2,10 @@
 
 import unittest
 
-from scripts.classify_pr_changes import classify_paths
+from scripts.classify_pr_changes import (
+    classify_paths,
+    is_version_only_metadata_change,
+)
 
 
 class ClassifyPullRequestChangesTests(unittest.TestCase):
@@ -107,6 +110,66 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
         self.assertTrue(result["openapi"])
+
+
+    def test_release_metadata_detection_accepts_only_self_version_changes(self):
+        base_project = (
+            '[project]\\nname = "django-api-versioning"\\n'
+            'version = "1.3.0"\\ndependencies = ["Django>=4.2"]\\n'
+        )
+        head_project = (
+            '[project]\\nname = "django-api-versioning"\\n'
+            'version = "1.4.0"\\ndependencies = ["Django>=4.2"]\\n'
+        )
+        base_lock = (
+            'version = 1\\ncontent-hash = "old"\\n\\n'
+            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.3.0"\\n'
+        )
+        head_lock = (
+            'version = 1\\ncontent-hash = "new"\\n\\n'
+            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.4.0"\\n'
+        )
+        self.assertTrue(
+            is_version_only_metadata_change(
+                base_project, head_project, base_lock, head_lock
+            )
+        )
+
+    def test_release_metadata_detection_rejects_dependency_or_stale_lock_changes(self):
+        base_project = (
+            '[project]\\nname = "django-api-versioning"\\n'
+            'version = "1.3.0"\\ndependencies = ["Django>=4.2"]\\n'
+        )
+        changed_dependency = (
+            '[project]\\nname = "django-api-versioning"\\n'
+            'version = "1.4.0"\\ndependencies = ["Django>=5.0"]\\n'
+        )
+        head_project = (
+            '[project]\\nname = "django-api-versioning"\\n'
+            'version = "1.4.0"\\ndependencies = ["Django>=4.2"]\\n'
+        )
+        base_lock = (
+            'version = 1\\ncontent-hash = "old"\\n\\n'
+            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.3.0"\\n'
+        )
+        updated_lock = (
+            'version = 1\\ncontent-hash = "new"\\n\\n'
+            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.4.0"\\n'
+        )
+        stale_lock = (
+            'version = 1\\ncontent-hash = "new"\\n\\n'
+            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.3.0"\\n'
+        )
+        self.assertFalse(
+            is_version_only_metadata_change(
+                base_project, changed_dependency, base_lock, updated_lock
+            )
+        )
+        self.assertFalse(
+            is_version_only_metadata_change(
+                base_project, head_project, base_lock, stale_lock
+            )
+        )
 
     def test_version_only_release_metadata_skips_unrelated_deep_gates(self):
         result = classify_paths(
