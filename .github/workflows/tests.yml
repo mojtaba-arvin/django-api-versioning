@@ -49,8 +49,8 @@ permissions:
 
 concurrency:
   group: python-tests-${{ github.event.pull_request.number || github.ref }}
-  # A newer commit on the same PR supersedes its stale, expensive mutation run.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # A newer commit supersedes stale tests on the same PR or branch.
+  cancel-in-progress: true
 
 jobs:
   test:
