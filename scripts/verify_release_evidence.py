@@ -18,26 +18,42 @@ ARTIFACTS = {
 }
 
 
-def command(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+def command(
+    args: list[str], *, check: bool = True
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, check=check, capture_output=True, text=True)
 
 
 def artifact_run_ids(repository: str, artifact_name: str) -> list[str]:
+    jq_filter = (
+        f'.artifacts[] | select(.name == "{artifact_name}" '
+        'and .expired == false) | .workflow_run.id'
+    )
     result = command(
         [
-            "gh", "api", "--paginate", "--jq",
-            f'.artifacts[] | select(.name == "{artifact_name}" and .expired == false) | .workflow_run.id',
+            "gh",
+            "api",
+            "--paginate",
+            "--jq",
+            jq_filter,
             f"repos/{repository}/actions/artifacts?per_page=100",
         ]
     )
-    return list(dict.fromkeys(line.strip() for line in result.stdout.splitlines() if line.strip()))
+    run_ids = (line.strip() for line in result.stdout.splitlines() if line.strip())
+    return list(dict.fromkeys(run_ids))
 
 
 def run_succeeded(repository: str, run_id: str) -> bool:
     result = command(
         [
-            "gh", "run", "view", run_id, "--repo", repository,
-            "--json", "status,conclusion",
+            "gh",
+            "run",
+            "view",
+            run_id,
+            "--repo",
+            repository,
+            "--json",
+            "status,conclusion",
         ],
         check=False,
     )
@@ -60,8 +76,16 @@ def find_matching_evidence(
         with tempfile.TemporaryDirectory(prefix="release-evidence-") as directory:
             downloaded = command(
                 [
-                    "gh", "run", "download", run_id, "--repo", repository,
-                    "--name", artifact_name, "--dir", directory,
+                    "gh",
+                    "run",
+                    "download",
+                    run_id,
+                    "--repo",
+                    repository,
+                    "--name",
+                    artifact_name,
+                    "--dir",
+                    directory,
                 ],
                 check=False,
             )
@@ -82,7 +106,9 @@ def find_matching_evidence(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scope", choices=("deep", "compatibility", "all"), default="all")
+    parser.add_argument(
+        "--scope", choices=("deep", "compatibility", "all"), default="all"
+    )
     args = parser.parse_args()
     repository = os.environ.get("GITHUB_REPOSITORY")
     if not repository:
