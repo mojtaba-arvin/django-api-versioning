@@ -98,7 +98,19 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["package"])
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
-        self.assertFalse(result["openapi"])
+        self.assertTrue(result["openapi"])
+
+    def test_python_test_and_coverage_gate_changes_run_openapi_coverage(self):
+        for path in (
+            "tests/test_public_api_contracts.py",
+            "tests/test_coverage_thresholds.py",
+            "scripts/check_coverage_thresholds.py",
+            ".github/workflows/tests.yml",
+        ):
+            with self.subTest(path=path):
+                result = classify_paths([path])
+                self.assertTrue(result["python"])
+                self.assertTrue(result["openapi"])
 
     def test_workflow_policy_updates_run_agent_validation(self):
         result = classify_paths([".github/dependabot.yml"])
