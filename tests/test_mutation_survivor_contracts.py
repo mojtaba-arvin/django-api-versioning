@@ -2806,7 +2806,9 @@ def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
     _assert_exact_exception(
         VersioningError,
         "prefix must be a non-empty relative path without leading or trailing '/'.",
-        lambda: validation_router.register("", OrdersViewSet, version=2, basename="empty"),
+        lambda: validation_router.register(
+            "", OrdersViewSet, version=2, basename="empty"
+        ),
     )
     _assert_exact_exception(
         VersioningError,
@@ -2816,7 +2818,9 @@ def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
     _assert_exact_exception(
         VersioningError,
         "action must be a non-empty string.",
-        lambda: validation_router.set_lifecycle("orders", "order-list", version=2, action=7),
+        lambda: validation_router.set_lifecycle(
+            "orders", "order-list", version=2, action=7
+        ),
     )
     _assert_exact_exception(
         VersioningError,
@@ -2864,9 +2868,12 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     )
 
     adapter = router_module.VersionedRouterVersioning()
-    assert adapter.get_versioned_viewname(
-        "orders-list", SimpleNamespace(resolver_match=SimpleNamespace())
-    ) == "orders-list"
+    assert (
+        adapter.get_versioned_viewname(
+            "orders-list", SimpleNamespace(resolver_match=SimpleNamespace())
+        )
+        == "orders-list"
+    )
 
     captured = {}
     monkeypatch.setattr(
@@ -2929,10 +2936,7 @@ def test_mutation100_registry_tombstone_ownership_and_unowned_boundaries():
     )
     target._removed_patterns[("orders", 2, "orders", True)] = existing_unowned
     target._record_removed(incoming_owned, "orders")
-    assert (
-        target._removed_patterns[("orders", 2, "orders", True)]
-        is existing_unowned
-    )
+    assert target._removed_patterns[("orders", 2, "orders", True)] is existing_unowned
 
     existing_owned = _registered_pattern(
         target, version=2, logical_endpoint="orders", owner=owner
@@ -3099,9 +3103,7 @@ def test_mutation100_registry_resolver_operation_rejects_bad_method_and_uses_exa
 def test_mutation100_registry_create_pattern_signature_and_synchronization(monkeypatch):
     import inspect
 
-    assert callable(
-        getattr(UrlRegistry.get_endpoint_lifecycle, "__wrapped__", None)
-    )
+    assert callable(getattr(UrlRegistry.get_endpoint_lifecycle, "__wrapped__", None))
 
     class RequiredActionsView:
         @classmethod
@@ -3116,9 +3118,7 @@ def test_mutation100_registry_create_pattern_signature_and_synchronization(monke
         def as_view(cls, actions=None):
             return _view
 
-    pattern = UrlRegistry._create_pattern(
-        "orders/", OptionalActionsView, "orders"
-    )
+    pattern = UrlRegistry._create_pattern("orders/", OptionalActionsView, "orders")
     assert pattern.callback is _view
 
     monkeypatch.setattr(
@@ -3132,12 +3132,8 @@ def test_mutation100_registry_create_pattern_signature_and_synchronization(monke
 
 def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edges():
     target = UrlRegistry()
-    assert target._canonical_route_key(r"^api/v2/orders/\d$") == (
-        r"^api/v2/orders/\d$"
-    )
-    assert target._canonical_route_key(r"^api/v2/orders/\.$") == (
-        "api/v2/orders/."
-    )
+    assert target._canonical_route_key(r"^api/v2/orders/\d$") == (r"^api/v2/orders/\d$")
+    assert target._canonical_route_key(r"^api/v2/orders/\.$") == ("api/v2/orders/.")
 
     digit_route = re_path(r"^api/v2/orders/\d$", _view)
     digit_key = target._route_specificity_key(digit_route)
@@ -3149,9 +3145,7 @@ def test_mutation100_registry_route_specificity_handles_escaped_and_dynamic_edge
     dynamic_at_start = path("<int:pk>/", _view)
     assert target._route_specificity_key(dynamic_at_start)[0] == 0
 
-    short_prefix_long_pattern = re_path(
-        r"^a/(?:[0-9]|[a-z]){100}$", _view
-    )
+    short_prefix_long_pattern = re_path(r"^a/(?:[0-9]|[a-z]){100}$", _view)
     long_prefix_short_pattern = re_path(r"^api/v2/orders/\d$", _view)
     target.urlpatterns[:] = [
         short_prefix_long_pattern,
@@ -3206,9 +3200,7 @@ def test_mutation100_negotiation_uses_explicit_settings_over_fallbacks(monkeypat
         SimpleNamespace(API_MAX_VERSION=3),
     )
     request = RequestFactory().get("/Xapi/v2/X/orders/")
-    response = VersionNegotiationMiddleware(
-        lambda current: HttpResponse("ok")
-    )(request)
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.api_version == 2
 
@@ -3228,9 +3220,7 @@ def test_mutation100_negotiation_query_header_and_path_fallback_defaults(monkeyp
         SimpleNamespace(API_VERSIONING_SCHEME="query"),
     )
     request = RequestFactory().get("/api/orders/?version=1")
-    response = VersionNegotiationMiddleware(
-        lambda current: HttpResponse("ok")
-    )(request)
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.path_info == "/api/v1/orders/"
 
@@ -3254,23 +3244,21 @@ def test_mutation100_negotiation_query_header_and_path_fallback_defaults(monkeyp
         SimpleNamespace(API_VERSIONING_QUERY_PARAMETER="version"),
     )
     request = RequestFactory().get("/api/orders/?v=2")
-    response = VersionNegotiationMiddleware(
-        lambda current: HttpResponse("ok")
-    )(request)
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.path_info == "/api/v2/orders/"
 
     # The default path scheme is selected when no setting is present.
     monkeypatch.setattr(
-        negotiation_module, "django_settings", SimpleNamespace(API_BASE_PATH="api/v{version}/")
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(API_BASE_PATH="api/v{version}/"),
     )
     monkeypatch.setattr(
         negotiation_module, "api_settings", SimpleNamespace(API_MAX_VERSION=3)
     )
     request = RequestFactory().get("/api/v2/orders/")
-    response = VersionNegotiationMiddleware(
-        lambda current: HttpResponse("ok")
-    )(request)
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.api_version == 2
 
@@ -3298,11 +3286,7 @@ def test_mutation100_negotiation_header_default_and_hostname_error_are_observabl
         "api_settings",
         SimpleNamespace(API_VERSIONING_HEADER="Accept-Version"),
     )
-    request = RequestFactory().get(
-        "/api/orders/", HTTP_X_API_VERSION="2"
-    )
-    response = VersionNegotiationMiddleware(
-        lambda current: HttpResponse("ok")
-    )(request)
+    request = RequestFactory().get("/api/orders/", HTTP_X_API_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.path_info == "/api/v2/orders/"

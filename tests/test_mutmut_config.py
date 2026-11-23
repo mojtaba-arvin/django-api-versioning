@@ -91,11 +91,16 @@ def test_domain_contract_probes_are_always_selected_for_each_mutation():
     expected = {
         "decorators.py": ("test_mutation95_decorator", "test_mutation100_decorator"),
         "lifecycle.py": ("test_mutation95_lifecycle", "test_mutation100_lifecycle"),
-        "negotiation.py": ("test_mutation95_negotiation", "test_mutation100_negotiation"),
+        "negotiation.py": (
+            "test_mutation95_negotiation",
+            "test_mutation100_negotiation",
+        ),
         "registry.py": ("test_mutation95_registry", "test_mutation100_registry"),
         "routers.py": ("test_mutation95_router", "test_mutation100_router"),
     }
     for source_name, prefixes in expected.items():
         node_ids = mutmut_config._contract_test_node_ids(source_name)
         assert node_ids
-        assert all(any(prefix in node_id for prefix in prefixes) for node_id in node_ids)
+        assert all(
+            any(prefix in node_id for prefix in prefixes) for node_id in node_ids
+        )

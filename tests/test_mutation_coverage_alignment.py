@@ -1,9 +1,10 @@
 """Regression tests for Mutmut's zero-based coverage-context selection."""
 
 import os
+import shlex
 from types import SimpleNamespace
 
-from mutmut_config import pre_mutation
+from mutmut_config import _contract_test_node_ids, pre_mutation
 
 
 def _context(source_path, current_line_index, coverage_data):
@@ -29,10 +30,9 @@ def test_pre_mutation_reads_the_one_based_coverage_line(tmp_path):
 
     pre_mutation(context)
 
-    assert context.config.test_command.endswith(node_id)
-    assert "tests/test_mutation_survivor_contracts.py" not in (
-        context.config.test_command
-    )
+    selected_node_ids = set(shlex.split(context.config.test_command))
+    assert node_id in selected_node_ids
+    assert set(_contract_test_node_ids("registry.py")) <= selected_node_ids
 
 
 def test_pre_mutation_does_not_select_a_test_from_the_previous_line(tmp_path):

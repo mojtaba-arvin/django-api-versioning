@@ -90,7 +90,7 @@ def _contract_test_node_ids(source_name):
     for line in test_file.read_text(encoding="utf-8").splitlines():
         if not line.startswith("def test_"):
             continue
-        name = line[len("def "):].split("(", 1)[0]
+        name = line[len("def ") :].split("(", 1)[0]
         if name.startswith(prefixes):
             node_ids.append(f"{CONTRACT_TEST_MODULE}::{name}")
     return sorted(node_ids)
@@ -106,9 +106,7 @@ def pre_mutation(context):
     line_contexts = contexts_by_line.get(context.current_line_index + 1, [])
 
     line_node_ids = {
-        context_name.split("|", 1)[0]
-        for context_name in line_contexts
-        if context_name
+        context_name.split("|", 1)[0] for context_name in line_contexts if context_name
     }
     contract_node_ids = set(_contract_test_node_ids(source_name))
     if line_node_ids:

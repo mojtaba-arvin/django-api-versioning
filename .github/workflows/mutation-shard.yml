@@ -37,7 +37,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-${{ runner.os }}-${{ inputs.target_id }}-${{ github.event_name }}-contexts-v4-all-nodeids-${{ hashFiles(inputs.target_path, 'tests/**/*.py', '!tests/test_mutation_coverage_alignment.py', '!tests/test_mutation_survivor_contracts.py', '!tests/test_mutmut_config.py', 'setup.cfg', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ inputs.target_id }}-${{ github.event_name }}-contexts-v4-all-nodeids-${{ hashFiles(inputs.target_path, 'mutmut_config.py', 'tests/**/*.py', '!tests/test_mutation_coverage_alignment.py', '!tests/test_mutmut_config.py', 'setup.cfg', 'requirements-ci.txt') }}
           restore-keys: |
             mutmut-${{ runner.os }}-${{ inputs.target_id }}-${{ github.event_name }}-contexts-v4-all-nodeids-
       - name: Install test and mutation dependencies
