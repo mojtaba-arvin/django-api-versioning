@@ -152,11 +152,14 @@ def test_router_owned_registration_does_not_clear_unowned_tombstone():
     assert owner_key not in target._removed_patterns
 
 
-@pytest.mark.parametrize("invalid_candidate", ["name", "endpoint", "version", "namespace"])
+@pytest.mark.parametrize(
+    "invalid_candidate", ["name", "endpoint", "version", "namespace"]
+)
 def test_resolve_operation_skips_invalid_candidate_and_finds_later_valid_route(
     invalid_candidate,
 ):
     from types import SimpleNamespace
+
     from django.urls import path
 
     target = UrlRegistry()
@@ -177,9 +180,9 @@ def test_resolve_operation_skips_invalid_candidate_and_finds_later_valid_route(
         123 if invalid_candidate == "endpoint" else "orders",
     )
     invalid_version = (
-        True if invalid_candidate == "version"
-        else 3 if invalid_candidate == "namespace"
-        else 2
+        True
+        if invalid_candidate == "version"
+        else 3 if invalid_candidate == "namespace" else 2
     )
     setattr(invalid, target._ROUTE_VERSION_ATTR, invalid_version)
     setattr(valid, target._LOGICAL_ENDPOINT_ATTR, "orders")
