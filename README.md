@@ -14,19 +14,17 @@
 
 **Version your Django API by endpoint, not by duplicating URL patterns.** Register a view once; unchanged routes carry forward to later API versions, and a newer declaration replaces the implementation from that version onward.
 
-**Request versioning is not path-only:** choose one transport per deployment with `API_VERSIONING_SCHEME`: `path` (the default), `header`, `query`, or `hostname`. For non-path schemes, `VersionNegotiationMiddleware` resolves the requested version before Django URL resolution and dispatches through the same registered route system.
-
-**Negotiation and endpoint dispatch are separate responsibilities.** Negotiation determines *which API version the request asks for*; the registry and versioned routers determine *which view implementation serves that version* and carry unchanged routes forward. DRF already provides built-in version-identification schemes, which may be sufficient when that is all an application needs. This package adds declarative per-endpoint implementation selection, route inheritance/removal, and route-matrix validation; it complements DRF rather than replacing it.
-
 [Explore Django API Versioning — documentation, examples, and interactive playground](https://mojtaba-arvin.github.io/django-api-versioning/) · [Install django-api-versioning from PyPI](https://pypi.org/project/django-api-versioning/)
 
 ## See how it works
 
-Install the package and Django REST Framework:
+Install the package:
 
 ```bash
-pip install django-api-versioning djangorestframework
+pip install django-api-versioning
 ```
+
+Django REST Framework is optional. The example below uses DRF views because many projects already do; if you use DRF, install a compatible version separately (see [Requirements](#requirements)).
 
 Declare only the versions where an endpoint's behavior changes:
 
@@ -72,13 +70,13 @@ Django API Versioning makes that mapping explicit with `@endpoint`:
 - **Explicit registration:** use `versions=[...]` or `ver_range(...)` when an endpoint should exist only in selected versions.
 - **Visibility:** inspect the generated route matrix with `python manage.py check_versions --fail-on-empty` and guard it with `assert_version_matrix(snapshot=".version_matrix.json", strict=True)`.
 
-This is inheritance of route registrations, not automatic backward compatibility. Your application remains responsible for response schemas, business behavior, and compatibility tests.
+Route registration is inherited; semantic compatibility of responses and business behavior remains an application concern (see [FAQ](#faq)).
 
 ## Is it a good fit?
 
 Choose this package when API versions need different view implementations but most routes stay unchanged, and you want those decisions declared once and verified as a route matrix. It supports existing Django views and DRF ViewSets, incremental adoption, and Django-native endpoints without requiring DRF.
 
-If DRF's built-in versioning already identifies the requested version, that may be enough. Serializer and response transformations, tenant policy, and semantic backward compatibility remain application responsibilities; this package focuses on routing and view selection.
+If DRF's built-in versioning already identifies the requested version, that may be enough. Serializer and response transformations and tenant policy remain application responsibilities; this package focuses on routing and view selection.
 
 ### How it complements Django REST Framework
 
@@ -301,10 +299,28 @@ Version 1.0.0 tightened API lifecycle configuration and changed the `Deprecation
 
 For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/CHANGELOG.md#100---2026-11-16).
 
+## FAQ
+
+### Why isn't the endpoint-to-implementation mapping explicit in `urls.py`?
+
+For teams that prefer "explicit over implicit," this is a deliberate cognitive trade-off. Yes, mapping an endpoint to its implementation is not spelled out line-by-line in `urls.py`. That is intentional: higher DRY at the cost of less readability from URL structure alone. Transparency is not removed—it is moved to tooling and tests. The registry is deterministic, `check_versions` shows the real matrix, and `assert_version_matrix(strict=True)` locks that matrix in CI.
+
+### Does the package provide backward compatibility?
+
+No. The package does not guarantee semantic compatibility and does not claim to. What it provides is: (a) isolation of version implementations at the routing layer, (b) snapshot tooling to lock path contracts, and (c) patterns and executable examples for OpenAPI contract tests and runtime behavior tests. Proving semantic compatibility remains the application's responsibility.
+
+### Is versioning limited to the URL path? What about header, query, or hostname?
+
+Four negotiation methods are supported (`path`, `header`, `query`, `hostname`), but the core resolution model remains path-based. For non-path schemes, middleware rewrites the internal path before Django URL resolution so the same single registry is used. That means the transport used to carry the version can change without duplicating the endpoint model—yet final resolution stays path-oriented. This is a conscious architectural choice to avoid four parallel systems.
+
+### What about maintenance continuity for a single-maintainer package?
+
+Maintainer continuity is a real risk for any single-maintainer package, and we do not deny it. What we can commit to is: (a) a replaceable architecture that keeps exit cost low, (b) a controlled lifecycle that makes migration gradual, and (c) governance documentation and an open invitation to contributors that make the path to additional maintainers clear. None of these replaces a second committed maintainer; we treat that as a residual risk. See [GOVERNANCE.md](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md).
+
 ## Documentation
 
 - [Django API Versioning documentation and interactive playground](https://mojtaba-arvin.github.io/django-api-versioning/) — overview, examples, lifecycle demonstration, and guides.
-- [API reference](https://mojtaba-arvin.github.io/django-api-versioning/reference/) — settings, decorators, URL reversal, validation, and management commands.
+- [Public API reference](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/index.md) — settings, decorators, routers, reverse, testing helpers, lifecycle, and management commands.
 - [Routing contract](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reference/versioning-contract.md) — implementation-backed behavior and limitations.
 - [DRF integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/013-drf-version-negotiation-vs-endpoint-registration/).
 - [Python and Django compatibility guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/024-django-api-versioning-supported-django-python-versions/).
