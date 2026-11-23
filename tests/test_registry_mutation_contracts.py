@@ -200,7 +200,6 @@ def test_resolve_operation_skips_invalid_candidate_and_finds_later_valid_route(
     assert operation.route_version == 2
 
 
-
 def test_route_specificity_stops_at_escaped_regex_operator():
     from django.urls import re_path
 
@@ -241,6 +240,7 @@ def test_resolve_registered_operation_rejects_non_string_endpoint_and_boolean_ve
     setattr(invalid_version, target._ROUTE_VERSION_ATTR, True)
     target.urlpatterns[:] = [invalid_version]
     assert target.resolve_registered_operation("orders", True, "GET") is None
+
 
 def test_resolved_route_match_strips_anchor_before_route_suffix_matching():
     target = UrlRegistry()
