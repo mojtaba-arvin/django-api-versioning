@@ -2918,11 +2918,13 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     ) == [("GET", "list")]
     router._register_lifecycle_methods("orders", 2, [], None, None, object())
 
-    with caplog.at_level("WARNING"):
-        router.register("below-min", object, version=0)
+    router.register("unversioned", object)
+    with override_settings(API_MIN_VERSION=2):
+        with caplog.at_level("WARNING"):
+            router.register("below-min", object, version=1)
     assert any(
         record.getMessage()
-        == "ViewSet prefix 'below-min' starts at version 0, below API_MIN_VERSION 1. No routes will be registered."
+        == "ViewSet prefix 'below-min' starts at version 1, below API_MIN_VERSION 2. No routes will be registered."
         for record in caplog.records
     )
     assert (
@@ -3518,3 +3520,37 @@ def test_mutation95_router_prefix_validation_checks_each_invalid_edge():
     with pytest.raises(TypeError) as exc:
         router.register(123, object)
     assert str(exc.value) == "prefix must be a string."
+
+
+def test_mutation100_registry_remove_continues_after_foreign_router_owner():
+    target = UrlRegistry()
+    owner = object()
+    foreign_owner = object()
+    owned = path("api/v2/orders/", _view, name="owned")
+    foreign = path("api/v2/orders/", _view, name="foreign")
+    for pattern, pattern_owner in ((owned, owner), (foreign, foreign_owner)):
+        setattr(pattern, target._LOGICAL_ENDPOINT_ATTR, "orders")
+        setattr(pattern, target._ROUTE_VERSION_ATTR, 2)
+        setattr(pattern, target._SOURCE_VERSION_ATTR, 1)
+        setattr(pattern, target._ROUTER_OWNER_ATTR, pattern_owner)
+    target.urlpatterns[:] = [owned, foreign]
+
+    target.remove("orders", 2, owner=owner)
+
+    assert target.urlpatterns == [foreign]
+
+
+def test_mutation95_registry_does_not_clear_invalid_removed_pattern_keys():
+    target = UrlRegistry()
+    tombstone = path("api/v2/orders/", _view)
+    target._removed_patterns[(None, 2)] = tombstone
+
+    target.register(
+        "api/v2/orders/",
+        _view,
+        source_version=1,
+        route_version=2,
+        logical_endpoint=None,
+    )
+
+    assert target._removed_patterns[(None, 2)] is tombstone
