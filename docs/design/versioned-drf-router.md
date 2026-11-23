@@ -1,6 +1,6 @@
 # Version-aware DRF ViewSet router
 
-**Status:** Implemented on the unreleased mainline. `VersionedRouter` is included in published 1.3.0; `VersionedDefaultRouter` adds the DRF API root and format-suffix patterns but is not included in the 1.3.0 wheel.  
+**Status:** Implemented and included in package version 1.4.0. `VersionedRouter` delegates resource route generation to DRF `SimpleRouter`; `VersionedDefaultRouter` adds the versioned API root and format-suffix patterns.  
 **Target API:** `VersionedRouter`, `VersionedDefaultRouter`, and `VersionedRouterVersioning`  
 **Runtime dependency:** Django REST Framework remains optional.  
 **Boundary:** Route generation and version dispatch only; no serializer or response transformation.
@@ -214,4 +214,4 @@ The implementation is not considered complete unless all of the following remain
 10. Core package imports remain independent of DRF.
 11. Full package and integration tests, lint, distribution build, website verification, and the supported Python/Django/DRF matrix pass.
 
-The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal, endpoint-level lifecycle, cross-router collision protection, and the `VersionedDefaultRouter` conveniences are maintained in the current mainline. Compatibility evidence remains commit-specific and belongs to the corresponding GitHub Actions run.
+The initial `VersionedRouter` integration shipped in v1.1.0. Explicit removal, endpoint-level lifecycle, cross-router collision protection, and the `VersionedDefaultRouter` conveniences are included in package version 1.4.0. Compatibility evidence remains commit-specific and belongs to the corresponding GitHub Actions run.

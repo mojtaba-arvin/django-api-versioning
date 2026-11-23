@@ -1,15 +1,13 @@
 
 # django-api-versioning: canonical routing contract
 
-> **Latest published release:** `django-api-versioning` `1.3.0`, from the annotated `v1.3.0` tag. See the [v1.3.0 GitHub Release](https://github.com/mojtaba-arvin/django-api-versioning/releases/tag/v1.3.0) for the published artifact and release evidence.
+> **Release baseline:** `django-api-versioning` `1.4.0` adds the `VersionedDefaultRouter` API-root and format-suffix integration to the published `VersionedRouter` and request-negotiation APIs.
 >
-> **Published feature baseline:** The `1.3.0` release includes multi-transport request-version negotiation through `VersionNegotiationMiddleware`, the `assert_schema_snapshot()` contract-test helper, the `VersionedRouter` integration, explicit endpoint removal, and endpoint-level lifecycle metadata (including `EndpointLifecycleAutoSchema`). The executable OpenAPI consumer example, its `oasdiff` CI gate, and the consumer-owned adapter example remain repository-level adoption and validation resources rather than package runtime dependencies.
+> **Feature boundary:** Version 1.4.0 includes multi-transport request-version negotiation through `VersionNegotiationMiddleware`, the `assert_schema_snapshot()` contract-test helper, both DRF router integrations, explicit endpoint removal, and endpoint-level lifecycle metadata (including `EndpointLifecycleAutoSchema`). The executable OpenAPI consumer example, its `oasdiff` CI gate, and the consumer-owned adapter example remain repository-level adoption and validation resources rather than package runtime dependencies.
 >
 > The configured Python/Django environments are defined in [`tox.ini`](../../tox.ini) and checked against the [compatibility workflow](../../.github/workflows/compatibility.yml). Actual outcomes are commit-specific; consult the [workflow run history](https://github.com/mojtaba-arvin/django-api-versioning/actions/workflows/compatibility.yml) rather than treating the configured matrix as proof of a passing run. The [v0.3.8 compatibility report](../reports/compatibility-0.3.8.md) is historical evidence for that release only.
 >
 > This document defines the package-specific contract for version identifiers, public imports, URL construction, endpoint registration, route precedence, URL reversal, and Django REST Framework integration.
->
-> **Unreleased mainline addition:** `VersionedDefaultRouter` adds version-specific API roots and optional format-suffix routes on top of the existing `VersionedRouter` registry. This addition is not part of the published 1.3.0 artifact until a later release is published.
 >
 > **Release quality contract:** The repository's release gates and evidence rules are maintained in [`docs/quality/release-gates.md`](../quality/release-gates.md). Dated results are recorded separately and never substituted for evidence from another commit.
 >
@@ -66,7 +64,7 @@ from django_api_versioning.routers import (
 )
 ```
 
-`VersionedDefaultRouter` is an unreleased mainline addition; use it after the version that includes it is published, or from the current repository source.
+`VersionedDefaultRouter` is included in package version 1.4.0 and later.
 
 Import the generated URL patterns from:
 
@@ -419,7 +417,7 @@ A manually configured callable such as `MyViewSet.as_view({"get": "list"})` rema
 
 The router uses per-route inheritance: a later ViewSet replaces matching routes while earlier custom actions that are not redeclared remain inherited. Remove one generated route/action without removing the rest of the ViewSet by using its URL name:
 
-### VersionedDefaultRouter (unreleased mainline addition)
+### VersionedDefaultRouter (available since 1.4.0)
 
 Use `VersionedDefaultRouter` when a ViewSet API also needs a version-specific API root and DRF format suffixes:
 
@@ -737,7 +735,7 @@ It does not:
 - Automatically make response schemas backward-compatible or transform serializers and response payloads.
 - Select serializers based on a request version.
 - Replace DRF authentication, permission, throttle, filter, pagination, or renderer behavior.
-- Make `VersionedRouter` itself add an API root or format-suffix routes. The unreleased mainline `VersionedDefaultRouter` adds those two conveniences, but is not a full drop-in reimplementation of every DRF `DefaultRouter` extension.
+- Make `VersionedRouter` itself add an API root or format-suffix routes. `VersionedDefaultRouter` adds those two conveniences, but is not a full drop-in reimplementation of every DRF `DefaultRouter` extension.
 - Infer endpoint removal from an omitted import or missing ViewSet action; use remove_endpoint() or VersionedRouter.remove() to declare it explicitly.
 - Combine multiple request-version transports as a fallback chain. A deployment selects exactly one `API_VERSIONING_SCHEME`; `API_VERSIONING_CHANNELS` remains deprecated and inert. Tenant-pinned policy through `API_EFFECTIVE_VERSION_RESOLVER` is not implemented.
 - Validate response payload compatibility through route-matrix checks.
