@@ -1840,6 +1840,9 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     import importlib.util
     import sys
     from pathlib import Path
+    from typing import Callable
+
+    from django.urls import URLPattern
 
     registry_module = importlib.import_module("django_api_versioning.registry")
     module_name = "django_api_versioning._mutation_probe_registry"
@@ -1854,10 +1857,6 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         spec.loader.exec_module(probe)
         assert probe.REMOVED_ROUTE is not None
         assert probe.ViewType is not None
-        from typing import Callable
-
-        from django.urls import URLPattern
-
         assert probe.VersionKey == int | None
         assert probe.VersionMatrix == dict[str, dict[probe.VersionKey, Callable]]
         assert (
@@ -2954,6 +2953,8 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     import inspect
     from pathlib import Path
 
+    from django.urls import URLPattern, URLResolver
+
     import django_api_versioning.routers as router_module
 
     cache_path = importlib.util.cache_from_source(router_module.__file__)
@@ -2967,8 +2968,6 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     assert defaults["root_view_name"].default == "api-root"
     assert defaults["trailing_slash"].default is True
     assert defaults["use_regex_path"].default is True
-    from django.urls import URLPattern, URLResolver
-
     assert router_module.RoutePattern == URLPattern | URLResolver
     assert router_module.VersionRange == int | None
     assert (
