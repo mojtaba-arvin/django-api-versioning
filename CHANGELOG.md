@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-11-23
+
 ### Documentation
 
 - Clarify in the README that request-version negotiation supports path, header, query, and hostname transports, and distinguish version negotiation from endpoint implementation dispatch and DRF's built-in capabilities.
