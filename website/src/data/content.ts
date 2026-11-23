@@ -79,43 +79,33 @@ $ tox run-parallel -p auto`,
 export const features = [
   {
     title: 'Declare once, serve forward',
-    body: 'Decorate a view with @endpoint and a starting version. Every later version reuses it until a newer implementation takes over.',
+    body: 'Mark where an implementation starts with @endpoint. Unchanged routes carry forward until a newer declaration replaces them—or remove_endpoint() drops them from a version onward.',
     icon: '→',
   },
   {
-    title: 'Generated URL patterns',
-    body: 'The package builds versioned routes from API_BASE_PATH. No hand-maintained v1/, v2/, v3/ URLconfs.',
+    title: 'One registry, generated routes',
+    body: 'A single deterministic registry builds versioned URL patterns from API_BASE_PATH. No hand-copied v1/, v2/, v3/ URLconfs and no parallel endpoint models.',
     icon: '{}',
   },
   {
-    title: 'Django & DRF',
-    body: 'Use @endpoint for Django views and APIViews, or VersionedRouter for DRF ViewSets. DRF remains optional for Django-native projects.',
+    title: 'Django native, DRF optional',
+    body: 'Use @endpoint for Django views and APIView. For ViewSets, VersionedRouter (SimpleRouter) or VersionedDefaultRouter (API root and format suffixes). Install DRF only when you need it.',
     icon: '⌘',
   },
   {
-    title: 'Route matrix & gap checks',
-    body: 'check_versions prints every logical endpoint across versions and warns about gaps inside a span.',
+    title: 'Matrix you can see and lock',
+    body: 'check_versions prints the real route matrix and flags gaps. assert_version_matrix snapshots it in CI so accidental route changes fail the build.',
     icon: '▦',
   },
   {
-    title: 'CI snapshot guard',
-    body: 'assert_version_matrix pins the matrix to a JSON snapshot so accidental route changes fail the build.',
-    icon: '✓',
-  },
-  {
-    title: 'Deprecation & Sunset',
-    body: 'LifecycleMiddleware handles version-wide deprecation and retirement. Version 1.2.0 adds endpoint-level lifecycle headers and optional OpenAPI deprecation metadata.',
-    icon: '◐',
-  },
-  {
-    title: 'Versioned DRF ViewSets',
-    body: 'VersionedRouter delegates URL generation to DRF SimpleRouter and inherits or replaces implementations per generated action.',
+    title: 'Path, header, query, or hostname',
+    body: 'Pick one API_VERSIONING_SCHEME per deployment. Non-path transports use middleware to rewrite the internal path so the same registry still selects the view.',
     icon: '⇄',
   },
   {
-    title: 'Explicit route removal',
-    body: 'Version 1.2.0 adds remove_endpoint() and VersionedRouter.remove() so inherited routes can be removed from a chosen version onward.',
-    icon: '−',
+    title: 'Deprecate on the wire',
+    body: 'LifecycleMiddleware emits RFC 9745 Deprecation and RFC 8594 Sunset headers, and can return 410 after sunset. Endpoint-level lifecycle headers are available when a single operation needs its own signal.',
+    icon: '◐',
   },
 ]
 
