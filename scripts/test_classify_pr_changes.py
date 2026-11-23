@@ -89,7 +89,9 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ["AGENTS.md", ".github/workflows/pull-request-gate.yml"]
         )
         self.assertTrue(result["agent"])
-        self.assertFalse(result["python"])
+        self.assertTrue(result["python"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["openapi"])
 
     def test_pyproject_runs_all_python_release_checks_and_website_verification(self):
         result = classify_paths(["pyproject.toml"])
