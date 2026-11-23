@@ -151,6 +151,15 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
     is_compatibility = is_python or any(
         path in COMPATIBILITY_PATHS for path in normalized
     )
+    compatibility_full = not release_metadata_only and any(
+        path in PYTHON_DEPENDENCIES
+        or path in {
+            ".github/workflows/compatibility.yml",
+            "scripts/check_tox_workflow_matrix.py",
+        }
+        or (path.startswith("requirements") and path.endswith(".txt"))
+        for path in normalized
+    )
     is_package = any(
         path.startswith(("django_api_versioning/", "tests/", "LICENSE"))
         or path
@@ -199,6 +208,8 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
             "scripts/agent.py",
             "scripts/verify_repository_policy.py",
             "scripts/classify_pr_changes.py",
+            "scripts/quality_fingerprint.py",
+            "scripts/test_quality_fingerprint.py",
             "scripts/configure_github_repository.sh",
             "scripts/maintain.sh",
             "scripts/release_bootstrap.sh",
@@ -231,6 +242,7 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
         "deep": is_python,
         "metadata": any(path in {"pyproject.toml", "uv.lock"} for path in normalized),
         "compatibility": is_compatibility,
+        "compatibility_full": compatibility_full,
         "package": is_package,
         "website": is_website,
         "agent": is_agent,
