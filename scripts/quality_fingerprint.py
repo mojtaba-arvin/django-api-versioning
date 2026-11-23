@@ -17,6 +17,7 @@ QUALITY_PREFIXES = (
     "integration_test_project/",
     "examples/openapi_contract/",
     "examples/consumer_migration/",
+    "fuzz_corpus/negotiation/",
 )
 COMPATIBILITY_PREFIXES = (
     "django_api_versioning/",
@@ -57,6 +58,8 @@ QUALITY_FILES = COMPATIBILITY_FILES | {
     "mutmut_config.py",
     "setup.cfg",
     "scripts/check_coverage_thresholds.py",
+    "scripts/export_mutation_report.py",
+    "scripts/fuzz_negotiation.py",
     ".github/workflows/tests.yml",
     ".github/workflows/adversarial-testing.yml",
     ".github/workflows/openapi-contract.yml",
