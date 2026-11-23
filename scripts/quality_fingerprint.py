@@ -20,6 +20,8 @@ QUALITY_PREFIXES = (
 )
 OPENAPI_PREFIXES = (
     "django_api_versioning/",
+    "tests/",
+    "integration_test_project/",
     "examples/openapi_contract/",
     "examples/consumer_migration/",
 )
@@ -29,6 +31,9 @@ OPENAPI_FILES = {
     "docs/design/versioned-openapi-contract.md",
     ".github/workflows/openapi-contract.yml",
     "scripts/quality_fingerprint.py",
+    "scripts/check_coverage_thresholds.py",
+    "requirements-ci.txt",
+    "requirements.txt",
 }
 COMPATIBILITY_FILES = {
     "pyproject.toml",
