@@ -32,7 +32,6 @@ timed-out, incomplete, or surviving mutants.
 | Location | Equivalent mutation | Reason |
 |---|---|---|
 | `routers.py` — missing namespace fallback | empty namespace → `"XXXX"` | Version extraction accepts only components beginning with `v` followed by decimal digits; neither value yields a version. |
-| `routers.py` — route/namespace match flag | `False` → `None` | The flag is used only in truthiness checks. |
 | `routers.py` — configured route prefix test | outer sentinel slashes → `XX/` and `/XX` | The searched prefix retains the slash immediately before and after the route path, so substring membership is unchanged. |
 
 If a later refactor changes any of these invariants, the exclusion must be
