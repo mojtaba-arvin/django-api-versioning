@@ -2,12 +2,24 @@ name: Python tests
 
 on:
   workflow_call:
+    inputs:
+      run_adversarial:
+        description: Run the expensive mutation and fuzz campaigns.
+        type: boolean
+        required: false
+        default: false
     secrets:
       CODECOV_TOKEN:
         required: false
   # Validate main after pushes and proposed changes through pull requests targeting main.
   # Use workflow_dispatch for deliberate manual checkpoints.
   workflow_dispatch:
+    inputs:
+      run_adversarial:
+        description: Run the expensive mutation and fuzz campaigns.
+        type: boolean
+        required: false
+        default: true
   push:
     branches: [main]
     paths:
@@ -79,7 +91,8 @@ jobs:
 
   adversarial:
     name: Adversarial release-readiness campaigns
-    # Validation branches opt in to the expensive mutation and fuzz campaigns.
-    if: github.event_name != 'pull_request' || startsWith(github.event.pull_request.head.ref, 'validation/')
+    if: inputs.run_adversarial
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
+    with:
+      run_mutation: ${{ inputs.run_adversarial }}
