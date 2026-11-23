@@ -118,6 +118,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         for path in (
             ".github/workflows/tests.yml",
             ".github/workflows/adversarial-testing.yml",
+            ".github/actions/mutation-shard/action.yml",
             ".github/workflows/mutation-shard.yml",
             ".github/workflows/pull-request-gate.yml",
             ".github/workflows/compatibility.yml",
