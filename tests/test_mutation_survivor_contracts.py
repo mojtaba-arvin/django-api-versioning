@@ -1838,6 +1838,8 @@ def test_mutation95_lifecycle_default_resolution_and_response_contracts(
 def test_mutation95_registry_import_time_contracts_are_exercised():
     import importlib
     import importlib.util
+    import os
+    import subprocess
     import sys
     from pathlib import Path
     from typing import Callable
@@ -1845,6 +1847,31 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     from django.urls import URLPattern
 
     registry_module = importlib.import_module("django_api_versioning.registry")
+    source_root = str(Path(registry_module.__file__).resolve().parents[1])
+    environment = {
+        **os.environ,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPATH": os.pathsep.join(
+            filter(None, (source_root, os.environ.get("PYTHONPATH", "")))
+        ),
+    }
+    fresh_import = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-c",
+            (
+                "from django_api_versioning.registry import registry, UrlRegistry; "
+                "assert isinstance(registry, UrlRegistry), type(registry).__name__"
+            ),
+        ],
+        cwd=source_root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert fresh_import.returncode == 0, fresh_import.stderr
     module_name = "django_api_versioning._mutation_probe_registry"
     spec = importlib.util.spec_from_file_location(module_name, registry_module.__file__)
     assert spec is not None and spec.loader is not None
@@ -2953,11 +2980,42 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     import importlib
     import importlib.util
     import inspect
+    import os
+    import subprocess
+    import sys
     from pathlib import Path
 
     from django.urls import URLPattern, URLResolver
 
     import django_api_versioning.routers as router_module
+
+    source_root = str(Path(router_module.__file__).resolve().parents[1])
+    environment = {
+        **os.environ,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPATH": os.pathsep.join(
+            filter(None, (source_root, os.environ.get("PYTHONPATH", "")))
+        ),
+    }
+    fresh_import = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-c",
+            (
+                "from django.urls import URLPattern, URLResolver; "
+                "from django_api_versioning.routers import RoutePattern, VersionRange; "
+                "assert RoutePattern == URLPattern | URLResolver; "
+                "assert VersionRange == int | None"
+            ),
+        ],
+        cwd=source_root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert fresh_import.returncode == 0, fresh_import.stderr
 
     # Mutmut can rewrite same-size source within one timestamp tick.
     # Remove bytecode so reload observes the mutated module source.
