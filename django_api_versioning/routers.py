@@ -11,9 +11,15 @@ from typing import Any
 
 from django.urls import URLPattern, URLResolver, include, path
 
-RoutePattern = URLPattern | URLResolver
-VersionRange = int | None
-VersionDeclaration = tuple[VersionRange, VersionRange]
+from .exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
+from .registry import registry
+from .reverse import format_negotiated_url
+from .settings import api_settings
 
 try:
     from rest_framework.exceptions import NotFound
@@ -25,15 +31,9 @@ except ImportError as exc:  # pragma: no cover - exercised without optional DRF
         "matrix."
     ) from exc
 
-from .exceptions import (
-    InvalidVersionError,
-    VersioningError,
-    VersionRangeError,
-    VersionTypeError,
-)
-from .registry import registry
-from .reverse import format_negotiated_url
-from .settings import api_settings
+RoutePattern = URLPattern | URLResolver
+VersionRange = int | None
+VersionDeclaration = tuple[VersionRange, VersionRange]
 
 logger = logging.getLogger(__name__)
 

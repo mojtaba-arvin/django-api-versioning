@@ -218,6 +218,7 @@ def test_endpoint_rejects_version_arguments_that_are_mutually_exclusive():
         endpoint("orders", version=1, versions=[1])
     assert str(exc.value) == "Use either 'version' or 'versions', not both."
 
+
 @pytest.mark.parametrize(
     ("methods", "message"),
     [
