@@ -46,6 +46,7 @@ COMPATIBILITY_FILES = {
     "pyproject.toml",
     "uv.lock",
     "tox.ini",
+    "pytest.ini",
     "scripts/check_tox_workflow_matrix.py",
     "scripts/classify_pr_changes.py",
     "scripts/test_classify_pr_changes.py",
