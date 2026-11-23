@@ -2709,8 +2709,8 @@ def test_mutation100_registry_remove_scans_all_routes_and_preserves_only_newer_m
         equal_source,
         version=2,
         logical_endpoint="orders",
-        pattern_owner=None,
-    )
+        owner=None,
+    
     setattr(same_source, equal_source._SOURCE_VERSION_ATTR, 2)
     equal_source.urlpatterns.append(same_source)
     equal_key = ("orders", 2, None, None, None)
