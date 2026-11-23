@@ -187,6 +187,13 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["openapi"])
 
+    def test_reproducible_build_helper_runs_package_and_python_gates(self):
+        result = classify_paths(["scripts/check_reproducible_build.py"])
+        self.assertTrue(result["python"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["package"])
+        self.assertTrue(result["openapi"])
+
     def test_classifier_self_test_runs_agent_validation(self):
         result = classify_paths(["scripts/test_classify_pr_changes.py"])
         self.assertTrue(result["agent"])

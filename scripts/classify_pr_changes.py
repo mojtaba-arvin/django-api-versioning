@@ -79,6 +79,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
             "scripts/check_coverage_thresholds.py",
+            "scripts/check_reproducible_build.py",
         }
         or path in PYTHON_DEPENDENCIES
         or (path.startswith("requirements") and path.endswith(".txt"))
@@ -102,6 +103,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             ".github/workflows/package-artifacts.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
+            "scripts/check_reproducible_build.py",
         }
         for path in normalized
     )

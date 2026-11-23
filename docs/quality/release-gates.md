@@ -85,7 +85,7 @@ A package release additionally requires:
 3. Complete mutation and coverage evidence, plus public API and real-consumer contracts.
 4. Applicable security/adversarial checks.
 5. Validated wheel and sdist, metadata checks, distribution-content checks, and an isolated installed-wheel smoke test.
-6. A reproducible-build check for the exact source and pinned build environment.
+6. A reproducible-build check for the exact source and pinned build environment. CI runs [`scripts/check_reproducible_build.py`](../../scripts/check_reproducible_build.py) in both the package-artifact PR workflow and the tag-triggered publish workflow; it builds twice from clean Git archives with a fixed source epoch and compares wheel/sdist SHA-256 digests.
 7. Explicit authorization for a concrete package version before version bump, tag creation, or publication.
 
 The package release procedure is maintained in [the release skill](../../.agents/skills/release/references/release-procedure.md). Never infer a release result from a previous commit, from the configured matrix alone, or from a partial workflow-job listing.

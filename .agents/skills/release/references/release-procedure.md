@@ -102,7 +102,7 @@ Require successful results for every workflow relevant to the PR's changed paths
 - the complete compatibility matrix, including every environment configured by current `tox.ini` (15 Python/Django combinations plus lint, 16 tox environments total);
 - public API contract tests and the executable Django consumer/OpenAPI contract, including schema validation and `oasdiff` checks;
 - security and adversarial campaigns (CodeQL, Atheris, Schemathesis, and property-based tests) relevant to the changed paths;
-- wheel/sdist build, metadata validation, installed-wheel smoke test, distribution-content checks, and reproducible-build verification.
+- wheel/sdist build, metadata validation, installed-wheel smoke test, distribution-content checks, and the automated two-build SHA-256 reproducibility check in `scripts/check_reproducible_build.py`.
 
 If website/article files changed, also inspect Website build and static verification. If agent instructions or skills changed, inspect Agent tooling.
 
