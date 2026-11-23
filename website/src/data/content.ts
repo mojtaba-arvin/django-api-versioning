@@ -79,43 +79,33 @@ $ tox run-parallel -p auto`,
 export const features = [
   {
     title: 'Declare once, serve forward',
-    body: 'Decorate a view with @endpoint and a starting version. Every later version reuses it until a newer implementation takes over.',
+    body: 'Mark where an implementation starts with @endpoint. Unchanged routes carry forward until a newer declaration replaces them—or remove_endpoint() drops them from a version onward.',
     icon: '→',
   },
   {
-    title: 'Generated URL patterns',
-    body: 'The package builds versioned routes from API_BASE_PATH. No hand-maintained v1/, v2/, v3/ URLconfs.',
+    title: 'One registry, generated routes',
+    body: 'A single deterministic registry builds versioned URL patterns from API_BASE_PATH. No hand-copied v1/, v2/, v3/ URLconfs and no parallel endpoint models.',
     icon: '{}',
   },
   {
-    title: 'Django & DRF',
-    body: 'Use @endpoint for Django views and APIViews, or VersionedRouter for DRF ViewSets. DRF remains optional for Django-native projects.',
+    title: 'Django native, DRF optional',
+    body: 'Use @endpoint for Django views and APIView. For ViewSets, VersionedRouter (SimpleRouter) or VersionedDefaultRouter (API root and format suffixes). Install DRF only when you need it.',
     icon: '⌘',
   },
   {
-    title: 'Route matrix & gap checks',
-    body: 'check_versions prints every logical endpoint across versions and warns about gaps inside a span.',
+    title: 'Matrix you can see and lock',
+    body: 'check_versions prints the real route matrix and flags gaps. assert_version_matrix snapshots it in CI so accidental route changes fail the build.',
     icon: '▦',
   },
   {
-    title: 'CI snapshot guard',
-    body: 'assert_version_matrix pins the matrix to a JSON snapshot so accidental route changes fail the build.',
-    icon: '✓',
-  },
-  {
-    title: 'Deprecation & Sunset',
-    body: 'LifecycleMiddleware handles version-wide deprecation and retirement. Version 1.2.0 adds endpoint-level lifecycle headers and optional OpenAPI deprecation metadata.',
-    icon: '◐',
-  },
-  {
-    title: 'Versioned DRF ViewSets',
-    body: 'VersionedRouter delegates URL generation to DRF SimpleRouter and inherits or replaces implementations per generated action.',
+    title: 'Path, header, query, or hostname',
+    body: 'Pick one API_VERSIONING_SCHEME per deployment. Non-path transports use middleware to rewrite the internal path so the same registry still selects the view.',
     icon: '⇄',
   },
   {
-    title: 'Explicit route removal',
-    body: 'Version 1.2.0 adds remove_endpoint() and VersionedRouter.remove() so inherited routes can be removed from a chosen version onward.',
-    icon: '−',
+    title: 'Deprecate on the wire',
+    body: 'LifecycleMiddleware emits RFC 9745 Deprecation and RFC 8594 Sunset headers, and can return 410 after sunset. Endpoint-level lifecycle headers are available when a single operation needs its own signal.',
+    icon: '◐',
   },
 ]
 
@@ -148,19 +138,27 @@ export const patterns = [
 
 export const caveats = [
   {
-    title: 'Configure request.version for ViewSets',
-    body: 'VersionedRouterVersioning exposes the active router namespace as request.version and keeps reverse_action() and hyperlinked serializer URLs version-aware. Configure it globally or on selected ViewSets.',
+    title: 'Routing is not semantic compatibility',
+    body: 'The package isolates implementations and can lock path contracts. It does not transform serializers or payloads, and it does not claim backward-compatible behavior. Contract and response tests stay yours.',
   },
   {
-    title: 'Route settings and lifecycle settings have different timing',
-    body: 'Changing route settings after URL patterns are imported does not rebuild the registry. LifecycleMiddleware reads lifecycle settings per request.',
+    title: 'Make the matrix visible before release',
+    body: 'Endpoint-to-view mapping is not line-by-line in urls.py. That is the DRY trade-off. Run check_versions and pin assert_version_matrix(strict=True) in CI so the real matrix is reviewed and locked.',
   },
   {
-    title: 'Import order matters',
-    body: 'Import your endpoint modules in the root URLconf before including django_api_versioning.urls.',
+    title: 'Import order and route settings timing',
+    body: 'Import endpoint modules in the root URLconf before including django_api_versioning.urls. Changing route settings after patterns are imported does not rebuild the registry; LifecycleMiddleware still reads lifecycle settings per request.',
   },
   {
-    title: 'ViewSet integration scope',
-    body: 'VersionedRouter supports DRF SimpleRouter, not DefaultRouter API-root or format-suffix behavior. It selects route callbacks; it does not transform serializers or response payloads.',
+    title: 'One negotiation scheme; path-based resolution',
+    body: 'Choose path, header, query, or hostname with API_VERSIONING_SCHEME. Non-path schemes need VersionNegotiationMiddleware, which rewrites the internal path so the same registry serves the view. There is no multi-scheme fallback chain.',
+  },
+  {
+    title: 'ViewSet routers have a clear scope',
+    body: 'VersionedRouter follows SimpleRouter. Use VersionedDefaultRouter when you need a version-specific API root and format suffixes. Configure VersionedRouterVersioning when ViewSets need request.version, reverse_action(), or hyperlinked URLs. Neither transforms serializers.',
+  },
+  {
+    title: 'Keep a replaceable integration boundary',
+    body: 'Confine package imports to one project module that exposes your URL patterns. If you ever leave the package, rewrite only that module—views and the root URLconf stay free of package internals.',
   },
 ]

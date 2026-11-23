@@ -101,7 +101,7 @@ function Hero() {
             <ul className="mt-3 space-y-1.5 font-mono text-xs">
               {versions.map((v) => (
                 <li key={v} className="flex items-center justify-between gap-3">
-                  <span className="text-paper">/api/v{v}/invoices/&lt;id&gt;/</span>
+                  <span className="text-paper">/api/v{v}/invoices/{'<id>'}/</span>
                   {v < 2 ? (
                     <span className="rounded bg-ink-3 px-2 py-0.5 text-mute">404</span>
                   ) : (
@@ -126,7 +126,7 @@ function Features() {
         <SectionHead
           eyebrow="Why"
           title="One source of truth for every API version"
-          body="Stop duplicating URLconfs and view modules for each release. Declare where an implementation starts, and let the router fill in the rest."
+          body="Stop copying URLconfs for each release. Declare where an implementation starts; the registry carries unchanged routes forward, replaces them when you say so, and keeps the matrix inspectable."
         />
         <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
