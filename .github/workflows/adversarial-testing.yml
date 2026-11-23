@@ -91,7 +91,7 @@ jobs:
 
   decorator-score:
     if: inputs.run_mutation || github.event_name == 'schedule'
-    name: Decorator mutation gate (dynamic 70% threshold)
+    name: Decorator mutation gate (100% threshold)
     needs: mutation-decorators
     runs-on: ubuntu-latest
     steps:
@@ -125,17 +125,13 @@ jobs:
           if report["timed_out"] or report["suspicious"] or report["skipped"]:
               raise SystemExit("Decorator campaign has unresolved mutant outcomes")
 
-          required_kills = math.ceil(report["total"] * 0.70)
           score = 100.0 * report["killed"] / report["total"]
           print(
               f"Decorator mutation score: {score:.2f}% "
-              f"({report['killed']}/{report['total']} killed); "
-              f"required: {required_kills}/{report['total']}"
+              f"({report['killed']}/{report['total']} killed); required: 100.00%"
           )
-          if report["killed"] < required_kills:
-              raise SystemExit(
-                  f"Decorator gate failed by {required_kills - report['killed']} kills"
-              )
+          if report["killed"] != report["total"]:
+              raise SystemExit("Decorator mutation score must be exactly 100%")
           PY
 
   mutation-others:
@@ -226,6 +222,11 @@ jobs:
                   f"({report['killed']} killed, {report['survived']} survived, "
                   f"{report['completed']}/{target_total} completed)"
               )
+              if report["killed"] != target_total:
+                  raise SystemExit(
+                      f"{target} mutation score must be exactly 100%; "
+                      f"found {report['killed']}/{target_total}"
+                  )
           if totals["total"] == 0:
               raise SystemExit("No mutation shard reports were produced")
           if totals["completed"] != totals["total"]:
@@ -238,7 +239,7 @@ jobs:
               raise SystemExit("Mutation campaign is partial; see available shard totals above")
 
           score = 100.0 * totals["killed"] / totals["total"]
-          minimum = 70.0
+          minimum = 100.0
           print(
               f"Combined mutation score: {score:.2f}% "
               f"({totals['killed']} killed, {totals['survived']} survived, "
