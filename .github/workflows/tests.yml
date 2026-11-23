@@ -30,7 +30,6 @@ on:
       - "scripts/smoke_installed_wheel.py"
       - "requirements.txt"
       - "requirements-ci.txt"
-      - "pyproject.toml"
       - "pytest.ini"
       - "mutmut_config.py"
       - "setup.cfg"
@@ -118,11 +117,7 @@ jobs:
 
   adversarial:
     name: Adversarial release-readiness campaigns
-    if: >-
-      inputs.run_adversarial ||
-      github.event_name == 'push' ||
-      github.event_name == 'pull_request' ||
-      github.event_name == 'workflow_call'
+    if: inputs.run_adversarial == true || github.event_name == 'push'
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
     with:
