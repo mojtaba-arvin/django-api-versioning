@@ -1839,6 +1839,10 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     import importlib
     import importlib.util
     import sys
+    from pathlib import Path
+    from typing import Callable
+
+    from django.urls import URLPattern
 
     registry_module = importlib.import_module("django_api_versioning.registry")
     module_name = "django_api_versioning._mutation_probe_registry"
@@ -1847,21 +1851,23 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     probe = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = probe
     try:
+        # Mutmut can rewrite same-size source within one timestamp tick.
+        # Remove bytecode so this probe always executes the mutated source.
+        cache_path = importlib.util.cache_from_source(registry_module.__file__)
+        Path(cache_path).unlink(missing_ok=True)
+        importlib.invalidate_caches()
         spec.loader.exec_module(probe)
         assert probe.REMOVED_ROUTE is not None
         assert probe.ViewType is not None
-        from typing import Callable
-        from django.urls import URLPattern
-
         assert probe.VersionKey == int | None
         assert probe.VersionMatrix == dict[str, dict[probe.VersionKey, Callable]]
-        assert probe.ResolvedRouteCandidate == tuple[
-            int, URLPattern, str, int, probe.VersionKey
-        ]
-        assert probe.RouteSortKey == tuple[
-            bool, probe.VersionKey, bool, int, int
-        ]
+        assert (
+            probe.ResolvedRouteCandidate
+            == tuple[int, URLPattern, str, int, probe.VersionKey]
+        )
+        assert probe.RouteSortKey == tuple[bool, probe.VersionKey, bool, int, int]
         assert probe._UNOWNED_OWNER_IDENTITY is not None
+        assert probe._ROUTER_OWNER_IDENTITY is not None
         assert probe._UNOWNED_OWNER_IDENTITY is not probe._ROUTER_OWNER_IDENTITY
         assert isinstance(probe.registry, probe.UrlRegistry)
         assert probe.UrlRegistry._SOURCE_VERSION_ATTR == (
@@ -2945,10 +2951,19 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     monkeypatch, caplog
 ):
     import importlib
+    import importlib.util
     import inspect
+    from pathlib import Path
+
+    from django.urls import URLPattern, URLResolver
 
     import django_api_versioning.routers as router_module
 
+    # Mutmut can rewrite same-size source within one timestamp tick.
+    # Remove bytecode so reload observes the mutated module source.
+    cache_path = importlib.util.cache_from_source(router_module.__file__)
+    Path(cache_path).unlink(missing_ok=True)
+    importlib.invalidate_caches()
     router_module = importlib.reload(router_module)
     defaults = inspect.signature(
         router_module.VersionedDefaultRouter.__init__
@@ -2957,13 +2972,12 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     assert defaults["root_view_name"].default == "api-root"
     assert defaults["trailing_slash"].default is True
     assert defaults["use_regex_path"].default is True
-    from django.urls import URLPattern, URLResolver
-
     assert router_module.RoutePattern == URLPattern | URLResolver
     assert router_module.VersionRange == int | None
-    assert router_module.VersionDeclaration == tuple[
-        router_module.VersionRange, router_module.VersionRange
-    ]
+    assert (
+        router_module.VersionDeclaration
+        == tuple[router_module.VersionRange, router_module.VersionRange]
+    )
     router_defaults = inspect.signature(
         router_module.VersionedRouter.__init__
     ).parameters
@@ -3762,3 +3776,28 @@ def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
         "Route pattern 'api/v2/orders/' is already registered by a "
         "different registration owner. Use a distinct route path."
     )
+
+
+def test_mutation100_router_rejects_boolean_route_version_from_resolver_trace(
+    monkeypatch,
+):
+    import django_api_versioning.routers as router_module
+
+    versioning = VersionedRouterVersioning()
+    versioning.default_version = None
+    versioning.allowed_versions = ["True"]
+    monkeypatch.setattr(
+        router_module.registry,
+        "get_resolved_route_version_for_match",
+        lambda match: (True, True),
+    )
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(
+            route="api/v2/orders/",
+            namespace="v2",
+            tried=(),
+        )
+    )
+
+    with pytest.raises(NotFound):
+        versioning.determine_version(request)
