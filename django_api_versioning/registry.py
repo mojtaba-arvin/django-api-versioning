@@ -19,6 +19,12 @@ from .exceptions import (
 from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from .settings import api_settings
 
+VersionKey = int | None
+VersionMatrix = dict[str, dict[VersionKey, Callable]]
+ResolvedRouteCandidate = tuple[int, URLPattern, str, int, VersionKey]
+_UNOWNED_OWNER_IDENTITY = object()
+_ROUTER_OWNER_IDENTITY = object()
+
 REMOVED_ROUTE = object()
 
 
@@ -140,6 +146,7 @@ class UrlRegistry:
                     (logical_endpoint, router_prefix, trailing_slash), set()
                 ).add(from_version)
 
+        preserved_versions = set()
         for index in range(len(self.urlpatterns) - 1, -1, -1):
             pattern = self.urlpatterns[index]
             if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
@@ -151,29 +158,13 @@ class UrlRegistry:
             if route_version is None or route_version < from_version:
                 continue
             if source_version is not None and source_version > from_version:
+                preserved_versions.add(route_version)
                 continue
             self._record_removed(pattern, logical_endpoint)
             del self.urlpatterns[index]
 
         # Lifecycle metadata belongs to a concrete active declaration segment.
-        # A tombstone must not let metadata from the removed implementation leak
-        # into a later reintroduction at the same concrete API version. Preserve
-        # metadata only for versions that already have a newer active source.
-        preserved_versions = set()
-        for pattern in self.urlpatterns:
-            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
-                continue
-            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
-                continue
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
-            if (
-                route_version is not None
-                and route_version >= from_version
-                and source_version is not None
-                and source_version > from_version
-            ):
-                preserved_versions.add(route_version)
+        # Preserve it only for versions that already have a newer active source.
         for key in list(self._endpoint_lifecycle):
             endpoint, version, _, _, metadata_owner = key
             if (
@@ -467,14 +458,14 @@ class UrlRegistry:
         )
 
     @_synchronized
-    def get_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
+    def get_version_matrix(self) -> VersionMatrix:
         """
         Return ``{route: {route_version: callback}}``.
 
         ``route_version`` is ``None`` for unversioned routes.  This is the
         source of truth for ``check_versions`` and ``assert_version_matrix``.
         """
-        matrix: dict[str, dict[int | None, Callable]] = {}
+        matrix: VersionMatrix = {}
         for pattern in self.urlpatterns:
             route = str(pattern.pattern)
             route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
@@ -488,7 +479,7 @@ class UrlRegistry:
         return matrix
 
     @_synchronized
-    def get_logical_version_matrix(self) -> dict[str, dict[int | None, Callable]]:
+    def get_logical_version_matrix(self) -> VersionMatrix:
         """
         Return ``{logical_endpoint: {route_version: callback}}``.
 
@@ -521,16 +512,16 @@ class UrlRegistry:
 
             owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
             if owner is None:
-                owner_identity = ("unowned",)
+                owner_identity = (_UNOWNED_OWNER_IDENTITY,)
             else:
                 owner_identity = (
-                    "router",
+                    _ROUTER_OWNER_IDENTITY,
                     getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
                     getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
                 )
             owner_groups.setdefault(logical_id, set()).add(owner_identity)
 
-        matrix: dict[str, dict[int | None, Callable]] = {}
+        matrix: VersionMatrix = {}
         for logical_id, route_version, pattern, callback in entries:
             owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
             has_multiple_owners = len(owner_groups[logical_id]) > 1
@@ -773,7 +764,7 @@ class UrlRegistry:
             if isinstance(item, str) and item.startswith("v") and item[1:].isdecimal()
         }
 
-        candidates: list[tuple[int, URLPattern, str, int, int | None]] = []
+        candidates: list[ResolvedRouteCandidate] = []
         for pattern in self.urlpatterns:
             if (
                 matched_pattern_ids is not None
@@ -1133,10 +1124,10 @@ class UrlRegistry:
             has_dynamic = specificity[1]
             return (
                 route_version is not None,
-                route_version if route_version is not None else -1,
+                route_version,
                 has_dynamic,
-                specificity[0] if has_dynamic else 0,
-                specificity[2] if has_dynamic else 0,
+                specificity[0],
+                specificity[2],
             )
 
         self.urlpatterns.sort(key=sort_key)

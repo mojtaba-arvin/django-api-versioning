@@ -11,6 +11,10 @@ from typing import Any
 
 from django.urls import URLPattern, URLResolver, include, path
 
+RoutePattern = URLPattern | URLResolver
+VersionRange = int | None
+VersionDeclaration = tuple[VersionRange, VersionRange]
+
 try:
     from rest_framework.exceptions import NotFound
     from rest_framework.versioning import NamespaceVersioning
@@ -119,7 +123,7 @@ class VersionedRouter:
                     api_settings.API_MIN_VERSION,
                 )
                 return
-            declarations: list[tuple[int | None, int | None]] = [
+            declarations: list[VersionDeclaration] = [
                 (concrete, version)
                 for concrete in range(version, api_settings.API_MAX_VERSION + 1)
             ]
@@ -519,11 +523,11 @@ class VersionedRouter:
 
     def _build_namespaced_urlpatterns(
         self,
-        versioned: dict[int, list[URLPattern | URLResolver]],
-        unversioned: list[URLPattern | URLResolver],
+        versioned: dict[int, list[RoutePattern]],
+        unversioned: list[RoutePattern],
     ) -> list[URLPattern | URLResolver]:
         """Wrap each concrete version in its namespace for DRF reversal."""
-        urlpatterns: list[URLPattern | URLResolver] = list(unversioned)
+        urlpatterns: list[RoutePattern] = list(unversioned)
         for route_version in sorted(versioned):
             urlpatterns.append(
                 path(
@@ -605,11 +609,11 @@ class VersionedDefaultRouter(VersionedRouter):
         registered_versioned, registered_unversioned = (
             self._collect_registered_patterns()
         )
-        versioned: dict[int, list[URLPattern | URLResolver]] = {
+        versioned: dict[int, list[RoutePattern]] = {
             route_version: list(patterns)
             for route_version, patterns in registered_versioned.items()
         }
-        unversioned: list[URLPattern | URLResolver] = list(registered_unversioned)
+        unversioned: list[RoutePattern] = list(registered_unversioned)
 
         if self.include_root_view:
             for route_version, registered_patterns in registered_versioned.items():

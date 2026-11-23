@@ -1850,6 +1850,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         spec.loader.exec_module(probe)
         assert probe.REMOVED_ROUTE is not None
         assert probe.ViewType is not None
+        assert isinstance(probe.registry, probe.UrlRegistry)
         assert probe.UrlRegistry._SOURCE_VERSION_ATTR == (
             "_django_api_versioning_source_version"
         )
@@ -1881,6 +1882,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
             registered_route="api/v2/orders/",
         )
         assert not hasattr(operation, "__dict__")
+        assert operation.router_owner is None
         with pytest.raises(FrozenInstanceError):
             operation.route = "api/v1/orders/"
 
@@ -2053,6 +2055,21 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         tried=None,
     )
     assert longest.get_resolved_route_version_for_match(fallback) == (True, 2)
+
+    named = UrlRegistry()
+    named_order = path("api/v2/orders/", _view, name="order-list")
+    named_other = path("api/v2/orders/", _view, name="other-list")
+    setattr(named_order, named._ROUTE_VERSION_ATTR, 2)
+    setattr(named_other, named._ROUTE_VERSION_ATTR, 3)
+    named.urlpatterns[:] = [named_order, named_other]
+    named_match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name="order-list",
+        tried=None,
+    )
+    assert named.get_resolved_route_version_for_match(named_match) == (True, 2)
+
     assert longest._resolved_route_match_length(
         "nested/api/v2/orders/", "api/v2/orders/"
     ) == len("api/v2/orders/")
@@ -2696,7 +2713,22 @@ def test_mutation100_registry_exact_resolver_identity_and_operation_contracts():
     assert operation.route == "api/v2/orders/"
     assert operation.registered_route == "api/v2/orders/"
 
-    assert target.resolve_registered_operation("orders", 2, "GET").action == "list"
+    registered = target.resolve_registered_operation("orders", 2, "GET")
+    assert registered.action == "list"
+    assert registered.route == "api/v2/orders/"
+    assert registered.namespace == ""
+
+    no_trace = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="order-list",
+        namespaces=(),
+        tried=[],
+    )
+    assert target.resolve_operation(no_trace, "GET") is None
+
+    callback.actions = {"head": "metadata", "get": "list"}
+    assert target.resolve_registered_operation("orders", 2, "HEAD").action == "metadata"
 
     callback.actions = {"get": 7}
     assert target.resolve_registered_operation("orders", 2, "GET") is None
@@ -2851,7 +2883,7 @@ def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
     )
 
 
-def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypatch):
+def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypatch, caplog):
     import importlib
     import inspect
 
@@ -2863,6 +2895,36 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     ).parameters
     assert defaults["app_name"].default == "django_api_versioning"
     assert defaults["root_view_name"].default == "api-root"
+    router_defaults = inspect.signature(router_module.VersionedRouter.__init__).parameters
+    assert router_defaults["trailing_slash"].default is True
+    assert router_defaults["use_regex_path"].default is True
+    assert router_defaults["app_name"].default == "django_api_versioning"
+
+    router = router_module.VersionedRouter()
+    default_router = router_module.VersionedDefaultRouter()
+    assert isinstance(router.urls, list)
+    assert isinstance(default_router.urls, list)
+    assert default_router.include_root_view is True
+    assert default_router.include_format_suffixes is True
+    assert default_router.root_view_name == "api-root"
+
+    for method_name in ("register", "remove", "set_lifecycle"):
+        method = getattr(router_module.VersionedRouter, method_name)
+        assert method.__name__ == method_name
+        assert callable(getattr(method, "__wrapped__", None))
+
+    assert router._resolve_lifecycle_methods(
+        ["GET"], {"get": "list"}, None, "orders"
+    ) == [("GET", "list")]
+    router._register_lifecycle_methods("orders", 2, [], None, None, object())
+
+    with caplog.at_level("WARNING"):
+        router.register("below-min", object, version=0)
+    assert any(
+        record.getMessage()
+        == "ViewSet prefix 'below-min' starts at version 0, below API_MIN_VERSION 1. No routes will be registered."
+        for record in caplog.records
+    )
     assert (
         router_module.VersionedRouterVersioning.invalid_version_message
         == "The URL namespace does not identify an allowed API version."
@@ -2898,6 +2960,10 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
         "version": 2,
         "scheme": "query",
     }
+
+    request.version = "3"
+    assert adapter.reverse("orders-list", request=request) == "/orders/"
+    assert captured["version"] == "3"
 
 
 def test_mutation100_router_namespace_matching_uses_the_configured_path(monkeypatch):
@@ -3030,7 +3096,7 @@ def test_mutation100_registry_logical_matrix_disambiguates_duplicate_routes():
 
     matrix = target.get_logical_version_matrix()
     assert len(matrix) == 2
-    assert all("route=" in key for key in matrix)
+    assert all(" [route=" in key for key in matrix)
 
 
 def test_mutation100_registry_router_matrix_labels_and_regex_edges():
@@ -3111,8 +3177,13 @@ def test_mutation100_registry_create_pattern_signature_and_synchronization(monke
         def as_view(cls, actions):
             return _view
 
-    with pytest.raises(TypeError, match="cannot be registered directly"):
+    with pytest.raises(TypeError) as exc:
         UrlRegistry._create_pattern("orders/", RequiredActionsView, "orders")
+    assert str(exc.value) == (
+        "ViewSet 'RequiredActionsView' cannot be registered directly. "
+        "Pass a configured callable like: "
+        "RequiredActionsView.as_view({'get': 'list', 'post': 'create'})"
+    )
 
     class OptionalActionsView:
         @classmethod
@@ -3404,3 +3475,46 @@ def test_mutation100_negotiation_fallback_and_custom_settings_are_observable(
     )(request)
     assert response.status_code == 200
     assert request.api_version == 2
+
+
+def test_mutation100_router_namespace_and_route_version_validation(monkeypatch):
+    import django_api_versioning.routers as router_module
+
+    adapter = router_module.VersionedRouterVersioning()
+    missing_namespace = SimpleNamespace(
+        resolver_match=SimpleNamespace(namespace=None, route=None)
+    )
+    assert adapter.determine_version(missing_namespace) is None
+
+    monkeypatch.setattr(
+        router_module.registry, "get_resolved_route_version", lambda route: 2
+    )
+    mismatched_namespace = SimpleNamespace(
+        resolver_match=SimpleNamespace(namespace="v3", route="api/v2/orders/")
+    )
+    assert adapter.determine_version(mismatched_namespace) == 2
+
+    monkeypatch.setattr(
+        router_module.registry, "get_resolved_route_version", lambda route: True
+    )
+    boolean_version = SimpleNamespace(
+        resolver_match=SimpleNamespace(namespace="", route="api/orders/")
+    )
+    assert adapter.determine_version(boolean_version) is None
+
+
+def test_mutation95_router_prefix_validation_checks_each_invalid_edge():
+    import django_api_versioning.routers as router_module
+
+    router = router_module.VersionedRouter()
+    for prefix in ("", "/orders", "orders/"):
+        with pytest.raises(VersioningError) as exc:
+            router.register(prefix, object)
+        assert str(exc.value) == (
+            "prefix must be a non-empty relative path without leading "
+            "or trailing '/'."
+        )
+
+    with pytest.raises(TypeError) as exc:
+        router.register(123, object)
+    assert str(exc.value) == "prefix must be a string."
