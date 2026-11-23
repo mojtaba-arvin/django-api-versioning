@@ -299,19 +299,55 @@ For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/
 
 ### Why isn't the endpoint-to-implementation mapping explicit in `urls.py`?
 
-For teams that prefer "explicit over implicit," this is a deliberate cognitive trade-off. Yes, mapping an endpoint to its implementation is not spelled out line-by-line in `urls.py`. That is intentional: higher DRY at the cost of less readability from URL structure alone. Transparency is not removed—it is moved to tooling and tests. The registry is deterministic, `check_versions` shows the real matrix, and `assert_version_matrix(strict=True)` locks that matrix in CI.
+For teams that prefer **explicit over implicit**, this is a deliberate cognitive trade-off.
+
+> Yes, mapping an endpoint to its implementation is **not** spelled out line-by-line in `urls.py`.
+
+That is intentional: **higher DRY** at the cost of less readability from URL structure alone. Transparency is not removed—it is moved to tooling and tests:
+
+| Mechanism | Role |
+| --- | --- |
+| Registry | Deterministic endpoint → implementation map |
+| `check_versions` | Shows the real route matrix |
+| `assert_version_matrix(strict=True)` | Locks that matrix in CI |
 
 ### Does the package provide backward compatibility?
 
-No. The package does not guarantee semantic compatibility and does not claim to. What it provides is: (a) isolation of version implementations at the routing layer, (b) snapshot tooling to lock path contracts, and (c) patterns and executable examples for OpenAPI contract tests and runtime behavior tests. Proving semantic compatibility remains the application's responsibility.
+**No.** The package does not guarantee semantic compatibility and does not claim to.
+
+What it **does** provide:
+
+1. **Isolation** of version implementations at the routing layer
+2. **Snapshot tooling** to lock path contracts
+3. **Patterns and executable examples** for OpenAPI contract tests and runtime behavior tests
+
+Proving semantic compatibility remains the **application's responsibility**.
 
 ### Is versioning limited to the URL path? What about header, query, or hostname?
 
-Four negotiation methods are supported (`path`, `header`, `query`, `hostname`), but the core resolution model remains path-based. For non-path schemes, middleware rewrites the internal path before Django URL resolution so the same single registry is used. That means the transport used to carry the version can change without duplicating the endpoint model—yet final resolution stays path-oriented. This is a conscious architectural choice to avoid four parallel systems.
+Four negotiation methods are supported — `path`, `header`, `query`, and `hostname` — but the **core resolution model remains path-based**.
+
+For non-path schemes, middleware rewrites the internal path *before* Django URL resolution so the **same single registry** is used. That means:
+
+- The **transport** that carries the version can change
+- The **endpoint model** is not duplicated
+- Final resolution stays **path-oriented**
+
+This is a conscious architectural choice to avoid four parallel systems.
 
 ### What about maintenance continuity for a single-maintainer package?
 
-Maintainer continuity is a real risk for any single-maintainer package, and we do not deny it. What we can commit to is: (a) a replaceable architecture that keeps exit cost low, (b) a controlled lifecycle that makes migration gradual, and (c) governance documentation and an open invitation to contributors that make the path to additional maintainers clear. None of these replaces a second committed maintainer; we treat that as a residual risk. See [GOVERNANCE.md](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md).
+Maintainer continuity is a **real residual risk** for any single-maintainer package, and we do not deny it.
+
+What we *can* commit to:
+
+1. A **replaceable architecture** that keeps exit cost low
+2. A **controlled lifecycle** that makes migration gradual
+3. **Governance documentation** and an open invitation to contributors that make the path to additional maintainers clear
+
+> None of these replaces a second committed maintainer.
+
+See [GOVERNANCE.md](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md).
 
 ## Documentation
 
