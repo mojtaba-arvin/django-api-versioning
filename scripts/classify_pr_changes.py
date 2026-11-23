@@ -67,6 +67,46 @@ OPENAPI_EXPLICIT_PATHS = {
 }
 
 
+def is_version_only_metadata_change(
+    base_pyproject: str,
+    head_pyproject: str,
+    base_lock: str,
+    head_lock: str,
+) -> bool:
+    """Compare parsed project and lock data, allowing only package version changes."""
+    try:
+        old_project = tomllib.loads(base_pyproject)
+        new_project = tomllib.loads(head_pyproject)
+        package_name = new_project["project"]["name"]
+        old_version = old_project["project"]["version"]
+        new_version = new_project["project"]["version"]
+        if old_version == new_version:
+            return False
+        old_project["project"]["version"] = "<PACKAGE_VERSION>"
+        new_project["project"]["version"] = "<PACKAGE_VERSION>"
+        if old_project != new_project:
+            return False
+
+        old_lock = tomllib.loads(base_lock)
+        new_lock = tomllib.loads(head_lock)
+        for lock, expected_version in (
+            (old_lock, old_version),
+            (new_lock, new_version),
+        ):
+            lock.pop("content-hash", None)
+            matches = [
+                item
+                for item in lock.get("package", [])
+                if item.get("name") == package_name
+            ]
+            if len(matches) != 1 or matches[0].get("version") != expected_version:
+                return False
+            matches[0]["version"] = "<PACKAGE_VERSION>"
+        return old_lock == new_lock
+    except (KeyError, TypeError, ValueError, tomllib.TOMLDecodeError):
+        return False
+
+
 def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
     """Detect a package-version-only edit using parsed TOML, not path names alone."""
     normalized = [path.strip().removeprefix("./") for path in paths if path.strip()]
@@ -109,34 +149,11 @@ def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
     base_lock = git_content("uv.lock")
     if base_pyproject is None or base_lock is None:
         return False
-    try:
-        old_project = tomllib.loads(base_pyproject)
-        new_project = tomllib.loads(
-            Path("pyproject.toml").read_text(encoding="utf-8")
-        )
-        package_name = new_project["project"]["name"]
-        if old_project["project"]["version"] == new_project["project"]["version"]:
-            return False
-        old_project["project"]["version"] = "<PACKAGE_VERSION>"
-        new_project["project"]["version"] = "<PACKAGE_VERSION>"
-        if old_project != new_project:
-            return False
-
-        old_lock = tomllib.loads(base_lock)
-        new_lock = tomllib.loads(Path("uv.lock").read_text(encoding="utf-8"))
-        for lock in (old_lock, new_lock):
-            lock.pop("content-hash", None)
-            matches = [
-                item
-                for item in lock.get("package", [])
-                if item.get("name") == package_name
-            ]
-            if len(matches) != 1:
-                return False
-            matches[0]["version"] = "<PACKAGE_VERSION>"
-        return old_lock == new_lock
-    except (KeyError, TypeError, ValueError, tomllib.TOMLDecodeError):
-        return False
+    head_pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+    head_lock = Path("uv.lock").read_text(encoding="utf-8")
+    return is_version_only_metadata_change(
+        base_pyproject, head_pyproject, base_lock, head_lock
+    )
 
 
 def classify_paths(
