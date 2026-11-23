@@ -44,7 +44,11 @@ def artifact_run_ids(repository: str, artifact_name: str) -> list[str]:
     return list(dict.fromkeys(run_ids))
 
 
-def run_succeeded(repository: str, run_id: str) -> bool:
+def run_succeeded(
+    repository: str, run_id: str, *, allow_current_run: bool = False
+) -> bool:
+    if allow_current_run and run_id == os.environ.get("GITHUB_RUN_ID"):
+        return True
     result = command(
         [
             "gh",
@@ -68,11 +72,17 @@ def run_succeeded(repository: str, run_id: str) -> bool:
 
 
 def find_matching_evidence(
-    repository: str, scope: str, expected_fingerprint: str
+    repository: str,
+    scope: str,
+    expected_fingerprint: str,
+    *,
+    allow_current_run: bool = False,
 ) -> str | None:
     artifact_name, field = ARTIFACTS[scope]
     for run_id in artifact_run_ids(repository, artifact_name):
-        if not run_succeeded(repository, run_id):
+        if not run_succeeded(
+            repository, run_id, allow_current_run=allow_current_run
+        ):
             continue
         with tempfile.TemporaryDirectory(prefix="release-evidence-") as directory:
             downloaded = command(
@@ -110,6 +120,11 @@ def main() -> int:
     parser.add_argument(
         "--scope", choices=("deep", "compatibility", "openapi", "all"), default="all"
     )
+    parser.add_argument(
+        "--allow-current-run",
+        action="store_true",
+        help="Accept the current in-progress workflow run after its dependent jobs succeeded.",
+    )
     args = parser.parse_args()
     repository = os.environ.get("GITHUB_REPOSITORY")
     if not repository:
@@ -127,7 +142,12 @@ def main() -> int:
     )
     missing = []
     for scope in scopes:
-        run_id = find_matching_evidence(repository, scope, expected[scope])
+        run_id = find_matching_evidence(
+            repository,
+            scope,
+            expected[scope],
+            allow_current_run=args.allow_current_run,
+        )
         if run_id is None:
             missing.append(scope)
             print(f"MISSING: no successful {scope} evidence matches {expected[scope]}")
