@@ -156,13 +156,9 @@ jobs:
       - name: Install runtime and build dependencies
         run: python -m pip install -r requirements.txt -r requirements-build.txt
 
-      - name: Verify reproducible source and wheel builds
-        run: python scripts/check_reproducible_build.py
-
-      - name: Build and validate distributions
+      - name: Build and verify reproducible distributions
         run: |
-          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
-          python -m build --no-isolation --outdir dist
+          python scripts/check_reproducible_build.py --outdir dist
           python -m twine check --strict dist/*
 
       - name: Verify the built wheel in isolation

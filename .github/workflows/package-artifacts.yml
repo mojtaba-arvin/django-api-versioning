@@ -51,13 +51,8 @@ jobs:
       - name: Install build tools
         run: python -m pip install -r requirements-build.txt
 
-      - name: Verify reproducible source and wheel builds
-        run: python scripts/check_reproducible_build.py
-
-      - name: Build source and wheel distributions
-        run: |
-          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
-          python -m build --no-isolation --outdir dist
+      - name: Build and verify reproducible source and wheel distributions
+        run: python scripts/check_reproducible_build.py --outdir dist
 
       - name: Validate distribution metadata
         run: python -m twine check --strict dist/*
