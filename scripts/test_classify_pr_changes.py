@@ -222,7 +222,19 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
                 result = classify_paths([path])
                 self.assertTrue(result["python"])
                 self.assertTrue(result["compatibility"])
-                self.assertTrue(result["openapi"])
+                self.assertEqual(
+                    result["openapi"],
+                    path == ".github/workflows/openapi-contract.yml",
+                )
+
+    def test_fuzz_inputs_run_deep_quality_without_openapi_contract(self):
+        corpus = classify_paths(["fuzz_corpus/negotiation/seed"])
+        script = classify_paths(["scripts/fuzz_negotiation.py"])
+        self.assertTrue(corpus["deep"])
+        self.assertFalse(corpus["openapi"])
+        self.assertTrue(script["deep"])
+        self.assertFalse(script["openapi"])
+        self.assertTrue(script["compatibility_full"])
 
     def test_workflow_policy_updates_run_agent_validation(self):
         result = classify_paths([".github/dependabot.yml"])
