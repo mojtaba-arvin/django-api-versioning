@@ -6,6 +6,7 @@ on:
     branches: [main]
 
 permissions:
+  actions: read
   contents: read
   pull-requests: read
 
@@ -216,3 +217,46 @@ jobs:
 
           print("All applicable PR checks passed; the reusable Python workflow owns its optional adversarial campaign.")
           PY
+
+      - name: Check out source for evidence verification
+        if: >-
+          success() &&
+          (
+            needs.changes.outputs.deep == 'true' ||
+            needs.changes.outputs.openapi == 'true' ||
+            needs.changes.outputs.compatibility_full == 'true'
+          )
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Set up Python for evidence verification
+        if: >-
+          success() &&
+          (
+            needs.changes.outputs.deep == 'true' ||
+            needs.changes.outputs.openapi == 'true' ||
+            needs.changes.outputs.compatibility_full == 'true'
+          )
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+
+      - name: Verify Deep Quality evidence artifact
+        if: success() && needs.changes.outputs.deep == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/verify_release_evidence.py --scope deep --allow-current-run
+
+      - name: Verify OpenAPI contract evidence artifact
+        if: success() && needs.changes.outputs.openapi == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/verify_release_evidence.py --scope openapi --allow-current-run
+
+      - name: Verify full compatibility evidence artifact
+        if: success() && needs.changes.outputs.compatibility_full == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/verify_release_evidence.py --scope compatibility --allow-current-run
