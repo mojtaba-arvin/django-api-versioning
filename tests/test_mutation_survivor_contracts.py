@@ -3801,3 +3801,139 @@ def test_mutation100_router_rejects_boolean_route_version_from_resolver_trace(
 
     with pytest.raises(NotFound):
         versioning.determine_version(request)
+
+
+# These isolated mutation contracts are selected for their source domains by
+# mutmut_config.py. They assert public behavior rather than incidental details.
+def test_mutation100_registry_removes_an_existing_pattern_suppressed_by_tombstone():
+    target = UrlRegistry()
+    target.register(
+        "api/v2/orders/",
+        _view,
+        name="order-list",
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    target._removal_boundaries.setdefault("orders", set()).add(2)
+
+    target.register(
+        "api/v2/orders/",
+        _view,
+        name="order-list",
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+
+    assert target.urlpatterns == []
+
+
+def test_mutation100_registry_urlpattern_removes_an_existing_suppressed_pattern():
+    target = UrlRegistry()
+    existing = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=None
+    )
+    setattr(existing, target._SOURCE_VERSION_ATTR, 1)
+    target.register_urlpattern(
+        existing,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    target._removal_boundaries.setdefault("orders", set()).add(2)
+
+    replacement = _registered_pattern(
+        target, version=2, logical_endpoint="orders", owner=None
+    )
+    setattr(replacement, target._SOURCE_VERSION_ATTR, 2)
+    target.register_urlpattern(
+        replacement,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+
+    assert target.urlpatterns == []
+
+
+def test_mutation100_registry_preserves_tombstone_for_unversioned_registration():
+    target = UrlRegistry()
+    tombstone = path("api/v2/legacy/", _view, name="legacy")
+    target._removed_patterns[("orders", None)] = tombstone
+    candidate = path("api/orders/", _view, name="order-list")
+
+    target.register_urlpattern(
+        candidate,
+        source_version=3,
+        route_version=None,
+        logical_endpoint="orders",
+    )
+
+    assert target._removed_patterns[("orders", None)] is tombstone
+    assert candidate in target.urlpatterns
+
+
+def test_mutation100_registry_exports_a_live_singleton_in_a_clean_interpreter():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env["DJANGO_SETTINGS_MODULE"] = "tests.settings"
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, (str(root), env.get("PYTHONPATH", "")))
+    )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from django_api_versioning.registry import UrlRegistry, registry; "
+            "assert isinstance(registry, UrlRegistry)",
+        ],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_mutation100_router_module_imports_in_a_clean_interpreter():
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env["DJANGO_SETTINGS_MODULE"] = "tests.settings"
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, (str(root), env.get("PYTHONPATH", "")))
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", "import django_api_versioning.routers"],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_mutation100_router_uses_registered_route_when_namespace_is_empty(monkeypatch):
+    versioning = VersionedRouterVersioning()
+    versioning.default_version = "1"
+    versioning.allowed_versions = ["1", "2"]
+    monkeypatch.setattr(registry, "get_resolved_route_version", lambda route: 2)
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(route="api/v2/orders/", namespace="")
+    )
+
+    assert versioning.determine_version(request) == "2"
