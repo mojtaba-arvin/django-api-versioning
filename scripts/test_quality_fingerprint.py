@@ -61,6 +61,8 @@ class QualityFingerprintTests(unittest.TestCase):
     def test_openapi_fingerprint_tracks_consumer_schemas_and_contract_workflow(self):
         before = {
             "django_api_versioning/routers.py": b"class Router: pass\\n",
+            "tests/test_router.py": b"def test_router(): pass\\n",
+            "integration_test_project/urls.py": b"urlpatterns = []\\n",
             "examples/openapi_contract/schemas/v1/openapi.yaml": b"openapi: 3.1.0\\n",
             ".github/workflows/openapi-contract.yml": b"workflow_call: {}\\n",
             "docs/design/versioned-openapi-contract.md": b"Contract v1\\n",
