@@ -32,3 +32,7 @@ The previous survivor report contains candidate equivalent mutations, including 
 ## Acceptance
 
 The next complete campaign must reconcile all five shard totals, report no incomplete outcomes, and reach 100% independently in all five domains. No mutation threshold, target scope, or outcome classification is weakened to obtain a green result.
+
+## Validation branch
+
+The follow-up contract changes are staged on PR #183's head. This stacked PR is a temporary CI trigger because the repository's pull-request workflow only targets PRs whose base branch is `main`. Its results validate the combined source tree; it is not intended to merge into `main`.
