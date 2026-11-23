@@ -1850,6 +1850,19 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         spec.loader.exec_module(probe)
         assert probe.REMOVED_ROUTE is not None
         assert probe.ViewType is not None
+        from collections.abc import Callable
+        from django.urls import URLPattern
+
+        assert probe.VersionKey == int | None
+        assert probe.VersionMatrix == dict[str, dict[probe.VersionKey, Callable]]
+        assert probe.ResolvedRouteCandidate == tuple[
+            int, URLPattern, str, int, probe.VersionKey
+        ]
+        assert probe.RouteSortKey == tuple[
+            bool, probe.VersionKey, bool, int, int
+        ]
+        assert probe._UNOWNED_OWNER_IDENTITY is not None
+        assert probe._UNOWNED_OWNER_IDENTITY is not probe._ROUTER_OWNER_IDENTITY
         assert isinstance(probe.registry, probe.UrlRegistry)
         assert probe.UrlRegistry._SOURCE_VERSION_ATTR == (
             "_django_api_versioning_source_version"
@@ -2942,6 +2955,15 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     ).parameters
     assert defaults["app_name"].default == "django_api_versioning"
     assert defaults["root_view_name"].default == "api-root"
+    assert defaults["trailing_slash"].default is True
+    assert defaults["use_regex_path"].default is True
+    from django.urls import URLPattern, URLResolver
+
+    assert router_module.RoutePattern == URLPattern | URLResolver
+    assert router_module.VersionRange == int | None
+    assert router_module.VersionDeclaration == tuple[
+        router_module.VersionRange, router_module.VersionRange
+    ]
     router_defaults = inspect.signature(
         router_module.VersionedRouter.__init__
     ).parameters
