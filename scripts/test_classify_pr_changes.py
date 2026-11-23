@@ -25,7 +25,10 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             "django_api_versioning/urls.py",
         ):
             with self.subTest(path=path):
-                self.assertTrue(classify_paths([path])["openapi"])
+                result = classify_paths([path])
+                self.assertTrue(result["openapi"])
+                if path.startswith("examples/"):
+                    self.assertTrue(result["deep"])
 
     def test_openapi_example_and_design_changes_run_the_contract(self):
         for path in (
