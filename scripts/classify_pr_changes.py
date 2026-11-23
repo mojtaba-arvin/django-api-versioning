@@ -198,6 +198,7 @@ def classify_paths(
         and any(
             path in PYTHON_DEPENDENCIES
             or path in COMPATIBILITY_PATHS
+            or (path.startswith("scripts/") and path.endswith(".py"))
             or (path.startswith("requirements") and path.endswith(".txt"))
             for path in normalized
         )
