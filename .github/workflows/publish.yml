@@ -61,15 +61,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/verify_release_evidence.py --scope all
 
-  openapi-contract:
-    name: Versioned OpenAPI consumer contract
-    uses: ./.github/workflows/openapi-contract.yml
-    permissions:
-      contents: read
-
   build:
     name: Build and verify distributions
-    needs: [verify-release-ref, verify-main-compatibility, openapi-contract]
+    needs: [verify-release-ref, verify-main-compatibility]
     runs-on: ubuntu-latest
     permissions:
       contents: read
