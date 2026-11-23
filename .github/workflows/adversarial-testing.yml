@@ -85,6 +85,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
     steps:
+      - name: Check out the pull request head before loading the local action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Run Decorators mutation campaign
         uses: ./.github/actions/mutation-shard
         with:
@@ -155,6 +160,11 @@ jobs:
           - id: routers
             path: django_api_versioning/routers.py
     steps:
+      - name: Check out the pull request head before loading the local action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Run ${{ matrix.id }} mutation campaign
         uses: ./.github/actions/mutation-shard
         with:
