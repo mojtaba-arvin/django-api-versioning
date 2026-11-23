@@ -28,6 +28,7 @@ COMPATIBILITY_FILES = {
     "scripts/quality_fingerprint.py",
     "scripts/test_quality_fingerprint.py",
     ".github/workflows/compatibility.yml",
+    ".github/workflows/agent-tooling.yml",
 }
 QUALITY_FILES = COMPATIBILITY_FILES | {
     "pytest.ini",
@@ -38,6 +39,7 @@ QUALITY_FILES = COMPATIBILITY_FILES | {
     ".github/workflows/adversarial-testing.yml",
     ".github/workflows/openapi-contract.yml",
     ".github/workflows/pull-request-gate.yml",
+    ".github/workflows/agent-tooling.yml",
     ".github/workflows/mutation-shard.yml",
     ".github/actions/mutation-shard/action.yml",
     "scripts/quality_fingerprint.py",
