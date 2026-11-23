@@ -44,7 +44,7 @@ A passing test run is useful beyond the commit on which it was produced only whe
 
 The fingerprints normalize only the package's own version in `pyproject.toml` and its self-package version plus generated content hash in `uv.lock`. All dependency declarations, runtime source, tests, matrix definitions, and quality workflow settings remain part of the digest.
 
-Successful Deep Quality and full compatibility runs upload separate machine-readable evidence artifacts with 90-day retention. The tag-triggered release workflow searches successful runs and reuses evidence only when the corresponding fingerprint exactly matches the tagged source. A documentation edit or package-version bump therefore does not invalidate runtime evidence; a source, dependency, test, or effective CI configuration change does.
+Successful Deep Quality, OpenAPI consumer-contract, and full compatibility runs upload separate machine-readable evidence artifacts with 90-day retention. The tag-triggered release workflow searches successful runs and reuses evidence only when the corresponding fingerprint exactly matches the tagged source. A documentation edit or package-version bump therefore does not invalidate runtime evidence; a source, dependency, test, or effective CI configuration change does.
 
 If no matching artifact exists or artifacts have expired, release verification fails closed. Run the corresponding workflows deliberately on the candidate source:
 
