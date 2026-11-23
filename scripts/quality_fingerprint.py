@@ -18,6 +18,18 @@ QUALITY_PREFIXES = (
     "examples/openapi_contract/",
     "examples/consumer_migration/",
 )
+OPENAPI_PREFIXES = (
+    "django_api_versioning/",
+    "examples/openapi_contract/",
+    "examples/consumer_migration/",
+)
+OPENAPI_FILES = {
+    "pyproject.toml",
+    "uv.lock",
+    "docs/design/versioned-openapi-contract.md",
+    ".github/workflows/openapi-contract.yml",
+    "scripts/quality_fingerprint.py",
+}
 COMPATIBILITY_FILES = {
     "pyproject.toml",
     "uv.lock",
@@ -68,7 +80,7 @@ def _normalize(path: str, content: bytes) -> bytes:
 
 def fingerprint_files(files: Mapping[str, bytes], *, scope: str) -> str:
     """Hash a deterministic set of relevant file paths and normalized contents."""
-    if scope not in {"deep", "compatibility"}:
+    if scope not in {"deep", "compatibility", "openapi"}:
         raise ValueError(f"Unsupported fingerprint scope: {scope}")
     selected = {}
     for path, content in files.items():
@@ -76,6 +88,8 @@ def fingerprint_files(files: Mapping[str, bytes], *, scope: str) -> str:
             include = path in COMPATIBILITY_FILES or (
                 path.startswith("requirements") and path.endswith(".txt")
             )
+        elif scope == "openapi":
+            include = path.startswith(OPENAPI_PREFIXES) or path in OPENAPI_FILES
         else:
             include = (
                 path.startswith(QUALITY_PREFIXES)
@@ -106,6 +120,8 @@ def tracked_files() -> dict[str, bytes]:
         path = raw_path.decode("utf-8")
         if (
             path.startswith(QUALITY_PREFIXES)
+            or path.startswith(OPENAPI_PREFIXES)
+            or path in OPENAPI_FILES
             or path in QUALITY_FILES
             or path in COMPATIBILITY_FILES
             or (path.startswith("requirements") and path.endswith(".txt"))
@@ -134,6 +150,9 @@ def main() -> int:
         ),
         "compatibility_fingerprint": fingerprint_files(
             tracked_files(), scope="compatibility"
+        ),
+        "openapi_contract_fingerprint": fingerprint_files(
+            tracked_files(), scope="openapi"
         ),
     }
     rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
