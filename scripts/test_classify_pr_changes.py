@@ -147,30 +147,48 @@ content-hash = "new"
         )
 
     def test_release_metadata_detection_rejects_dependency_or_stale_lock_changes(self):
-        base_project = (
-            '[project]\\nname = "django-api-versioning"\\n'
-            'version = "1.3.0"\\ndependencies = ["Django>=4.2"]\\n'
-        )
-        changed_dependency = (
-            '[project]\\nname = "django-api-versioning"\\n'
-            'version = "1.4.0"\\ndependencies = ["Django>=5.0"]\\n'
-        )
-        head_project = (
-            '[project]\\nname = "django-api-versioning"\\n'
-            'version = "1.4.0"\\ndependencies = ["Django>=4.2"]\\n'
-        )
-        base_lock = (
-            'version = 1\\ncontent-hash = "old"\\n\\n'
-            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.3.0"\\n'
-        )
-        updated_lock = (
-            'version = 1\\ncontent-hash = "new"\\n\\n'
-            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.4.0"\\n'
-        )
-        stale_lock = (
-            'version = 1\\ncontent-hash = "new"\\n\\n'
-            '[[package]]\\nname = "django-api-versioning"\\nversion = "1.3.0"\\n'
-        )
+        base_project = """[project]
+name = "django-api-versioning"
+version = "1.3.0"
+dependencies = ["Django>=4.2"]
+"""
+        changed_dependency = """[project]
+name = "django-api-versioning"
+version = "1.4.0"
+dependencies = ["Django>=5.0"]
+"""
+        head_project = """[project]
+name = "django-api-versioning"
+version = "1.4.0"
+dependencies = ["Django>=4.2"]
+"""
+        base_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.3.0"
+
+[metadata]
+content-hash = "old"
+"""
+        updated_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.4.0"
+
+[metadata]
+content-hash = "new"
+"""
+        stale_lock = """version = 1
+
+[[package]]
+name = "django-api-versioning"
+version = "1.3.0"
+
+[metadata]
+content-hash = "new"
+"""
         self.assertFalse(
             is_version_only_metadata_change(
                 base_project, changed_dependency, base_lock, updated_lock
