@@ -36,6 +36,7 @@ from django_api_versioning.exceptions import (
 from django_api_versioning.lifecycle import (
     LifecycleMiddleware,
     _coerce_version,
+    _extract_version_from_path,
     _extract_version_from_value,
     _get_endpoint_lifecycle_state,
     _is_past,
@@ -3296,3 +3297,110 @@ def test_mutation95_lifecycle_empty_request_path_does_not_invent_a_version():
     request = SimpleNamespace(path_info="", path="")
 
     assert _extract_version_from_path(request) is None
+
+
+def test_mutation95_negotiation_header_splitter_handles_a_leading_delimiter():
+    assert _split_quoted_header(",application/json", ",") == [
+        "",
+        "application/json",
+    ]
+
+
+def test_mutation100_negotiation_fallback_and_custom_settings_are_observable(
+    monkeypatch,
+):
+    import django_api_versioning.negotiation as negotiation_module
+
+    def run(settings, path, header_name, version="2"):
+        monkeypatch.setattr(
+            negotiation_module, "django_settings", SimpleNamespace(**settings)
+        )
+        monkeypatch.setattr(
+            negotiation_module, "api_settings", SimpleNamespace(**settings)
+        )
+        header_key = f"HTTP_{header_name.upper().replace('-', '_')}"
+        request = RequestFactory().get(path, **{header_key: version})
+        response = VersionNegotiationMiddleware(
+            lambda current: HttpResponse("ok")
+        )(request)
+        return request, response
+
+    # The package default header name and default path prefixes remain usable.
+    request, response = run(
+        {
+            "API_VERSIONING_SCHEME": "header",
+            "API_MIN_VERSION": 3,
+            "API_MAX_VERSION": 5,
+            "API_DEFAULT_VERSION": None,
+        },
+        "/api/orders/",
+        "Accept-Version",
+    )
+    assert response.status_code == 406
+
+    # A configured header name must take precedence over the default header.
+    request, response = run(
+        {
+            "API_VERSIONING_SCHEME": "header",
+            "API_VERSIONING_HEADER": "X-Api-Version",
+            "API_MIN_VERSION": 1,
+            "API_MAX_VERSION": 5,
+            "API_DEFAULT_VERSION": None,
+            "API_BASE_PATH": "api/v{version}/",
+            "API_UNVERSIONED_BASE_PATH": "api/",
+        },
+        "/api/orders/",
+        "X-Api-Version",
+    )
+    assert response.status_code == 200
+    assert request.path_info == "/api/v2/orders/"
+
+    # Valid path characters at the edges of a custom base must not be stripped.
+    request, response = run(
+        {
+            "API_VERSIONING_SCHEME": "header",
+            "API_VERSIONING_HEADER": "X-Api-Version",
+            "API_MIN_VERSION": 1,
+            "API_MAX_VERSION": 5,
+            "API_DEFAULT_VERSION": None,
+            "API_BASE_PATH": "rest/v{version}/",
+            "API_UNVERSIONED_BASE_PATH": "xapiX",
+        },
+        "/xapiX/orders/",
+        "X-Api-Version",
+    )
+    assert response.status_code == 200
+    assert request.path_info == "/rest/v2/orders/"
+
+    # Custom maximum and minimum bounds must both be enforced.
+    for minimum, maximum in ((1, 1), (3, 5)):
+        request, response = run(
+            {
+                "API_VERSIONING_SCHEME": "header",
+                "API_VERSIONING_HEADER": "X-Api-Version",
+                "API_MIN_VERSION": minimum,
+                "API_MAX_VERSION": maximum,
+                "API_DEFAULT_VERSION": None,
+            },
+            "/api/orders/",
+            "X-Api-Version",
+        )
+        assert response.status_code == 406
+
+    # The default path template is used when API_BASE_PATH is absent.
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(API_VERSIONING_SCHEME="path", API_MIN_VERSION=1, API_MAX_VERSION=5),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_VERSIONING_SCHEME="path", API_MIN_VERSION=1, API_MAX_VERSION=5),
+    )
+    request = RequestFactory().get("/api/v2/orders/")
+    response = VersionNegotiationMiddleware(
+        lambda current: HttpResponse("ok")
+    )(request)
+    assert response.status_code == 200
+    assert request.api_version == 2

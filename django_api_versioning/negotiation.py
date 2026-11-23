@@ -30,8 +30,6 @@ def _setting(name: str, default: Any = None) -> Any:
 
 
 def _parse_version(value: object) -> int:
-    if isinstance(value, bool) or value is None:
-        raise ValueError("A version must be an ASCII decimal integer.")
     raw = str(value).strip()
     if not raw or not raw.isascii() or not raw.isdecimal():
         raise ValueError("A version must be an ASCII decimal integer.")
