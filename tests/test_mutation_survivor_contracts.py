@@ -2965,10 +2965,10 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     ) == [("GET", "list")]
     router._register_lifecycle_methods("orders", 2, [], None, None, object())
 
-    router.register("unversioned", object)
+    router.register("unversioned", ViewSet)
     with override_settings(API_MIN_VERSION=2):
         with caplog.at_level("WARNING"):
-            router.register("below-min", object, version=1)
+            router.register("below-min", ViewSet, version=1)
     expected_warning = (
         "ViewSet prefix 'below-min' starts at version 1, below "
         "API_MIN_VERSION 2. No routes will be registered."
@@ -3639,18 +3639,21 @@ def test_mutation95_registry_does_not_treat_missing_router_prefixes_as_equal():
         router_prefix=None,
         trailing_slash=False,
     )
-    target.register_urlpattern(
-        second,
-        source_version=2,
-        route_version=2,
-        logical_endpoint="orders",
-        owner=second_owner,
-        router_prefix=None,
-        trailing_slash=False,
-    )
+    with pytest.raises(VersioningError) as exc:
+        target.register_urlpattern(
+            second,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="orders",
+            owner=second_owner,
+            router_prefix=None,
+            trailing_slash=False,
+        )
 
-    assert len(target.urlpatterns) == 1
-    assert getattr(target.urlpatterns[0], target._ROUTER_OWNER_ATTR) is second_owner
+    assert str(exc.value) == (
+        "Route pattern 'api/v2/orders/' is already registered by another "
+        "VersionedRouter instance. Use a distinct route prefix for each router."
+    )
 
 
 def test_mutation95_registry_route_index_default_distinguishes_literal_paths():
