@@ -1851,6 +1851,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         assert probe.REMOVED_ROUTE is not None
         assert probe.ViewType is not None
         from typing import Callable
+
         from django.urls import URLPattern
 
         assert probe.VersionKey == int | None
