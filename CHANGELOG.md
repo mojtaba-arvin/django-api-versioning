@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - Define route, schema, and semantic compatibility as separate contracts, with consumer-owned guardrails for each.
+- Clarify in the README that request-version negotiation supports path, header, query, and hostname transports, and distinguish version negotiation from endpoint implementation dispatch and DRF's built-in capabilities.
 - Document the quality gates, evidence requirements, and release-readiness procedure for the five mutation domains, independent coverage thresholds, compatibility matrix, adversarial testing, and real-consumer contract.
 
 ## [1.3.0] - 2026-11-21
