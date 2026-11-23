@@ -19,16 +19,14 @@ ARTIFACTS = {
 }
 
 
-def command(
-    args: list[str], *, check: bool = True
-) -> subprocess.CompletedProcess[str]:
+def command(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(args, check=check, capture_output=True, text=True)
 
 
 def artifact_run_ids(repository: str, artifact_name: str) -> list[str]:
     jq_filter = (
         f'.artifacts[] | select(.name == "{artifact_name}" '
-        'and .expired == false) | .workflow_run.id'
+        "and .expired == false) | .workflow_run.id"
     )
     result = command(
         [
@@ -80,9 +78,7 @@ def find_matching_evidence(
 ) -> str | None:
     artifact_name, field = ARTIFACTS[scope]
     for run_id in artifact_run_ids(repository, artifact_name):
-        if not run_succeeded(
-            repository, run_id, allow_current_run=allow_current_run
-        ):
+        if not run_succeeded(repository, run_id, allow_current_run=allow_current_run):
             continue
         with tempfile.TemporaryDirectory(prefix="release-evidence-") as directory:
             downloaded = command(
@@ -136,9 +132,7 @@ def main() -> int:
         "openapi": fingerprint_files(files, scope="openapi"),
     }
     scopes = (
-        ("deep", "compatibility", "openapi")
-        if args.scope == "all"
-        else (args.scope,)
+        ("deep", "compatibility", "openapi") if args.scope == "all" else (args.scope,)
     )
     missing = []
     for scope in scopes:
