@@ -833,6 +833,8 @@ def test_header_mode_rejects_path_version_using_default_base_path(monkeypatch):
 
 
 def test_header_mode_rejects_path_version_using_configured_base_path(monkeypatch):
+    from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
