@@ -1855,12 +1855,11 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
 
         assert probe.VersionKey == int | None
         assert probe.VersionMatrix == dict[str, dict[probe.VersionKey, Callable]]
-        assert probe.ResolvedRouteCandidate == tuple[
-            int, URLPattern, str, int, probe.VersionKey
-        ]
-        assert probe.RouteSortKey == tuple[
-            bool, probe.VersionKey, bool, int, int
-        ]
+        assert (
+            probe.ResolvedRouteCandidate
+            == tuple[int, URLPattern, str, int, probe.VersionKey]
+        )
+        assert probe.RouteSortKey == tuple[bool, probe.VersionKey, bool, int, int]
         assert probe._UNOWNED_OWNER_IDENTITY is not None
         assert probe._UNOWNED_OWNER_IDENTITY is not probe._ROUTER_OWNER_IDENTITY
         assert isinstance(probe.registry, probe.UrlRegistry)
@@ -2961,9 +2960,10 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
 
     assert router_module.RoutePattern == URLPattern | URLResolver
     assert router_module.VersionRange == int | None
-    assert router_module.VersionDeclaration == tuple[
-        router_module.VersionRange, router_module.VersionRange
-    ]
+    assert (
+        router_module.VersionDeclaration
+        == tuple[router_module.VersionRange, router_module.VersionRange]
+    )
     router_defaults = inspect.signature(
         router_module.VersionedRouter.__init__
     ).parameters
