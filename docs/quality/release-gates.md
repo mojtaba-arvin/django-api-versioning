@@ -4,7 +4,7 @@
 **Published baseline:** `django-api-versioning 1.3.0`.  
 **Runtime dependencies added by these gates:** None.
 
-This document defines the evidence required to claim that the package meets its release-quality targets. A configured workflow is not proof of a passing result: every result must identify the exact source commit and completed workflow run.
+This document defines the evidence required to claim that the package meets its release-quality targets. A configured workflow is not proof of a passing result: every result must identify a successful workflow run and a matching source/configuration fingerprint. See the [CI execution architecture](ci-execution-architecture.md) for tier selection, scheduling, and evidence reuse.
 
 ## 1. Quality targets
 
@@ -76,19 +76,28 @@ See [API compatibility boundaries](../design/api-compatibility-boundaries.md) an
 
 ## 6. PR and release workflow
 
-Every PR to `main` must pass the always-running [PR gate](../../.github/workflows/pull-request-gate.yml) on its latest head SHA. Applicable child workflows must complete successfully; a skipped child is acceptable only when the path classifier establishes that its scope is unchanged.
+Every PR to `main` must pass the always-running [PR gate](../../.github/workflows/pull-request-gate.yml) on its latest head SHA. The gate classifies changed paths and invokes only applicable workflows:
+
+1. **Fast PR gate:** commit policy, path classification, relevant website/agent checks, release metadata/lockfile validation, and package artifact checks.
+2. **Deep Quality:** package unit and real-consumer integration tests plus all five mutation domains and adversarial campaigns for runtime, test, dependency, and quality-policy changes.
+3. **Compatibility:** boundary smoke matrix for ordinary runtime changes; full matrix on the PR for dependency/matrix-only changes; full matrix once on `main` after merge for ordinary runtime changes.
+
+A skipped child is acceptable only when the classifier establishes that its scope is unchanged. A version-only change is identified by comparing parsed `pyproject.toml` and `uv.lock` against the PR base; path names alone are insufficient.
+
+Successful Deep Quality and full compatibility workflows publish separate 90-day evidence artifacts. The tag workflow recomputes the fingerprints from the tagged source and reuses only successful artifacts whose fingerprints match exactly. The fingerprint includes package source, tests, real-consumer examples, dependencies, and effective CI configuration; it normalizes only the package's own version metadata. A documentation or version-only release therefore does not require rerunning mutation and fuzz campaigns. A source, dependency, test, matrix, or quality-workflow change invalidates the relevant evidence.
+
+If matching evidence is absent or expired, publication is blocked. Run the relevant workflow deliberately on the candidate source; never bypass the gate. The implementation and manual recovery commands are documented in the [CI execution architecture](ci-execution-architecture.md).
 
 A package release additionally requires:
 
 1. A reviewed release PR with a user-visible changelog entry and accurate version-specific documentation.
-2. The complete compatibility matrix on the exact candidate/merged commit.
-3. Complete mutation and coverage evidence, plus public API and real-consumer contracts.
+2. Matching full compatibility evidence for the tagged source fingerprint.
+3. Matching Deep Quality evidence for the tagged source fingerprint, including complete mutation and coverage results, public API contracts, and real-consumer tests.
 4. Applicable security/adversarial checks.
-5. Validated wheel and sdist, metadata checks, distribution-content checks, and an isolated installed-wheel smoke test.
-6. A reproducible-build check for the exact source and pinned build environment. CI runs [`scripts/check_reproducible_build.py`](../../scripts/check_reproducible_build.py) in both the package-artifact PR workflow and the tag-triggered publish workflow. It builds twice from clean Git archives with a fixed source epoch, normalizes only sdist archive metadata (timestamps, ownership, and member order), compares wheel/sdist SHA-256 digests, and copies the verified artifact set into the release output directory.
-7. Explicit authorization for a concrete package version before version bump, tag creation, or publication.
+5. A fresh wheel and sdist build from the exact tag, metadata checks, distribution-content checks, an isolated installed-wheel smoke test, and the automated two-build SHA-256 reproducibility check in `scripts/check_reproducible_build.py`.
+6. Explicit authorization for a concrete package version before version bump, tag creation, or publication.
 
-The package release procedure is maintained in [the release skill](../../.agents/skills/release/references/release-procedure.md). Never infer a release result from a previous commit, from the configured matrix alone, or from a partial workflow-job listing.
+The package release procedure is maintained in [the release skill](../../.agents/skills/release/references/release-procedure.md). Never infer a release result from a version string, a configured matrix, a previous artifact with a different fingerprint, or a partial workflow-job listing.
 
 ## 7. Evidence records
 
