@@ -11,8 +11,8 @@ on:
     secrets:
       CODECOV_TOKEN:
         required: false
-  # Validate main after pushes and proposed changes through pull requests targeting main.
-  # Use workflow_dispatch for deliberate manual checkpoints.
+  # Deep quality runs are requested by the PR classifier or dispatched deliberately.
+  # Merge commits reuse matching PR evidence instead of repeating the campaign.
   workflow_dispatch:
     inputs:
       run_adversarial:
