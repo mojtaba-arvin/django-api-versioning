@@ -8,12 +8,13 @@ from pathlib import Path
 import django_api_versioning
 from django_api_versioning import (
     api_reverse,
+    decorators,
     endpoint,
     remove_endpoint,
+    reverse,
     set_endpoint_lifecycle,
     ver_range,
 )
-from django_api_versioning import decorators, reverse
 
 
 def test_package_root_exports_the_complete_stable_public_api():
