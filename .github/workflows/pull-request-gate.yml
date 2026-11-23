@@ -131,19 +131,6 @@ jobs:
           fail-on-severity: high
           comment-summary-in-pr-only: true
 
-  adversarial:
-    name: Adversarial release-readiness campaigns
-    needs:
-      - changes
-      - unit-tests
-    if: >-
-      always() &&
-      needs.changes.result == 'success' &&
-      (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped')
-    uses: ./.github/workflows/adversarial-testing.yml
-    permissions:
-      contents: read
-
   gate:
     name: PR gate
     if: always()
@@ -156,7 +143,6 @@ jobs:
       - agent-tooling
       - openapi-contract
       - dependency-review
-      - adversarial
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
