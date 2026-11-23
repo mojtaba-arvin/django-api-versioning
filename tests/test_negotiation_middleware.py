@@ -725,3 +725,121 @@ def test_header_version_rejects_conflicting_dedicated_and_accept_values_exactly(
     assert str(error.value) == (
         "Accept-Version and Accept media-type version parameters conflict."
     )
+
+
+def test_header_mode_uses_default_header_name_when_settings_omit_it(monkeypatch):
+    from types import SimpleNamespace
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_BASE_PATH="api/v{version}/",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(negotiation_module, "api_settings", SimpleNamespace())
+    request = RequestFactory().get("/api/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 200
+    assert "Accept-Version" in response["Vary"]
+    assert "Accept" in response["Vary"]
+
+
+def test_header_mode_honors_custom_header_in_vary_and_dispatch():
+    with override_settings(
+        API_VERSIONING_SCHEME="header",
+        API_VERSIONING_HEADER="X-Api-Version",
+        API_BASE_PATH="api/v{version}/",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        request = RequestFactory().get("/api/orders/", HTTP_X_API_VERSION="2")
+        response = VersionNegotiationMiddleware(
+            lambda current: HttpResponse(current.path_info)
+        )(request)
+
+    assert response.status_code == 200
+    assert response.content == b"/api/v2/orders/"
+    assert "X-Api-Version" in response["Vary"]
+    assert "Accept" in response["Vary"]
+
+
+def test_header_mode_defaults_maximum_version_to_one(monkeypatch):
+    from types import SimpleNamespace
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_BASE_PATH="api/v{version}/",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_VERSIONING_HEADER="Accept-Version",
+            API_MIN_VERSION=1,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_VERSIONING_HEADER="Accept-Version", API_MIN_VERSION=1),
+    )
+    request = RequestFactory().get("/api/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 406
+
+
+def test_header_mode_rejects_path_version_using_default_base_path(monkeypatch):
+    from types import SimpleNamespace
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_VERSIONING_HEADER="Accept-Version",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(
+            API_VERSIONING_HEADER="Accept-Version",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    request = RequestFactory().get("/api/v2/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 400
+
+
+def test_negotiated_path_preserves_literal_x_edges_in_custom_base_path():
+    with override_settings(
+        API_VERSIONING_SCHEME="header",
+        API_VERSIONING_HEADER="X-Api-Version",
+        API_BASE_PATH="Xapi/v{version}/X",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        request = RequestFactory().get("/api/orders/", HTTP_X_API_VERSION="2")
+        response = VersionNegotiationMiddleware(
+            lambda current: HttpResponse(current.path_info)
+        )(request)
+
+    assert response.status_code == 200
+    assert response.content == b"/Xapi/v2/X/orders/"
