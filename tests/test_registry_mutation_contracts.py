@@ -204,7 +204,7 @@ def test_resolve_operation_skips_invalid_candidate_and_finds_later_valid_route(
 def test_route_specificity_stops_at_escaped_regex_operator():
     from django.urls import re_path
 
-    pattern = re_path(r"^api/\\d{2}/orders/$", lambda request: None)
+    pattern = re_path(r"^api/\d{2}/orders/$", lambda request: None)
 
     assert UrlRegistry._route_specificity_key(pattern)[0] == -len("api/")
 
