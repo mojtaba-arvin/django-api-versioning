@@ -2070,6 +2070,38 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
     )
     assert named.get_resolved_route_version_for_match(named_match) == (True, 2)
 
+    named.urlpatterns[:] = [named_other, named_order]
+    exact_trace = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name="order-list",
+        namespaces=["v2"],
+        tried=[[named_order]],
+    )
+    assert named.get_resolved_route_version_for_match(exact_trace) == (True, 2)
+
+    name_fallback = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name="order-list",
+        namespaces=["v2"],
+        tried=None,
+    )
+    assert named.get_resolved_route_version_for_match(
+        name_fallback, require_exact_pattern=False
+    ) == (True, 2)
+
+    namespace_fallback = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name=None,
+        namespaces=["v2"],
+        tried=None,
+    )
+    assert named.get_resolved_route_version_for_match(
+        namespace_fallback, require_exact_pattern=False
+    ) == (True, 2)
+
     assert longest._resolved_route_match_length(
         "nested/api/v2/orders/", "api/v2/orders/"
     ) == len("api/v2/orders/")
@@ -2165,6 +2197,18 @@ def test_mutation95_registry_regex_canonicalization_and_specificity_boundaries()
     assert target._route_specificity_key(static_regex) < target._route_specificity_key(
         dynamic_regex
     )
+
+    escaped_literal = re_path(r"^\\[orders\\]/$", _view)
+    escaped_then_dynamic = re_path(r"^\\[orders\\]/(?P<id>\\d+)/$", _view)
+    trailing_escape = re_path(r"^orders\\$", _view)
+    assert target._route_specificity_key(escaped_literal)[1] is False
+    dynamic_specificity = target._route_specificity_key(escaped_then_dynamic)
+    assert dynamic_specificity[1] is True
+    assert dynamic_specificity[0] == -len(r"\\[orders\\]/")
+    assert target._route_specificity_key(trailing_escape)[1] is False
+    assert target._resolved_route_match_length(
+        "^api/v2/orders/$", "prefix/api/v2/orders/"
+    ) == len("api/v2/orders/")
 
 
 def test_mutation95_router_error_messages_are_exact(monkeypatch):
@@ -2716,6 +2760,7 @@ def test_mutation100_registry_exact_resolver_identity_and_operation_contracts():
     registered = target.resolve_registered_operation("orders", 2, "GET")
     assert registered.action == "list"
     assert registered.route == "api/v2/orders/"
+    assert registered.registered_route == "api/v2/orders/"
     assert registered.namespace == ""
 
     no_trace = SimpleNamespace(
@@ -3584,3 +3629,96 @@ def test_mutation95_registry_does_not_treat_missing_router_prefixes_as_equal():
 
     assert len(target.urlpatterns) == 1
     assert getattr(target.urlpatterns[0], target._ROUTER_OWNER_ATTR) is second_owner
+
+
+def test_mutation95_registry_route_index_default_distinguishes_literal_paths():
+    target = UrlRegistry()
+    literal = path("^api/v2/orders/$", _view)
+    regex = re_path(r"^api/v2/orders/$", _view)
+    target.urlpatterns[:] = [literal, regex]
+
+    assert target._find_route_index("^api/v2/orders/$") == 0
+
+
+def test_mutation95_registry_rejects_non_string_endpoints_and_boolean_versions():
+    target = UrlRegistry()
+    bad_endpoint = path("api/v2/orders/", _view)
+    setattr(bad_endpoint, target._LOGICAL_ENDPOINT_ATTR, 123)
+    setattr(bad_endpoint, target._ROUTE_VERSION_ATTR, 2)
+    target.urlpatterns[:] = [bad_endpoint]
+    endpoint_match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name=None,
+        namespaces=(),
+        tried=[[bad_endpoint]],
+    )
+    assert target.get_resolved_route_version_for_match(endpoint_match) == (False, None)
+
+    bad_version = path("api/v2/orders/", _view)
+    setattr(bad_version, target._LOGICAL_ENDPOINT_ATTR, "orders")
+    setattr(bad_version, target._ROUTE_VERSION_ATTR, True)
+    target.urlpatterns[:] = [bad_version]
+    version_match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=_view,
+        url_name=None,
+        namespaces=(),
+        tried=[[bad_version]],
+    )
+    assert target.get_resolved_route_version_for_match(version_match) == (False, None)
+
+
+def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
+    first_owner = object()
+    second_owner = object()
+    target = UrlRegistry()
+    first = path("api/v2/orders/", _view)
+    replacement = path("api/v2/orders/", _view)
+    target.register_urlpattern(
+        first,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+        owner=first_owner,
+        router_prefix="orders",
+        trailing_slash=False,
+    )
+    with pytest.raises(VersioningError) as exc:
+        target.register_urlpattern(
+            replacement,
+            source_version=1,
+            route_version=2,
+            logical_endpoint="orders",
+            owner=second_owner,
+            router_prefix="orders",
+            trailing_slash=False,
+        )
+    expected_prefix = (
+        "Router prefix 'orders' in version 2 is already registered by "
+        "another VersionedRouter instance."
+    )
+    assert str(exc.value) == expected_prefix
+
+    different_owner = UrlRegistry()
+    unowned = path("api/v2/orders/", _view)
+    owned = path("api/v2/orders/", _view)
+    different_owner.register_urlpattern(
+        unowned,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+        owner=None,
+    )
+    with pytest.raises(VersioningError) as exc:
+        different_owner.register_urlpattern(
+            owned,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="orders",
+            owner=second_owner,
+        )
+    assert str(exc.value) == (
+        "Route pattern 'api/v2/orders/' is already registered by a "
+        "different registration owner. Use a distinct route path."
+    )

@@ -22,6 +22,7 @@ from .settings import api_settings
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
 ResolvedRouteCandidate = tuple[int, URLPattern, str, int, VersionKey]
+RouteSortKey = tuple[bool, VersionKey, bool, int, int]
 _UNOWNED_OWNER_IDENTITY = object()
 _ROUTER_OWNER_IDENTITY = object()
 
@@ -600,14 +601,17 @@ class UrlRegistry:
     @staticmethod
     def _resolved_route_match_length(route: str, registered_route: str) -> int:
         """Return the longest complete registered-route suffix match."""
-        route_variants = {
-            route,
-            route.removeprefix("^").removesuffix("$"),
-        }
-        pattern_variants = {
-            registered_route,
-            registered_route.removeprefix("^").removesuffix("$"),
-        }
+        route_variants = tuple(
+            dict.fromkeys((route, route.removeprefix("^").removesuffix("$")))
+        )
+        pattern_variants = tuple(
+            dict.fromkeys(
+                (
+                    registered_route,
+                    registered_route.removeprefix("^").removesuffix("$"),
+                )
+            )
+        )
 
         matched_length = 0
         for route_candidate in route_variants:
