@@ -41,6 +41,7 @@ on:
       - ".github/workflows/mutation-shard.yml"
       - ".github/workflows/pull-request-gate.yml"
       - ".github/workflows/publish.yml"
+      - ".github/workflows/openapi-contract.yml"
       - "!**/*.md"
 permissions:
   contents: read
