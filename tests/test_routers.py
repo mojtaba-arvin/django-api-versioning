@@ -732,17 +732,19 @@ def test_path_converter_router_prefix_validation_uses_public_setting_name():
     )
 
 
-def test_explicit_versions_below_minimum_emit_exact_warning(caplog):
+def test_explicit_versions_below_minimum_emit_exact_warning(monkeypatch, caplog):
+    monkeypatch.setattr(
+        "django_api_versioning.routers.api_settings.API_MIN_VERSION", 2
+    )
     router = VersionedRouter()
 
-    with override_settings(API_MIN_VERSION=2):
-        with caplog.at_level("WARNING"):
-            router.register(
-                "below-minimum",
-                PostViewSetV1,
-                versions=[1],
-                basename="below-minimum",
-            )
+    with caplog.at_level("WARNING"):
+        router.register(
+            "below-minimum",
+            PostViewSetV1,
+            versions=[1],
+            basename="below-minimum",
+        )
 
     expected = (
         "ViewSet prefix 'below-minimum' includes version 1, below "
