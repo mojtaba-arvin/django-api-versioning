@@ -57,12 +57,20 @@ COMPATIBILITY_PATHS = {
 }
 OPENAPI_PATHS = (
     "django_api_versioning/",
+    "tests/",
+    "integration_test_project/",
     "examples/openapi_contract/",
     "examples/consumer_migration/",
 )
 OPENAPI_EXPLICIT_PATHS = {
     "docs/design/versioned-openapi-contract.md",
     ".github/workflows/openapi-contract.yml",
+    "pyproject.toml",
+    "uv.lock",
+    "requirements-ci.txt",
+    "requirements.txt",
+    "scripts/check_coverage_thresholds.py",
+    "scripts/quality_fingerprint.py",
     ".github/workflows/publish.yml",
 }
 
@@ -186,7 +194,10 @@ def classify_paths(
             "scripts/quality_fingerprint.py",
             "scripts/test_quality_fingerprint.py",
             "scripts/verify_release_evidence.py",
+            "scripts/export_mutation_report.py",
+            "scripts/fuzz_negotiation.py",
         }
+        or path.startswith("fuzz_corpus/negotiation/")
         or path in PYTHON_DEPENDENCIES
         or (path.startswith("requirements") and path.endswith(".txt"))
         for path in normalized
@@ -278,12 +289,9 @@ def classify_paths(
         or path.endswith("/requirements.txt")
         for path in normalized
     )
-    is_openapi = not release_metadata_only and (
-        is_python
-        or any(
-            path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
-            for path in normalized
-        )
+    is_openapi = not release_metadata_only and any(
+        path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
+        for path in normalized
     )
 
     return {
