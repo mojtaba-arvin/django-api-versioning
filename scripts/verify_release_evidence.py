@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from scripts.quality_fingerprint import fingerprint_files, tracked_files
+from quality_fingerprint import fingerprint_files, tracked_files
 
 WORKFLOWS = {
     "deep": ("pull-request-gate.yml", "tests.yml"),
