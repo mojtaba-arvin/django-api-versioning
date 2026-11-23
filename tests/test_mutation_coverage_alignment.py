@@ -2,9 +2,9 @@
 
 import os
 import shlex
+from types import SimpleNamespace
 
 import pytest
-from types import SimpleNamespace
 
 from mutmut_config import _contract_test_node_ids, pre_mutation
 

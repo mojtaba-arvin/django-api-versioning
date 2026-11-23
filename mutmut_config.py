@@ -58,6 +58,7 @@ TESTS_BY_SOURCE = {
         "tests/test_negotiation_middleware.py",
         "tests/test_routers.py",
         "tests/test_settings.py",
+        "tests/test_registry_mutation_contracts.py",
         "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
