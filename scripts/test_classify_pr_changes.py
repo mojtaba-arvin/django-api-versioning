@@ -93,14 +93,29 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["openapi"])
 
-    def test_pyproject_runs_all_python_release_checks_and_website_verification(self):
+    def test_pyproject_dependency_changes_run_deep_quality_and_release_checks(self):
         result = classify_paths(["pyproject.toml"])
         self.assertTrue(result["python"])
+        self.assertTrue(result["deep"])
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["package"])
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
         self.assertTrue(result["openapi"])
+
+    def test_version_only_release_metadata_skips_unrelated_deep_gates(self):
+        result = classify_paths(
+            ["pyproject.toml", "uv.lock", "CHANGELOG.md", "docs/reference/index.md"],
+            release_metadata_only=True,
+        )
+        self.assertFalse(result["python"])
+        self.assertFalse(result["deep"])
+        self.assertFalse(result["compatibility"])
+        self.assertTrue(result["metadata"])
+        self.assertTrue(result["package"])
+        self.assertFalse(result["dependency"])
+        self.assertTrue(result["website"])
+        self.assertFalse(result["openapi"])
 
     def test_python_test_and_coverage_gate_changes_run_openapi_coverage(self):
         for path in (
