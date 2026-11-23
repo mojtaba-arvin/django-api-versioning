@@ -847,7 +847,11 @@ def test_header_mode_rejects_path_version_using_configured_base_path(monkeypatch
             API_MAX_VERSION=3,
         ),
     )
-    monkeypatch.setattr(negotiation_module, "api_settings", SimpleNamespace())
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_MAX_VERSION=3),
+    )
     request = RequestFactory().get("/custom/v2/orders/", HTTP_ACCEPT_VERSION="2")
     response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
 
