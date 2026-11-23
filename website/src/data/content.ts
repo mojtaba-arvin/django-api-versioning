@@ -148,19 +148,27 @@ export const patterns = [
 
 export const caveats = [
   {
-    title: 'Configure request.version for ViewSets',
-    body: 'VersionedRouterVersioning exposes the active router namespace as request.version and keeps reverse_action() and hyperlinked serializer URLs version-aware. Configure it globally or on selected ViewSets.',
+    title: 'Routing is not semantic compatibility',
+    body: 'The package isolates implementations and can lock path contracts. It does not transform serializers or payloads, and it does not claim backward-compatible behavior. Contract and response tests stay yours.',
   },
   {
-    title: 'Route settings and lifecycle settings have different timing',
-    body: 'Changing route settings after URL patterns are imported does not rebuild the registry. LifecycleMiddleware reads lifecycle settings per request.',
+    title: 'Make the matrix visible before release',
+    body: 'Endpoint-to-view mapping is not line-by-line in urls.py. That is the DRY trade-off. Run check_versions and pin assert_version_matrix(strict=True) in CI so the real matrix is reviewed and locked.',
   },
   {
-    title: 'Import order matters',
-    body: 'Import your endpoint modules in the root URLconf before including django_api_versioning.urls.',
+    title: 'Import order and route settings timing',
+    body: 'Import endpoint modules in the root URLconf before including django_api_versioning.urls. Changing route settings after patterns are imported does not rebuild the registry; LifecycleMiddleware still reads lifecycle settings per request.',
   },
   {
-    title: 'ViewSet integration scope',
-    body: 'VersionedRouter supports DRF SimpleRouter, not DefaultRouter API-root or format-suffix behavior. It selects route callbacks; it does not transform serializers or response payloads.',
+    title: 'One negotiation scheme; path-based resolution',
+    body: 'Choose path, header, query, or hostname with API_VERSIONING_SCHEME. Non-path schemes need VersionNegotiationMiddleware, which rewrites the internal path so the same registry serves the view. There is no multi-scheme fallback chain.',
+  },
+  {
+    title: 'ViewSet routers have a clear scope',
+    body: 'VersionedRouter follows SimpleRouter. Use VersionedDefaultRouter when you need a version-specific API root and format suffixes. Configure VersionedRouterVersioning when ViewSets need request.version, reverse_action(), or hyperlinked URLs. Neither transforms serializers.',
+  },
+  {
+    title: 'Keep a replaceable integration boundary',
+    body: 'Confine package imports to one project module that exposes your URL patterns. If you ever leave the package, rewrite only that module—views and the root URLconf stay free of package internals.',
   },
 ]
