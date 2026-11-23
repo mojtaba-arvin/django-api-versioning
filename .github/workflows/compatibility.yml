@@ -1,8 +1,8 @@
 name: Compatibility matrix
 
 on:
-  # Validate the entire advertised Python/Django matrix on every PR and main/release.
-  # Keep the cross-platform smoke checks as additional platform-specific coverage.
+  # PRs use boundary smoke checks unless dependency or matrix inputs require the full matrix.
+  # Runtime changes receive the full matrix once after merge to main.
   push:
     branches:
       - main
