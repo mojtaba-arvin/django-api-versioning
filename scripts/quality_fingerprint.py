@@ -23,6 +23,10 @@ COMPATIBILITY_FILES = {
     "uv.lock",
     "tox.ini",
     "scripts/check_tox_workflow_matrix.py",
+    "scripts/classify_pr_changes.py",
+    "scripts/test_classify_pr_changes.py",
+    "scripts/quality_fingerprint.py",
+    "scripts/test_quality_fingerprint.py",
     ".github/workflows/compatibility.yml",
 }
 QUALITY_FILES = COMPATIBILITY_FILES | {
