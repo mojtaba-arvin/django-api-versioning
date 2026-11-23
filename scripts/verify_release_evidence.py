@@ -12,10 +12,6 @@ from pathlib import Path
 
 from quality_fingerprint import fingerprint_files, tracked_files
 
-WORKFLOWS = {
-    "deep": ("pull-request-gate.yml", "tests.yml"),
-    "compatibility": ("compatibility.yml", "pull-request-gate.yml"),
-}
 ARTIFACTS = {
     "deep": ("deep-quality-evidence", "deep_quality_fingerprint"),
     "compatibility": ("compatibility-evidence", "compatibility_fingerprint"),
@@ -26,49 +22,61 @@ def command(args: list[str], *, check: bool = True) -> subprocess.CompletedProce
     return subprocess.run(args, check=check, capture_output=True, text=True)
 
 
-def successful_runs(repository: str, workflow: str) -> list[dict[str, object]]:
+def artifact_run_ids(repository: str, artifact_name: str) -> list[str]:
     result = command(
         [
-            "gh", "run", "list", "--repo", repository, "--workflow", workflow,
-            "--status", "success", "--json", "databaseId,status,conclusion,event,headSha",
-            "--limit", "100",
+            "gh", "api", "--paginate", "--jq",
+            f'.artifacts[] | select(.name == "{artifact_name}" and .expired == false) | .workflow_run.id',
+            f"repos/{repository}/actions/artifacts?per_page=100",
         ]
     )
-    runs = json.loads(result.stdout)
-    return [
-        run for run in runs
-        if run.get("status") == "completed" and run.get("conclusion") == "success"
-    ]
+    return list(dict.fromkeys(line.strip() for line in result.stdout.splitlines() if line.strip()))
+
+
+def run_succeeded(repository: str, run_id: str) -> bool:
+    result = command(
+        [
+            "gh", "run", "view", run_id, "--repo", repository,
+            "--json", "status,conclusion",
+        ],
+        check=False,
+    )
+    if result.returncode:
+        return False
+    try:
+        run = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return False
+    return run.get("status") == "completed" and run.get("conclusion") == "success"
 
 
 def find_matching_evidence(
     repository: str, scope: str, expected_fingerprint: str
-) -> tuple[str, str] | None:
+) -> str | None:
     artifact_name, field = ARTIFACTS[scope]
-    for workflow in WORKFLOWS[scope]:
-        for run in successful_runs(repository, workflow):
-            run_id = str(run["databaseId"])
-            with tempfile.TemporaryDirectory(prefix="release-evidence-") as directory:
-                downloaded = command(
-                    [
-                        "gh", "run", "download", run_id, "--repo", repository,
-                        "--name", artifact_name, "--dir", directory,
-                    ],
-                    check=False,
-                )
-                if downloaded.returncode:
+    for run_id in artifact_run_ids(repository, artifact_name):
+        if not run_succeeded(repository, run_id):
+            continue
+        with tempfile.TemporaryDirectory(prefix="release-evidence-") as directory:
+            downloaded = command(
+                [
+                    "gh", "run", "download", run_id, "--repo", repository,
+                    "--name", artifact_name, "--dir", directory,
+                ],
+                check=False,
+            )
+            if downloaded.returncode:
+                continue
+            for candidate in Path(directory).rglob("*.json"):
+                try:
+                    evidence = json.loads(candidate.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
                     continue
-                candidates = list(Path(directory).rglob("*.json"))
-                for candidate in candidates:
-                    try:
-                        evidence = json.loads(candidate.read_text(encoding="utf-8"))
-                    except (OSError, json.JSONDecodeError):
-                        continue
-                    if (
-                        evidence.get("schema") == 1
-                        and evidence.get(field) == expected_fingerprint
-                    ):
-                        return run_id, workflow
+                if (
+                    evidence.get("schema") == 1
+                    and evidence.get(field) == expected_fingerprint
+                ):
+                    return run_id
     return None
 
 
@@ -87,14 +95,13 @@ def main() -> int:
     scopes = ("deep", "compatibility") if args.scope == "all" else (args.scope,)
     missing = []
     for scope in scopes:
-        match = find_matching_evidence(repository, scope, expected[scope])
-        if match is None:
+        run_id = find_matching_evidence(repository, scope, expected[scope])
+        if run_id is None:
             missing.append(scope)
             print(f"MISSING: no successful {scope} evidence matches {expected[scope]}")
         else:
-            run_id, workflow = match
             print(
-                f"REUSED: {scope} evidence from {workflow} run #{run_id}; "
+                f"REUSED: {scope} evidence from successful run #{run_id}; "
                 f"fingerprint={expected[scope]}"
             )
     if missing:
