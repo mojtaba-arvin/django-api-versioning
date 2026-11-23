@@ -780,10 +780,12 @@ def test_router_versioning_rejects_boolean_registered_route_version(monkeypatch)
     adapter.default_version = None
     adapter.allowed_versions = ["True"]
     monkeypatch.setattr(
-        router_module.registry, "get_resolved_route_version", lambda route: True
+        router_module.registry,
+        "get_resolved_route_version_for_match",
+        lambda match: (True, True),
     )
     request = SimpleNamespace(
-        resolver_match=SimpleNamespace(route="unmapped/", namespace="")
+        resolver_match=SimpleNamespace(route="unmapped/", namespace="", tried=())
     )
 
     with pytest.raises(NotFound):
