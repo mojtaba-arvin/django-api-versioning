@@ -2068,9 +2068,7 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         url_name="order-list",
         tried=None,
     )
-    assert named.get_resolved_route_version_for_match(
-        named_match
-    ) == (True, 2)
+    assert named.get_resolved_route_version_for_match(named_match) == (True, 2)
 
     named.urlpatterns[:] = [named_other, named_order]
     exact_trace = SimpleNamespace(
@@ -2089,9 +2087,7 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         namespaces=["v2"],
         tried=None,
     )
-    assert named.get_resolved_route_version_for_match(
-        name_fallback
-    ) == (True, 2)
+    assert named.get_resolved_route_version_for_match(name_fallback) == (True, 2)
 
     namespace_fallback = SimpleNamespace(
         route="api/v2/orders/",
@@ -2100,9 +2096,10 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         namespaces=["v2"],
         tried=None,
     )
-    assert named.get_resolved_route_version_for_match(
-        namespace_fallback
-    ) == (True, None)
+    assert named.get_resolved_route_version_for_match(namespace_fallback) == (
+        True,
+        None,
+    )
 
     assert longest._resolved_route_match_length(
         "nested/api/v2/orders/", "api/v2/orders/"
@@ -2931,7 +2928,9 @@ def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
     )
 
 
-def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypatch, caplog):
+def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
+    monkeypatch, caplog
+):
     import importlib
     import inspect
 
@@ -2943,7 +2942,9 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     ).parameters
     assert defaults["app_name"].default == "django_api_versioning"
     assert defaults["root_view_name"].default == "api-root"
-    router_defaults = inspect.signature(router_module.VersionedRouter.__init__).parameters
+    router_defaults = inspect.signature(
+        router_module.VersionedRouter.__init__
+    ).parameters
     assert router_defaults["trailing_slash"].default is True
     assert router_defaults["use_regex_path"].default is True
     assert router_defaults["app_name"].default == "django_api_versioning"
@@ -3237,11 +3238,7 @@ def test_mutation100_registry_create_pattern_signature_and_synchronization(monke
 
     class OpaqueActionsCallable:
         __signature__ = inspect.Signature(
-            [
-                inspect.Parameter(
-                    "actions", inspect.Parameter.POSITIONAL_OR_KEYWORD
-                )
-            ]
+            [inspect.Parameter("actions", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
         )
 
         def __call__(self):
@@ -3461,9 +3458,9 @@ def test_mutation100_negotiation_fallback_and_custom_settings_are_observable(
         )
         header_key = f"HTTP_{header_name.upper().replace('-', '_')}"
         request = RequestFactory().get(path, **{header_key: version})
-        response = VersionNegotiationMiddleware(
-            lambda current: HttpResponse("ok")
-        )(request)
+        response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(
+            request
+        )
         return request, response
 
     # The package default header name and default path prefixes remain usable.
@@ -3544,9 +3541,7 @@ def test_mutation100_negotiation_fallback_and_custom_settings_are_observable(
         ),
     )
     request = RequestFactory().get("/api/v2/orders/")
-    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(
-        request
-    )
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.api_version == 2
 
