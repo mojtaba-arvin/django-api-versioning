@@ -92,6 +92,17 @@ jobs:
       - name: Generate separate line and branch coverage totals
         run: python -m coverage json --pretty-print -o coverage.json
 
+      - name: Preserve combined line and branch coverage evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: combined-package-coverage
+          path: |
+            coverage.json
+            coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Enforce line and branch coverage independently
         run: python scripts/check_coverage_thresholds.py coverage.json --line-threshold 95 --branch-threshold 95
 
