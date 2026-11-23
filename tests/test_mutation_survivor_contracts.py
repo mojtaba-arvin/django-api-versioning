@@ -2198,13 +2198,13 @@ def test_mutation95_registry_regex_canonicalization_and_specificity_boundaries()
         dynamic_regex
     )
 
-    escaped_literal = re_path(r"^\\[orders\\]/$", _view)
-    escaped_then_dynamic = re_path(r"^\\[orders\\]/(?P<id>\\d+)/$", _view)
-    trailing_escape = re_path(r"^orders\\$", _view)
+    escaped_literal = re_path(r"^\[orders\]/$", _view)
+    escaped_then_dynamic = re_path(r"^\[orders\]/(?P<id>\d+)/$", _view)
+    trailing_escape = re_path(r"^orders\$", _view)
     assert target._route_specificity_key(escaped_literal)[1] is False
     dynamic_specificity = target._route_specificity_key(escaped_then_dynamic)
     assert dynamic_specificity[1] is True
-    assert dynamic_specificity[0] == -len(r"\\[orders\\]/")
+    assert dynamic_specificity[0] == -len(r"\[orders\]/")
     assert target._route_specificity_key(trailing_escape)[1] is False
     assert target._resolved_route_match_length(
         "^api/v2/orders/$", "prefix/api/v2/orders/"
@@ -3231,6 +3231,26 @@ def test_mutation100_registry_create_pattern_signature_and_synchronization(monke
         "Pass a configured callable like: "
         "RequiredActionsView.as_view({'get': 'list', 'post': 'create'})"
     )
+
+    class OpaqueActionsCallable:
+        __signature__ = inspect.Signature(
+            [
+                inspect.Parameter(
+                    "actions", inspect.Parameter.POSITIONAL_OR_KEYWORD
+                )
+            ]
+        )
+
+        def __call__(self):
+            raise TypeError("opaque callable configuration failure")
+
+    class OpaqueActionsView:
+        as_view = OpaqueActionsCallable()
+
+    with pytest.raises(
+        TypeError, match="ViewSet 'OpaqueActionsView' cannot be registered directly"
+    ):
+        UrlRegistry._create_pattern("orders/", OpaqueActionsView, "orders")
 
     class OptionalActionsView:
         @classmethod
