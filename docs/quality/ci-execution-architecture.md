@@ -51,6 +51,7 @@ If no matching artifact exists or artifacts have expired, release verification f
 ```bash
 gh workflow run tests.yml --ref main -f run_adversarial=true
 gh workflow run compatibility.yml --ref main -f scope=full
+gh workflow run openapi-contract.yml --ref main
 ```
 
 Do not bypass the evidence gate or treat an artifact with a different fingerprint as equivalent.
@@ -60,7 +61,7 @@ Do not bypass the evidence gate or treat an artifact with a different fingerprin
 - The PR package-artifact workflow builds and validates wheel/sdist for package-impacting changes. It is not repeated automatically on the merge commit.
 - Website static validation is performed in the PR when website content or examples are affected; it is not repeated as a second main-push preflight.
 - The tag workflow still builds the final release artifacts from the exact tagged source, verifies reproducibility and package boundaries, and publishes those verified artifacts. This build is not redundant: it is the artifact set actually uploaded to PyPI.
-- OpenAPI consumer verification remains part of the release workflow and runs against the tagged source.
+- The OpenAPI consumer contract is validated in the PR and recorded as a separate evidence artifact. The tag workflow reuses it only when its source fingerprint matches.
 
 The PR merge is not a release. Tag creation, PyPI publication, and GitHub Release creation remain separate, ordered operations.
 
