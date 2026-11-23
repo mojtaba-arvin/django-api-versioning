@@ -156,11 +156,7 @@ DRF already provides request-version identification and ViewSet route generation
 
 For Django-native function-based and class-based views, use `@endpoint`. For DRF `ViewSet` and `ModelViewSet` classes, use the optional `VersionedRouter`. It delegates route generation to DRF's `SimpleRouter`, preserving standard actions, custom `@action` routes, lookup behavior, and action-level configuration. Use `VersionedDefaultRouter` when you also need a version-specific API root and format suffixes.
 
-The optional `VersionedRouterVersioning` adapter exposes the selected version as DRF's `request.version` and keeps `reverse_action()` and hyperlinked serializers version-aware. DRF remains optional for projects that use only Django-native views. For those projects, install just:
-
-```bash
-pip install django-api-versioning
-```
+The optional `VersionedRouterVersioning` adapter exposes the selected version as DRF's `request.version` and keeps `reverse_action()` and hyperlinked serializers version-aware. DRF remains optional for projects that use only Django-native views; the package itself is installed once as shown in [See how it works](#see-how-it-works).
 
 ## Quick configuration
 
