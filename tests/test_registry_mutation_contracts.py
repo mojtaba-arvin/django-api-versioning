@@ -67,7 +67,7 @@ def _registered_route(target, *, source_version=1, route_version=2, endpoint="or
     return pattern
 
 
-def test_suppressed_register_removes_an_existing_suppressed_pattern():
+def test_suppressed_register_preserves_a_newer_existing_pattern():
     target = UrlRegistry()
 
     def callback(request):
@@ -76,59 +76,61 @@ def test_suppressed_register_removes_an_existing_suppressed_pattern():
     target.register(
         "api/v2/orders/",
         callback,
-        source_version=1,
+        source_version=3,
         route_version=2,
         logical_endpoint="orders",
     )
+    existing = target.urlpatterns[0]
     target._removal_boundaries.setdefault("orders", set()).add(2)
     target.register(
         "api/v2/orders/",
         callback,
-        source_version=2,
+        source_version=None,
         route_version=2,
         logical_endpoint="orders",
     )
 
-    assert target.urlpatterns == []
+    assert target.urlpatterns == [existing]
     assert ("orders", 2) in target._removed_patterns
 
 
-def test_suppressed_register_urlpattern_removes_existing_suppressed_pattern():
+def test_suppressed_register_urlpattern_preserves_a_newer_existing_pattern():
     target = UrlRegistry()
     target.register_urlpattern(
-        _registered_route(target),
-        source_version=1,
+        _registered_route(target, source_version=3),
+        source_version=3,
         route_version=2,
         logical_endpoint="orders",
     )
+    existing = target.urlpatterns[0]
     target._removal_boundaries.setdefault("orders", set()).add(2)
 
     target.register_urlpattern(
-        _registered_route(target, source_version=2),
-        source_version=2,
+        _registered_route(target, source_version=None),
+        source_version=None,
         route_version=2,
         logical_endpoint="orders",
     )
 
-    assert target.urlpatterns == []
+    assert target.urlpatterns == [existing]
     assert ("orders", 2) in target._removed_patterns
 
 
-def test_register_urlpattern_preserves_invalid_unowned_tombstone_key():
+def test_register_urlpattern_clears_matching_unowned_tombstone():
     from django.urls import path
 
     target = UrlRegistry()
     tombstone = path("api/v2/legacy/", lambda request: None)
-    target._removed_patterns[(None, 2)] = tombstone
+    target._removed_patterns[("orders", 2)] = tombstone
 
     target.register_urlpattern(
         path("api/v2/orders/", lambda request: None),
-        source_version=1,
+        source_version=3,
         route_version=2,
-        logical_endpoint=None,
+        logical_endpoint="orders",
     )
 
-    assert target._removed_patterns[(None, 2)] is tombstone
+    assert ("orders", 2) not in target._removed_patterns
 
 
 def test_router_owned_registration_does_not_clear_unowned_tombstone():
