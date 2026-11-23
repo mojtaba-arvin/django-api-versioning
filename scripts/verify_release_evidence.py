@@ -15,6 +15,7 @@ from quality_fingerprint import fingerprint_files, tracked_files
 ARTIFACTS = {
     "deep": ("deep-quality-evidence", "deep_quality_fingerprint"),
     "compatibility": ("compatibility-evidence", "compatibility_fingerprint"),
+    "openapi": ("openapi-contract-evidence", "deep_quality_fingerprint"),
 }
 
 
@@ -107,7 +108,7 @@ def find_matching_evidence(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--scope", choices=("deep", "compatibility", "all"), default="all"
+        "--scope", choices=("deep", "compatibility", "openapi", "all"), default="all"
     )
     args = parser.parse_args()
     repository = os.environ.get("GITHUB_REPOSITORY")
@@ -118,7 +119,11 @@ def main() -> int:
         "deep": fingerprint_files(files, scope="deep"),
         "compatibility": fingerprint_files(files, scope="compatibility"),
     }
-    scopes = ("deep", "compatibility") if args.scope == "all" else (args.scope,)
+    scopes = (
+        ("deep", "compatibility", "openapi")
+        if args.scope == "all"
+        else (args.scope,)
+    )
     missing = []
     for scope in scopes:
         run_id = find_matching_evidence(repository, scope, expected[scope])
