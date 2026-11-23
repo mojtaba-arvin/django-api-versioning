@@ -70,6 +70,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             ".github/workflows/tests.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
+            "scripts/check_coverage_thresholds.py",
         }
         or path in PYTHON_DEPENDENCIES
         or (path.startswith("requirements") and path.endswith(".txt"))
@@ -142,7 +143,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         or path.endswith("/requirements.txt")
         for path in normalized
     )
-    is_openapi = any(
+    is_openapi = is_python or any(
         path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
         for path in normalized
     )
