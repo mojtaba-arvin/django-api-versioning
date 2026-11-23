@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 PYTHON_PATHS = (
@@ -56,6 +58,67 @@ OPENAPI_EXPLICIT_PATHS = {
     ".github/workflows/openapi-contract.yml",
     ".github/workflows/publish.yml",
 }
+
+
+def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
+    """Detect a package-version-only edit using parsed TOML, not path names alone."""
+    normalized = [path.strip().removeprefix("./") for path in paths if path.strip()]
+    if "pyproject.toml" not in normalized or "uv.lock" not in normalized:
+        return False
+    quality_paths = (
+        "django_api_versioning/", "tests/", "integration_test_project/",
+        "examples/", "requirements", "tox.ini", "pytest.ini", "setup.cfg",
+        "mutmut_config.py", ".github/workflows/", ".github/actions/",
+    )
+    if any(
+        path.startswith(quality_paths)
+        or path in {
+            "scripts/check_coverage_thresholds.py",
+            "scripts/check_tox_workflow_matrix.py",
+            "scripts/check_reproducible_build.py",
+        }
+        for path in normalized
+    ):
+        return False
+
+    def git_content(path: str) -> str | None:
+        result = subprocess.run(
+            ["git", "show", f"{base_ref}:{path}"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout if result.returncode == 0 else None
+
+    base_pyproject = git_content("pyproject.toml")
+    base_lock = git_content("uv.lock")
+    if base_pyproject is None or base_lock is None:
+        return False
+    try:
+        old_project = tomllib.loads(base_pyproject)
+        new_project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+        package_name = new_project["project"]["name"]
+        if old_project["project"]["version"] == new_project["project"]["version"]:
+            return False
+        old_project["project"]["version"] = "<PACKAGE_VERSION>"
+        new_project["project"]["version"] = "<PACKAGE_VERSION>"
+        if old_project != new_project:
+            return False
+
+        old_lock = tomllib.loads(base_lock)
+        new_lock = tomllib.loads(Path("uv.lock").read_text(encoding="utf-8"))
+        for lock in (old_lock, new_lock):
+            lock.pop("content-hash", None)
+            matches = [
+                item for item in lock.get("package", [])
+                if item.get("name") == package_name
+            ]
+            if len(matches) != 1:
+                return False
+            matches[0]["version"] = "<PACKAGE_VERSION>"
+        return old_lock == new_lock
+    except (KeyError, TypeError, ValueError, tomllib.TOMLDecodeError):
+        return False
 
 
 def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> dict[str, bool]:
@@ -179,13 +242,16 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
 def main() -> int:
     if len(sys.argv) not in {3, 4}:
         print(
-            "Usage: classify_pr_changes.py <changed-files.txt> <github-output> [release-metadata-only]",
+            "Usage: classify_pr_changes.py <changed-files.txt> <github-output> [base-ref]",
             file=sys.stderr,
         )
         return 2
 
     changed_files = Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
-    metadata_only = len(sys.argv) == 4 and sys.argv[3] == "true"
+    metadata_only = (
+        len(sys.argv) == 4
+        and detect_release_metadata_only(sys.argv[3], changed_files)
+    )
     outputs = classify_paths(changed_files, release_metadata_only=metadata_only)
     with Path(sys.argv[2]).open("a", encoding="utf-8") as output_file:
         for name, enabled in outputs.items():
