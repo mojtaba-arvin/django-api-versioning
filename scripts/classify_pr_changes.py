@@ -143,6 +143,7 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
             ".github/workflows/openapi-contract.yml",
             ".github/workflows/package-artifacts.yml",
             ".github/workflows/publish.yml",
+            ".github/workflows/agent-tooling.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
             "scripts/check_coverage_thresholds.py",
