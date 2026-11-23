@@ -68,7 +68,13 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         in {
             "pytest.ini",
             ".github/workflows/tests.yml",
+            ".github/workflows/adversarial-testing.yml",
+            ".github/workflows/mutation-shard.yml",
+            ".github/workflows/pull-request-gate.yml",
+            ".github/workflows/compatibility.yml",
             ".github/workflows/openapi-contract.yml",
+            ".github/workflows/package-artifacts.yml",
+            ".github/workflows/publish.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
             "scripts/check_coverage_thresholds.py",
