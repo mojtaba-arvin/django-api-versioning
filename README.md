@@ -14,6 +14,10 @@
 
 **Version your Django API by endpoint, not by duplicating URL patterns.** Register a view once; unchanged routes carry forward to later API versions, and a newer declaration replaces the implementation from that version onward.
 
+**Request versioning is not path-only:** choose one transport per deployment with `API_VERSIONING_SCHEME`: `path` (the default), `header`, `query`, or `hostname`. For non-path schemes, `VersionNegotiationMiddleware` resolves the requested version before Django URL resolution and dispatches through the same registered route system.
+
+**Negotiation and endpoint dispatch are separate responsibilities.** Negotiation determines *which API version the request asks for*; the registry and versioned routers determine *which view implementation serves that version* and carry unchanged routes forward. DRF already provides built-in version-identification schemes, which may be sufficient when that is all an application needs. This package adds declarative per-endpoint implementation selection, route inheritance/removal, and route-matrix validation; it complements DRF rather than replacing it.
+
 [Explore Django API Versioning — documentation, examples, and interactive playground](https://mojtaba-arvin.github.io/django-api-versioning/) · [Install django-api-versioning from PyPI](https://pypi.org/project/django-api-versioning/)
 
 ## See how it works
@@ -83,12 +87,12 @@ DRF and this package solve related but different parts of API versioning:
 | Responsibility | Django REST Framework | django-api-versioning |
 |---|---|---|
 | Identify a requested version | Built-in schemes such as URL path, namespace, query parameter, hostname, and Accept header | Select one transport per deployment with `API_VERSIONING_SCHEME`; middleware resolves it before Django selects the registered view |
-| Generate ViewSet routes | SimpleRouter and DefaultRouter generate actions and URL patterns | `VersionedRouter` delegates to `SimpleRouter`; the unreleased mainline `VersionedDefaultRouter` adds a version-specific API root and configurable format suffixes |
+| Generate ViewSet routes | SimpleRouter and DefaultRouter generate actions and URL patterns | `VersionedRouter` delegates to `SimpleRouter`; since `1.4.0`, `VersionedDefaultRouter` adds a version-specific API root and configurable format suffixes |
 | Select a different implementation per version | Application code or separately maintained URL configurations | Declarative endpoint registration and per-generated-route inheritance/replacement |
 | Carry unchanged endpoints forward | Application-managed | Built in to the registry |
 | Inspect and guard the effective route matrix | Application-managed | check_versions and assert_version_matrix |
 
-**Release status:** `VersionedDefaultRouter` is present on the repository's unreleased mainline but is not included in the published `1.3.0` wheel. Use the published `VersionedRouter` until a later package release includes the new router.
+**Release status:** `VersionedDefaultRouter` is included in the `1.4.0` release. It is additive: existing `VersionedRouter` behavior and URL-path defaults remain unchanged.
 
 Use DRF's own versioning schemes when request-version identification is all you need. Use ordinary DRF routers when you want to manage each version's URL configuration yourself. Choose this package when you want a central registry to map each negotiated version to the correct endpoint implementation and carry unchanged routes forward. For ViewSets, use VersionedRouter; for Django views, APIView, and GenericAPIView, use @endpoint.
 
