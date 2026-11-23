@@ -2922,11 +2922,11 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(monkeypat
     with override_settings(API_MIN_VERSION=2):
         with caplog.at_level("WARNING"):
             router.register("below-min", object, version=1)
-    assert any(
-        record.getMessage()
-        == "ViewSet prefix 'below-min' starts at version 1, below API_MIN_VERSION 2. No routes will be registered."
-        for record in caplog.records
+    expected_warning = (
+        "ViewSet prefix 'below-min' starts at version 1, below "
+        "API_MIN_VERSION 2. No routes will be registered."
     )
+    assert any(record.getMessage() == expected_warning for record in caplog.records)
     assert (
         router_module.VersionedRouterVersioning.invalid_version_message
         == "The URL namespace does not identify an allowed API version."
@@ -3554,3 +3554,33 @@ def test_mutation95_registry_does_not_clear_invalid_removed_pattern_keys():
     )
 
     assert target._removed_patterns[(None, 2)] is tombstone
+
+
+def test_mutation95_registry_does_not_treat_missing_router_prefixes_as_equal():
+    target = UrlRegistry()
+    first_owner = object()
+    second_owner = object()
+    first = path("api/v2/orders/", _view, name="first")
+    second = path("api/v2/orders/", _view, name="second")
+
+    target.register_urlpattern(
+        first,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+        owner=first_owner,
+        router_prefix=None,
+        trailing_slash=False,
+    )
+    target.register_urlpattern(
+        second,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="orders",
+        owner=second_owner,
+        router_prefix=None,
+        trailing_slash=False,
+    )
+
+    assert len(target.urlpatterns) == 1
+    assert getattr(target.urlpatterns[0], target._ROUTER_OWNER_ATTR) is second_owner
