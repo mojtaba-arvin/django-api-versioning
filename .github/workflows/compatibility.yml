@@ -34,7 +34,7 @@ permissions:
 concurrency:
   group: compatibility-${{ github.workflow }}-${{ github.ref }}
   # Keep in-flight release checks running; cancelled matrix jobs must not be mistaken for completed validation.
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   platform-smoke:
