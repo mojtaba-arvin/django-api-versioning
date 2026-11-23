@@ -20,29 +20,6 @@ on:
         type: boolean
         required: false
         default: true
-  push:
-    branches: [main]
-    paths:
-      - "django_api_versioning/**"
-      - "tests/**"
-      - "integration_test_project/**"
-      - "scripts/verify_distribution_contents.py"
-      - "scripts/smoke_installed_wheel.py"
-      - "requirements.txt"
-      - "requirements-ci.txt"
-      - "pytest.ini"
-      - "mutmut_config.py"
-      - "setup.cfg"
-      - "tox.ini"
-      - "scripts/check_coverage_thresholds.py"
-      - ".github/workflows/tests.yml"
-      - ".github/workflows/adversarial-testing.yml"
-      - ".github/actions/mutation-shard/action.yml"
-      - ".github/workflows/mutation-shard.yml"
-      - ".github/workflows/pull-request-gate.yml"
-      - ".github/workflows/publish.yml"
-      - ".github/workflows/openapi-contract.yml"
-      - "!**/*.md"
 permissions:
   contents: read
 
@@ -117,7 +94,7 @@ jobs:
 
   adversarial:
     name: Adversarial release-readiness campaigns
-    if: inputs.run_adversarial == true || github.event_name == 'push'
+    if: inputs.run_adversarial == true
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
     with:
