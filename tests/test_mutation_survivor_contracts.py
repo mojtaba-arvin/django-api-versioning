@@ -78,7 +78,7 @@ def _registered_pattern(
     *,
     version=2,
     logical_endpoint="orders:order-list",
-    pattern_owner=None,
+    owner=None,
     prefix="orders",
     trailing_slash=True,
 ):
@@ -1014,13 +1014,13 @@ def test_registry_lifecycle_metadata_isolated_by_router_owner():
         "orders:order-list",
         2,
         deprecated_at="2027-01-01T00:00:00Z",
-        pattern_owner=first_owner,
+        owner=first_owner,
     )
     target.register_endpoint_lifecycle(
         "orders:order-list",
         2,
         deprecated_at="2028-01-01T00:00:00Z",
-        pattern_owner=second_owner,
+        owner=second_owner,
     )
 
     def operation(owner):
@@ -2694,7 +2694,7 @@ def test_mutation100_registry_remove_scans_all_routes_and_preserves_only_newer_m
         preserving,
         version=3,
         logical_endpoint="orders",
-        pattern_owner=None,
+        owner=None,
     )
     setattr(newer, preserving._SOURCE_VERSION_ATTR, 3)
     other = path("health/", _view, name="health")
