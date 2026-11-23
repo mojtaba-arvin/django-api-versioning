@@ -39,8 +39,8 @@ The full matrix is no longer run alongside the PR smoke matrix for the same PR. 
 
 A passing test run is useful beyond the commit on which it was produced only when its effective inputs are identical. [`scripts/quality_fingerprint.py`](../../scripts/quality_fingerprint.py) computes three deterministic SHA-256 fingerprints:
 
-- **Deep-quality fingerprint:** package source, tests, real-consumer examples, dependency inputs, and the effective test/mutation/adversarial workflow configuration.
-- **Compatibility fingerprint:** dependency and Python/Django matrix inputs, matrix validation, the classifier, and fingerprint implementation.
+- **Deep-quality fingerprint:** package source, tests, real-consumer examples, dependency inputs, mutation-report tooling, Atheris fuzz scripts/corpus, and the effective test/mutation/adversarial workflow configuration.
+- **Compatibility fingerprint:** package/test/integration Python files linted or exercised by the matrix, dependency and Python/Django matrix inputs, matrix validation, the classifier, and fingerprint implementation.
 - **OpenAPI contract fingerprint:** package routing source, executable consumer schemas/examples, the OpenAPI contract workflow, and its design contract.
 
 The fingerprints normalize only the package's own version in `pyproject.toml` and its self-package version plus generated content hash in `uv.lock`. All dependency declarations, runtime source, tests, matrix definitions, and quality workflow settings remain part of the digest.
