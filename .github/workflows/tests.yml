@@ -27,7 +27,6 @@ concurrency:
   # A new PR head supersedes stale test and mutation campaigns for that PR.
   group: python-tests-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
-  cancel-in-progress: true
 
 jobs:
   test:
