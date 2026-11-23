@@ -66,6 +66,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     uses: ./.github/workflows/tests.yml
+    with:
+      run_adversarial: ${{ startsWith(github.event.pull_request.head.ref, 'validation/') }}
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     permissions:
