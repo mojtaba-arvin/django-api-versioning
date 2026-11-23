@@ -38,13 +38,17 @@ jobs:
           python -m pytest integration_test_project --cov=django_api_versioning --cov-append \
             --cov-report=term-missing \
             --cov-report=xml:"$RUNNER_TEMP/package-coverage.xml"
-          python -m coverage report --show-missing --precision=2 --fail-under=94
+          python -m coverage json --pretty-print -o "$RUNNER_TEMP/package-coverage.json"
+          python scripts/check_coverage_thresholds.py "$RUNNER_TEMP/package-coverage.json" --line-threshold 95 --branch-threshold 95
+          python -m coverage report --show-missing --precision=2
 
       - name: Upload combined package coverage report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: package-coverage-with-openapi
-          path: ${{ runner.temp }}/package-coverage.xml
+          path: |
+            ${{ runner.temp }}/package-coverage.xml
+            ${{ runner.temp }}/package-coverage.json
           if-no-files-found: error
           retention-days: 7
 
