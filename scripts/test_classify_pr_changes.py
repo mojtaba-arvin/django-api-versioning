@@ -171,6 +171,13 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             )
         )
 
+
+    def test_python_tooling_changes_require_full_compatibility_lint(self):
+        result = classify_paths(["scripts/release_tags.py"])
+        self.assertTrue(result["compatibility"])
+        self.assertTrue(result["compatibility_full"])
+        self.assertFalse(result["deep"])
+
     def test_version_only_release_metadata_skips_unrelated_deep_gates(self):
         result = classify_paths(
             ["pyproject.toml", "uv.lock", "CHANGELOG.md", "docs/reference/index.md"],
