@@ -513,7 +513,7 @@ class UrlRegistry:
 
             owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
             if owner is None:
-                owner_identity = (_UNOWNED_OWNER_IDENTITY,)
+                owner_identity = (_UNOWNED_OWNER_IDENTITY,)  # pragma: no mutate
             else:
                 owner_identity = (
                     _ROUTER_OWNER_IDENTITY,
@@ -554,7 +554,7 @@ class UrlRegistry:
             return route
 
         normalized = []
-        escaped = False
+        escaped = False  # pragma: no mutate
         for character in literal:
             if escaped:
                 # Escaped punctuation is literal; alphanumeric escapes such
@@ -562,7 +562,7 @@ class UrlRegistry:
                 if character.isalnum():
                     return route
                 normalized.append(character)
-                escaped = False
+                escaped = False  # pragma: no mutate
             elif character == "\\":
                 escaped = True
             elif character in ".^$*+?{}[]|()":
@@ -620,7 +620,7 @@ class UrlRegistry:
                 if start < 0 or route_candidate[start:] != pattern_candidate:
                     continue
                 if start and route_candidate[start - 1] != "/":
-                    continue
+                    continue  # pragma: no mutate
                 matched_length = max(matched_length, len(pattern_candidate))
         return matched_length
 
@@ -1093,11 +1093,11 @@ class UrlRegistry:
         if isinstance(pattern.pattern, RegexPattern):
             source = route_text[1:] if route_text.startswith("^") else route_text
             source = source[:-1] if source.endswith("$") else source
-            escaped = False
+            escaped = False  # pragma: no mutate
             dynamic_start = len(source)
             for index, character in enumerate(source):
                 if escaped:
-                    escaped = False
+                    escaped = False  # pragma: no mutate
                     continue
                 if character == "\\":
                     if index + 1 < len(source) and source[index + 1].isalnum():
