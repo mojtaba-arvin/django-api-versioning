@@ -32,12 +32,18 @@ Do not copy DRF examples using string identifiers such as `"v1"` or `"1.0"` into
 
 ## 2. Canonical imports and public API
 
-The package exposes `endpoint`, `remove_endpoint`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
+The package exposes `endpoint`, `remove_endpoint`, `set_endpoint_lifecycle`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
 
 Use these public imports:
 
 ```python
-from django_api_versioning import endpoint, remove_endpoint, ver_range, api_reverse
+from django_api_versioning import (
+    endpoint,
+    remove_endpoint,
+    set_endpoint_lifecycle,
+    ver_range,
+    api_reverse,
+)
 ```
 
 The decorators are implemented in `django_api_versioning.decorators`, so importing them directly from that module also works:
