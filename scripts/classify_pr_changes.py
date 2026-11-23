@@ -69,6 +69,7 @@ OPENAPI_EXPLICIT_PATHS = {
     "uv.lock",
     "requirements-ci.txt",
     "requirements.txt",
+    "pytest.ini",
     "scripts/check_coverage_thresholds.py",
     "scripts/quality_fingerprint.py",
     ".github/workflows/publish.yml",
