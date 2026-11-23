@@ -118,6 +118,7 @@ def main() -> int:
     expected = {
         "deep": fingerprint_files(files, scope="deep"),
         "compatibility": fingerprint_files(files, scope="compatibility"),
+        "openapi": fingerprint_files(files, scope="openapi"),
     }
     scopes = (
         ("deep", "compatibility", "openapi")
