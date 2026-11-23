@@ -6,7 +6,7 @@ The CI pipeline is divided by change impact. The goal is to preserve the package
 
 ## 1. Fast PR gate
 
-The always-running [PR gate](../../.github/workflows/pull-request-gate.yml) classifies the complete changed-file list before invoking child workflows.
+The always-running [PR gate](../../.github/workflows/pull-request-gate.yml) classifies the complete changed-file list before invoking child workflows. Concurrency is keyed by PR rather than commit SHA, so a new head cancels stale PR validation and expensive mutation/matrix jobs instead of queueing obsolete runs.
 
 - Documentation-only changes run the website checks when relevant.
 - Release metadata changes run lockfile validation and distribution build checks, without package runtime tests, OpenAPI contracts, dependency review, or the compatibility matrix when the parsed TOML proves that only the package version changed.
