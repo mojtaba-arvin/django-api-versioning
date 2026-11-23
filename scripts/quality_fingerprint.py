@@ -37,6 +37,9 @@ QUALITY_FILES = COMPATIBILITY_FILES | {
     ".github/workflows/mutation-shard.yml",
     ".github/actions/mutation-shard/action.yml",
     "scripts/quality_fingerprint.py",
+    "scripts/test_quality_fingerprint.py",
+    "scripts/classify_pr_changes.py",
+    "scripts/test_classify_pr_changes.py",
     "scripts/verify_release_evidence.py",
     ".github/workflows/publish.yml",
 }
