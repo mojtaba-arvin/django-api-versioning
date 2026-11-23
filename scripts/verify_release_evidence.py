@@ -15,7 +15,7 @@ from quality_fingerprint import fingerprint_files, tracked_files
 ARTIFACTS = {
     "deep": ("deep-quality-evidence", "deep_quality_fingerprint"),
     "compatibility": ("compatibility-evidence", "compatibility_fingerprint"),
-    "openapi": ("openapi-contract-evidence", "deep_quality_fingerprint"),
+    "openapi": ("openapi-contract-evidence", "openapi_contract_fingerprint"),
 }
 
 
