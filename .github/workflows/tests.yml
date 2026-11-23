@@ -24,10 +24,9 @@ permissions:
   contents: read
 
 concurrency:
-  # Keep validation for distinct commits independent; a new head must not wait
-  # behind a stale mutation campaign from an older commit on the same PR.
-  group: python-tests-${{ github.event.pull_request.number || github.ref }}-${{ github.sha }}
-  # A newer commit supersedes stale tests on the same PR or branch.
+  # A new PR head supersedes stale test and mutation campaigns for that PR.
+  group: python-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
   cancel-in-progress: true
 
 jobs:
