@@ -76,6 +76,38 @@ jobs:
           )
           PY
 
+      - name: Require passing Python, mutation, and adversarial gates on this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow tests.yml --commit "$COMMIT_SHA" --json databaseId,status,conclusion,event,headSha --limit 20)"
+          RUNS="$runs" python - <<'PY'
+          import json
+          import os
+
+          runs = json.loads(os.environ["RUNS"])
+          successful = [
+              run for run in runs
+              if run["headSha"] == os.environ["COMMIT_SHA"]
+              and run["event"] == "push"
+              and run["status"] == "completed"
+              and run["conclusion"] == "success"
+          ]
+          if not successful:
+              raise SystemExit(
+                  "No successful tests.yml main-push run exists for "
+                  f"{os.environ['COMMIT_SHA']}. This gate includes package and "
+                  "integration tests plus the five-domain mutation and "
+                  "adversarial campaigns; do not publish before it succeeds."
+              )
+          print(
+              "Reusing successful Python and adversarial quality run "
+              f"#{successful[0]['databaseId']} for {os.environ['COMMIT_SHA']}."
+          )
+          PY
+
   openapi-contract:
     name: Versioned OpenAPI consumer contract
     uses: ./.github/workflows/openapi-contract.yml
