@@ -32,7 +32,15 @@ on:
       - "requirements-ci.txt"
       - "pyproject.toml"
       - "pytest.ini"
+      - "mutmut_config.py"
+      - "setup.cfg"
+      - "tox.ini"
+      - "scripts/check_coverage_thresholds.py"
       - ".github/workflows/tests.yml"
+      - ".github/workflows/adversarial-testing.yml"
+      - ".github/workflows/mutation-shard.yml"
+      - ".github/workflows/pull-request-gate.yml"
+      - ".github/workflows/publish.yml"
       - "!**/*.md"
 permissions:
   contents: read
