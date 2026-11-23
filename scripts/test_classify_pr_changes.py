@@ -311,7 +311,7 @@ version = "1.4.0"
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertTrue(result["package"])
-        self.assertTrue(result["openapi"])
+        self.assertFalse(result["openapi"])
 
     def test_classifier_self_test_runs_agent_validation(self):
         result = classify_paths(["scripts/test_classify_pr_changes.py"])
