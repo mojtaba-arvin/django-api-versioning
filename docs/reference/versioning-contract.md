@@ -11,6 +11,8 @@
 >
 > **Unreleased mainline addition:** `VersionedDefaultRouter` adds version-specific API roots and optional format-suffix routes on top of the existing `VersionedRouter` registry. This addition is not part of the published 1.3.0 artifact until a later release is published.
 >
+> **Release quality contract:** The repository's release gates and evidence rules are maintained in [`docs/quality/release-gates.md`](../quality/release-gates.md). Dated results are recorded separately and never substituted for evidence from another commit.
+>
 > It is the canonical reference for technical claims about these behaviors. If another package document conflicts with this contract, verify the implementation and tests before changing either document.
 
 ## 1. Version identifiers
@@ -32,12 +34,18 @@ Do not copy DRF examples using string identifiers such as `"v1"` or `"1.0"` into
 
 ## 2. Canonical imports and public API
 
-The package exposes `endpoint`, `remove_endpoint`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
+The package exposes `endpoint`, `remove_endpoint`, `set_endpoint_lifecycle`, `ver_range`, and `api_reverse` from its top-level namespace. The optional DRF integration is imported from `django_api_versioning.routers` so core Django users do not need DRF installed.
 
 Use these public imports:
 
 ```python
-from django_api_versioning import endpoint, remove_endpoint, ver_range, api_reverse
+from django_api_versioning import (
+    endpoint,
+    remove_endpoint,
+    set_endpoint_lifecycle,
+    ver_range,
+    api_reverse,
+)
 ```
 
 The decorators are implemented in `django_api_versioning.decorators`, so importing them directly from that module also works:

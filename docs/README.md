@@ -23,6 +23,8 @@ These documents have different responsibilities; do not maintain duplicate versi
 | [Changelog](../CHANGELOG.md) | Versioned release notes and migration notes | Current compatibility results |
 | [Compatibility configuration](../tox.ini) | Exact configured Python/Django test environments | Proof that an environment passed |
 | [Compatibility workflow](../.github/workflows/compatibility.yml) | How the configured environments are executed in CI | Results for commits that have not run |
+| [Quality and release gates](quality/release-gates.md) | Mutation, coverage, consumer contracts, compatibility, adversarial, and release evidence requirements | A claim that an unverified commit has passed |
+| [Dated quality evidence](reports/quality-2026-11-23.md) | Exact-head CI evidence and explicitly unresolved release checks for 23 November 2026 | A timeless guarantee or evidence for another commit |
 | [Article corpus](articles/) | Task-focused tutorials and worked examples | A replacement for source or canonical API contracts |
 
 If a tutorial conflicts with the package implementation, tests, or canonical routing contract, verify the behavior and correct the document that is wrong.

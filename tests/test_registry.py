@@ -1019,19 +1019,40 @@ def test_remove_endpoint_creates_tombstones_and_allows_explicit_reintroduction(
 
 
 @pytest.mark.parametrize(
-    ("logical_endpoint", "from_version", "error"),
+    ("logical_endpoint", "from_version", "error", "message"),
     [
-        ("", 2, TypeError),
-        ("orders", True, VersionTypeError),
-        ("orders", 6, InvalidVersionError),
-        ("orders", 0, VersionRangeError),
+        ("", 2, TypeError, "logical_endpoint must be a non-empty string."),
+        ("orders", True, VersionTypeError, "Removal version must be an integer."),
+        (
+            "orders",
+            6,
+            InvalidVersionError,
+            "Removal version 6 is above the maximum allowed version 5.",
+        ),
+        (
+            "orders",
+            0,
+            VersionRangeError,
+            "Removal version 0 is below the minimum allowed version 1.",
+        ),
     ],
 )
 def test_remove_endpoint_validates_identity_and_version(
-    clear_registry, logical_endpoint, from_version, error
+    clear_registry, logical_endpoint, from_version, error, message
 ):
-    with pytest.raises(error):
+    with pytest.raises(error) as exc_info:
         registry.remove(logical_endpoint, from_version)
+
+    assert str(exc_info.value) == message
+
+
+def test_remove_endpoint_accepts_the_inclusive_configured_version_boundary(
+    clear_registry,
+):
+    registry.remove("orders", 1)
+    registry.remove("orders", 5)
+
+    assert registry._removal_boundaries["orders"] == {1, 5}
 
 
 def test_resolved_route_version_uses_complete_longest_suffix(clear_registry):
@@ -1377,3 +1398,72 @@ def test_literal_route_precedes_single_segment_regex_route(
         )
 
     assert registry.urlpatterns[0].callback is static_view
+
+
+def test_remove_rejects_non_integer_string_version(clear_registry):
+    """A string version must fail type validation before range comparisons."""
+    with pytest.raises(
+        VersionTypeError,
+        match="Removal version must be an integer",
+    ):
+        registry.remove("orders", "2")
+
+
+def test_remove_accepts_maximum_version_without_off_by_one(clear_registry, monkeypatch):
+    """The configured maximum is inclusive for removal declarations."""
+    from django_api_versioning.settings import api_settings
+
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 5)
+
+    registry.remove("orders", 5)
+
+    assert registry._removal_boundaries == {"orders": {5}}
+
+
+def test_removal_boundary_short_circuits_missing_route_version(clear_registry):
+    """A missing route version returns before comparing integer boundaries."""
+    registry.remove("orders", 2)
+
+    assert registry._removal_boundary("orders", None) is None
+
+
+def test_unowned_removal_boundary_reads_global_boundaries(clear_registry):
+    """Unowned declarations must not be looked up in router-owned boundaries."""
+    registry.remove("orders", 2)
+
+    assert registry._removal_boundary("orders", 3, owner=None) == 2
+
+
+def test_endpoint_lifecycle_accepts_inclusive_version_boundaries(
+    clear_registry, monkeypatch
+):
+    """The configured minimum and maximum versions are both inclusive."""
+    from django_api_versioning.settings import api_settings
+
+    monkeypatch.setattr(api_settings, "API_MIN_VERSION", 1)
+    monkeypatch.setattr(api_settings, "API_MAX_VERSION", 5)
+
+    for version in (1, 5):
+        registry.register_endpoint_lifecycle(
+            "orders",
+            version,
+            deprecated_at="2027-01-01T00:00:00Z",
+        )
+
+    expected = EndpointLifecycle(
+        deprecated_at=datetime(2027, 1, 1, tzinfo=timezone.utc),
+        sunset=None,
+    )
+    for version in (1, 5):
+        operation = _lifecycle_test_operation(
+            logical_endpoint="orders", route_version=version
+        )
+        assert registry.get_endpoint_lifecycle(operation) == expected
+
+
+def test_route_specificity_marks_leading_path_converter_as_dynamic(clear_registry):
+    """A converter at the first character is still a dynamic route."""
+    pattern = path("<slug:slug>/", lambda request, slug: None)
+
+    assert registry._route_specificity_key(pattern)[1] is True

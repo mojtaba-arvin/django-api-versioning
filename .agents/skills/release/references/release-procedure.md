@@ -94,15 +94,19 @@ The push helper pushes the current short-lived branch and refuses `main`. If pus
 
 Open a PR from `release/vX.Y.Z` to `main`. Include the version, changelog summary, technical-impact classification, approved article changes, and verification plan.
 
-Require successful results for every workflow relevant to the PR's changed paths. Because `pyproject.toml` changes, inspect at least:
+Require successful results for every workflow relevant to the PR's changed paths. For the package's quality contract, inspect at least:
 
 - Python unit and integration tests;
-- the complete compatibility matrix, including every environment configured by current `tox.ini`;
-- wheel/sdist build, metadata validation, installed-wheel smoke test, and distribution-content checks.
+- all five mutation domains (Decorators, Lifecycle, Negotiation, Registry, Routers) at exactly 100%, with complete reports and no surviving, skipped, suspicious, timed-out, or unaccounted mutants;
+- independent line and branch coverage of at least 95% each, measured after the package and real-consumer test suites contribute to the same coverage data;
+- the complete compatibility matrix, including every environment configured by current `tox.ini` (15 Python/Django combinations plus lint, 16 tox environments total);
+- public API contract tests and the executable Django consumer/OpenAPI contract, including schema validation and `oasdiff` checks;
+- security and adversarial campaigns (CodeQL, Atheris, Schemathesis, and property-based tests) relevant to the changed paths;
+- wheel/sdist build, metadata validation, installed-wheel smoke test, distribution-content checks, and the automated two-build SHA-256 reproducibility check in `scripts/check_reproducible_build.py`; the script normalizes sdist container metadata but never modifies package file contents.
 
 If website/article files changed, also inspect Website build and static verification. If agent instructions or skills changed, inspect Agent tooling.
 
-Require the always-running `PR gate` to pass for the exact latest PR head SHA. The gate invokes every path-relevant reusable workflow; a child workflow may be skipped only when the path classifier marks its scope unchanged. Independently inspect CodeQL results for package or website source changes. A failed, pending, or stale applicable check is not a pass. Fix failures on the same release branch; do not bypass a relevant failing check.
+Require the always-running `PR gate` to pass for the exact latest PR head SHA. A successful historical run, partial matrix page, or passing boundary smoke test is not a substitute for the full configured matrix and exact-head release evidence. The current thresholds and evidence rules are summarized in [`docs/quality/release-gates.md`](../../../../docs/quality/release-gates.md). The gate invokes every path-relevant reusable workflow; a child workflow may be skipped only when the path classifier marks its scope unchanged. Independently inspect CodeQL results for package or website source changes. A failed, pending, or stale applicable check is not a pass. Fix failures on the same release branch; do not bypass a relevant failing check.
 
 Merge the PR through GitHub only after relevant checks pass. Never push the release branch directly to `main`.
 

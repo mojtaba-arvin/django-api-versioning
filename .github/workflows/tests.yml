@@ -2,12 +2,24 @@ name: Python tests
 
 on:
   workflow_call:
+    inputs:
+      run_adversarial:
+        description: Run the expensive mutation and fuzz campaigns.
+        type: boolean
+        required: false
+        default: false
     secrets:
       CODECOV_TOKEN:
         required: false
   # Validate main after pushes and proposed changes through pull requests targeting main.
   # Use workflow_dispatch for deliberate manual checkpoints.
   workflow_dispatch:
+    inputs:
+      run_adversarial:
+        description: Run the expensive mutation and fuzz campaigns.
+        type: boolean
+        required: false
+        default: true
   push:
     branches: [main]
     paths:
@@ -20,14 +32,27 @@ on:
       - "requirements-ci.txt"
       - "pyproject.toml"
       - "pytest.ini"
+      - "mutmut_config.py"
+      - "setup.cfg"
+      - "tox.ini"
+      - "scripts/check_coverage_thresholds.py"
       - ".github/workflows/tests.yml"
+      - ".github/workflows/adversarial-testing.yml"
+      - ".github/actions/mutation-shard/action.yml"
+      - ".github/workflows/mutation-shard.yml"
+      - ".github/workflows/pull-request-gate.yml"
+      - ".github/workflows/publish.yml"
+      - ".github/workflows/openapi-contract.yml"
       - "!**/*.md"
 permissions:
   contents: read
 
 concurrency:
-  group: python-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  # Keep validation for distinct commits independent; a new head must not wait
+  # behind a stale mutation campaign from an older commit on the same PR.
+  group: python-tests-${{ github.event.pull_request.number || github.ref }}-${{ github.sha }}
+  # A newer commit supersedes stale tests on the same PR or branch.
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -69,6 +94,20 @@ jobs:
           --cov-report=xml:coverage.xml
           -c integration_test_project/pytest.ini integration_test_project
 
+      - name: Generate separate line and branch coverage totals
+        run: python -m coverage json --pretty-print -o coverage.json
+
+      - name: Preserve combined line and branch coverage evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: combined-package-coverage
+          path: |
+            coverage.json
+            coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload coverage reports to Codecov
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac  # v5.5.5
@@ -79,6 +118,12 @@ jobs:
 
   adversarial:
     name: Adversarial release-readiness campaigns
-    if: github.event_name != 'pull_request'
+    if: >-
+      inputs.run_adversarial ||
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_call'
     needs: test
     uses: ./.github/workflows/adversarial-testing.yml
+    with:
+      run_mutation: true

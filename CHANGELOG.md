@@ -15,9 +15,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Extend the executable OpenAPI consumer contract to exercise versioned API roots and format suffixes alongside per-version schemas, serializer contracts, route removal, and runtime behavior.
 
+### Fixed
+
+- Reject malformed quoted-string syntax in `Accept` media parameters, including unescaped quotes, dangling quoted-pairs, and escaped control characters.
+- Keep `request.path`, `request.path_info`, and `META["PATH_INFO"]` synchronized when header, query, or hostname negotiation rewrites a request, including deployments using `SCRIPT_NAME`.
+- Resolve more-specific static routes ahead of generic converter and regex routes regardless of registration order, and preserve canonical identity for literal `path()` / `re_path()` registrations.
+- Serialize registry, decorator, router, and lifecycle mutations atomically; isolate lifecycle metadata and removal by router ownership so sibling routers cannot affect one another.
+- Reject duplicate generated route patterns across independent routers instead of silently replacing a previously registered callback.
+
+### Compatibility
+
+- Preserve the published `VersionedRouter` and existing URL-path defaults. `VersionedDefaultRouter` is an additive mainline API; it remains unreleased until included in a published package artifact.
+- Keep DRF optional at runtime. The API-root and format-suffix integration reuses DRF public utilities and does not add a package runtime dependency.
+
+### Testing
+
+- Exercise the versioned API root, format suffixes, route removal, per-version OpenAPI schemas, and consumer request behavior in the executable Django consumer project.
+
 ### Documentation
 
 - Define route, schema, and semantic compatibility as separate contracts, with consumer-owned guardrails for each.
+- Document the quality gates, evidence requirements, and release-readiness procedure for the five mutation domains, independent coverage thresholds, compatibility matrix, adversarial testing, and real-consumer contract.
 
 ## [1.3.0] - 2026-11-21
 

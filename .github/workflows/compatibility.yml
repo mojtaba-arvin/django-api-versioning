@@ -1,8 +1,8 @@
 name: Compatibility matrix
 
 on:
-  # Standard GitHub-hosted runners are free for public repositories.
-  # Run the complete matrix on main and for releases; PRs use a bounded smoke matrix.
+  # Validate the entire advertised Python/Django matrix on every PR and main/release.
+  # Keep the cross-platform smoke checks as additional platform-specific coverage.
   push:
     branches:
       - main
@@ -109,10 +109,12 @@ jobs:
     needs: validate-matrix
     name: ${{ matrix.env }}
     runs-on: ubuntu-latest
-    if: inputs.scope != 'pull-request'
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # Reserve runner capacity for the package tests and adversarial checks that
+      # can run alongside this matrix on GitHub Free (20 concurrent jobs).
+      max-parallel: 10
       matrix:
         include:
           - env: py310-django42

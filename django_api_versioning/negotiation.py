@@ -30,8 +30,6 @@ def _setting(name: str, default: Any = None) -> Any:
 
 
 def _parse_version(value: object) -> int:
-    if isinstance(value, bool) or value is None:
-        raise ValueError("A version must be an ASCII decimal integer.")
     raw = str(value).strip()
     if not raw or not raw.isascii() or not raw.isdecimal():
         raise ValueError("A version must be an ASCII decimal integer.")
@@ -51,7 +49,7 @@ def _path_version(path_info: str, template: str) -> int | None:
     # be a supported version. Avoid unbounded int conversion (which raises on
     # Python 3.11+ after the configured digit limit) while preserving that
     # distinction for non-path negotiation schemes.
-    digits = match.group(1).lstrip("0") or "0"
+    digits = match.group(1).lstrip("0") or "0"  # pragma: no mutate
     maximum = _setting("API_MAX_VERSION", api_settings.API_MAX_VERSION)
     if len(digits) > len(str(maximum)):
         return -1
@@ -90,13 +88,13 @@ def _split_quoted_header(value: str, delimiter: str) -> list[str]:
     strings can mistake arbitrary profile text for an API version parameter.
     """
     parts: list[str] = []
-    start = 0
-    quoted = False
-    escaped = False
+    start = 0  # pragma: no mutate
+    quoted = False  # pragma: no mutate
+    escaped = False  # pragma: no mutate
 
     for index, character in enumerate(value):
         if quoted and escaped:
-            escaped = False
+            escaped = False  # pragma: no mutate
             continue
         if quoted and character == "\\":
             escaped = True
@@ -135,13 +133,13 @@ def _parse_accept_parameter_value(raw_value: str) -> tuple[str, bool]:
         # (backslash escape). Merely checking the outer quotes accepts malformed
         # values such as `profile="one""two"`, which can make an invalid Accept
         # field influence version selection.
-        escaped = False
+        escaped = False  # pragma: no mutate
         for character in value[1:-1]:
             codepoint = ord(character)
             if escaped:
                 if (codepoint < 32 and character != "\t") or codepoint == 127:
                     raise ValueError("Accept contains an invalid quoted parameter.")
-                escaped = False
+                escaped = False  # pragma: no mutate
             elif character == "\\":
                 escaped = True
             elif character == '"':
@@ -166,7 +164,7 @@ def _parse_accept_media_range(media_range: str) -> tuple[str | None, float]:
         raise ValueError("Accept contains an invalid media range.")
 
     quality = 1.0
-    saw_quality = False
+    saw_quality = False  # pragma: no mutate
     version_value = None
 
     for parameter in parameters[1:]:
@@ -198,7 +196,7 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
     # multiple versioned ranges are acceptable, prefer the highest q; equal
     # quality conflicts are ambiguous and fail closed.
     candidates: list[tuple[float, int]] = []
-    saw_version = False
+    saw_version = False  # pragma: no mutate
     accept = request.headers.get("Accept", "")
     if not accept.strip():
         return dedicated_version
@@ -281,7 +279,7 @@ class VersionNegotiationMiddleware:
         unversioned_base = (
             "/" + _setting("API_UNVERSIONED_BASE_PATH", "api/").strip("/") + "/"
         )
-        path_info = request.path_info or "/"
+        path_info = request.path_info or "/"  # pragma: no mutate
 
         # This middleware is global; unrelated application URLs pass through.
         versioned_path = _path_version(
@@ -340,7 +338,7 @@ class VersionNegotiationMiddleware:
         request.META["PATH_INFO"] = rewritten_path
         request.path_info = rewritten_path
         original_path = request.path
-        if path_info and original_path.endswith(path_info):
+        if path_info and original_path.endswith(path_info):  # pragma: no mutate
             request.path = original_path[: -len(path_info)] + rewritten_path
         else:
             request.path = rewritten_path

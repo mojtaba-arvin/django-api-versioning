@@ -80,6 +80,26 @@ def parse_progress_summary(run_log: str) -> dict[str, int] | None:
     }
 
 
+def progress_disagrees_with_cache(
+    progress: dict[str, int] | None, summary: dict[str, int]
+) -> bool:
+    """Return whether Mutmut's run progress conflicts with its persisted cache."""
+    if progress is None:
+        return False
+    return any(
+        progress[key] != summary[key]
+        for key in (
+            "completed",
+            "total",
+            "killed",
+            "timed_out",
+            "suspicious",
+            "survived",
+            "skipped",
+        )
+    )
+
+
 def load_mutants(cache_path: Path) -> list[dict[str, Any]]:
     connection = sqlite3.connect(cache_path)
     connection.row_factory = sqlite3.Row
@@ -100,6 +120,29 @@ def load_mutants(cache_path: Path) -> list[dict[str, Any]]:
     finally:
         connection.close()
     return [dict(row) for row in rows]
+
+
+def mutation_line_number(diff: str, fallback: int) -> int:
+    """Return the actual changed source line from mutmut's unified diff.
+
+    Mutmut's cache line number can point at the enclosing AST line rather than
+    the changed statement. The diff hunk is the authoritative source location.
+    """
+    old_line: int | None = None
+    for line in diff.splitlines():
+        if line.startswith("@@"):
+            match = re.search(r"@@ -(\d+)(?:,\d+)? \+\d+(?:,\d+)? @@", line)
+            if match:
+                old_line = int(match.group(1))
+            continue
+        if line.startswith(("---", "+++")):
+            continue
+        if line.startswith("-"):
+            return old_line if old_line is not None else fallback
+        if line.startswith(" "):
+            if old_line is not None:
+                old_line += 1
+    return fallback
 
 
 def executing_tests(
@@ -169,20 +212,8 @@ def main() -> None:
             "target": args.target,
             "runner_exit": args.runner_exit,
             "progress_summary": progress,
-            "progress_disagrees_with_cache": (
-                progress is not None
-                and any(
-                    progress[key] != summary[key]
-                    for key in (
-                        "completed",
-                        "total",
-                        "killed",
-                        "timed_out",
-                        "suspicious",
-                        "survived",
-                        "skipped",
-                    )
-                )
+            "progress_disagrees_with_cache": progress_disagrees_with_cache(
+                progress, summary
             ),
         }
     )
@@ -203,23 +234,25 @@ def main() -> None:
                     text=True,
                     check=False,
                 )
+                changed_line = mutation_line_number(shown.stdout, mutant["line_number"])
                 record = {
                     "target": args.target,
                     "mutant_id": mutant["mutant_id"],
                     "mutation_index": mutant["mutation_index"],
-                    "source_location": (
-                        f"{mutant['filename']}:{mutant['line_number']}"
-                    ),
+                    "source_location": f"{mutant['filename']}:{changed_line}",
                     "source_line": mutant["source_line"],
                     "mutation_type": "review mutation_diff",
                     "mutation_diff": shown.stdout,
                     "mutation_diff_error": shown.stderr if shown.returncode else None,
                     "executing_tests": executing_tests(
-                        coverage_data, mutant["filename"], mutant["line_number"]
+                        coverage_data, mutant["filename"], changed_line
                     ),
                     "classification": "unclassified",
                 }
                 report_file.write(json.dumps(record, sort_keys=True) + "\n")
+
+    if summary["progress_disagrees_with_cache"]:
+        raise SystemExit("Mutmut progress summary disagrees with the persisted cache")
 
 
 if __name__ == "__main__":

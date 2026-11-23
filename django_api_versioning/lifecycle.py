@@ -75,37 +75,38 @@ class LifecycleMiddleware:
     ) -> HttpResponse:
         """Apply lifecycle headers or preserve version-wide 410 behavior."""
         state = _get_lifecycle_state(request)
-        version = None
-        meta = None
-        version_deprecation_date = None
-        version_sunset_date = None
-
         if state is not None:
             version, meta, version_deprecation_date, version_sunset_date = state
 
         # Version-wide retirement remains authoritative and is evaluated
         # before endpoint metadata. Endpoint Sunset never changes the status
         # code or suppresses the existing version-wide 410 contract.
-        if meta and version_sunset_date is not None and _is_past(version_sunset_date):
+        if (
+            state is not None
+            and state[1]
+            and state[3] is not None
+            and _is_past(state[3])
+        ):
             if not getattr(
                 request, "_django_api_version_lifecycle_sunset_enforced", False
             ):
-                sunset = meta.get("sunset")
+                sunset = state[1].get("sunset")
                 response = HttpResponseGone(
-                    f"API version {version} has been retired as of {sunset}."
+                    f"API version {state[0]} has been retired as of {sunset}."
                 )
 
         endpoint_lifecycle = _get_endpoint_lifecycle_state(
             request,
             allow_unmapped_method=response.status_code == 405,
         )
-        if not meta and endpoint_lifecycle is None:
+        if (state is None or not state[1]) and endpoint_lifecycle is None:
             return response
 
         deprecation_dates = []
         sunset_dates = []
 
-        if meta:
+        if state is not None and state[1]:
+            version, meta, version_deprecation_date, version_sunset_date = state
             status = meta.get("status")
             if status in ("deprecated", "retired"):
                 if version_deprecation_date is not None:
@@ -247,7 +248,9 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
     This fallback is used for unresolved requests. A resolved request uses
     ResolverMatch and registry route metadata instead.
     """
-    path = request.path_info or request.path or ""
+    path = request.path_info or request.path
+    if not path:
+        return None
     return _extract_version_from_value(path)
 
 

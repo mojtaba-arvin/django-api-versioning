@@ -7,7 +7,14 @@ from django.urls import path
 
 from django_api_versioning.negotiation import (
     VersionNegotiationMiddleware,
+    _header_version,
     _host_version,
+    _normalize_hostname,
+    _parse_accept_media_range,
+    _parse_accept_parameter_value,
+    _parse_version,
+    _path_version,
+    _split_quoted_header,
 )
 
 
@@ -517,9 +524,7 @@ def test_accept_selects_highest_quality_versioned_media_range():
 def test_accept_equal_quality_conflicting_versions_are_rejected():
     _, response = _dispatch(
         "/api/orders/",
-        HTTP_ACCEPT=(
-            "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
-        ),
+        HTTP_ACCEPT="application/json; version=1; q=0.8, text/csv; version=2; q=0.8",
     )
 
     assert response.status_code == 400
@@ -609,3 +614,263 @@ def test_negotiation_rewrites_path_and_path_info_with_script_prefix():
         "path_info": "/api/v2/orders/",
     }
     assert request.META["PATH_INFO"] == "/api/v2/orders/"
+
+
+@pytest.mark.parametrize("value", [True, None, "", "2.0", "٢"])
+def test_parse_version_rejects_values_outside_ascii_decimal_contract(value):
+    with pytest.raises(
+        ValueError, match=r"^A version must be an ASCII decimal integer\.$"
+    ):
+        _parse_version(value)
+
+
+@override_settings(API_MAX_VERSION=3)
+def test_path_version_handles_supported_and_oversized_decimal_segments():
+    template = "api/v{version}/"
+
+    assert _path_version("/api/v3/orders/", template) == 3
+    assert _path_version("/api/v0002/orders/", template) == 2
+    assert _path_version("/api/v999/orders/", template) == -1
+
+
+@override_settings(ALLOWED_HOSTS=["*"])
+def test_hostname_normalization_removes_exactly_one_root_dot_and_applies_idna():
+    request = RequestFactory().get("/", HTTP_HOST="API.EXAMPLE.COM.")
+
+    assert _normalize_hostname("API.EXAMPLE.COM.") == "api.example.com"
+    assert _normalize_hostname("api.example.com..") is None
+    assert _host_version(request, {"api.example.com": 2}) == 2
+
+
+def test_quoted_header_split_preserves_escaped_delimiters():
+    value = r'profile="one\",two;three", version=2'
+
+    assert _split_quoted_header(value, ",") == [
+        r'profile="one\",two;three"',
+        " version=2",
+    ]
+
+
+@pytest.mark.parametrize("value", ['"one""two"', '"unterminated', '"bad\x00value"'])
+def test_accept_parameter_parser_rejects_malformed_quoted_values(value):
+    with pytest.raises(ValueError):
+        _parse_accept_parameter_value(value)
+
+
+@pytest.mark.parametrize("value", ['"one\\"two"', '"tab\tvalue"'])
+def test_accept_parameter_parser_accepts_valid_quoted_pairs_and_horizontal_tab(value):
+    parsed, quoted = _parse_accept_parameter_value(value)
+
+    assert quoted is True
+    assert parsed
+
+
+def test_accept_parameter_parser_rejects_control_and_delete_characters_exactly():
+    for value in ('"bad\x01value"', '"bad\x7fvalue"'):
+        with pytest.raises(
+            ValueError,
+            match=r"^Accept contains an invalid quoted parameter\.$",
+        ):
+            _parse_accept_parameter_value(value)
+
+
+@pytest.mark.parametrize(
+    "media_range, message",
+    [
+        ("*/json; version=2", "Accept contains an invalid media range."),
+        (
+            "application/json; invalid parameter=x",
+            "Accept contains an invalid media parameter.",
+        ),
+        (
+            "application/json; version=2; version=3",
+            "Accept contains duplicate version parameters.",
+        ),
+        ("application/json; q=1.1", "Accept contains an invalid quality value."),
+    ],
+)
+def test_accept_media_range_parser_preserves_validation_errors(media_range, message):
+    with pytest.raises(ValueError) as error:
+        _parse_accept_media_range(media_range)
+
+    assert str(error.value) == message
+
+
+def test_header_version_rejects_equal_quality_conflicts_with_exact_error():
+    request = RequestFactory().get(
+        "/",
+        HTTP_ACCEPT=(
+            "application/json; version=1; q=0.8, " "text/csv; version=2; q=0.8"
+        ),
+    )
+
+    with pytest.raises(ValueError) as error:
+        _header_version(request, "Accept-Version")
+
+    assert str(error.value) == (
+        "Accept contains equally preferred conflicting API versions."
+    )
+
+
+def test_header_version_rejects_conflicting_dedicated_and_accept_values_exactly():
+    request = RequestFactory().get(
+        "/",
+        HTTP_ACCEPT_VERSION="2",
+        HTTP_ACCEPT="application/json; version=3",
+    )
+
+    with pytest.raises(ValueError) as error:
+        _header_version(request, "Accept-Version")
+
+    assert str(error.value) == (
+        "Accept-Version and Accept media-type version parameters conflict."
+    )
+
+
+def test_header_mode_uses_default_header_name_when_settings_omit_it(monkeypatch):
+    from types import SimpleNamespace
+
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_BASE_PATH="api/v{version}/",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(negotiation_module, "api_settings", SimpleNamespace())
+    request = RequestFactory().get("/api/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 200
+    vary_headers = {header.strip() for header in response["Vary"].split(",")}
+    assert "Accept-Version" in vary_headers
+    assert "XXAccept-VersionXX" not in vary_headers
+    assert "Accept" in vary_headers
+
+
+def test_header_mode_honors_custom_header_in_vary_and_dispatch():
+    with override_settings(
+        API_VERSIONING_SCHEME="header",
+        API_VERSIONING_HEADER="X-Api-Version",
+        API_BASE_PATH="api/v{version}/",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        request = RequestFactory().get("/api/orders/", HTTP_X_API_VERSION="2")
+        response = VersionNegotiationMiddleware(
+            lambda current: HttpResponse(current.path_info)
+        )(request)
+
+    assert response.status_code == 200
+    assert response.content == b"/api/v2/orders/"
+    assert "X-Api-Version" in response["Vary"]
+    assert "Accept" in response["Vary"]
+
+
+def test_header_mode_defaults_maximum_version_to_one(monkeypatch):
+    from types import SimpleNamespace
+
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_BASE_PATH="api/v{version}/",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_VERSIONING_HEADER="Accept-Version",
+            API_MIN_VERSION=1,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_VERSIONING_HEADER="Accept-Version", API_MIN_VERSION=1),
+    )
+    request = RequestFactory().get("/api/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 406
+
+
+def test_header_mode_rejects_path_version_using_default_base_path(monkeypatch):
+    from types import SimpleNamespace
+
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_UNVERSIONED_BASE_PATH="api/",
+            API_VERSIONING_HEADER="Accept-Version",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(
+            API_VERSIONING_HEADER="Accept-Version",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    request = RequestFactory().get("/api/v2/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 400
+
+
+def test_header_mode_rejects_path_version_using_configured_base_path(monkeypatch):
+    from types import SimpleNamespace
+
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_BASE_PATH="custom/v{version}/",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_MAX_VERSION=3),
+    )
+    request = RequestFactory().get("/custom/v2/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 400
+
+
+def test_negotiated_path_preserves_literal_x_edges_in_custom_base_path():
+    with override_settings(
+        API_VERSIONING_SCHEME="header",
+        API_VERSIONING_HEADER="X-Api-Version",
+        API_BASE_PATH="Xapi/v{version}/X",
+        API_UNVERSIONED_BASE_PATH="api/",
+        API_MIN_VERSION=1,
+        API_MAX_VERSION=3,
+    ):
+        request = RequestFactory().get("/api/orders/", HTTP_X_API_VERSION="2")
+        response = VersionNegotiationMiddleware(
+            lambda current: HttpResponse(current.path_info)
+        )(request)
+
+    assert response.status_code == 200
+    assert response.content == b"/Xapi/v2/X/orders/"

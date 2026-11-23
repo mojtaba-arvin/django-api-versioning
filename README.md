@@ -77,10 +77,12 @@ DRF and this package solve related but different parts of API versioning:
 | Responsibility | Django REST Framework | django-api-versioning |
 |---|---|---|
 | Identify a requested version | Built-in schemes such as URL path, namespace, query parameter, hostname, and Accept header | Select one transport per deployment with `API_VERSIONING_SCHEME`; middleware resolves it before Django selects the registered view |
-| Generate ViewSet routes | SimpleRouter and DefaultRouter generate actions and URL patterns | VersionedRouter delegates to SimpleRouter; VersionedDefaultRouter adds a version-specific API root and configurable format suffixes |
+| Generate ViewSet routes | SimpleRouter and DefaultRouter generate actions and URL patterns | `VersionedRouter` delegates to `SimpleRouter`; the unreleased mainline `VersionedDefaultRouter` adds a version-specific API root and configurable format suffixes |
 | Select a different implementation per version | Application code or separately maintained URL configurations | Declarative endpoint registration and per-generated-route inheritance/replacement |
 | Carry unchanged endpoints forward | Application-managed | Built in to the registry |
 | Inspect and guard the effective route matrix | Application-managed | check_versions and assert_version_matrix |
+
+**Release status:** `VersionedDefaultRouter` is present on the repository's unreleased mainline but is not included in the published `1.3.0` wheel. Use the published `VersionedRouter` until a later package release includes the new router.
 
 Use DRF's own versioning schemes when request-version identification is all you need. Use ordinary DRF routers when you want to manage each version's URL configuration yourself. Choose this package when you want a central registry to map each negotiated version to the correct endpoint implementation and carry unchanged routes forward. For ViewSets, use VersionedRouter; for Django views, APIView, and GenericAPIView, use @endpoint.
 
@@ -300,6 +302,10 @@ For migration steps, see the [1.0.0 changelog](https://github.com/mojtaba-arvin/
 - [Request version negotiation design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) — how the selected transport is dispatched, reversed, cached, and secured.
 - [API compatibility boundaries](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/api-compatibility-boundaries.md) — separates route, schema, and semantic compatibility and describes the consumer CI guardrails.
 - [Maintainer and ownership governance](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md) — maintainer progression, release handover, and project continuity.
+
+## Quality and release engineering
+
+The repository enforces five independent mutation-testing domains at 100%, line and branch coverage of at least 95% each, public API and OpenAPI consumer contracts, the configured 16-environment Python/Django tox matrix, adversarial security testing, and real Django consumer integration. Release publication additionally requires exact-commit compatibility evidence, validated wheel and source distributions, and installed-artifact checks. See the [quality and release gates](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/quality/release-gates.md) and the [dated quality evidence](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/reports/quality-2026-11-23.md).
 
 ## Contributing
 

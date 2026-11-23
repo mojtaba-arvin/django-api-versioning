@@ -205,7 +205,7 @@ SYMBOLS = {
 LINES = {
     "segment_loop": ("decorators.py", "for ver in range(version, max_version + 1):"),
     "explicit_loop": ("decorators.py", "for ver in versions:"),
-    "below_min_return": ("decorators.py", "                return view"),
+    "below_min_return": ("decorators.py", "                continue"),
     "below_min_warning": ("decorators.py", '"No routes will be registered."'),
     "newer_wins": ("registry.py", "return source_version >= existing_version"),
     "none_wins": (

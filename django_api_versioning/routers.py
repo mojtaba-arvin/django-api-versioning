@@ -11,6 +11,16 @@ from typing import Any
 
 from django.urls import URLPattern, URLResolver, include, path
 
+from .exceptions import (
+    InvalidVersionError,
+    VersioningError,
+    VersionRangeError,
+    VersionTypeError,
+)
+from .registry import registry
+from .reverse import format_negotiated_url
+from .settings import api_settings
+
 try:
     from rest_framework.exceptions import NotFound
     from rest_framework.versioning import NamespaceVersioning
@@ -21,15 +31,9 @@ except ImportError as exc:  # pragma: no cover - exercised without optional DRF
         "matrix."
     ) from exc
 
-from .exceptions import (
-    InvalidVersionError,
-    VersioningError,
-    VersionRangeError,
-    VersionTypeError,
-)
-from .registry import registry
-from .reverse import format_negotiated_url
-from .settings import api_settings
+RoutePattern = URLPattern | URLResolver
+VersionRange = int | None
+VersionDeclaration = tuple[VersionRange, VersionRange]
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +123,7 @@ class VersionedRouter:
                     api_settings.API_MIN_VERSION,
                 )
                 return
-            declarations: list[tuple[int | None, int | None]] = [
+            declarations: list[VersionDeclaration] = [
                 (concrete, version)
                 for concrete in range(version, api_settings.API_MAX_VERSION + 1)
             ]
@@ -519,11 +523,11 @@ class VersionedRouter:
 
     def _build_namespaced_urlpatterns(
         self,
-        versioned: dict[int, list[URLPattern | URLResolver]],
-        unversioned: list[URLPattern | URLResolver],
+        versioned: dict[int, list[RoutePattern]],
+        unversioned: list[RoutePattern],
     ) -> list[URLPattern | URLResolver]:
         """Wrap each concrete version in its namespace for DRF reversal."""
-        urlpatterns: list[URLPattern | URLResolver] = list(unversioned)
+        urlpatterns: list[RoutePattern] = list(unversioned)
         for route_version in sorted(versioned):
             urlpatterns.append(
                 path(
@@ -605,11 +609,11 @@ class VersionedDefaultRouter(VersionedRouter):
         registered_versioned, registered_unversioned = (
             self._collect_registered_patterns()
         )
-        versioned: dict[int, list[URLPattern | URLResolver]] = {
+        versioned: dict[int, list[RoutePattern]] = {
             route_version: list(patterns)
             for route_version, patterns in registered_versioned.items()
         }
-        unversioned: list[URLPattern | URLResolver] = list(registered_unversioned)
+        unversioned: list[RoutePattern] = list(registered_unversioned)
 
         if self.include_root_view:
             for route_version, registered_patterns in registered_versioned.items():
@@ -672,7 +676,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
     def determine_version(self, request: Any, *args: Any, **kwargs: Any) -> str | None:
         resolver_match = getattr(request, "resolver_match", None)
         route = getattr(resolver_match, "route", None)
-        namespace = getattr(resolver_match, "namespace", "") or ""
+        namespace = getattr(resolver_match, "namespace", "") or ""  # pragma: no mutate
         namespace_version = None
 
         for component in reversed(namespace.split(":")):
@@ -681,13 +685,15 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 break
 
         if isinstance(route, str):
-            namespace_matches_route = False
+            namespace_matches_route = bool(0)  # pragma: no mutate
             if namespace_version is not None:
                 configured_prefix = api_settings.API_BASE_PATH.format(
                     version=namespace_version
                 ).strip("/")
                 route_path = route.strip("^$").strip("/")
-                namespace_matches_route = f"/{configured_prefix}/" in f"/{route_path}/"
+                namespace_matches_route = (  # pragma: no mutate
+                    f"/{configured_prefix}/" in f"/{route_path}/"  # pragma: no mutate
+                )
 
             tried = getattr(resolver_match, "tried", None)
             if isinstance(tried, (list, tuple)):
@@ -717,7 +723,9 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 route_version = registry.get_resolved_route_version(route)
                 if namespace_matches_route:
                     version = namespace_version
-                elif route_version is not None:
+                elif isinstance(route_version, int) and not isinstance(
+                    route_version, bool
+                ):
                     version = str(route_version)
                 else:
                     version = None

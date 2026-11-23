@@ -68,8 +68,18 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         in {
             "pytest.ini",
             ".github/workflows/tests.yml",
+            ".github/workflows/adversarial-testing.yml",
+            ".github/actions/mutation-shard/action.yml",
+            ".github/workflows/mutation-shard.yml",
+            ".github/workflows/pull-request-gate.yml",
+            ".github/workflows/compatibility.yml",
+            ".github/workflows/openapi-contract.yml",
+            ".github/workflows/package-artifacts.yml",
+            ".github/workflows/publish.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
+            "scripts/check_coverage_thresholds.py",
+            "scripts/check_reproducible_build.py",
         }
         or path in PYTHON_DEPENDENCIES
         or (path.startswith("requirements") and path.endswith(".txt"))
@@ -93,6 +103,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
             ".github/workflows/package-artifacts.yml",
             "scripts/verify_distribution_contents.py",
             "scripts/smoke_installed_wheel.py",
+            "scripts/check_reproducible_build.py",
         }
         for path in normalized
     )
@@ -142,7 +153,7 @@ def classify_paths(paths: list[str]) -> dict[str, bool]:
         or path.endswith("/requirements.txt")
         for path in normalized
     )
-    is_openapi = any(
+    is_openapi = is_python or any(
         path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
         for path in normalized
     )
