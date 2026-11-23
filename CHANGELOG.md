@@ -7,13 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-23
+
 ### Added
 
 - Add `VersionedDefaultRouter` with a version-specific API root and optional DRF format-suffix routes. API root links are derived from the effective route set for each version after inheritance and explicit removal.
-
-### Testing
-
-- Extend the executable OpenAPI consumer contract to exercise versioned API roots and format suffixes alongside per-version schemas, serializer contracts, route removal, and runtime behavior.
 
 ### Fixed
 
@@ -28,9 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve the published `VersionedRouter` and existing URL-path defaults. `VersionedDefaultRouter` is an additive mainline API; it remains unreleased until included in a published package artifact.
 - Keep DRF optional at runtime. The API-root and format-suffix integration reuses DRF public utilities and does not add a package runtime dependency.
 
-### Testing
-
-- Exercise the versioned API root, format suffixes, route removal, per-version OpenAPI schemas, and consumer request behavior in the executable Django consumer project.
 
 ### Documentation
 
