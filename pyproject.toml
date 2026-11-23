@@ -126,6 +126,7 @@ testpaths = ["tests"]
 addopts = "-ra --cov=django_api_versioning --cov-report=term-missing"
 
 [tool.coverage.run]
+branch = true
 source = ["django_api_versioning"]
 omit = ["*/tests/*", "*/migrations/*"]
 
