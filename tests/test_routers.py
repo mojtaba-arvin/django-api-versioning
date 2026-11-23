@@ -693,3 +693,98 @@ def test_router_boolean_options_require_actual_booleans(option, value):
     options = {option: value}
     with pytest.raises(TypeError, match=f"{option} must be a bool"):
         VersionedRouter(**options)
+
+
+def test_versioned_router_lifecycle_prefix_validation_covers_type_and_path_edges():
+    router = VersionedRouter()
+    expected = "prefix must be a non-empty relative path without leading or trailing '/'."
+
+    for prefix in (123, "", "/orders", "orders/"):
+        with pytest.raises(VersioningError) as error:
+            router.set_lifecycle(
+                prefix,
+                "order-list",
+                version=2,
+                deprecated_at="2027-01-01T00:00:00Z",
+            )
+        assert str(error.value) == expected
+
+
+def test_versioned_router_remove_reports_exact_prefix_validation_error():
+    router = VersionedRouter()
+
+    with pytest.raises(VersioningError) as error:
+        router.remove("/posts", "post-list", from_version=2)
+
+    assert str(error.value) == (
+        "prefix must be a non-empty relative path without leading or trailing '/'."
+    )
+
+
+def test_path_converter_router_prefix_validation_uses_public_setting_name():
+    router = VersionedRouter(use_regex_path=False)
+
+    with pytest.raises(VersioningError) as error:
+        router.register("orders%2Fadmin", PostViewSetV1, version=1, basename="order")
+
+    assert str(error.value) == (
+        "prefix must not contain percent-encoded path separators or query/fragment delimiters."
+    )
+
+
+def test_explicit_versions_below_minimum_emit_exact_warning(caplog):
+    router = VersionedRouter()
+
+    with override_settings(API_MIN_VERSION=2):
+        with caplog.at_level("WARNING"):
+            router.register(
+                "below-minimum",
+                PostViewSetV1,
+                versions=[1],
+                basename="below-minimum",
+            )
+
+    expected = (
+        "ViewSet prefix 'below-minimum' includes version 1, below "
+        "API_MIN_VERSION 2. Skipping this version."
+    )
+    assert any(record.getMessage() == expected for record in caplog.records)
+
+
+def test_router_versioning_does_not_trust_namespace_without_matching_route(
+    monkeypatch,
+):
+    import django_api_versioning.routers as router_module
+
+    adapter = VersionedRouterVersioning()
+    adapter.default_version = None
+    adapter.allowed_versions = ["2"]
+    monkeypatch.setattr(
+        router_module.registry, "get_resolved_route_version", lambda route: None
+    )
+    monkeypatch.setattr(
+        router_module.api_settings, "API_BASE_PATH", "api/v{version}/"
+    )
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(route="other/orders/", namespace="v2")
+    )
+
+    with pytest.raises(NotFound):
+        adapter.determine_version(request)
+
+
+def test_router_versioning_rejects_boolean_registered_route_version(monkeypatch):
+    import django_api_versioning.routers as router_module
+
+    adapter = VersionedRouterVersioning()
+    adapter.default_version = None
+    adapter.allowed_versions = ["True"]
+    monkeypatch.setattr(
+        router_module.registry, "get_resolved_route_version", lambda route: True
+    )
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(route="unmapped/", namespace="")
+    )
+
+    with pytest.raises(NotFound):
+        adapter.determine_version(request)
