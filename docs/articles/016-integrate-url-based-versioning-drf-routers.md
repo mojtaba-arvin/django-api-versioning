@@ -21,16 +21,17 @@ Django REST Framework's `ModelViewSet` and routers are a natural fit for resourc
 
 When a project uses both patterns, URL-based API versioning needs to accommodate both.
 
-[django-api-versioning](https://pypi.org/project/django-api-versioning/) provides declarative URL registration for Django-native views and an optional `VersionedRouter` integration for DRF `ViewSet` and `ModelViewSet` classes. The router delegates URL generation to DRF's `SimpleRouter` and adds version-aware registration and per-route inheritance.
+[django-api-versioning](https://pypi.org/project/django-api-versioning/) provides declarative URL registration for Django-native views and optional `VersionedRouter` / `VersionedDefaultRouter` integrations for DRF `ViewSet` and `ModelViewSet` classes. `VersionedRouter` delegates URL generation to DRF's `SimpleRouter` and adds version-aware registration and per-route inheritance. `VersionedDefaultRouter` (package version 1.4.0+) additionally provides a version-specific API root and optional format-suffix routes.
 
 Use the registration mechanism that matches each view type:
 
 - `VersionedRouter` for resource-oriented DRF ViewSets and their generated actions.
+- `VersionedDefaultRouter` when those ViewSets also need a browsable API root and `.json`-style suffixes per version.
 - `@endpoint` from `django-api-versioning` for function-based views, Django class-based views, DRF `APIView`, and `GenericAPIView` endpoints.
 
-Both registration styles can coexist in one Django URLconf. For the complete ViewSet contract, see [Versioned DRF ViewSets with Route-Level Inheritance](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
+These registration styles can coexist in one Django URLconf. For the complete ViewSet contract, see [Versioned DRF ViewSets with Route-Level Inheritance](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/).
 
-`VersionedRouter` delegates route generation to DRF's `SimpleRouter`; `VersionedRouterVersioning` reads the version namespace and exposes it through DRF's `request.version`. The package does not replace DRF's ViewSet dispatch, serializers, permissions, or other request behavior.
+Both routers register generated patterns in the package registry; `VersionedRouterVersioning` reads the version namespace and exposes it through DRF's `request.version`. The package does not replace DRF's ViewSet dispatch, serializers, permissions, or other request behavior.
 
 ## Combining routers and @endpoint in one project
 
@@ -267,7 +268,7 @@ product_list = endpoint(
 
 This registers one route with the specified action mapping. It does not replace a router's responsibility for generating list, detail, and custom-action routes.
 
-For resource-oriented endpoints, use `VersionedRouter` when you want package-managed version inheritance. Use `@endpoint` for APIView or GenericAPIView endpoints that do not fit the ViewSet model.
+For resource-oriented endpoints, use `VersionedRouter` or `VersionedDefaultRouter` when you want package-managed version inheritance. Use `@endpoint` for APIView or GenericAPIView endpoints that do not fit the ViewSet model.
 
 ## Manual per-version routers for ViewSet-only APIs
 
@@ -417,6 +418,6 @@ The package adds value when you want per-route version inheritance for ViewSets,
 
 ## Next steps
 
-For projects that combine resource-oriented ViewSets with APIView-based endpoints, use `VersionedRouter` for ViewSets and `@endpoint` for individual APIView-style endpoints. See the [dedicated ViewSet integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for version registration, inheritance, reversal, and lifecycle boundaries.
+For projects that combine resource-oriented ViewSets with APIView-based endpoints, use `VersionedRouter` or `VersionedDefaultRouter` for ViewSets and `@endpoint` for individual APIView-style endpoints. See the [dedicated ViewSet integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/025-django-api-versioning-viewset-support-limitations/) for version registration, inheritance, reversal, and lifecycle boundaries.
 
 Explore the [django-api-versioning repository](https://github.com/mojtaba-arvin/django-api-versioning) for the implementation and integration examples.
