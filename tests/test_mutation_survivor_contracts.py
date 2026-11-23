@@ -1837,121 +1837,86 @@ def test_mutation95_lifecycle_default_resolution_and_response_contracts(
 
 def test_mutation95_registry_import_time_contracts_are_exercised():
     import importlib
-    import importlib.util
-    import os
-    import subprocess
-    import sys
-    from pathlib import Path
     from typing import Callable
 
     from django.urls import URLPattern
 
     registry_module = importlib.import_module("django_api_versioning.registry")
-    source_root = str(Path(registry_module.__file__).resolve().parents[1])
-    environment = {
-        **os.environ,
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONPATH": os.pathsep.join(
-            filter(None, (source_root, os.environ.get("PYTHONPATH", "")))
-        ),
-    }
-    fresh_import = subprocess.run(
-        [
-            sys.executable,
-            "-B",
-            "-c",
-            (
-                "from django_api_versioning.registry import registry, UrlRegistry; "
-                "assert isinstance(registry, UrlRegistry), type(registry).__name__"
-            ),
-        ],
-        cwd=source_root,
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=False,
+
+    # Assert the live module state that mutmut has imported. Reloading from disk
+    # here would replace the active mutant with the original source.
+    assert isinstance(registry_module.registry, registry_module.UrlRegistry)
+    assert registry_module.REMOVED_ROUTE is not None
+    assert registry_module.ViewType is not None
+    assert registry_module.VersionKey == int | None
+    assert registry_module.VersionMatrix == dict[
+        str, dict[registry_module.VersionKey, Callable]
+    ]
+    assert registry_module.ResolvedRouteCandidate == tuple[
+        int, URLPattern, str, int, registry_module.VersionKey
+    ]
+    assert registry_module.RouteSortKey == tuple[
+        bool, registry_module.VersionKey, bool, int, int
+    ]
+    assert registry_module._UNOWNED_OWNER_IDENTITY is not None
+    assert registry_module._ROUTER_OWNER_IDENTITY is not None
+    assert (
+        registry_module._UNOWNED_OWNER_IDENTITY
+        is not registry_module._ROUTER_OWNER_IDENTITY
     )
-    assert fresh_import.returncode == 0, fresh_import.stderr
-    module_name = "django_api_versioning._mutation_probe_registry"
-    spec = importlib.util.spec_from_file_location(module_name, registry_module.__file__)
-    assert spec is not None and spec.loader is not None
-    probe = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = probe
-    try:
-        # Mutmut can rewrite same-size source within one timestamp tick.
-        # Remove bytecode so this probe always executes the mutated source.
-        cache_path = importlib.util.cache_from_source(registry_module.__file__)
-        Path(cache_path).unlink(missing_ok=True)
-        importlib.invalidate_caches()
-        spec.loader.exec_module(probe)
-        assert probe.REMOVED_ROUTE is not None
-        assert probe.ViewType is not None
-        assert probe.VersionKey == int | None
-        assert probe.VersionMatrix == dict[str, dict[probe.VersionKey, Callable]]
-        assert (
-            probe.ResolvedRouteCandidate
-            == tuple[int, URLPattern, str, int, probe.VersionKey]
-        )
-        assert probe.RouteSortKey == tuple[bool, probe.VersionKey, bool, int, int]
-        assert probe._UNOWNED_OWNER_IDENTITY is not None
-        assert probe._ROUTER_OWNER_IDENTITY is not None
-        assert probe._UNOWNED_OWNER_IDENTITY is not probe._ROUTER_OWNER_IDENTITY
-        assert isinstance(probe.registry, probe.UrlRegistry)
-        assert probe.UrlRegistry._SOURCE_VERSION_ATTR == (
-            "_django_api_versioning_source_version"
-        )
-        assert probe.UrlRegistry._ROUTE_VERSION_ATTR == (
-            "_django_api_versioning_route_version"
-        )
-        assert probe.UrlRegistry._LOGICAL_ENDPOINT_ATTR == (
-            "_django_api_versioning_logical_endpoint"
-        )
-        assert probe.UrlRegistry._ROUTER_OWNER_ATTR == (
-            "_django_api_versioning_router_owner"
-        )
-        assert probe.UrlRegistry._ROUTER_PREFIX_ATTR == (
-            "_django_api_versioning_router_prefix"
-        )
-        assert probe.UrlRegistry._ROUTER_TRAILING_SLASH_ATTR == (
-            "_django_api_versioning_router_trailing_slash"
-        )
+    assert registry_module.UrlRegistry._SOURCE_VERSION_ATTR == (
+        "_django_api_versioning_source_version"
+    )
+    assert registry_module.UrlRegistry._ROUTE_VERSION_ATTR == (
+        "_django_api_versioning_route_version"
+    )
+    assert registry_module.UrlRegistry._LOGICAL_ENDPOINT_ATTR == (
+        "_django_api_versioning_logical_endpoint"
+    )
+    assert registry_module.UrlRegistry._ROUTER_OWNER_ATTR == (
+        "_django_api_versioning_router_owner"
+    )
+    assert registry_module.UrlRegistry._ROUTER_PREFIX_ATTR == (
+        "_django_api_versioning_router_prefix"
+    )
+    assert registry_module.UrlRegistry._ROUTER_TRAILING_SLASH_ATTR == (
+        "_django_api_versioning_router_trailing_slash"
+    )
 
-        operation = probe.ResolvedOperation(
-            logical_endpoint="orders",
-            route_version=2,
-            source_version=1,
-            method="GET",
-            action="list",
-            route_name="order-list",
-            namespace="v2",
-            route="api/v2/orders/",
-            registered_route="api/v2/orders/",
-        )
-        assert not hasattr(operation, "__dict__")
-        assert operation.router_owner is None
-        with pytest.raises(FrozenInstanceError):
-            operation.route = "api/v1/orders/"
+    operation = registry_module.ResolvedOperation(
+        logical_endpoint="orders",
+        route_version=2,
+        source_version=1,
+        method="GET",
+        action="list",
+        route_name="order-list",
+        namespace="v2",
+        route="api/v2/orders/",
+        registered_route="api/v2/orders/",
+    )
+    assert not hasattr(operation, "__dict__")
+    assert operation.router_owner is None
+    with pytest.raises(FrozenInstanceError):
+        operation.route = "api/v1/orders/"
 
-        synchronized_methods = (
-            "clear",
-            "remove",
-            "register",
-            "register_urlpattern",
-            "get_route_version",
-            "get_version_matrix",
-            "get_logical_version_matrix",
-            "get_resolved_route_version_for_match",
-            "get_resolved_route_version",
-            "resolve_operation",
-            "resolve_registered_operation",
-            "register_endpoint_lifecycle",
-        )
-        for method_name in synchronized_methods:
-            method = getattr(probe.UrlRegistry, method_name)
-            assert method.__name__ == method_name
-            assert callable(getattr(method, "__wrapped__", None))
-    finally:
-        sys.modules.pop(module_name, None)
+    synchronized_methods = (
+        "clear",
+        "remove",
+        "register",
+        "register_urlpattern",
+        "get_route_version",
+        "get_version_matrix",
+        "get_logical_version_matrix",
+        "get_resolved_route_version_for_match",
+        "get_resolved_route_version",
+        "resolve_operation",
+        "resolve_registered_operation",
+        "register_endpoint_lifecycle",
+    )
+    for method_name in synchronized_methods:
+        method = getattr(registry_module.UrlRegistry, method_name)
+        assert method.__name__ == method_name
+        assert callable(getattr(method, "__wrapped__", None))
 
 
 def test_mutation95_registry_removal_boundaries_are_inclusive_and_source_aware(
@@ -2977,52 +2942,20 @@ def test_mutation100_router_tombstones_validation_and_action_errors_are_exact():
 def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     monkeypatch, caplog
 ):
-    import importlib
-    import importlib.util
     import inspect
-    import os
-    import subprocess
-    import sys
-    from pathlib import Path
 
     from django.urls import URLPattern, URLResolver
 
     import django_api_versioning.routers as router_module
 
-    source_root = str(Path(router_module.__file__).resolve().parents[1])
-    environment = {
-        **os.environ,
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONPATH": os.pathsep.join(
-            filter(None, (source_root, os.environ.get("PYTHONPATH", "")))
-        ),
-    }
-    fresh_import = subprocess.run(
-        [
-            sys.executable,
-            "-B",
-            "-c",
-            (
-                "from django.urls import URLPattern, URLResolver; "
-                "from django_api_versioning.routers import RoutePattern, VersionRange; "
-                "assert RoutePattern == URLPattern | URLResolver; "
-                "assert VersionRange == int | None"
-            ),
-        ],
-        cwd=source_root,
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert fresh_import.returncode == 0, fresh_import.stderr
+    # Inspect the live imported module before any reload. A reload would discard
+    # import-time mutants and make these contracts ineffective.
+    assert router_module.RoutePattern == URLPattern | URLResolver
+    assert router_module.VersionRange == int | None
+    assert router_module.VersionDeclaration == tuple[
+        router_module.VersionRange, router_module.VersionRange
+    ]
 
-    # Mutmut can rewrite same-size source within one timestamp tick.
-    # Remove bytecode so reload observes the mutated module source.
-    cache_path = importlib.util.cache_from_source(router_module.__file__)
-    Path(cache_path).unlink(missing_ok=True)
-    importlib.invalidate_caches()
-    router_module = importlib.reload(router_module)
     defaults = inspect.signature(
         router_module.VersionedDefaultRouter.__init__
     ).parameters
@@ -3030,12 +2963,6 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     assert defaults["root_view_name"].default == "api-root"
     assert defaults["trailing_slash"].default is True
     assert defaults["use_regex_path"].default is True
-    assert router_module.RoutePattern == URLPattern | URLResolver
-    assert router_module.VersionRange == int | None
-    assert (
-        router_module.VersionDeclaration
-        == tuple[router_module.VersionRange, router_module.VersionRange]
-    )
     router_defaults = inspect.signature(
         router_module.VersionedRouter.__init__
     ).parameters
