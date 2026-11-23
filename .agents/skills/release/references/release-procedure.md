@@ -102,7 +102,7 @@ Require the always-running `PR gate` to pass for the exact latest PR head SHA. T
 - Dependency-only or compatibility-matrix changes run the full matrix on the PR. Do not run the full matrix and PR smoke matrix together.
 - Website/article and agent-policy checks run only when their inputs change.
 
-Successful Deep Quality and full compatibility runs upload separate 90-day evidence artifacts. Each artifact records fingerprints for the relevant source, tests, dependency inputs, and effective CI configuration. The tag workflow reuses only successful artifacts whose fingerprints match the tagged source. A package-version bump and documentation-only edit do not invalidate the evidence; a source, dependency, test, matrix, classifier, or quality-workflow change does.
+Successful Deep Quality, OpenAPI consumer-contract, and full compatibility runs upload separate 90-day evidence artifacts. Each artifact records fingerprints for the relevant source, tests, dependency inputs, and effective CI configuration. The tag workflow reuses only successful artifacts whose fingerprints match the tagged source. A package-version bump and documentation-only edit do not invalidate the evidence; a source, dependency, test, matrix, classifier, or quality-workflow change does.
 
 The exact thresholds and implementation are maintained in [the release-gates contract](../../../../docs/quality/release-gates.md) and [the CI execution architecture](../../../../docs/quality/ci-execution-architecture.md). A skipped child is acceptable only when the classifier proves its scope unchanged. A missing, expired, failed, or mismatched evidence artifact blocks publication. If evidence is missing, deliberately run the required workflows on the candidate source; never bypass the gate.
 
