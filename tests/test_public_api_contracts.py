@@ -27,9 +27,15 @@ def test_package_root_exports_the_complete_stable_public_api():
 
     assert django_api_versioning.__all__ == expected
     assert django_api_versioning.endpoint is decorators.endpoint is endpoint
-    assert django_api_versioning.remove_endpoint is decorators.remove_endpoint
-    assert django_api_versioning.set_endpoint_lifecycle is (
-        decorators.set_endpoint_lifecycle
+    assert (
+        django_api_versioning.remove_endpoint
+        is decorators.remove_endpoint
+        is remove_endpoint
+    )
+    assert (
+        django_api_versioning.set_endpoint_lifecycle
+        is decorators.set_endpoint_lifecycle
+        is set_endpoint_lifecycle
     )
     assert django_api_versioning.ver_range is decorators.ver_range is ver_range
     assert django_api_versioning.api_reverse is reverse.api_reverse is api_reverse
