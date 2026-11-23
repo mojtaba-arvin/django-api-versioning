@@ -272,9 +272,6 @@ def endpoint(
             app_name,
             view_name,
         )
-        if version is not None:
-            if version < settings.API_MIN_VERSION:
-                return view
         return view
 
     return decorator

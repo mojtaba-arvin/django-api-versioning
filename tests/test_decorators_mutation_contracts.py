@@ -6,6 +6,7 @@ were surviving the full-suite mutation baseline.
 """
 
 import pytest
+from django.urls import path
 from rest_framework import viewsets
 from rest_framework.response import Response
 
@@ -22,6 +23,7 @@ from django_api_versioning.exceptions import (
     VersionRangeError,
     VersionTypeError,
 )
+from django_api_versioning.registry import registry
 from django_api_versioning.routers import VersionedRouter
 from django_api_versioning.settings import api_settings
 
@@ -183,3 +185,24 @@ def test_decorator_removal_reports_exact_router_ownership_error():
         "Endpoint 'router-owned-tombstone' is owned by a VersionedRouter; "
         "use router.remove() instead."
     )
+
+
+def test_remove_endpoint_does_not_treat_unowned_matching_tombstone_as_router_owned(
+    monkeypatch,
+):
+    pattern = path("billing/orders/", lambda request: Response())
+    setattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, "billing/orders")
+    setattr(pattern, registry._ROUTER_OWNER_ATTR, None)
+    registry._removed_patterns[("billing/orders", 2)] = pattern
+    removed = []
+    monkeypatch.setattr(
+        registry,
+        "remove",
+        lambda logical_endpoint, from_version: removed.append(
+            (logical_endpoint, from_version)
+        ),
+    )
+
+    remove_endpoint("orders", from_version=2, app_name="billing")
+
+    assert removed == [("billing/orders", 2)]

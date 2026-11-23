@@ -49,9 +49,7 @@ def test_pre_mutation_does_not_select_a_test_from_the_previous_line(tmp_path):
     pre_mutation(context)
 
     assert wrong_node_id not in context.config.test_command
-    assert "tests/test_mutation_survivor_contracts.py" in (
-        context.config.test_command
-    )
+    assert "tests/test_mutation_survivor_contracts.py" in context.config.test_command
 
 
 def test_pre_mutation_fallback_includes_survivor_contracts_for_every_domain(
@@ -109,8 +107,7 @@ def test_pre_mutation_uses_domain_fallback_for_excessive_contexts(
 ):
     source_path = tmp_path / source_name
     broad_contexts = [
-        f"tests/test_unrelated.py::test_context_{index}|run"
-        for index in range(501)
+        f"tests/test_unrelated.py::test_context_{index}|run" for index in range(501)
     ]
     context = _context(
         source_path,
@@ -135,3 +132,29 @@ def test_pre_mutation_fallback_does_not_duplicate_contract_module(tmp_path):
     selected = shlex.split(context.config.test_command)
     assert selected.count("tests/test_mutation_survivor_contracts.py") == 1
     assert not any("::test_mutation" in item for item in selected)
+
+
+@pytest.mark.parametrize(
+    "source_name",
+    ["decorators.py", "lifecycle.py", "negotiation.py", "registry.py", "routers.py"],
+)
+def test_pre_mutation_selects_its_domain_contract_probes_for_covered_lines(
+    tmp_path, source_name
+):
+    source_path = tmp_path / source_name
+    context = _context(
+        source_path,
+        42,
+        {
+            os.path.abspath(source_path): {
+                43: ["tests/test_probe.py::test_line_context|run"]
+            }
+        },
+    )
+    expected = set(_contract_test_node_ids(source_name))
+
+    pre_mutation(context)
+
+    selected = set(shlex.split(context.config.test_command))
+    assert expected <= selected
+    assert "tests/test_probe.py::test_line_context" in selected

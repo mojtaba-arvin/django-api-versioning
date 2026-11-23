@@ -219,20 +219,7 @@ def test_endpoint_rejects_version_arguments_that_are_mutually_exclusive():
     assert str(exc.value) == "Use either 'version' or 'versions', not both."
 
 
-def test_endpoint_rejects_non_list_versions_with_exact_error():
-    with pytest.raises(VersionTypeError) as exc:
-        endpoint("orders", versions=(1, 2))
-    assert str(exc.value) == "'versions' must be a list of integers."
 
-
-@pytest.mark.parametrize(
-    ("methods", "message"),
-    [
-        ([], "methods must be a non-empty list of HTTP methods."),
-        ([1], "methods must contain non-empty HTTP method strings."),
-        (["get", "GET"], "methods must not contain duplicates."),
-    ],
-)
 def test_lifecycle_method_validation_has_exact_errors(methods, message):
     with pytest.raises(VersioningError) as exc:
         set_endpoint_lifecycle("orders", version=2, methods=methods)

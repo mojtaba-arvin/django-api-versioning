@@ -75,11 +75,6 @@ class LifecycleMiddleware:
     ) -> HttpResponse:
         """Apply lifecycle headers or preserve version-wide 410 behavior."""
         state = _get_lifecycle_state(request)
-        version = None
-        meta = None
-        version_deprecation_date = None
-        version_sunset_date = None
-
         if state is not None:
             version, meta, version_deprecation_date, version_sunset_date = state
 
@@ -99,13 +94,14 @@ class LifecycleMiddleware:
             request,
             allow_unmapped_method=response.status_code == 405,
         )
-        if not meta and endpoint_lifecycle is None:
+        if (state is None or not state[1]) and endpoint_lifecycle is None:
             return response
 
         deprecation_dates = []
         sunset_dates = []
 
-        if meta:
+        if state is not None and state[1]:
+            version, meta, version_deprecation_date, version_sunset_date = state
             status = meta.get("status")
             if status in ("deprecated", "retired"):
                 if version_deprecation_date is not None:
@@ -247,7 +243,9 @@ def _extract_version_from_path(request: HttpRequest) -> int | None:
     This fallback is used for unresolved requests. A resolved request uses
     ResolverMatch and registry route metadata instead.
     """
-    path = request.path_info or request.path or ""
+    path = request.path_info or request.path
+    if not path:
+        return None
     return _extract_version_from_value(path)
 
 

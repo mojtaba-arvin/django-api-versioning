@@ -3290,3 +3290,9 @@ def test_mutation100_negotiation_header_default_and_hostname_error_are_observabl
     response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
     assert request.path_info == "/api/v2/orders/"
+
+
+def test_mutation95_lifecycle_empty_request_path_does_not_invent_a_version():
+    request = SimpleNamespace(path_info="", path="")
+
+    assert _extract_version_from_path(request) is None
