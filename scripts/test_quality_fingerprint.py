@@ -36,11 +36,11 @@ class QualityFingerprintTests(unittest.TestCase):
         runtime_change = dict(before)
         runtime_change["django_api_versioning/routers.py"] = b"class Router: changed\n"
         dependency_change = dict(before)
-        dependency_change["pyproject.toml"] = b'[project]\nname = "django-api-versioning"\nversion = "1.3.0"\ndependencies = ["Django>=5.0"]\n'
-        baseline = fingerprint_files(before, scope="deep")
-        self.assertNotEqual(
-            baseline, fingerprint_files(runtime_change, scope="deep")
+        dependency_change["pyproject.toml"] = (
+            b'[project]\nname = "django-api-versioning"\nversion = "1.3.0"\ndependencies = ["Django>=5.0"]\n'
         )
+        baseline = fingerprint_files(before, scope="deep")
+        self.assertNotEqual(baseline, fingerprint_files(runtime_change, scope="deep"))
         self.assertNotEqual(
             baseline, fingerprint_files(dependency_change, scope="deep")
         )
@@ -67,9 +67,7 @@ class QualityFingerprintTests(unittest.TestCase):
             "docs/design/versioned-openapi-contract.md": b"Contract v1\n",
         }
         after = dict(before)
-        after["examples/openapi_contract/schemas/v1/openapi.yaml"] = (
-            b"openapi: 3.1.1\n"
-        )
+        after["examples/openapi_contract/schemas/v1/openapi.yaml"] = b"openapi: 3.1.1\n"
         self.assertNotEqual(
             fingerprint_files(before, scope="openapi"),
             fingerprint_files(after, scope="openapi"),
