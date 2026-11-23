@@ -104,6 +104,20 @@ class QualityFingerprintTests(unittest.TestCase):
             fingerprint_files(after, scope="compatibility"),
         )
 
+
+    def test_deep_fingerprint_tracks_adversarial_fuzz_script_and_corpus(self):
+        before = {
+            "scripts/fuzz_negotiation.py": b"def fuzz(): pass\\n",
+            "fuzz_corpus/negotiation/seed": b"seed-v1",
+            ".github/workflows/adversarial-testing.yml": b"workflow_call: {}\\n",
+        }
+        after = dict(before)
+        after["fuzz_corpus/negotiation/seed"] = b"seed-v2"
+        self.assertNotEqual(
+            fingerprint_files(before, scope="deep"),
+            fingerprint_files(after, scope="deep"),
+        )
+
     def test_documentation_is_not_part_of_runtime_quality_fingerprint(self):
         files = {
             "django_api_versioning/routers.py": b"class Router: pass\n",
