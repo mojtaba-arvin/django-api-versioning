@@ -729,6 +729,7 @@ def test_header_version_rejects_conflicting_dedicated_and_accept_values_exactly(
 
 def test_header_mode_uses_default_header_name_when_settings_omit_it(monkeypatch):
     from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
@@ -747,8 +748,10 @@ def test_header_mode_uses_default_header_name_when_settings_omit_it(monkeypatch)
     response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
 
     assert response.status_code == 200
-    assert "Accept-Version" in response["Vary"]
-    assert "Accept" in response["Vary"]
+    vary_headers = {header.strip() for header in response["Vary"].split(",")}
+    assert "Accept-Version" in vary_headers
+    assert "XXAccept-VersionXX" not in vary_headers
+    assert "Accept" in vary_headers
 
 
 def test_header_mode_honors_custom_header_in_vary_and_dispatch():
@@ -773,6 +776,7 @@ def test_header_mode_honors_custom_header_in_vary_and_dispatch():
 
 def test_header_mode_defaults_maximum_version_to_one(monkeypatch):
     from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
@@ -799,6 +803,7 @@ def test_header_mode_defaults_maximum_version_to_one(monkeypatch):
 
 def test_header_mode_rejects_path_version_using_default_base_path(monkeypatch):
     from types import SimpleNamespace
+
     import django_api_versioning.negotiation as negotiation_module
 
     monkeypatch.setattr(
@@ -822,6 +827,28 @@ def test_header_mode_rejects_path_version_using_default_base_path(monkeypatch):
         ),
     )
     request = RequestFactory().get("/api/v2/orders/", HTTP_ACCEPT_VERSION="2")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+
+    assert response.status_code == 400
+
+
+def test_header_mode_rejects_path_version_using_configured_base_path(monkeypatch):
+    from types import SimpleNamespace
+
+    import django_api_versioning.negotiation as negotiation_module
+
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(
+            API_VERSIONING_SCHEME="header",
+            API_BASE_PATH="custom/v{version}/",
+            API_MIN_VERSION=1,
+            API_MAX_VERSION=3,
+        ),
+    )
+    monkeypatch.setattr(negotiation_module, "api_settings", SimpleNamespace())
+    request = RequestFactory().get("/custom/v2/orders/", HTTP_ACCEPT_VERSION="2")
     response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
 
     assert response.status_code == 400
