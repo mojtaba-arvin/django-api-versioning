@@ -143,6 +143,7 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
             ".github/workflows/openapi-contract.yml",
             ".github/workflows/package-artifacts.yml",
             ".github/workflows/publish.yml",
+            ".github/workflows/agent-tooling.yml",
         ):
             with self.subTest(path=path):
                 result = classify_paths([path])
