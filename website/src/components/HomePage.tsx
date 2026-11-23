@@ -21,7 +21,6 @@ export function HomePage({ articles = [] }: { articles?: ArticleMeta[] }) {
       <main>
         <Hero />
         <Features />
-        <DecisionGuide />
 
         <QuickStart />
         <Patterns />
@@ -140,42 +139,6 @@ function Features() {
             </div>
           ))}
         </div>
-      </div>
-    </section>
-  )
-}
-
-function DecisionGuide() {
-  return (
-    <section id="decision-guide" className="border-t border-line py-20">
-      <div className="mx-auto max-w-6xl px-5">
-        <SectionHead
-          eyebrow="Choose the right tool"
-          title="Is declarative versioned routing right for your API?"
-          body="The package selects the correct endpoint implementation for each API version while carrying unchanged routes forward."
-        />
-        <div className="mt-10 grid gap-4 lg:grid-cols-2">
-          <div className="card p-6">
-            <h3 className="font-semibold text-leaf-2">A good fit when you need to</h3>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-mute">
-              <li>• Change selected endpoints without cloning every URL pattern.</li>
-              <li>• Keep version-to-view ownership explicit for Django views or DRF ViewSets.</li>
-              <li>• Inspect and regression-test the effective route matrix.</li>
-              <li>• Adopt versioned routing incrementally.</li>
-            </ul>
-          </div>
-          <div className="card p-6">
-            <h3 className="font-semibold">You may not need it when</h3>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-mute">
-              <li>• DRF's built-in versioning already meets your need to identify the requested version.</li>
-              <li>• Your main requirement is serializer/response transformation, tenant-specific policy, or automatic semantic compatibility.</li>
-              <li>• You deliberately maintain a separate URL configuration for every API version.</li>
-            </ul>
-          </div>
-        </div>
-        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-mute">
-          DRF is optional for Django-native endpoints. This package manages route registration and view selection; your application owns response contracts, authorization, and business compatibility. See the <Link to="/reference/" className="text-leaf-2 underline underline-offset-4 hover:text-leaf">reference</Link> for exact boundaries.
-        </p>
       </div>
     </section>
   )
