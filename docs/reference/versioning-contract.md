@@ -11,6 +11,8 @@
 >
 > **Unreleased mainline addition:** `VersionedDefaultRouter` adds version-specific API roots and optional format-suffix routes on top of the existing `VersionedRouter` registry. This addition is not part of the published 1.3.0 artifact until a later release is published.
 >
+> **Release quality contract:** The repository's release gates and evidence rules are maintained in [`docs/quality/release-gates.md`](../quality/release-gates.md). Dated results are recorded separately and never substituted for evidence from another commit.
+>
 > It is the canonical reference for technical claims about these behaviors. If another package document conflicts with this contract, verify the implementation and tests before changing either document.
 
 ## 1. Version identifiers

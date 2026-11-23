@@ -15,11 +15,14 @@
    - Inspect the built wheel contents and run an isolated installed-wheel smoke test for the exact candidate commit.
 
 2. **Code Readiness**
-   - All tests passing: ✓/✗
-   - Code coverage acceptable: ✓/✗
+   - All tests passing on the exact candidate commit: ✓/✗
+   - Mutation score is exactly 100% in Decorators, Lifecycle, Negotiation, Registry, and Routers, with no incomplete or unresolved mutant outcomes: ✓/✗
+   - Line coverage >=95% and branch coverage >=95%, independently: ✓/✗
+   - Full configured 16-environment tox matrix passed: ✓/✗
+   - Public API and real-consumer OpenAPI contracts passed: ✓/✗
+   - CodeQL, Atheris, Schemathesis, and applicable property-based adversarial checks passed: ✓/✗
    - No known critical bugs: ✓/✗
-   - Security reviewed: ✓/✗
-   - Compatibility verified: ✓/✗
+   - Backward compatibility reviewed across routing, schema, and runtime semantics: ✓/✗
 
 3. **Documentation Readiness**
    - README complete and accurate: ✓/✗
@@ -29,6 +32,8 @@
    - Known limitations documented: ✓/✗
 
 4. **Release Materials**
+   - Wheel and sdist built, metadata and distribution contents validated, and installed-wheel smoke test passed: ✓/✗
+   - Reproducible-build check completed for the exact source and build environment: ✓/✗
    - Release notes prepared: ✓/✗
    - Version number determined: ✓/✗
    - Annotated tag target and protection rules verified; create a tag only after explicit authorization: ✓/✗

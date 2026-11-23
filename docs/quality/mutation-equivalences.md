@@ -1,6 +1,6 @@
 # Mutation-equivalence register
 
-The mutation campaigns use **mutmut 2.5.1**. This register records mutations
+The mutation campaigns use **mutmut 2.5.1** across five independently gated domains: Decorators, Lifecycle, Negotiation, Registry, and Routers. Each domain must reach exactly 100%; the combined campaign must be complete and reconcile every generated mutant. The campaign report and release policy are described in [release-gates.md](release-gates.md). This register records mutations
 intentionally excluded with inline `# pragma: no mutate` markers. Each
 exclusion is justified by local input/state invariants; it is not an untested
 behavior or a threshold exception. Every remaining generated mutant must be
