@@ -71,9 +71,17 @@ def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
     if "pyproject.toml" not in normalized or "uv.lock" not in normalized:
         return False
     quality_paths = (
-        "django_api_versioning/", "tests/", "integration_test_project/",
-        "examples/", "requirements", "tox.ini", "pytest.ini", "setup.cfg",
-        "mutmut_config.py", ".github/workflows/", ".github/actions/",
+        "django_api_versioning/",
+        "tests/",
+        "integration_test_project/",
+        "examples/",
+        "requirements",
+        "tox.ini",
+        "pytest.ini",
+        "setup.cfg",
+        "mutmut_config.py",
+        ".github/workflows/",
+        ".github/actions/",
     )
     if any(
         path.startswith(quality_paths)
@@ -101,7 +109,9 @@ def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
         return False
     try:
         old_project = tomllib.loads(base_pyproject)
-        new_project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+        new_project = tomllib.loads(
+            Path("pyproject.toml").read_text(encoding="utf-8")
+        )
         package_name = new_project["project"]["name"]
         if old_project["project"]["version"] == new_project["project"]["version"]:
             return False
@@ -115,7 +125,8 @@ def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
         for lock in (old_lock, new_lock):
             lock.pop("content-hash", None)
             matches = [
-                item for item in lock.get("package", [])
+                item
+                for item in lock.get("package", [])
                 if item.get("name") == package_name
             ]
             if len(matches) != 1:
@@ -126,7 +137,9 @@ def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
         return False
 
 
-def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> dict[str, bool]:
+def classify_paths(
+    paths: list[str], *, release_metadata_only: bool = False
+) -> dict[str, bool]:
     """Return the workflows required for repository-relative changed paths."""
     normalized = [path.strip().removeprefix("./") for path in paths if path.strip()]
 
@@ -245,15 +258,20 @@ def classify_paths(paths: list[str], *, release_metadata_only: bool = False) -> 
         or path.endswith("/requirements.txt")
         for path in normalized
     )
-    is_openapi = not release_metadata_only and (is_python or any(
-        path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
-        for path in normalized
-    ))
+    is_openapi = not release_metadata_only and (
+        is_python
+        or any(
+            path.startswith(OPENAPI_PATHS) or path in OPENAPI_EXPLICIT_PATHS
+            for path in normalized
+        )
+    )
 
     return {
         "python": is_python,
         "deep": is_python,
-        "metadata": any(path in {"pyproject.toml", "uv.lock"} for path in normalized),
+        "metadata": any(
+            path in {"pyproject.toml", "uv.lock"} for path in normalized
+        ),
         "compatibility": is_compatibility,
         "compatibility_full": compatibility_full,
         "package": is_package,
