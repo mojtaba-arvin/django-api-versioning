@@ -255,7 +255,8 @@ content-hash = "new"
                 self.assertTrue(result["compatibility"])
                 self.assertEqual(
                     result["openapi"],
-                    path in {
+                    path
+                    in {
                         ".github/workflows/openapi-contract.yml",
                         ".github/workflows/publish.yml",
                     },
