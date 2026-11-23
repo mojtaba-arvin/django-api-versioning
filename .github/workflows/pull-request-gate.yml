@@ -216,29 +216,3 @@ jobs:
 
           print("All applicable PR checks passed; the reusable Python workflow owns its optional adversarial campaign.")
           PY
-
-      - name: Check out source for reusable quality evidence
-        if: success() && needs.changes.outputs.deep == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-
-      - name: Set up Python for evidence fingerprinting
-        if: success() && needs.changes.outputs.deep == 'true'
-        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
-        with:
-          python-version: "3.12"
-
-      - name: Record successful deep-quality evidence
-        if: success() && needs.changes.outputs.deep == 'true'
-        run: python scripts/quality_fingerprint.py --output "$RUNNER_TEMP/deep-quality-evidence.json"
-
-      - name: Publish reusable deep-quality evidence
-        if: success() && needs.changes.outputs.deep == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        with:
-          name: deep-quality-evidence
-          path: ${{ runner.temp }}/deep-quality-evidence.json
-          if-no-files-found: error
-          retention-days: 90
