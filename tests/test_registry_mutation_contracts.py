@@ -159,6 +159,7 @@ def test_resolve_operation_skips_invalid_candidate_and_finds_later_valid_route(
     invalid_candidate,
 ):
     from types import SimpleNamespace
+
     from django.urls import path
 
     target = UrlRegistry()
