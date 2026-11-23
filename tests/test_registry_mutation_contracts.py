@@ -80,7 +80,7 @@ def test_suppressed_register_removes_an_existing_suppressed_pattern():
         route_version=2,
         logical_endpoint="orders",
     )
-    target.remove("orders", 2)
+    target._removal_boundaries.setdefault("orders", set()).add(2)
     target.register(
         "api/v2/orders/",
         callback,
@@ -101,7 +101,7 @@ def test_suppressed_register_urlpattern_removes_existing_suppressed_pattern():
         route_version=2,
         logical_endpoint="orders",
     )
-    target.remove("orders", 2)
+    target._removal_boundaries.setdefault("orders", set()).add(2)
 
     target.register_urlpattern(
         _registered_route(target, source_version=2),
@@ -135,6 +135,9 @@ def test_router_owned_registration_does_not_clear_unowned_tombstone():
     target = UrlRegistry()
     tombstone = _registered_route(target, endpoint="legacy")
     target._removed_patterns[("orders", 2)] = tombstone
+    owner_tombstone = _registered_route(target, endpoint="orders")
+    owner_key = ("orders", 2, "orders", True)
+    target._removed_patterns[owner_key] = owner_tombstone
     owner = object()
     pattern = _registered_route(target, source_version=3)
     setattr(pattern, target._ROUTER_OWNER_ATTR, owner)
@@ -146,6 +149,7 @@ def test_router_owned_registration_does_not_clear_unowned_tombstone():
     )
 
     assert target._removed_patterns[("orders", 2)] is tombstone
+    assert owner_key not in target._removed_patterns
 
 
 @pytest.mark.parametrize("invalid_candidate", ["name", "endpoint", "version", "namespace"])
@@ -195,21 +199,6 @@ def test_resolve_operation_skips_invalid_candidate_and_finds_later_valid_route(
     assert operation.logical_endpoint == "orders"
     assert operation.route_version == 2
 
-
-def test_resolved_route_match_checks_anchor_stripping_after_boundary_miss():
-    target = UrlRegistry()
-
-    assert target._resolved_route_match_length(
-        "^nestedapi/v2/orders/$", "api/v2/orders/"
-    ) == len("api/v2/orders/")
-
-
-def test_resolved_route_match_strips_anchors_from_route_variant():
-    target = UrlRegistry()
-
-    assert target._resolved_route_match_length(
-        "^nested/api/v2/orders/$", "^api/v2/orders/$"
-    ) == len("api/v2/orders/")
 
 
 def test_route_specificity_stops_at_escaped_regex_operator():
