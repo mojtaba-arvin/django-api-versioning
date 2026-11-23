@@ -1839,6 +1839,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     import importlib
     import importlib.util
     import sys
+    from pathlib import Path
 
     registry_module = importlib.import_module("django_api_versioning.registry")
     module_name = "django_api_versioning._mutation_probe_registry"
@@ -1847,6 +1848,9 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     probe = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = probe
     try:
+        cache_path = importlib.util.cache_from_source(registry_module.__file__)
+        Path(cache_path).unlink(missing_ok=True)
+        importlib.invalidate_caches()
         spec.loader.exec_module(probe)
         assert probe.REMOVED_ROUTE is not None
         assert probe.ViewType is not None
@@ -2946,10 +2950,15 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
     monkeypatch, caplog
 ):
     import importlib
+    import importlib.util
     import inspect
+    from pathlib import Path
 
     import django_api_versioning.routers as router_module
 
+    cache_path = importlib.util.cache_from_source(router_module.__file__)
+    Path(cache_path).unlink(missing_ok=True)
+    importlib.invalidate_caches()
     router_module = importlib.reload(router_module)
     defaults = inspect.signature(
         router_module.VersionedDefaultRouter.__init__
