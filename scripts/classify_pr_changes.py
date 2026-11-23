@@ -136,7 +136,8 @@ def detect_release_metadata_only(base_ref: str, paths: list[str]) -> bool:
     )
     if any(
         path.startswith(quality_paths)
-        or path in {
+        or path
+        in {
             "scripts/check_coverage_thresholds.py",
             "scripts/check_tox_workflow_matrix.py",
             "scripts/check_reproducible_build.py",
@@ -215,8 +216,10 @@ def classify_paths(
             for path in normalized
         )
     )
-    is_compatibility = compatibility_full or is_python or any(
-        path in COMPATIBILITY_PATHS for path in normalized
+    is_compatibility = (
+        compatibility_full
+        or is_python
+        or any(path in COMPATIBILITY_PATHS for path in normalized)
     )
     is_package = any(
         path.startswith(("django_api_versioning/", "tests/", "LICENSE"))
@@ -247,7 +250,8 @@ def classify_paths(
                 path.startswith(PYTHON_PATHS)
                 or path in WEBSITE_EXAMPLE_PATHS
                 or (path.startswith("requirements") and path.endswith(".txt"))
-                or path in {
+                or path
+                in {
                     ".github/workflows/website-data-preflight.yml",
                     "scripts/verify_website_examples.py",
                 }
@@ -298,9 +302,7 @@ def classify_paths(
     return {
         "python": is_python,
         "deep": is_python,
-        "metadata": any(
-            path in {"pyproject.toml", "uv.lock"} for path in normalized
-        ),
+        "metadata": any(path in {"pyproject.toml", "uv.lock"} for path in normalized),
         "compatibility": is_compatibility,
         "compatibility_full": compatibility_full,
         "package": is_package,
@@ -320,9 +322,8 @@ def main() -> int:
         return 2
 
     changed_files = Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
-    metadata_only = (
-        len(sys.argv) == 4
-        and detect_release_metadata_only(sys.argv[3], changed_files)
+    metadata_only = len(sys.argv) == 4 and detect_release_metadata_only(
+        sys.argv[3], changed_files
     )
     outputs = classify_paths(changed_files, release_metadata_only=metadata_only)
     with Path(sys.argv[2]).open("a", encoding="utf-8") as output_file:
