@@ -42,6 +42,7 @@ TESTS_BY_SOURCE = {
         "tests/test_negotiation_middleware.py",
         "tests/test_negotiation_properties.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
     "registry.py": (
@@ -50,6 +51,14 @@ TESTS_BY_SOURCE = {
         "tests/test_segment_model.py",
         "tests/test_route_removal.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_decorators.py",
+        "tests/test_lifecycle.py",
+        "tests/test_lifecycle_integration.py",
+        "tests/test_management_commands.py",
+        "tests/test_negotiation_middleware.py",
+        "tests/test_routers.py",
+        "tests/test_settings.py",
+        "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
     "routers.py": (
@@ -61,6 +70,9 @@ TESTS_BY_SOURCE = {
         "tests/test_urls.py",
         "tests/test_route_removal.py",
         "tests/test_adversarial_router_combinations.py",
+        "tests/test_registry.py",
+        "tests/test_decorators.py",
+        "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
 }
