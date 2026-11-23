@@ -10,7 +10,6 @@ on:
       - "django_api_versioning/**"
       - "tests/**"
       - "integration_test_project/**"
-      - "pyproject.toml"
       - "tox.ini"
       - "requirements*.txt"
       - "pytest.ini"
@@ -107,6 +106,7 @@ jobs:
 
   tox:
     needs: validate-matrix
+    if: inputs.scope != 'pull-request'
     name: ${{ matrix.env }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
