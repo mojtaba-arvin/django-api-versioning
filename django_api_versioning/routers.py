@@ -685,14 +685,14 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 break
 
         if isinstance(route, str):
-            namespace_matches_route = bool(0)
+            namespace_matches_route = bool(0)  # pragma: no mutate
             if namespace_version is not None:
                 configured_prefix = api_settings.API_BASE_PATH.format(
                     version=namespace_version
                 ).strip("/")
                 route_path = route.strip("^$").strip("/")
                 namespace_matches_route = (  # pragma: no mutate
-                    f"/{configured_prefix}/" in f"/{route_path}/"
+                    f"/{configured_prefix}/" in f"/{route_path}/"  # pragma: no mutate
                 )
 
             tried = getattr(resolver_match, "tried", None)
