@@ -18,6 +18,11 @@ QUALITY_PREFIXES = (
     "examples/openapi_contract/",
     "examples/consumer_migration/",
 )
+COMPATIBILITY_PREFIXES = (
+    "django_api_versioning/",
+    "tests/",
+    "integration_test_project/",
+)
 OPENAPI_PREFIXES = (
     "django_api_versioning/",
     "tests/",
@@ -90,8 +95,9 @@ def fingerprint_files(files: Mapping[str, bytes], *, scope: str) -> str:
     selected = {}
     for path, content in files.items():
         if scope == "compatibility":
-            include = path in COMPATIBILITY_FILES or (
-                path.startswith("requirements") and path.endswith(".txt")
+            include = path.startswith(COMPATIBILITY_PREFIXES) or (
+                path in COMPATIBILITY_FILES
+                or (path.startswith("requirements") and path.endswith(".txt"))
             )
         elif scope == "openapi":
             include = path.startswith(OPENAPI_PREFIXES) or path in OPENAPI_FILES
