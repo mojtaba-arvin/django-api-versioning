@@ -2068,7 +2068,9 @@ def test_mutation95_registry_resolver_match_uses_exact_trace_and_url_name():
         url_name="order-list",
         tried=None,
     )
-    assert named.get_resolved_route_version_for_match(named_match) == (True, 2)
+    assert named.get_resolved_route_version_for_match(
+        named_match, require_exact_pattern=False
+    ) == (True, 2)
 
     named.urlpatterns[:] = [named_other, named_order]
     exact_trace = SimpleNamespace(
@@ -2207,7 +2209,7 @@ def test_mutation95_registry_regex_canonicalization_and_specificity_boundaries()
     assert dynamic_specificity[0] == -len(r"\[orders\]/")
     assert target._route_specificity_key(trailing_escape)[1] is False
     assert target._resolved_route_match_length(
-        "^api/v2/orders/$", "prefix/api/v2/orders/"
+        "prefix/api/v2/orders/", "^api/v2/orders/$"
     ) == len("api/v2/orders/")
 
 
