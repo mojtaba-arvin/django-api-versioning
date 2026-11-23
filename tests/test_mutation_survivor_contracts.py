@@ -1861,6 +1861,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         )
         assert probe.RouteSortKey == tuple[bool, probe.VersionKey, bool, int, int]
         assert probe._UNOWNED_OWNER_IDENTITY is not None
+        assert probe._ROUTER_OWNER_IDENTITY is not None
         assert probe._UNOWNED_OWNER_IDENTITY is not probe._ROUTER_OWNER_IDENTITY
         assert isinstance(probe.registry, probe.UrlRegistry)
         assert probe.UrlRegistry._SOURCE_VERSION_ATTR == (
@@ -3762,3 +3763,28 @@ def test_mutation100_registry_router_prefix_conflict_errors_are_exact():
         "Route pattern 'api/v2/orders/' is already registered by a "
         "different registration owner. Use a distinct route path."
     )
+
+
+def test_mutation100_router_rejects_boolean_route_version_from_resolver_trace(
+    monkeypatch,
+):
+    import django_api_versioning.routers as router_module
+
+    versioning = VersionedRouterVersioning()
+    versioning.default_version = None
+    versioning.allowed_versions = ["True"]
+    monkeypatch.setattr(
+        router_module.registry,
+        "get_resolved_route_version_for_match",
+        lambda match: (True, True),
+    )
+    request = SimpleNamespace(
+        resolver_match=SimpleNamespace(
+            route="api/v2/orders/",
+            namespace="v2",
+            tried=(),
+        )
+    )
+
+    with pytest.raises(NotFound):
+        versioning.determine_version(request)
