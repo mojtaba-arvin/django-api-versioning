@@ -685,7 +685,7 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 break
 
         if isinstance(route, str):
-            namespace_matches_route = False  # pragma: no mutate
+            namespace_matches_route = bool(0)
             if namespace_version is not None:
                 configured_prefix = api_settings.API_BASE_PATH.format(
                     version=namespace_version
