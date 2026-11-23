@@ -81,8 +81,11 @@ jobs:
           --cov-report=xml:coverage.xml
           -c integration_test_project/pytest.ini integration_test_project
 
-      - name: Enforce combined line and branch coverage
-        run: python -m coverage report --fail-under=95
+      - name: Generate separate line and branch coverage totals
+        run: python -m coverage json --pretty-print -o coverage.json
+
+      - name: Enforce line and branch coverage independently
+        run: python scripts/check_coverage_thresholds.py coverage.json --line-threshold 95 --branch-threshold 95
 
       - name: Upload coverage reports to Codecov
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
