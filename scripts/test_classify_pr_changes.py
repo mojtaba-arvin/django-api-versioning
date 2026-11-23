@@ -211,10 +211,7 @@ version = "1.4.0"
                 self.assertTrue(result["python"])
                 self.assertEqual(
                     result["openapi"],
-                    path in {
-                        ".github/workflows/openapi-contract.yml",
-                        ".github/workflows/publish.yml",
-                    },
+                    path != ".github/workflows/tests.yml",
                 )
 
     def test_quality_pipeline_workflow_changes_run_their_own_quality_gates(self):
