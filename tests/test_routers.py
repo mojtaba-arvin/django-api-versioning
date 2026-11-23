@@ -697,7 +697,9 @@ def test_router_boolean_options_require_actual_booleans(option, value):
 
 def test_versioned_router_lifecycle_prefix_validation_covers_type_and_path_edges():
     router = VersionedRouter()
-    expected = "prefix must be a non-empty relative path without leading or trailing '/'."
+    expected = (
+        "prefix must be a non-empty relative path without leading or trailing '/'."
+    )
 
     for prefix in (123, "", "/orders", "orders/"):
         with pytest.raises(VersioningError) as error:
@@ -733,9 +735,7 @@ def test_path_converter_router_prefix_validation_uses_public_setting_name():
 
 
 def test_explicit_versions_below_minimum_emit_exact_warning(monkeypatch, caplog):
-    monkeypatch.setattr(
-        "django_api_versioning.routers.api_settings.API_MIN_VERSION", 2
-    )
+    monkeypatch.setattr("django_api_versioning.routers.api_settings.API_MIN_VERSION", 2)
     router = VersionedRouter()
 
     with caplog.at_level("WARNING"):
@@ -764,9 +764,7 @@ def test_router_versioning_does_not_trust_namespace_without_matching_route(
     monkeypatch.setattr(
         router_module.registry, "get_resolved_route_version", lambda route: None
     )
-    monkeypatch.setattr(
-        router_module.api_settings, "API_BASE_PATH", "api/v{version}/"
-    )
+    monkeypatch.setattr(router_module.api_settings, "API_BASE_PATH", "api/v{version}/")
     request = SimpleNamespace(
         resolver_match=SimpleNamespace(route="other/orders/", namespace="v2")
     )
@@ -782,10 +780,12 @@ def test_router_versioning_rejects_boolean_registered_route_version(monkeypatch)
     adapter.default_version = None
     adapter.allowed_versions = ["True"]
     monkeypatch.setattr(
-        router_module.registry, "get_resolved_route_version", lambda route: True
+        router_module.registry,
+        "get_resolved_route_version_for_match",
+        lambda match: (True, True),
     )
     request = SimpleNamespace(
-        resolver_match=SimpleNamespace(route="unmapped/", namespace="")
+        resolver_match=SimpleNamespace(route="unmapped/", namespace="", tried=())
     )
 
     with pytest.raises(NotFound):
