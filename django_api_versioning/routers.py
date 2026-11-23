@@ -721,7 +721,9 @@ class VersionedRouterVersioning(NamespaceVersioning):
                 route_version = registry.get_resolved_route_version(route)
                 if namespace_matches_route:
                     version = namespace_version
-                elif route_version is not None:
+                elif isinstance(route_version, int) and not isinstance(
+                    route_version, bool
+                ):
                     version = str(route_version)
                 else:
                     version = None
