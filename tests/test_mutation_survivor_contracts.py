@@ -1851,6 +1851,8 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
     probe = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = probe
     try:
+        # Mutmut can rewrite same-size source within one timestamp tick.
+        # Remove bytecode so this probe always executes the mutated source.
         cache_path = importlib.util.cache_from_source(registry_module.__file__)
         Path(cache_path).unlink(missing_ok=True)
         importlib.invalidate_caches()
@@ -2957,6 +2959,8 @@ def test_mutation100_router_import_time_defaults_and_reverse_fallbacks(
 
     import django_api_versioning.routers as router_module
 
+    # Mutmut can rewrite same-size source within one timestamp tick.
+    # Remove bytecode so reload observes the mutated module source.
     cache_path = importlib.util.cache_from_source(router_module.__file__)
     Path(cache_path).unlink(missing_ok=True)
     importlib.invalidate_caches()
