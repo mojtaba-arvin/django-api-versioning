@@ -23,9 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Compatibility
 
-- Preserve the published `VersionedRouter` and existing URL-path defaults. `VersionedDefaultRouter` is an additive mainline API; it remains unreleased until included in a published package artifact.
+- Preserve the existing `VersionedRouter` behavior and URL-path defaults. `VersionedDefaultRouter` is additive and does not replace or alter the base router contract.
 - Keep DRF optional at runtime. The API-root and format-suffix integration reuses DRF public utilities and does not add a package runtime dependency.
 
+
+### Testing
+
+- Extend the executable OpenAPI consumer contract to cover versioned API roots, format suffixes, route removal, per-version schemas, and request behavior.
 
 ### Documentation
 
