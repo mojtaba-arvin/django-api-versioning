@@ -19,7 +19,22 @@ git switch -c feat/short-description
 
 Use one short-lived branch per coherent task, created from the latest `origin/main`. If the working tree is dirty or local `main` cannot be fast-forwarded, stop and resolve ownership before switching.
 
-### First-run local development
+### Branch naming
+
+| Work | Prefix | Example |
+| --- | --- | --- |
+| New behavior | `feat/` | `feat/route-introspection` |
+| Bug fix | `fix/` | `fix/segment-boundary` |
+| Documentation | `docs/` | `docs/release-workflow` |
+| Tests | `test/` | `test/route-registration` |
+| Refactoring | `refactor/` | `refactor/registry-resolution` |
+| Maintenance | `chore/` | `chore/update-tooling` |
+| Release preparation | `release/` | `release/v0.4.0` |
+
+Do not reuse a completed branch for unrelated work. Dependabot branches are temporary automation branches.
+
+
+## First-run local development
 
 Use Python **3.12** as the default local development interpreter. The package declares support for Python 3.10–3.15; the authoritative Python/Django combinations and the full compatibility matrix live in [tox.ini](tox.ini) and GitHub Actions.
 
@@ -74,20 +89,6 @@ pre-commit run --files path/to/changed_file.py
 The normal pre-commit run applies the matching formatting, import-order, lint, and type-check hooks; the commit-message and pre-push stages run only at their respective Git lifecycle points. These quick hooks do not replace `tox run -e lint`, tests, or the required PR gate.
 
 Website work is optional for package-only contributors. Only when changing the website, use **Node 22.23.4** and the repository-pinned **pnpm 10.12.1**; the website lockfile and `make website-check` own that workflow. Package tests do not require Node or pnpm.
-
-## Branch naming
-
-| Work | Prefix | Example |
-| --- | --- | --- |
-| New behavior | `feat/` | `feat/route-introspection` |
-| Bug fix | `fix/` | `fix/segment-boundary` |
-| Documentation | `docs/` | `docs/release-workflow` |
-| Tests | `test/` | `test/route-registration` |
-| Refactoring | `refactor/` | `refactor/registry-resolution` |
-| Maintenance | `chore/` | `chore/update-tooling` |
-| Release preparation | `release/` | `release/v0.4.0` |
-
-Do not reuse a completed branch for unrelated work. Dependabot branches are temporary automation branches.
 
 ## Commits
 
