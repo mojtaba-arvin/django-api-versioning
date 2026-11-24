@@ -17,8 +17,8 @@ from .exceptions import (
     VersionTypeError,
 )
 from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
-from .settings import api_settings
 from .route_state import RegistrySnapshot, build_registry_snapshot
+from .settings import api_settings
 
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
