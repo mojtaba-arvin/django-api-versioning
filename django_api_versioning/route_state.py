@@ -46,6 +46,17 @@ class LifecycleRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class RemovalBoundaryRecord:
+    """Immutable suppression boundary, including declarations with no route yet."""
+
+    logical_endpoint: str
+    from_version: int
+    owner: str
+    router_prefix: str | None
+    trailing_slash: bool | None
+
+
+@dataclass(frozen=True, slots=True)
 class RegistrySnapshot:
     """A deeply immutable view of one committed registry generation."""
 
@@ -53,6 +64,7 @@ class RegistrySnapshot:
     active_routes: tuple[RouteRecord, ...]
     removed_routes: tuple[RouteRecord, ...]
     lifecycle: tuple[LifecycleRecord, ...]
+    removal_boundaries: tuple[RemovalBoundaryRecord, ...]
     active_by_identity: Mapping[tuple[str, str, int | None, str], RouteRecord]
     removed_by_identity: Mapping[tuple[str, str, int | None, str], RouteRecord]
 
@@ -85,7 +97,10 @@ def _source_location(callback: Callable[..., Any]) -> str | None:
         qualified_name = getattr(callback_type, "__qualname__", None)
     if not isinstance(module, str) or not isinstance(qualified_name, str):
         return None
-    return f"{module}.{qualified_name}"
+    code = getattr(callback, "__code__", None)
+    line = getattr(code, "co_firstlineno", None)
+    suffix = f":{line}" if isinstance(line, int) else ""
+    return f"{module}.{qualified_name}{suffix}"
 
 
 def _route_record(pattern: URLPattern, sequence: int) -> RouteRecord:
@@ -125,6 +140,10 @@ def build_registry_snapshot(
     removed_patterns: Mapping[tuple[object, ...], URLPattern],
     lifecycle_state: Mapping[
         tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
+    ],
+    removal_boundaries: Mapping[str, set[int]],
+    router_removal_boundaries: Mapping[
+        tuple[str, str | None, bool | None], set[int]
     ],
 ) -> RegistrySnapshot:
     """Build fresh immutable collections from the registry's authoritative state."""
@@ -187,11 +206,53 @@ def build_registry_snapshot(
         )
     )
 
+    boundaries = tuple(
+        sorted(
+            (
+                RemovalBoundaryRecord(
+                    logical_endpoint=logical_endpoint,
+                    from_version=from_version,
+                    owner="unowned",
+                    router_prefix=None,
+                    trailing_slash=None,
+                )
+                for logical_endpoint, versions in removal_boundaries.items()
+                for from_version in versions
+            ),
+            key=lambda record: (record.logical_endpoint, record.from_version),
+        )
+    )
+    router_boundaries = tuple(
+        sorted(
+            (
+                RemovalBoundaryRecord(
+                    logical_endpoint=logical_endpoint,
+                    from_version=from_version,
+                    owner=f"router:{router_prefix!r}:trailing_slash={trailing_slash!r}",
+                    router_prefix=router_prefix,
+                    trailing_slash=trailing_slash,
+                )
+                for (
+                    logical_endpoint,
+                    router_prefix,
+                    trailing_slash,
+                ), versions in router_removal_boundaries.items()
+                for from_version in versions
+            ),
+            key=lambda record: (
+                record.logical_endpoint,
+                record.from_version,
+                record.owner,
+            ),
+        )
+    )
+
     return RegistrySnapshot(
         generation=generation,
         active_routes=active,
         removed_routes=removed,
         lifecycle=lifecycle,
+        removal_boundaries=boundaries + router_boundaries,
         active_by_identity=MappingProxyType(
             {record.identity: record for record in active}
         ),
