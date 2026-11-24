@@ -114,9 +114,11 @@ class PlanExecutionContractTests(unittest.TestCase):
             ]
         )
         self.assertTrue(classification["agent"])
-        self.assertTrue(classification["python"])
-        self.assertTrue(classification["deep"])
         self.assertTrue(classification["compatibility"])
+        self.assertTrue(classification["compatibility_full"])
+        self.assertFalse(classification["python"])
+        self.assertFalse(classification["deep"])
+        self.assertFalse(classification["package"])
 
     def test_agent_tooling_workflow_remains_a_separate_validation_job(self) -> None:
         workflow = AGENT_WORKFLOW.read_text(encoding="utf-8")
