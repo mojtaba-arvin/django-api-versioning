@@ -1,4 +1,4 @@
-"""Contracts for the shared registry registration component."""
+""""Contracts for the shared registry registration component."""
 
 import importlib
 from pathlib import Path
@@ -7,6 +7,7 @@ import pytest
 from django.urls import path
 
 from django_api_versioning.registry import UrlRegistry, registry
+from django_api_versioning.registry.registration import _reject_router_prefix_collision
 
 
 @pytest.mark.parametrize("use_urlpattern", [False, True])
@@ -63,3 +64,24 @@ def test_registry_import_path_remains_the_single_compatibility_facade():
     assert module.registry is registry
     assert module.__file__ is not None
     assert Path(module.__file__).as_posix().endswith("registry/__init__.py")
+
+
+@pytest.mark.parametrize("missing_metadata", ["owner", "prefix"])
+def test_router_prefix_collision_ignores_incomplete_owner_metadata(missing_metadata):
+    """Prefix collisions require both router identity and prefix metadata."""
+    target = UrlRegistry()
+    existing = path("existing/", lambda request: None)
+    candidate = path("candidate/", lambda request: None)
+    existing_owner = object()
+    candidate_owner = object()
+
+    setattr(existing, target._ROUTER_OWNER_ATTR, existing_owner)
+    setattr(existing, target._ROUTER_PREFIX_ATTR, "shared" if missing_metadata == "owner" else None)
+    setattr(existing, target._ROUTE_VERSION_ATTR, 1)
+
+    setattr(candidate, target._ROUTER_OWNER_ATTR, None if missing_metadata == "owner" else candidate_owner)
+    setattr(candidate, target._ROUTER_PREFIX_ATTR, "shared" if missing_metadata == "owner" else None)
+
+    # A partial metadata record is not a router declaration and must not
+    # collide with a complete declaration owned by another router.
+    _reject_router_prefix_collision(target, candidate, 1)
