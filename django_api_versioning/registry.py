@@ -18,6 +18,7 @@ from .exceptions import (
 )
 from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from .settings import api_settings
+from .route_state import RegistrySnapshot, build_registry_snapshot
 
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
@@ -27,6 +28,10 @@ _UNOWNED_OWNER_IDENTITY = object()
 _ROUTER_OWNER_IDENTITY = object()
 
 REMOVED_ROUTE = object()
+
+_MUTATING_METHODS = frozenset(
+    {"clear", "remove", "register", "register_urlpattern", "register_endpoint_lifecycle"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +59,13 @@ def _synchronized(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         with self._lock:
-            return method(self, *args, **kwargs)
+            result = method(self, *args, **kwargs)
+            if (
+                method.__name__ in _MUTATING_METHODS
+                and not self._transaction_stack
+            ):
+                self._publish_snapshot()
+            return result
 
     return wrapper
 
@@ -80,12 +91,74 @@ class UrlRegistry:
         self._endpoint_lifecycle: dict[
             tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
         ] = {}
+        self._transaction_stack: list[tuple[object, ...]] = []
+        self._snapshot = build_registry_snapshot(
+            generation=0,
+            active_patterns=self.urlpatterns,
+            removed_patterns=self._removed_patterns,
+            lifecycle_state=self._endpoint_lifecycle,
+        )
+
+    @property
+    def current_snapshot(self) -> RegistrySnapshot:
+        """Return the latest committed immutable registry snapshot."""
+        with self._lock:
+            return self._snapshot
+
+    def _capture_state(self) -> tuple[object, ...]:
+        return (
+            list(self.urlpatterns),
+            {key: set(value) for key, value in self._removal_boundaries.items()},
+            {
+                key: set(value)
+                for key, value in self._router_removal_boundaries.items()
+            },
+            dict(self._removed_patterns),
+            dict(self._endpoint_lifecycle),
+        )
+
+    def _restore_state(self, state: tuple[object, ...]) -> None:
+        active, boundaries, router_boundaries, removed, lifecycle = state
+        self.urlpatterns[:] = active
+        self._removal_boundaries.clear()
+        self._removal_boundaries.update(boundaries)
+        self._router_removal_boundaries.clear()
+        self._router_removal_boundaries.update(router_boundaries)
+        self._removed_patterns.clear()
+        self._removed_patterns.update(removed)
+        self._endpoint_lifecycle.clear()
+        self._endpoint_lifecycle.update(lifecycle)
+
+    def _publish_snapshot(self) -> None:
+        candidate = build_registry_snapshot(
+            generation=self._snapshot.generation + 1,
+            active_patterns=self.urlpatterns,
+            removed_patterns=self._removed_patterns,
+            lifecycle_state=self._endpoint_lifecycle,
+        )
+        if (
+            candidate.active_routes == self._snapshot.active_routes
+            and candidate.removed_routes == self._snapshot.removed_routes
+            and candidate.lifecycle == self._snapshot.lifecycle
+        ):
+            return
+        self._snapshot = candidate
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
-        """Hold the re-entrant lock for an atomic multi-operation transaction."""
+        """Publish one snapshot on commit and restore state on failure."""
         with self._lock:
-            yield
+            self._transaction_stack.append(self._capture_state())
+            try:
+                yield
+            except BaseException:
+                state = self._transaction_stack.pop()
+                self._restore_state(state)
+                raise
+            else:
+                self._transaction_stack.pop()
+                if not self._transaction_stack:
+                    self._publish_snapshot()
 
     @_synchronized
     def clear(self) -> None:
