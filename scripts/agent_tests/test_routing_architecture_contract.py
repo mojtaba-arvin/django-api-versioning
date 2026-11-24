@@ -43,21 +43,25 @@ class RoutingArchitectureSkillTests(unittest.TestCase):
         self.assertIn("../package-engineering/SKILL.md", self.skill_text)
         self.assertIn("One PR, one responsibility.", self.skill_text)
 
-    def test_skill_covers_single_owner_immutable_state_and_compatibility_facade(self) -> None:
+    def test_skill_covers_single_owner_immutable_state_and_compatibility_facade(
+        self,
+    ) -> None:
         for required in (
             "One authoritative state owner",
             "Immutable means deeply immutable",
             "Import/reload behavior is a contract",
             "Compatibility facade first",
             "A published snapshot never changes",
-            "A successful transaction atomically publishes a new generation",
+            "Successful transactions atomically publish a new generation; failures publish nothing.",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, self.skill_text)
 
-    def test_skill_preserves_optional_framework_and_diagnostics_boundaries(self) -> None:
+    def test_skill_preserves_optional_framework_and_diagnostics_boundaries(
+        self,
+    ) -> None:
         for required in (
-            "Core imports remain usable without DRF",
+            "Core package imports must work without DRF",
             "one narrow optional adapter",
             "Diagnostics are read-only",
             "Public APIs require a lifecycle contract",
