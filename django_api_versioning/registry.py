@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from threading import RLock
-from typing import Callable
+from typing import Callable, cast
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
@@ -17,6 +17,7 @@ from .exceptions import (
     VersionTypeError,
 )
 from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
+from .route_state import RegistrySnapshot, build_registry_snapshot
 from .settings import api_settings
 
 VersionKey = int | None
@@ -27,6 +28,25 @@ _UNOWNED_OWNER_IDENTITY = object()
 _ROUTER_OWNER_IDENTITY = object()
 
 REMOVED_ROUTE = object()
+
+_MUTATING_METHODS = frozenset(
+    {
+        "clear",
+        "remove",
+        "register",
+        "register_urlpattern",
+        "register_endpoint_lifecycle",
+    }
+)
+_MISSING_ATTRIBUTE = object()
+_PATTERN_STATE_ATTRIBUTES = (
+    "_django_api_versioning_source_version",
+    "_django_api_versioning_route_version",
+    "_django_api_versioning_logical_endpoint",
+    "_django_api_versioning_router_owner",
+    "_django_api_versioning_router_prefix",
+    "_django_api_versioning_router_trailing_slash",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +74,10 @@ def _synchronized(method):
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         with self._lock:
-            return method(self, *args, **kwargs)
+            result = method(self, *args, **kwargs)
+            if method.__name__ in _MUTATING_METHODS and not self._transaction_stack:
+                self._publish_snapshot()
+            return result
 
     return wrapper
 
@@ -80,12 +103,121 @@ class UrlRegistry:
         self._endpoint_lifecycle: dict[
             tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
         ] = {}
+        self._transaction_stack: list[tuple[object, ...]] = []
+        self._snapshot = build_registry_snapshot(
+            generation=0,
+            active_patterns=self.urlpatterns,
+            removed_patterns=self._removed_patterns,
+            lifecycle_state=self._endpoint_lifecycle,
+            removal_boundaries=self._removal_boundaries,
+            router_removal_boundaries=self._router_removal_boundaries,
+        )
+
+    @property
+    def current_snapshot(self) -> RegistrySnapshot:
+        """Return the latest committed immutable registry snapshot."""
+        with self._lock:
+            return self._snapshot
+
+    def _capture_state(self) -> tuple[object, ...]:
+        return (
+            list(self.urlpatterns),
+            {key: set(value) for key, value in self._removal_boundaries.items()},
+            {key: set(value) for key, value in self._router_removal_boundaries.items()},
+            dict(self._removed_patterns),
+            dict(self._endpoint_lifecycle),
+            [
+                (
+                    pattern,
+                    {
+                        attribute: getattr(pattern, attribute, _MISSING_ATTRIBUTE)
+                        for attribute in _PATTERN_STATE_ATTRIBUTES
+                    },
+                )
+                for pattern in {
+                    id(pattern): pattern
+                    for pattern in [
+                        *self.urlpatterns,
+                        *self._removed_patterns.values(),
+                    ]
+                }.values()
+            ],
+        )
+
+    def _restore_state(self, state: tuple[object, ...]) -> None:
+        (
+            active,
+            boundaries,
+            router_boundaries,
+            removed,
+            lifecycle,
+            pattern_attributes,
+        ) = state
+        self.urlpatterns[:] = cast(list[URLPattern], active)
+        self._removal_boundaries.clear()
+        self._removal_boundaries.update(cast(dict[str, set[int]], boundaries))
+        self._router_removal_boundaries.clear()
+        self._router_removal_boundaries.update(
+            cast(dict[tuple[str, str | None, bool | None], set[int]], router_boundaries)
+        )
+        self._removed_patterns.clear()
+        self._removed_patterns.update(
+            cast(dict[tuple[object, ...], URLPattern], removed)
+        )
+        self._endpoint_lifecycle.clear()
+        self._endpoint_lifecycle.update(
+            cast(
+                dict[
+                    tuple[str, int, str | None, str | None, object | None],
+                    EndpointLifecycle,
+                ],
+                lifecycle,
+            )
+        )
+        saved_patterns = cast(
+            list[tuple[URLPattern, dict[str, object]]], pattern_attributes
+        )
+        for pattern, attributes in saved_patterns:
+            for attribute, value in attributes.items():
+                if value is _MISSING_ATTRIBUTE:
+                    if hasattr(pattern, attribute):
+                        delattr(pattern, attribute)
+                else:
+                    setattr(pattern, attribute, value)
+
+    def _publish_snapshot(self) -> None:
+        candidate = build_registry_snapshot(
+            generation=self._snapshot.generation + 1,
+            active_patterns=self.urlpatterns,
+            removed_patterns=self._removed_patterns,
+            lifecycle_state=self._endpoint_lifecycle,
+            removal_boundaries=self._removal_boundaries,
+            router_removal_boundaries=self._router_removal_boundaries,
+        )
+        if (
+            candidate.active_routes == self._snapshot.active_routes
+            and candidate.removed_routes == self._snapshot.removed_routes
+            and candidate.lifecycle == self._snapshot.lifecycle
+            and candidate.removal_boundaries == self._snapshot.removal_boundaries
+        ):
+            return
+        self._snapshot = candidate
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
-        """Hold the re-entrant lock for an atomic multi-operation transaction."""
+        """Publish one snapshot on commit and restore state on failure."""
         with self._lock:
-            yield
+            self._transaction_stack.append(self._capture_state())
+            try:
+                yield
+            except BaseException:
+                state = self._transaction_stack.pop()
+                self._restore_state(state)
+                raise
+            else:
+                self._transaction_stack.pop()
+                if not self._transaction_stack:
+                    self._publish_snapshot()
 
     @_synchronized
     def clear(self) -> None:

@@ -744,3 +744,152 @@ def test_lifecycle_process_response_does_not_repeat_version_sunset_after_enforce
     )
     assert response.status_code == 410
     assert response.content == b"already handled"
+
+
+def test_registry_snapshot_generation_tracks_changes_and_ignores_noop_mutations():
+    registry = UrlRegistry()
+    initial = registry.current_snapshot
+    assert initial.generation == 0
+    assert not callable(initial)
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v2/snapshot-contract/",
+        callback,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="snapshot-contract",
+    )
+    registered = registry.current_snapshot
+    assert registered.generation == initial.generation + 1
+    assert len(registered.active_routes) == 1
+
+    # Repeating the exact declaration must not publish a new generation.
+    registry.register(
+        "api/v2/snapshot-contract/",
+        callback,
+        source_version=2,
+        route_version=2,
+        logical_endpoint="snapshot-contract",
+    )
+    assert registry.current_snapshot is registered
+
+    registry.register_endpoint_lifecycle(
+        "snapshot-contract",
+        2,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    lifecycle = registry.current_snapshot
+    assert lifecycle.generation == registered.generation + 1
+    assert lifecycle.lifecycle
+
+    # An identical lifecycle declaration is also a no-op.
+    registry.register_endpoint_lifecycle(
+        "snapshot-contract",
+        2,
+        deprecated_at="2030-01-01T00:00:00Z",
+    )
+    assert registry.current_snapshot is lifecycle
+
+
+def test_registry_snapshot_publication_is_limited_to_mutations_and_outer_commit(
+    monkeypatch,
+):
+    registry = UrlRegistry()
+    publications = []
+    original_publish = registry._publish_snapshot
+
+    def record_publication():
+        publications.append(True)
+        return original_publish()
+
+    monkeypatch.setattr(registry, "_publish_snapshot", record_publication)
+    operation = ResolvedOperation(
+        logical_endpoint="orders:list",
+        route_version=2,
+        source_version=2,
+        method="GET",
+        action="list",
+        route_name="orders-list",
+        namespace="",
+        route="api/v2/orders/",
+        registered_route="api/v2/orders/",
+    )
+    assert registry.get_endpoint_lifecycle(operation) is None
+    assert publications == []
+
+    def callback(request):
+        return None
+
+    with registry.transaction():
+        registry.register(
+            "api/v2/orders/",
+            callback,
+            source_version=2,
+            route_version=2,
+            logical_endpoint="orders:list",
+        )
+        assert publications == []
+        assert registry.current_snapshot.generation == 0
+
+    assert publications == [True]
+    assert registry.current_snapshot.generation == 1
+
+
+def test_registry_transaction_rollback_restores_absent_pattern_metadata():
+    registry = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    pattern = path("api/v2/unannotated/", callback)
+    registry.urlpatterns.append(pattern)
+
+    with pytest.raises(RuntimeError, match="restore absent metadata"):
+        with registry.transaction():
+            registry.register_urlpattern(
+                pattern,
+                source_version=2,
+                route_version=2,
+                logical_endpoint="unannotated",
+            )
+            assert hasattr(pattern, registry._SOURCE_VERSION_ATTR)
+            raise RuntimeError("restore absent metadata")
+
+    assert registry.urlpatterns == [pattern]
+    for attribute in (
+        registry._SOURCE_VERSION_ATTR,
+        registry._ROUTE_VERSION_ATTR,
+        registry._LOGICAL_ENDPOINT_ATTR,
+        registry._ROUTER_OWNER_ATTR,
+        registry._ROUTER_PREFIX_ATTR,
+        registry._ROUTER_TRAILING_SLASH_ATTR,
+    ):
+        assert not hasattr(pattern, attribute)
+
+
+def test_registry_transaction_rollback_preserves_explicit_none_pattern_metadata():
+    registry = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    pattern = path("api/v2/explicit-none/", callback)
+    setattr(pattern, registry._SOURCE_VERSION_ATTR, None)
+    registry.urlpatterns.append(pattern)
+
+    with pytest.raises(RuntimeError, match="restore explicit None metadata"):
+        with registry.transaction():
+            registry.register_urlpattern(
+                pattern,
+                source_version=2,
+                route_version=2,
+                logical_endpoint="explicit-none",
+            )
+            assert getattr(pattern, registry._SOURCE_VERSION_ATTR) == 2
+            raise RuntimeError("restore explicit None metadata")
+
+    assert hasattr(pattern, registry._SOURCE_VERSION_ATTR)
+    assert getattr(pattern, registry._SOURCE_VERSION_ATTR) is None
