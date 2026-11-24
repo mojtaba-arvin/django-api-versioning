@@ -30,7 +30,22 @@ _ROUTER_OWNER_IDENTITY = object()
 REMOVED_ROUTE = object()
 
 _MUTATING_METHODS = frozenset(
-    {"clear", "remove", "register", "register_urlpattern", "register_endpoint_lifecycle"}
+    {
+        "clear",
+        "remove",
+        "register",
+        "register_urlpattern",
+        "register_endpoint_lifecycle",
+    }
+)
+_MISSING_ATTRIBUTE = object()
+_PATTERN_STATE_ATTRIBUTES = (
+    "_django_api_versioning_source_version",
+    "_django_api_versioning_route_version",
+    "_django_api_versioning_logical_endpoint",
+    "_django_api_versioning_router_owner",
+    "_django_api_versioning_router_prefix",
+    "_django_api_versioning_router_trailing_slash",
 )
 
 
@@ -117,10 +132,33 @@ class UrlRegistry:
             },
             dict(self._removed_patterns),
             dict(self._endpoint_lifecycle),
+            [
+                (
+                    pattern,
+                    {
+                        attribute: getattr(pattern, attribute, _MISSING_ATTRIBUTE)
+                        for attribute in _PATTERN_STATE_ATTRIBUTES
+                    },
+                )
+                for pattern in {
+                    id(pattern): pattern
+                    for pattern in [
+                        *self.urlpatterns,
+                        *self._removed_patterns.values(),
+                    ]
+                }.values()
+            ],
         )
 
     def _restore_state(self, state: tuple[object, ...]) -> None:
-        active, boundaries, router_boundaries, removed, lifecycle = state
+        (
+            active,
+            boundaries,
+            router_boundaries,
+            removed,
+            lifecycle,
+            pattern_attributes,
+        ) = state
         self.urlpatterns[:] = cast(list[URLPattern], active)
         self._removal_boundaries.clear()
         self._removal_boundaries.update(cast(dict[str, set[int]], boundaries))
@@ -142,6 +180,16 @@ class UrlRegistry:
                 lifecycle,
             )
         )
+        saved_patterns = cast(
+            list[tuple[URLPattern, dict[str, object]]], pattern_attributes
+        )
+        for pattern, attributes in saved_patterns:
+            for attribute, value in attributes.items():
+                if value is _MISSING_ATTRIBUTE:
+                    if hasattr(pattern, attribute):
+                        delattr(pattern, attribute)
+                else:
+                    setattr(pattern, attribute, value)
 
     def _publish_snapshot(self) -> None:
         candidate = build_registry_snapshot(
