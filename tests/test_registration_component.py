@@ -76,11 +76,13 @@ def test_router_prefix_collision_ignores_incomplete_owner_metadata(missing_metad
     candidate_owner = object()
 
     setattr(existing, target._ROUTER_OWNER_ATTR, existing_owner)
-    setattr(existing, target._ROUTER_PREFIX_ATTR, "shared" if missing_metadata == "owner" else None)
+    existing_prefix = "shared" if missing_metadata == "owner" else None
+    setattr(existing, target._ROUTER_PREFIX_ATTR, existing_prefix)
     setattr(existing, target._ROUTE_VERSION_ATTR, 1)
 
-    setattr(candidate, target._ROUTER_OWNER_ATTR, None if missing_metadata == "owner" else candidate_owner)
-    setattr(candidate, target._ROUTER_PREFIX_ATTR, "shared" if missing_metadata == "owner" else None)
+    candidate_owner_value = None if missing_metadata == "owner" else candidate_owner
+    setattr(candidate, target._ROUTER_OWNER_ATTR, candidate_owner_value)
+    setattr(candidate, target._ROUTER_PREFIX_ATTR, existing_prefix)
 
     # A partial metadata record is not a router declaration and must not
     # collide with a complete declaration owned by another router.
