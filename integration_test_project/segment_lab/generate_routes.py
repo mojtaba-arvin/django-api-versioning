@@ -171,11 +171,26 @@ SYMBOLS = {
     "_validate_version": ("decorators.py", "_validate_version"),
     "UrlRegistry.register": ("registry/__init__.py", "UrlRegistry.register"),
     "register_pattern": ("registry/registration.py", "register_pattern"),
-    "UrlRegistry._should_replace": ("registry/__init__.py", "UrlRegistry._should_replace"),
-    "UrlRegistry._create_pattern": ("registry/__init__.py", "UrlRegistry._create_pattern"),
-    "UrlRegistry._sort_urlpatterns": ("registry/__init__.py", "UrlRegistry._sort_urlpatterns"),
-    "UrlRegistry.get_version_matrix": ("registry/__init__.py", "UrlRegistry.get_version_matrix"),
-    "UrlRegistry._find_route_index": ("registry/__init__.py", "UrlRegistry._find_route_index"),
+    "UrlRegistry._should_replace": (
+        "registry/__init__.py",
+        "UrlRegistry._should_replace",
+    ),
+    "UrlRegistry._create_pattern": (
+        "registry/__init__.py",
+        "UrlRegistry._create_pattern",
+    ),
+    "UrlRegistry._sort_urlpatterns": (
+        "registry/__init__.py",
+        "UrlRegistry._sort_urlpatterns",
+    ),
+    "UrlRegistry.get_version_matrix": (
+        "registry/__init__.py",
+        "UrlRegistry.get_version_matrix",
+    ),
+    "UrlRegistry._find_route_index": (
+        "registry/__init__.py",
+        "UrlRegistry._find_route_index",
+    ),
     "api_reverse": ("reverse.py", "api_reverse"),
     "check_versions.handle": (
         "management/commands/check_versions.py",
@@ -208,7 +223,10 @@ LINES = {
     "explicit_loop": ("decorators.py", "for ver in versions:"),
     "below_min_return": ("decorators.py", "                continue"),
     "below_min_warning": ("decorators.py", '"No routes will be registered."'),
-    "newer_wins": ("registry/registration.py", "return source_version >= existing_version"),
+    "newer_wins": (
+        "registry/registration.py",
+        "return source_version >= existing_version",
+    ),
     "shared_registration_core": ("registry/registration.py", "def register_pattern("),
     "none_wins": (
         "registry/registration.py",
