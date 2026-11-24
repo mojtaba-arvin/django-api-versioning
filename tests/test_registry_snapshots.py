@@ -2,6 +2,8 @@
 
 import importlib
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 
 import pytest
 
@@ -208,3 +210,51 @@ def test_failed_transaction_restores_metadata_on_existing_urlpattern():
         getattr(original_pattern, route_registry._LOGICAL_ENDPOINT_ATTR) == "existing"
     )
     assert route_registry.current_snapshot is before
+
+
+def test_concurrent_reader_observes_only_the_committed_transaction():
+    route_registry = UrlRegistry()
+    before = route_registry.current_snapshot
+    transaction_open = Event()
+    allow_commit = Event()
+    reader_started = Event()
+
+    def write_routes():
+        with route_registry.transaction():
+            route_registry.register(
+                "api/v1/first/",
+                _view_factory("first"),
+                source_version=1,
+                route_version=1,
+                logical_endpoint="first",
+            )
+            transaction_open.set()
+            if not allow_commit.wait(timeout=5):
+                raise TimeoutError("test did not release the writer")
+            route_registry.register(
+                "api/v1/second/",
+                _view_factory("second"),
+                source_version=1,
+                route_version=1,
+                logical_endpoint="second",
+            )
+
+    def read_snapshot():
+        reader_started.set()
+        return route_registry.current_snapshot
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        writer = executor.submit(write_routes)
+        assert transaction_open.wait(timeout=5)
+        reader = executor.submit(read_snapshot)
+        assert reader_started.wait(timeout=5)
+        allow_commit.set()
+        writer.result(timeout=5)
+        observed = reader.result(timeout=5)
+
+    assert observed.generation == before.generation + 1
+    assert {record.logical_endpoint for record in observed.active_routes} == {
+        "first",
+        "second",
+    }
+    assert before.active_routes == ()
