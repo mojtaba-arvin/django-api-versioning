@@ -112,7 +112,9 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
             return (logical, None, None, None)
         return (logical, router_id, prefix, trailing_slash)
 
-    def _current_boundary(self, logical, route_version, router_id, prefix, trailing_slash):
+    def _current_boundary(
+        self, logical, route_version, router_id, prefix, trailing_slash
+    ):
         key = self._boundary_key(logical, router_id, prefix, trailing_slash)
         applicable = [
             boundary
