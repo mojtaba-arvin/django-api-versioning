@@ -54,8 +54,13 @@ class PlanExecutionContractTests(unittest.TestCase):
             profile["skill"],
             ".agents/skills/plan-execution/SKILL.md",
         )
-        self.assertIn("the identified GitHub epic and selected child issue", profile["read"])
-        self.assertIn("duplicate roadmap, handoff, progress, or generated status documents", profile["avoid"])
+        self.assertIn(
+            "the identified GitHub epic and selected child issue", profile["read"]
+        )
+        self.assertIn(
+            "duplicate roadmap, handoff, progress, or generated status documents",
+            profile["avoid"],
+        )
         self.assertLessEqual(len(profile["read"]), 6)
 
     def test_plan_skill_is_discoverable_through_a_thin_metadata_consistent_adapter(self) -> None:
@@ -90,7 +95,7 @@ class PlanExecutionContractTests(unittest.TestCase):
             "scripts/classify_pr_changes.py",
             "exact PR head SHA",
             "A skipped job is not a pass",
-            "do not create no-op commits",
+            "Do not create no-op commits",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, self.skill_text)
