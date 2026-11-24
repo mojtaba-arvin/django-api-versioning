@@ -22,10 +22,10 @@ timed-out, incomplete, or surviving mutants.
 
 | Location | Equivalent mutation | Reason |
 |---|---|---|
-| `registry.py` — unowned route grouping | unowned identity tuple → `None` | The key is only used in a set: all unowned entries remain one group and owned identities remain distinct tuples. |
-| `registry.py` — canonical-route escape state | `False` → `None` | The escape flag is used only in truthiness checks. |
-| `registry.py` — resolved-route suffix loop | `continue` → `break` after a failed segment boundary | Candidate strings differ only by stripping anchors. If the longer suffix fails the preceding-slash boundary, removing its trailing anchor makes the shorter candidate cease to be a suffix, or removing its leading anchor leaves a non-slash character at the boundary. No later candidate can make that boundary valid. |
-| `registry.py` — route-specificity escape state | `False` → `None` | The escape flag is used only in truthiness checks. |
+| `registry/__init__.py` — unowned route grouping | unowned identity tuple → `None` | The key is only used in a set: all unowned entries remain one group and owned identities remain distinct tuples. |
+| `registry/__init__.py` — canonical-route escape state | `False` → `None` | The escape flag is used only in truthiness checks. |
+| `registry/__init__.py` — resolved-route suffix loop | `continue` → `break` after a failed segment boundary | Candidate strings differ only by stripping anchors. If the longer suffix fails the preceding-slash boundary, removing its trailing anchor makes the shorter candidate cease to be a suffix, or removing its leading anchor leaves a non-slash character at the boundary. No later candidate can make that boundary valid. |
+| `registry/__init__.py` — route-specificity escape state | `False` → `None` | The escape flag is used only in truthiness checks. |
 
 ## Routers
 
