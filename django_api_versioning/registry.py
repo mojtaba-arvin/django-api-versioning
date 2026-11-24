@@ -97,6 +97,8 @@ class UrlRegistry:
             active_patterns=self.urlpatterns,
             removed_patterns=self._removed_patterns,
             lifecycle_state=self._endpoint_lifecycle,
+            removal_boundaries=self._removal_boundaries,
+            router_removal_boundaries=self._router_removal_boundaries,
         )
 
     @property
@@ -152,6 +154,7 @@ class UrlRegistry:
             candidate.active_routes == self._snapshot.active_routes
             and candidate.removed_routes == self._snapshot.removed_routes
             and candidate.lifecycle == self._snapshot.lifecycle
+            and candidate.removal_boundaries == self._snapshot.removal_boundaries
         ):
             return
         self._snapshot = candidate
