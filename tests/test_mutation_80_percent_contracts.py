@@ -870,7 +870,6 @@ def test_registry_transaction_rollback_restores_absent_pattern_metadata():
         assert not hasattr(pattern, attribute)
 
 
-
 def test_registry_transaction_rollback_preserves_explicit_none_pattern_metadata():
     registry = UrlRegistry()
 
