@@ -52,7 +52,8 @@ class RoutingArchitectureSkillTests(unittest.TestCase):
             "Import/reload behavior is a contract",
             "Compatibility facade first",
             "A published snapshot never changes",
-            "Successful transactions atomically publish a new generation; failures publish nothing.",
+            "Successful transactions atomically publish a new generation; "
+            "failures publish nothing.",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, self.skill_text)
