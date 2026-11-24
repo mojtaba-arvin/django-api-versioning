@@ -34,14 +34,14 @@ class RoutingArchitectureSkillTests(unittest.TestCase):
         self.assertLessEqual(len(profile["read"]), 8)
         self.assertLessEqual(len(profile["avoid"]), 6)
         self.assertIn(
-            "tests/test_registry.py and directly related state/ownership tests",
+            "the owning issue's named routing/negotiation design, source, and tests",
             profile["read"],
         )
 
     def test_skill_delegates_to_existing_execution_and_package_contracts(self) -> None:
         self.assertIn("../plan-execution/SKILL.md", self.skill_text)
         self.assertIn("../package-engineering/SKILL.md", self.skill_text)
-        self.assertIn("one child issue, one focused branch", self.skill_text)
+        self.assertIn("One PR, one responsibility.", self.skill_text)
 
     def test_skill_covers_single_owner_immutable_state_and_compatibility_facade(self) -> None:
         for required in (
@@ -50,14 +50,14 @@ class RoutingArchitectureSkillTests(unittest.TestCase):
             "Import/reload behavior is a contract",
             "Compatibility facade first",
             "A published snapshot never changes",
-            "Successful transactions atomically publish a new generation",
+            "A successful transaction atomically publishes a new generation",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, self.skill_text)
 
     def test_skill_preserves_optional_framework_and_diagnostics_boundaries(self) -> None:
         for required in (
-            "Core package imports must work without DRF",
+            "Core imports remain usable without DRF",
             "one narrow optional adapter",
             "Diagnostics are read-only",
             "Public APIs require a lifecycle contract",
