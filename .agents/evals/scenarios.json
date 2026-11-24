@@ -221,6 +221,78 @@
         "Assumes a local instruction or hook alone can protect the main branch from an invalid squash-merge title.",
         "Opens a pull request with a title that does not pass the repository's mandatory title validator."
       ]
+    },
+    {
+      "id": "plan-execution-unpublished-issue",
+      "profile": "plan-execution",
+      "task": "A user asks you to execute a multi-step repository plan, but no published GitHub epic or child issue is linked or discoverable. Decide whether to start implementation.",
+      "checks": [
+        "Identifies that no durable published epic/child issue can be verified and stops before editing or creating an implementation branch.",
+        "Requests or obtains the canonical GitHub issue identity; does not treat the prompt, a local file, chat history, or a branch name as the task record.",
+        "Does not create a parallel roadmap, checklist, handoff, or progress document.",
+        "States the blocker and the smallest action needed to make the plan executable."
+      ],
+      "failure_modes": [
+        "Starts coding from the prose prompt or an unpublished local plan.",
+        "Invents an issue number or claims that an issue exists without checking GitHub.",
+        "Creates a second plan/status document as a substitute for the missing issue."
+      ]
+    },
+    {
+      "id": "plan-execution-fresh-session-resume",
+      "profile": "plan-execution",
+      "task": "Resume a child issue in a new agent session. The issue has a prior checkpoint and an open PR; the branch contains incomplete acceptance criteria and the checkout has dirty/untracked changes.",
+      "checks": [
+        "Reads the epic, child issue, dependencies, checkpoint, linked PR, branch, current main, worktree status, and exact-head CI before editing.",
+        "Resumes the existing branch and PR rather than opening a duplicate execution branch or PR.",
+        "Preserves all dirty, untracked, and unrecognized user changes without reset, clean, overwrite, or force-push.",
+        "Reconciles checkpoint claims with current source, commit SHA, PR state, and current CI rather than trusting previous-session notes.",
+        "Updates the same durable issue/PR checkpoint with completed evidence, remaining criteria, checks run/not run, blockers, and next action.",
+        "Leaves incomplete acceptance criteria unchecked and the issue open."
+      ],
+      "failure_modes": [
+        "Assumes the previous agent completed work based on its summary or a checked box without evidence.",
+        "Creates a duplicate branch/PR for the already-open child issue.",
+        "Deletes or overwrites dirty/untracked files to make the checkout clean.",
+        "Closes the child issue while any acceptance criterion is incomplete or exact-head CI is pending."
+      ]
+    },
+    {
+      "id": "plan-execution-dependency-and-scope-selection",
+      "profile": "plan-execution",
+      "task": "An epic has several open child issues. The baseline audit is still open, two architecture children depend on it, one unrelated agent-tooling child is explicitly independent, and another child has an open PR already.",
+      "checks": [
+        "Selects only a child whose declared prerequisites are satisfied; does not start architecture work while its baseline dependency is open.",
+        "Recognizes explicitly independent work may proceed without bypassing the baseline requirement for dependent children.",
+        "Resumes the child with the existing open PR rather than creating a competing PR.",
+        "Executes one child per branch/PR and uses isolated worktrees when genuinely independent work is parallelized.",
+        "Verifies dependency completion from merged PR state and required exact-head checks, not merely a closed issue."
+      ],
+      "failure_modes": [
+        "Chooses the first open issue without evaluating dependencies.",
+        "Treats any closed dependency as successful without verifying merge or not-applicable evidence.",
+        "Combines independent child issues into one oversized PR.",
+        "Runs two sessions against the same child branch."
+      ]
+    },
+    {
+      "id": "plan-execution-dynamic-ci-and-document-ownership",
+      "profile": "plan-execution",
+      "task": "A child issue changes one canonical skill, a helper script, and generated website output. CI has multiple workflows, and an older run exists for a previous commit.",
+      "checks": [
+        "Checks canonical document ownership and updates the single source instead of copying content into client adapters or creating a new tracker.",
+        "Uses the documented generator for generated output and does not hand-edit generated files.",
+        "Derives expected jobs from the current path classifier and central PR gate rather than from memory.",
+        "Requires every applicable check to succeed on the exact PR head SHA; treats stale, pending, missing, cancelled, and unexpected skipped checks as incomplete.",
+        "Records a skipped job as not applicable only when the classifier says that job should not run.",
+        "Reuses exact-source CI evidence only when the current repository policy permits it and avoids no-op commits or redundant reruns."
+      ],
+      "failure_modes": [
+        "Reports old-SHA CI as proof for the current candidate.",
+        "Calls a skipped job PASS without checking path classification.",
+        "Creates an extra status document or edits generated content manually.",
+        "Adds a no-op commit or workflow trigger change merely to start CI."
+      ]
     }
   ]
 }
