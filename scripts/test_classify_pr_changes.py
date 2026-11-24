@@ -10,7 +10,12 @@ from scripts.classify_pr_changes import (
 
 class ClassifyPullRequestChangesTests(unittest.TestCase):
     def test_package_source_runs_python_compatibility_artifacts_and_website(self):
-        result = classify_paths(["django_api_versioning/registry/__init__.py", "django_api_versioning/registry/registration.py"])
+        result = classify_paths(
+            [
+                "django_api_versioning/registry/__init__.py",
+                "django_api_versioning/registry/registration.py",
+            ]
+        )
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertFalse(result["compatibility_full"])
