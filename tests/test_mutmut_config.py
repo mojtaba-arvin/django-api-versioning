@@ -96,6 +96,8 @@ def test_domain_contract_probes_are_always_selected_for_each_mutation():
             "test_mutation100_negotiation",
         ),
         "registry.py": ("test_mutation95_registry", "test_mutation100_registry"),
+        "__init__.py": ("test_mutation95_registry", "test_mutation100_registry"),
+        "registration.py": ("test_mutation95_registry", "test_mutation100_registry"),
         "routers.py": ("test_mutation95_router", "test_mutation100_router"),
     }
     for source_name, prefixes in expected.items():
