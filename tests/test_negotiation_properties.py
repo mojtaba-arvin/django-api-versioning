@@ -167,7 +167,10 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
                 prefix,
                 trailing_slash,
             )
-            suppressed = boundary is not None and source_version <= boundary
+            suppressed = (
+                boundary is not None
+                and declaration_source_version <= boundary
+            )
             key = (
                 logical,
                 route_version,
