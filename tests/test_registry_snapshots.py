@@ -179,3 +179,36 @@ def test_snapshot_includes_removal_boundaries_without_existing_routes():
     )
     assert route_registry.current_snapshot.active_routes == ()
     assert len(route_registry.current_snapshot.removed_routes) == 1
+
+
+def test_failed_transaction_restores_metadata_on_existing_urlpattern():
+    route_registry = UrlRegistry()
+    original_view = _view_factory("original")
+    route_registry.register(
+        "api/v1/existing/",
+        original_view,
+        source_version=1,
+        route_version=1,
+        logical_endpoint="existing",
+    )
+    before = route_registry.current_snapshot
+    original_pattern = route_registry.urlpatterns[0]
+
+    with pytest.raises(RuntimeError, match="rollback existing pattern"):
+        with route_registry.transaction():
+            route_registry.register_urlpattern(
+                original_pattern,
+                source_version=2,
+                route_version=1,
+                logical_endpoint="changed",
+            )
+            raise RuntimeError("rollback existing pattern")
+
+    assert route_registry.urlpatterns[0] is original_pattern
+    assert getattr(
+        original_pattern, route_registry._SOURCE_VERSION_ATTR
+    ) == 1
+    assert getattr(
+        original_pattern, route_registry._LOGICAL_ENDPOINT_ATTR
+    ) == "existing"
+    assert route_registry.current_snapshot is before
