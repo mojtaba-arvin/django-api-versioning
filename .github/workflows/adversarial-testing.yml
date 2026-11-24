@@ -156,7 +156,7 @@ jobs:
           - id: negotiation
             path: django_api_versioning/negotiation.py
           - id: registry
-            path: django_api_versioning/registry.py
+            path: django_api_versioning/registry/
           - id: routers
             path: django_api_versioning/routers.py
     steps:
