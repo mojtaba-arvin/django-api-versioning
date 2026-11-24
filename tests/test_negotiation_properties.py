@@ -131,6 +131,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
         *,
         router_id=None,
         trailing_slash=True,
+        explicit_versions=False,
     ):
         logical = self._logical_endpoint(endpoint_id)
         owner = self._owner(router_id)
@@ -148,6 +149,9 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
         callback._stateful_marker = marker
 
         for route_version in sorted(route_versions):
+            declaration_source_version = (
+                route_version if explicit_versions else source_version
+            )
             route_suffix = "/" if trailing_slash else ""
             if router_id is None:
                 route = (
@@ -172,13 +176,16 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
                 trailing_slash,
             )
             existing = self._expected_active.get(key)
-            should_replace = existing is None or source_version >= existing[0]
+            should_replace = (
+                existing is None
+                or declaration_source_version >= existing[0]
+            )
 
             if router_id is None:
                 self.registry.register(
                     route,
                     callback,
-                    source_version=source_version,
+                    source_version=declaration_source_version,
                     route_version=route_version,
                     logical_endpoint=logical,
                 )
@@ -197,7 +204,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
                 )
                 self.registry.register_urlpattern(
                     pattern,
-                    source_version=source_version,
+                    source_version=declaration_source_version,
                     route_version=route_version,
                     logical_endpoint=logical,
                 )
@@ -206,7 +213,10 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
                 (logical, router_id, prefix, trailing_slash)
             )
             if not suppressed and should_replace:
-                self._expected_active[key] = (source_version, marker)
+                self._expected_active[key] = (
+                    declaration_source_version,
+                    marker,
+                )
 
     def _remove(self, endpoint_id, from_version, *, router_id=None):
         logical = self._logical_endpoint(endpoint_id)
@@ -282,6 +292,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
             source_version,
             route_versions,
             trailing_slash=trailing_slash,
+            explicit_versions=True,
         )
 
     @rule(
@@ -313,6 +324,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
             versions,
             router_id=router_id,
             trailing_slash=trailing_slash,
+            explicit_versions=explicit,
         )
 
     @rule(
