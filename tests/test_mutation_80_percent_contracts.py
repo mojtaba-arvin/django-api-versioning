@@ -868,3 +868,29 @@ def test_registry_transaction_rollback_restores_absent_pattern_metadata():
         registry._ROUTER_TRAILING_SLASH_ATTR,
     ):
         assert not hasattr(pattern, attribute)
+
+
+
+def test_registry_transaction_rollback_preserves_explicit_none_pattern_metadata():
+    registry = UrlRegistry()
+
+    def callback(request):
+        return None
+
+    pattern = path("api/v2/explicit-none/", callback)
+    setattr(pattern, registry._SOURCE_VERSION_ATTR, None)
+    registry.urlpatterns.append(pattern)
+
+    with pytest.raises(RuntimeError, match="restore explicit None metadata"):
+        with registry.transaction():
+            registry.register_urlpattern(
+                pattern,
+                source_version=2,
+                route_version=2,
+                logical_endpoint="explicit-none",
+            )
+            assert getattr(pattern, registry._SOURCE_VERSION_ATTR) == 2
+            raise RuntimeError("restore explicit None metadata")
+
+    assert hasattr(pattern, registry._SOURCE_VERSION_ATTR)
+    assert getattr(pattern, registry._SOURCE_VERSION_ATTR) is None
