@@ -149,3 +149,33 @@ def test_reloading_a_urlconf_replaces_the_declaration_without_duplicates(
     finally:
         registry.clear()
         sys.modules.pop(module_name, None)
+
+
+def test_snapshot_includes_removal_boundaries_without_existing_routes():
+    route_registry = UrlRegistry()
+    before = route_registry.current_snapshot
+
+    route_registry.remove("future-endpoint", 2)
+
+    boundary_snapshot = route_registry.current_snapshot
+    assert boundary_snapshot.generation == before.generation + 1
+    assert len(boundary_snapshot.removal_boundaries) == 1
+    boundary = boundary_snapshot.removal_boundaries[0]
+    assert boundary.logical_endpoint == "future-endpoint"
+    assert boundary.from_version == 2
+    assert boundary.owner == "unowned"
+    assert boundary_snapshot.active_routes == ()
+    assert boundary_snapshot.removed_routes == ()
+
+    route_registry.register(
+        "api/v2/future-endpoint/",
+        _view_factory("suppressed"),
+        source_version=1,
+        route_version=2,
+        logical_endpoint="future-endpoint",
+    )
+    assert route_registry.current_snapshot.removal_boundaries == (
+        boundary,
+    )
+    assert route_registry.current_snapshot.active_routes == ()
+    assert len(route_registry.current_snapshot.removed_routes) == 1
