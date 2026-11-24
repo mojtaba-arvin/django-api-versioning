@@ -174,9 +174,7 @@ def test_snapshot_includes_removal_boundaries_without_existing_routes():
         route_version=2,
         logical_endpoint="future-endpoint",
     )
-    assert route_registry.current_snapshot.removal_boundaries == (
-        boundary,
-    )
+    assert route_registry.current_snapshot.removal_boundaries == (boundary,)
     assert route_registry.current_snapshot.active_routes == ()
     assert len(route_registry.current_snapshot.removed_routes) == 1
 
@@ -205,10 +203,8 @@ def test_failed_transaction_restores_metadata_on_existing_urlpattern():
             raise RuntimeError("rollback existing pattern")
 
     assert route_registry.urlpatterns[0] is original_pattern
-    assert getattr(
-        original_pattern, route_registry._SOURCE_VERSION_ATTR
-    ) == 1
-    assert getattr(
-        original_pattern, route_registry._LOGICAL_ENDPOINT_ATTR
-    ) == "existing"
+    assert getattr(original_pattern, route_registry._SOURCE_VERSION_ATTR) == 1
+    assert (
+        getattr(original_pattern, route_registry._LOGICAL_ENDPOINT_ATTR) == "existing"
+    )
     assert route_registry.current_snapshot is before
