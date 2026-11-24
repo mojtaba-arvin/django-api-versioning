@@ -175,9 +175,7 @@ def register_pattern(
         setattr(pattern, registry._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
 
     router_prefix = getattr(pattern, registry._ROUTER_PREFIX_ATTR, None)
-    router_trailing_slash = getattr(
-        pattern, registry._ROUTER_TRAILING_SLASH_ATTR, None
-    )
+    router_trailing_slash = getattr(pattern, registry._ROUTER_TRAILING_SLASH_ATTR, None)
     if _apply_removal_suppression(
         registry,
         pattern,
