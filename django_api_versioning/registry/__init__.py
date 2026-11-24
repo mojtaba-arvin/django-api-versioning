@@ -347,6 +347,24 @@ class UrlRegistry:
             source_version is None or source_version <= boundary
         )
 
+    def _clear_removed_pattern(
+        self,
+        logical_endpoint: str | None,
+        route_version: int | None,
+        *,
+        owner: object | None,
+        router_prefix: str | None,
+        trailing_slash: bool | None,
+    ) -> None:
+        """Clear the matching tombstone when a declaration is reintroduced."""
+        if logical_endpoint is None or route_version is None:
+            return
+        if owner is None:
+            key = (logical_endpoint, route_version)
+        else:
+            key = (logical_endpoint, route_version, router_prefix, trailing_slash)
+        self._removed_patterns.pop(key, None)
+
     def _record_removed(self, pattern: URLPattern, logical_endpoint: str) -> None:
         route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
         if route_version is None:
