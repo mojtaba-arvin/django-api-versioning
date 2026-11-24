@@ -90,6 +90,24 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
             "all articles when only one page changes",
         ],
     },
+    "routing-architecture": {
+        "skill": ".agents/skills/routing-architecture/SKILL.md",
+        "read": [
+            "AGENTS.md",
+            ".agents/skills/routing-architecture/SKILL.md",
+            ".agents/skills/plan-execution/SKILL.md",
+            ".agents/skills/package-engineering/SKILL.md",
+            "docs/reference/versioning-contract.md",
+            "the owning issue's named routing/negotiation design, source, and tests",
+            "the current path classifier and PR gate when CI routing changes",
+        ],
+        "avoid": [
+            "the complete test suite when focused state/ownership tests suffice",
+            "all design documents and the full article corpus",
+            "unrelated website, release, or agent skill implementation",
+            "creating another registry, route matrix, roadmap, or status document",
+        ],
+    },
     "plan-execution": {
         "skill": ".agents/skills/plan-execution/SKILL.md",
         "read": [
