@@ -97,7 +97,8 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
             ".agents/skills/plan-execution/SKILL.md",
             "the identified GitHub epic and selected child issue",
             "existing PRs, issue checkpoints, and exact-head CI for that child",
-            "only source, tests, canonical docs, skills, or workflows named by its acceptance criteria",
+            "only source, tests, canonical docs, skills, or workflows "
+            "named by its acceptance criteria",
         ],
         "avoid": [
             "chat history as durable task state",
