@@ -19,7 +19,57 @@ git switch -c feat/short-description
 
 Use one short-lived branch per coherent task, created from the latest `origin/main`. If the working tree is dirty or local `main` cannot be fast-forwarded, stop and resolve ownership before switching.
 
-### Branch naming
+### First-run local development
+
+Use Python **3.12** as the default local development interpreter. The package declares support for Python 3.10–3.15; the authoritative Python/Django combinations and the full compatibility matrix live in [tox.ini](tox.ini) and GitHub Actions.
+
+From a fresh clone, install the package and its development/test dependencies:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+The repository's normal test entry points are:
+
+```bash
+make test-unit
+make test-integration
+make test-all
+```
+
+- `test-unit` runs `tests/` with the standard fast pytest defaults.
+- `test-integration` uses the existing `integration_test_project/pytest.ini`; it does not reuse the package unit-test settings.
+- `test-all` runs the unit suite and then the integration suite. These targets do not install or update dependencies.
+
+For the full Python/Django matrix and lint environment, install the tox runner separately and use the existing tox configuration:
+
+```bash
+python -m pip install tox tox-uv
+tox run
+tox run -e lint
+```
+
+The tox matrix is the compatibility authority; `make test-all` is a convenient local test path, not a substitute for that matrix or CI.
+
+Install the repository's optional pre-commit hooks when you want the same quick checks before committing:
+
+```bash
+pre-commit install
+pre-commit install --hook-type commit-msg
+pre-commit install --hook-type pre-push
+```
+
+To run applicable file-scoped checks without waiting for a commit:
+
+```bash
+pre-commit run --files path/to/changed_file.py
+```
+
+The normal pre-commit run applies the matching formatting, import-order, lint, and type-check hooks; the commit-message and pre-push stages run only at their respective Git lifecycle points. These quick hooks do not replace `tox run -e lint`, tests, or the required PR gate.
+
+Website work is optional for package-only contributors. Only when changing the website, use **Node 22.23.4** and the repository-pinned **pnpm 10.12.1**; the website lockfile and `make website-check` own that workflow. Package tests do not require Node or pnpm.
+
+## Branch naming
 
 | Work | Prefix | Example |
 | --- | --- | --- |
