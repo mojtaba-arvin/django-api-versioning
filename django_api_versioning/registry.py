@@ -75,10 +75,7 @@ def _synchronized(method):
     def wrapper(self, *args, **kwargs):
         with self._lock:
             result = method(self, *args, **kwargs)
-            if (
-                method.__name__ in _MUTATING_METHODS
-                and not self._transaction_stack
-            ):
+            if method.__name__ in _MUTATING_METHODS and not self._transaction_stack:
                 self._publish_snapshot()
             return result
 
@@ -126,10 +123,7 @@ class UrlRegistry:
         return (
             list(self.urlpatterns),
             {key: set(value) for key, value in self._removal_boundaries.items()},
-            {
-                key: set(value)
-                for key, value in self._router_removal_boundaries.items()
-            },
+            {key: set(value) for key, value in self._router_removal_boundaries.items()},
             dict(self._removed_patterns),
             dict(self._endpoint_lifecycle),
             [
