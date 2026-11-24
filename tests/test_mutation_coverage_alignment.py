@@ -125,7 +125,7 @@ def test_pre_mutation_uses_domain_fallback_for_excessive_contexts(
 
 
 def test_pre_mutation_fallback_does_not_duplicate_contract_module(tmp_path):
-    source_path = tmp_path / "registry.py"
+    source_path = tmp_path / "registration.py"
     context = _context(source_path, 0, {os.path.abspath(source_path): {}})
 
     pre_mutation(context)
@@ -137,7 +137,8 @@ def test_pre_mutation_fallback_does_not_duplicate_contract_module(tmp_path):
 
 @pytest.mark.parametrize(
     "source_name",
-    ["decorators.py", "lifecycle.py", "negotiation.py", "registry.py", "routers.py"],
+    ["decorators.py", "lifecycle.py", "negotiation.py", "__init__.py",
+        "registration.py", "routers.py"],
 )
 def test_pre_mutation_selects_its_domain_contract_probes_for_covered_lines(
     tmp_path, source_name
