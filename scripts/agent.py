@@ -90,6 +90,22 @@ CONTEXT_PROFILES: dict[str, dict[str, Any]] = {
             "all articles when only one page changes",
         ],
     },
+    "plan-execution": {
+        "skill": ".agents/skills/plan-execution/SKILL.md",
+        "read": [
+            "AGENTS.md",
+            ".agents/skills/plan-execution/SKILL.md",
+            "the identified GitHub epic and selected child issue",
+            "existing PRs, issue checkpoints, and exact-head CI for that child",
+            "only source, tests, canonical docs, skills, or workflows named by its acceptance criteria",
+        ],
+        "avoid": [
+            "chat history as durable task state",
+            "unrelated package modules or the full documentation corpus",
+            "duplicate roadmap, handoff, progress, or generated status documents",
+            "parallel implementation of multiple child issues in one PR",
+        ],
+    },
     "agent-maintenance": {
         "skill": ".agents/skills/agent-maintenance/SKILL.md",
         "read": [
