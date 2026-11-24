@@ -57,16 +57,11 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           echo "SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Run package unit tests
+      - name: Run package unit and integration tests through the contributor targets
         run: >-
-          python -m pytest --capture=no --cov=django_api_versioning
-          --cov-report=xml:coverage.xml tests
-
-      - name: Run Django integration tests
-        run: >-
-          python -m pytest --capture=no --cov=django_api_versioning --cov-append
-          --cov-report=xml:coverage.xml
-          -c integration_test_project/pytest.ini integration_test_project
+          make test-all
+          PYTEST_ARGS="--capture=no --cov=django_api_versioning --cov-report=xml:coverage.xml"
+          INTEGRATION_PYTEST_ARGS="--cov-append --cov-report=xml:coverage.xml"
 
       - name: Generate separate line and branch coverage totals
         run: python -m coverage json --pretty-print -o coverage.json
