@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import wraps
 from threading import RLock
-from typing import Callable
+from typing import Callable, cast
 
 from django.http import HttpResponse
 from django.urls import URLPattern, path
@@ -119,15 +119,27 @@ class UrlRegistry:
 
     def _restore_state(self, state: tuple[object, ...]) -> None:
         active, boundaries, router_boundaries, removed, lifecycle = state
-        self.urlpatterns[:] = active
+        self.urlpatterns[:] = cast(list[URLPattern], active)
         self._removal_boundaries.clear()
-        self._removal_boundaries.update(boundaries)
+        self._removal_boundaries.update(cast(dict[str, set[int]], boundaries))
         self._router_removal_boundaries.clear()
-        self._router_removal_boundaries.update(router_boundaries)
+        self._router_removal_boundaries.update(
+            cast(dict[tuple[str, str | None, bool | None], set[int]], router_boundaries)
+        )
         self._removed_patterns.clear()
-        self._removed_patterns.update(removed)
+        self._removed_patterns.update(
+            cast(dict[tuple[object, ...], URLPattern], removed)
+        )
         self._endpoint_lifecycle.clear()
-        self._endpoint_lifecycle.update(lifecycle)
+        self._endpoint_lifecycle.update(
+            cast(
+                dict[
+                    tuple[str, int, str | None, str | None, object | None],
+                    EndpointLifecycle,
+                ],
+                lifecycle,
+            )
+        )
 
     def _publish_snapshot(self) -> None:
         candidate = build_registry_snapshot(
