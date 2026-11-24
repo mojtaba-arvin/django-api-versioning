@@ -116,16 +116,12 @@ def _route_record(pattern: URLPattern, sequence: int) -> RouteRecord:
         ),
         route=route,
         is_regex=is_regex,
-        source_version=getattr(
-            pattern, "_django_api_versioning_source_version", None
-        ),
+        source_version=getattr(pattern, "_django_api_versioning_source_version", None),
         route_version=route_version,
         implementation=pattern.callback,
         owner=owner,
         source_location=_source_location(pattern.callback),
-        router_prefix=getattr(
-            pattern, "_django_api_versioning_router_prefix", None
-        ),
+        router_prefix=getattr(pattern, "_django_api_versioning_router_prefix", None),
         trailing_slash=getattr(
             pattern, "_django_api_versioning_router_trailing_slash", None
         ),
@@ -142,9 +138,7 @@ def build_registry_snapshot(
         tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
     ],
     removal_boundaries: Mapping[str, set[int]],
-    router_removal_boundaries: Mapping[
-        tuple[str, str | None, bool | None], set[int]
-    ],
+    router_removal_boundaries: Mapping[tuple[str, str | None, bool | None], set[int]],
 ) -> RegistrySnapshot:
     """Build fresh immutable collections from the registry's authoritative state."""
     active = tuple(
@@ -181,11 +175,7 @@ def build_registry_snapshot(
                     route_version=route_version,
                     method=method,
                     action=action,
-                    owner=(
-                        "unowned"
-                        if owner is None
-                        else owner_labels.get(id(owner))
-                    ),
+                    owner=("unowned" if owner is None else owner_labels.get(id(owner))),
                     metadata=metadata,
                 )
                 for (
