@@ -17,11 +17,52 @@ Use this skill only when executing a multi-issue repository plan/epic whose work
 
 ## Start or resume
 
-1. Read `python scripts/agent.py context agent-maintenance` for plan/agent-workflow changes, or `python scripts/agent.py context implementation` for package work. Load only the named canonical skills and relevant source/tests.
+1. Run `python scripts/agent.py context plan-execution` first. For agent-tooling changes, also run `python scripts/agent.py context agent-maintenance`; for package implementation, run `python scripts/agent.py context implementation`. Load only the named canonical skills and relevant source/tests.
 2. Inspect repository identity, active branch, full HEAD SHA, `git status --short`, latest origin/main, target issue/PR, related open PRs, and latest relevant checks. Use `python scripts/agent.py doctor`; never print credentials or environment values.
 3. Preserve all dirty, untracked, or unrecognized user work. Do not reset, clean, overwrite, rebase, or commit it. If ownership or branch state is ambiguous, stop and report the exact ambiguity.
 4. Fetch the epic and child issues. Select only an unblocked child with an explicit acceptance contract. Check merged work and current files/tests first; mark satisfied scope as verified rather than reimplementing it.
 5. Record a concise progress update in the owning issue/PR: child issue, current SHA, completed acceptance items with evidence, remaining items, checks actually run, and next safe action. Do not add a separate handoff document.
+
+## Select and claim exactly one child
+
+Use this decision sequence; do not choose work by title, urgency, or chat memory alone.
+
+1. Verify the epic and child issue are published in this repository. Read their current bodies, state, dependencies, comments, linked PRs, and latest relevant CI. If the plan/issue cannot be identified, or the issue is only a draft in chat/a file, stop before editing.
+2. Select an **open** child whose explicit prerequisites are satisfied. A dependency is satisfied only after its PR is verified merged with required exact-head checks, or the issue is explicitly closed as not applicable with evidence. A closed issue without that evidence is not automatically a successful dependency.
+3. Before creating a branch, search for an existing open PR and the latest execution checkpoint for this child. If the branch/PR already exists, resume it. Do not create a second branch or PR for the same child. If its state conflicts with the worktree or the checkpoint, preserve everything and report the ambiguity.
+4. If no work is active, create one short-lived branch from the latest verified `origin/main`. Record the branch, base SHA, and current full SHA in the child issue before implementation. Re-check for a competing open PR/checkpoint immediately before claiming the issue.
+5. One execution unit owns one child issue and one focused PR. Independent children may run in parallel only on isolated branches/worktrees and only when their dependency conditions are met. Never let two sessions edit the same child branch concurrently.
+
+### Durable progress checkpoint
+
+Keep one checkpoint in the owning child issue or PR. Update that checkpoint instead of creating a new handoff/status document or appending duplicate progress summaries. At each safe stopping point, record:
+
+```text
+Child issue:
+Branch and PR:
+Base full SHA:
+Current full SHA:
+Worktree state:
+Acceptance criteria completed (each with evidence):
+Acceptance criteria remaining:
+Commands run (exact command, exit code, tested SHA):
+CI checks (URL, result, exact head SHA):
+Checks not run:
+Known problems/blockers:
+Next smallest safe action:
+```
+
+Never include credentials, environment values, secret-bearing logs, or private user data in the checkpoint. Mark uncertain checks as `NOT RUN`; do not infer success from configuration or a previous SHA.
+
+## State, documents, and CI
+
+- GitHub child issue + its linked PR are the only durable task/progress records. Repository state and current CI are evidence. Chat, summaries, local notes, and branch names are not substitutes.
+- Keep acceptance criteria observable and binary where possible. Check an item only after its evidence exists. Leave incomplete items unchecked and the issue open.
+- Before adding a file, command, API, test suite, skill, workflow, or document, search for an existing owner and implementation. Extend the canonical source when possible; do not introduce competing registries, duplicated configuration, copied references, redundant test suites, or documents that restate issue/CI state.
+- Follow `AGENTS.md` and the relevant canonical documentation index to identify document ownership. Generated files must be rebuilt by their owning generator, never hand-edited. Before retiring a document, search inbound links and update the canonical owner.
+- Derive required checks from the current changed paths, `scripts/classify_pr_changes.py`, and `.github/workflows/pull-request-gate.yml`. Do not rely on remembered workflow names or manually assume a job is required/not required.
+- Verify every required check against the exact PR head SHA. A skipped job is not a pass: record it as not applicable only when the current classifier says it should not run. A missing expected check, stale-SHA result, cancelled run, or pending result is not complete.
+- Reuse valid current exact-source CI evidence when the repository policy permits it. Do not create no-op commits, alter workflow triggers, or rerun successful jobs merely to produce activity. Rerun only failed/cancelled jobs when appropriate and verify the new attempt.
 
 ## Execute one child issue
 
