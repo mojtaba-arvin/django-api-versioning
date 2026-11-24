@@ -1,0 +1,151 @@
+"""Regression tests for immutable registry snapshots and transaction boundaries."""
+
+import importlib
+import sys
+
+import pytest
+
+from django_api_versioning.registry import UrlRegistry, registry
+
+
+def _view_factory(marker):
+    def view(request):
+        return marker
+
+    return view
+
+
+def test_snapshot_is_deeply_immutable_and_old_generations_remain_stable():
+    route_registry = UrlRegistry()
+    initial = route_registry.current_snapshot
+    first_view = _view_factory("first")
+
+    with route_registry.transaction():
+        route_registry.register(
+            "api/v1/items/",
+            first_view,
+            source_version=1,
+            route_version=1,
+            logical_endpoint="items",
+        )
+        assert route_registry.current_snapshot is initial
+        route_registry.register(
+            "api/v2/items/",
+            first_view,
+            source_version=1,
+            route_version=2,
+            logical_endpoint="items",
+        )
+
+    committed = route_registry.current_snapshot
+    assert committed.generation == initial.generation + 1
+    assert len(committed.active_routes) == 2
+    assert initial.active_routes == ()
+    assert committed.active_routes[0].implementation is first_view
+
+    with pytest.raises(TypeError):
+        committed.active_by_identity[("path", "other/", 1, "unowned")] = (
+            committed.active_routes[0]
+        )
+
+    with pytest.raises((AttributeError, TypeError)):
+        committed.active_routes[0].route = "mutated/"
+
+    route_registry.remove("items", 2)
+    removed = route_registry.current_snapshot
+    assert len(removed.active_routes) == 1
+    assert len(removed.removed_routes) == 1
+    assert len(committed.active_routes) == 2
+    assert committed.removed_routes == ()
+
+    route_registry.clear()
+    assert route_registry.current_snapshot.active_routes == ()
+    assert len(removed.active_routes) == 1
+    assert len(removed.removed_routes) == 1
+
+
+def test_failed_transaction_restores_state_without_publishing_a_snapshot():
+    route_registry = UrlRegistry()
+    before = route_registry.current_snapshot
+
+    with pytest.raises(RuntimeError, match="abort transaction"):
+        with route_registry.transaction():
+            route_registry.register(
+                "api/v1/temporary/",
+                _view_factory("temporary"),
+                source_version=1,
+                route_version=1,
+                logical_endpoint="temporary",
+            )
+            raise RuntimeError("abort transaction")
+
+    assert route_registry.urlpatterns == []
+    assert route_registry.current_snapshot is before
+    assert route_registry.current_snapshot.generation == before.generation
+
+
+def test_successful_multi_operation_transaction_publishes_once():
+    route_registry = UrlRegistry()
+    before = route_registry.current_snapshot
+
+    with route_registry.transaction():
+        route_registry.register(
+            "api/v1/first/",
+            _view_factory("first"),
+            source_version=1,
+            route_version=1,
+            logical_endpoint="first",
+        )
+        route_registry.register(
+            "api/v1/second/",
+            _view_factory("second"),
+            source_version=1,
+            route_version=1,
+            logical_endpoint="second",
+        )
+        assert route_registry.current_snapshot is before
+
+    after = route_registry.current_snapshot
+    assert after.generation == before.generation + 1
+    assert {record.logical_endpoint for record in after.active_routes} == {
+        "first",
+        "second",
+    }
+
+
+def test_reloading_a_urlconf_replaces_the_declaration_without_duplicates(
+    tmp_path, monkeypatch
+):
+    registry.clear()
+    module_name = "snapshot_reload_urlconf"
+    module_path = tmp_path / f"{module_name}.py"
+    module_path.write_text(
+        "from django_api_versioning.registry import registry\n"
+        "def view(request):\n"
+        "    return 'loaded'\n"
+        "registry.register(\n"
+        "    'api/v1/reloaded/', view, source_version=1,\n"
+        "    route_version=1, logical_endpoint='reloaded'\n"
+        ")\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    sys.modules.pop(module_name, None)
+
+    try:
+        module = importlib.import_module(module_name)
+        first_snapshot = registry.current_snapshot
+        first_callback = first_snapshot.active_routes[0].implementation
+
+        importlib.reload(module)
+
+        second_snapshot = registry.current_snapshot
+        assert len(registry.urlpatterns) == 1
+        assert len(second_snapshot.active_routes) == 1
+        assert second_snapshot.generation > first_snapshot.generation
+        assert second_snapshot.active_routes[0].implementation is module.view
+        assert second_snapshot.active_routes[0].implementation is not first_callback
+        assert first_snapshot.active_routes[0].implementation is first_callback
+    finally:
+        registry.clear()
+        sys.modules.pop(module_name, None)
