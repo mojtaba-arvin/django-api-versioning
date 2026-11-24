@@ -60,8 +60,22 @@ def test_snapshot_is_deeply_immutable_and_old_generations_remain_stable():
     assert len(committed.active_routes) == 2
     assert committed.removed_routes == ()
 
+    route_registry.register(
+        "api/v2/items/",
+        _view_factory("reintroduced"),
+        source_version=3,
+        route_version=2,
+        logical_endpoint="items",
+    )
+    reintroduced = route_registry.current_snapshot
+    assert len(reintroduced.active_routes) == 2
+    assert reintroduced.removed_routes == ()
+    assert len(removed.active_routes) == 1
+    assert len(removed.removed_routes) == 1
+
     route_registry.clear()
     assert route_registry.current_snapshot.active_routes == ()
+    assert len(reintroduced.active_routes) == 2
     assert len(removed.active_routes) == 1
     assert len(removed.removed_routes) == 1
 
