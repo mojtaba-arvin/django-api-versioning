@@ -136,9 +136,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
         logical = self._logical_endpoint(endpoint_id)
         owner = self._owner(router_id)
         prefix = (
-            None
-            if router_id is None
-            else self._router_prefix(router_id, endpoint_id)
+            None if router_id is None else self._router_prefix(router_id, endpoint_id)
         )
         marker = f"registration-{self._sequence}"
         self._sequence += 1
@@ -154,9 +152,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
             )
             route_suffix = "/" if trailing_slash else ""
             if router_id is None:
-                route = (
-                    f"api/v{route_version}/stateful/{endpoint_id}{route_suffix}"
-                )
+                route = f"api/v{route_version}/stateful/{endpoint_id}{route_suffix}"
             else:
                 route = f"api/v{route_version}/{prefix}{route_suffix}"
 
@@ -167,10 +163,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
                 prefix,
                 trailing_slash,
             )
-            suppressed = (
-                boundary is not None
-                and declaration_source_version <= boundary
-            )
+            suppressed = boundary is not None and declaration_source_version <= boundary
             key = (
                 logical,
                 route_version,
@@ -180,8 +173,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
             )
             existing = self._expected_active.get(key)
             should_replace = (
-                existing is None
-                or declaration_source_version >= existing[0]
+                existing is None or declaration_source_version >= existing[0]
             )
 
             if router_id is None:
@@ -212,9 +204,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
                     logical_endpoint=logical,
                 )
 
-            self._seen_identities.add(
-                (logical, router_id, prefix, trailing_slash)
-            )
+            self._seen_identities.add((logical, router_id, prefix, trailing_slash))
             if not suppressed and should_replace:
                 self._expected_active[key] = (
                     declaration_source_version,
@@ -230,17 +220,14 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
         else:
             identities = {
                 (prefix, trailing_slash)
-                for seen_logical, seen_owner, prefix, trailing_slash
-                in self._seen_identities
+                for seen_logical, seen_owner, prefix, trailing_slash in self._seen_identities
                 if seen_logical == logical and seen_owner == router_id
             }
             if not identities:
                 return
 
         for prefix, trailing_slash in identities:
-            key = self._boundary_key(
-                logical, router_id, prefix, trailing_slash
-            )
+            key = self._boundary_key(logical, router_id, prefix, trailing_slash)
             self._removal_boundaries.setdefault(key, []).append(from_version)
 
         self.registry.remove(logical, from_version, owner=owner)
@@ -266,9 +253,7 @@ class RegistryLifecycleMachine(RuleBasedStateMachine):
         source_version=st.integers(min_value=1, max_value=3),
         trailing_slash=st.booleans(),
     )
-    def register_inherited_endpoint(
-        self, endpoint_id, source_version, trailing_slash
-    ):
+    def register_inherited_endpoint(self, endpoint_id, source_version, trailing_slash):
         self._register(
             endpoint_id,
             source_version,
