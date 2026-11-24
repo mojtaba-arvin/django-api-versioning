@@ -1,6 +1,7 @@
 """Contracts for the shared registry registration component."""
 
 import importlib
+from pathlib import Path
 
 import pytest
 from django.urls import path
@@ -61,4 +62,4 @@ def test_registry_import_path_remains_the_single_compatibility_facade():
     assert module.UrlRegistry is UrlRegistry
     assert module.registry is registry
     assert module.__file__ is not None
-    assert module.__file__.endswith("registry/__init__.py")
+    assert Path(module.__file__).as_posix().endswith("registry/__init__.py")
