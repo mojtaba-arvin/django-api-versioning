@@ -15,6 +15,8 @@ import classify_pr_changes  # noqa: E402
 
 SKILL = ROOT / ".agents/skills/plan-execution/SKILL.md"
 CLAUDE_ADAPTER = ROOT / ".claude/skills/plan-execution/SKILL.md"
+CLAUDE_INSTRUCTIONS = ROOT / "CLAUDE.md"
+COPILOT_INSTRUCTIONS = ROOT / ".github/copilot-instructions.md"
 AGENT_WORKFLOW = ROOT / ".github/workflows/agent-tooling.yml"
 SCENARIOS = ROOT / ".agents/evals/scenarios.json"
 
@@ -69,6 +71,12 @@ class PlanExecutionContractTests(unittest.TestCase):
         self.assertEqual(agent.parse_frontmatter(adapter_text), canonical)
         self.assertIn("../../../.agents/skills/plan-execution/SKILL.md", adapter_text)
         self.assertLessEqual(len(adapter_text), 900)
+
+    def test_client_entrypoints_discover_the_canonical_plan_skill(self) -> None:
+        claude = CLAUDE_INSTRUCTIONS.read_text(encoding="utf-8")
+        copilot = COPILOT_INSTRUCTIONS.read_text(encoding="utf-8")
+        self.assertIn("/plan-execution", claude)
+        self.assertIn(".agents/skills/plan-execution/SKILL.md", copilot)
 
     def test_fresh_session_plan_scenarios_are_registered_and_valid(self) -> None:
         scenarios = self.scenario_suite["scenarios"]
