@@ -101,7 +101,14 @@ def test_pre_mutation_runs_every_context_recorded_for_the_mutated_line(tmp_path)
 
 @pytest.mark.parametrize(
     "source_name",
-    ["decorators.py", "lifecycle.py", "negotiation.py", "__init__.py", "registration.py", "routers.py"],
+    [
+        "decorators.py",
+        "lifecycle.py",
+        "negotiation.py",
+        "__init__.py",
+        "registration.py",
+        "routers.py",
+    ],
 )
 def test_pre_mutation_uses_domain_fallback_for_excessive_contexts(
     tmp_path, source_name
