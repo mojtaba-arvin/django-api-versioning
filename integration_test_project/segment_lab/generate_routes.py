@@ -211,7 +211,7 @@ LINES = {
     "newer_wins": ("registry/registration.py", "return source_version >= existing_version"),
     "shared_registration_core": ("registry/registration.py", "def register_pattern("),
     "none_wins": (
-        "registry/__init__.py",
+        "registry/registration.py",
         "if existing_version is None or source_version is None:",
     ),
     "as_view_call": ("registry/__init__.py", "view = view.as_view()"),
