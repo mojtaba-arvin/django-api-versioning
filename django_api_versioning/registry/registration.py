@@ -153,17 +153,13 @@ def register_pattern(
             registry._record_removed(pattern, logical_endpoint)
         return
 
-    if logical_endpoint is not None and route_version is not None:
-        if pattern_owner is None:
-            removed_key = (logical_endpoint, route_version)
-        else:
-            removed_key = (
-                logical_endpoint,
-                route_version,
-                router_prefix,
-                router_trailing_slash,
-            )
-        registry._removed_patterns.pop(removed_key, None)
+    registry._clear_removed_pattern(
+        logical_endpoint,
+        route_version,
+        owner=pattern_owner,
+        router_prefix=router_prefix,
+        trailing_slash=router_trailing_slash,
+    )
 
     if route_index is None:
         registry.urlpatterns.append(pattern)
