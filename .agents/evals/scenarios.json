@@ -293,6 +293,81 @@
         "Creates an extra status document or edits generated content manually.",
         "Adds a no-op commit or workflow trigger change merely to start CI."
       ]
+    },
+    {
+      "id": "routing-architecture-state-ownership",
+      "profile": "routing-architecture",
+      "task": "A registry refactor proposes registration, removal, lifecycle, and routing state in separate modules. Existing code has one singleton, URLPattern metadata, and a router owner map. Map the state before editing and choose the migration boundary.",
+      "checks": [
+        "Identifies every current writer and reader of route, tombstone, lifecycle, and owner state from source and tests.",
+        "Names exactly one authoritative mutable writer and one canonical immutable representation; does not create a second registry.",
+        "Maps public imports and keeps django_api_versioning.registry, UrlRegistry, and registry compatibility paths stable.",
+        "Adds or identifies characterization tests for source precedence, owner collisions, rollback, removal, reintroduction, and repeated imports before moving code.",
+        "Assigns each extracted module one distinct responsibility and a real caller."
+      ],
+      "failure_modes": [
+        "Splits the 1,140-line file mechanically without tracing shared state.",
+        "Stores equivalent mutable routes in two registries or two dictionaries.",
+        "Moves imports but silently changes public import paths or import-time registration.",
+        "Extracts abstractions with no distinct state owner or caller."
+      ]
+    },
+    {
+      "id": "routing-architecture-immutable-snapshot",
+      "profile": "routing-architecture",
+      "task": "Design an immutable effective route snapshot for a Django package with concurrent readers and import-time registration mutations.",
+      "checks": [
+        "Uses deeply immutable route records and snapshot collections; nested maps/lists cannot be mutated through public references.",
+        "Publishes a new snapshot atomically only after a successful transaction; failed multi-route registration publishes nothing.",
+        "Older snapshot references remain unchanged after registration, replacement, removal, reintroduction, and clear.",
+        "Defines deterministic generation/order and a stable owner identity that does not expose Python object IDs or memory addresses.",
+        "Tests concurrent readers against a multi-operation write so no reader observes partial state.",
+        "Defines repeated URLconf import/autoreload behavior as idempotent or a clear collision."
+      ],
+      "failure_modes": [
+        "Uses a frozen dataclass containing mutable dictionaries/lists and calls it immutable.",
+        "Mutates a published snapshot in place or builds it from a half-committed registry.",
+        "Rebuilds snapshots on every request or introduces a cache that can become stale.",
+        "Uses id(object), repr(object), or nondeterministic hash values as public route identity."
+      ]
+    },
+    {
+      "id": "routing-architecture-optional-drf-boundary",
+      "profile": "routing-architecture",
+      "task": "Move DRF action, namespace, route ownership, reversal, API root, and format-suffix handling behind an adapter while keeping the Django package usable without DRF.",
+      "checks": [
+        "Keeps DRF route generation delegated to DRF's supported SimpleRouter/DefaultRouter behavior.",
+        "Places only concrete required capabilities in the adapter protocol and avoids hypothetical methods for unused frameworks.",
+        "Proves core package import and Django-native routing work in a clean interpreter where DRF is unavailable.",
+        "Isolates any unavoidable DRF-specific assumptions behind the adapter and tests supported DRF/Django combinations.",
+        "Preserves VersionedRouter, VersionedDefaultRouter, VersionedRouterVersioning, namespaces, actions, reversal, and API-root behavior."
+      ],
+      "failure_modes": [
+        "Imports DRF in core registry modules at package import time.",
+        "Reimplements a parallel router or API root instead of delegating route generation to DRF.",
+        "Spreads private DRF attribute assumptions throughout core registry logic.",
+        "Claims optional dependency support based only on unit tests with DRF installed."
+      ]
+    },
+    {
+      "id": "routing-architecture-safe-incremental-migration",
+      "profile": "routing-architecture",
+      "task": "Continue a multi-PR registry migration in a fresh session. The prior session merged the immutable snapshot model, one extraction PR is open, and the local checkout contains untracked user changes.",
+      "checks": [
+        "Reads the epic, selected child issue, dependency PRs, the existing open PR, exact-head CI, current main, and local doctor/status output before editing.",
+        "Resumes the existing branch/PR or opens only the next dependency-eligible child; never starts dependent work early.",
+        "Preserves dirty/untracked changes and does not clean, reset, overwrite, or force-push.",
+        "Moves one responsibility per PR and leaves incomplete acceptance criteria open with a durable issue checkpoint.",
+        "Runs focused tests and derives current CI jobs from the path classifier and PR gate.",
+        "Updates only canonical docs and uses generators for generated files."
+      ],
+      "failure_modes": [
+        "Repeats a completed extraction from the old session summary without verifying main.",
+        "Combines several module extractions into one oversized PR.",
+        "Deletes or overwrites untracked user changes.",
+        "Treats stale-SHA CI or a skipped job as success.",
+        "Creates a separate architecture handoff or migration-status document."
+      ]
     }
   ]
 }
