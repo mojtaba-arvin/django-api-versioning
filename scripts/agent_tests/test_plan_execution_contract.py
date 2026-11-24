@@ -63,7 +63,7 @@ class PlanExecutionContractTests(unittest.TestCase):
         )
         self.assertLessEqual(len(profile["read"]), 6)
 
-    def test_plan_skill_is_discoverable_through_a_thin_metadata_consistent_adapter(self) -> None:
+    def test_plan_skill_has_a_consistent_thin_adapter(self) -> None:
         canonical = agent.parse_frontmatter(self.skill_text)
         adapter_text = CLAUDE_ADAPTER.read_text(encoding="utf-8")
         self.assertEqual(agent.parse_frontmatter(adapter_text), canonical)
@@ -88,9 +88,10 @@ class PlanExecutionContractTests(unittest.TestCase):
                 self.assertTrue(scenario["failure_modes"])
         self.assertEqual(agent._validate_evaluation_suite(ROOT), [])
 
-    def test_plan_execution_policy_covers_document_ownership_and_dynamic_ci(self) -> None:
+    def test_plan_policy_covers_docs_and_dynamic_ci(self) -> None:
         for required in (
-            "GitHub child issue + its linked PR are the only durable task/progress records",
+            "GitHub child issue + its linked PR are the only "
+            "durable task/progress records",
             "Generated files must be rebuilt by their owning generator",
             "scripts/classify_pr_changes.py",
             "exact PR head SHA",
