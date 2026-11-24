@@ -51,13 +51,19 @@ def _reject_router_prefix_collision(registry, pattern, route_version):
             )
 
 
-def _reject_router_route_collision(registry, pattern, route_index, route_key, route_version):
+def _reject_router_route_collision(
+    registry, pattern, route_index, route_key, route_version
+):
     if route_index is None:
         return
     existing = registry.urlpatterns[route_index]
     existing_owner = getattr(existing, registry._ROUTER_OWNER_ATTR, None)
     new_owner = getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
-    if existing_owner is not None and new_owner is not None and existing_owner is not new_owner:
+    if (
+        existing_owner is not None
+        and new_owner is not None
+        and existing_owner is not new_owner
+    ):
         existing_prefix = getattr(existing, registry._ROUTER_PREFIX_ATTR, None)
         new_prefix = getattr(pattern, registry._ROUTER_PREFIX_ATTR, None)
         same_router_prefix = (
