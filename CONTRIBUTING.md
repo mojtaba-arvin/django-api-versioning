@@ -51,6 +51,12 @@ tox run -e lint
 
 The tox matrix is the compatibility authority; `make test-all` is a convenient local test path, not a substitute for that matrix or CI.
 
+The development extra installs pre-commit on Python 3.11 and newer. If you use Python 3.10 and want these optional hooks, install pre-commit separately:
+
+```bash
+python -m pip install pre-commit
+```
+
 Install the repository's optional pre-commit hooks when you want the same quick checks before committing:
 
 ```bash
