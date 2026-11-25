@@ -35,8 +35,10 @@ def test_accepts_multiline_message_without_footer():
 
 
 def test_rejects_unknown_types():
-    assert any("unknown commit type" in error for error in
-               validate_commit_message("banana: update routing behavior"))
+    assert any(
+        "unknown commit type" in error
+        for error in validate_commit_message("banana: update routing behavior")
+    )
 
 
 def test_rejects_non_conventional_or_invalid_subjects():
@@ -77,8 +79,10 @@ def test_rejects_empty_or_malformed_breaking_footer():
         "feat(api): change the contract\n\nBREAKING CHANGE:",
         "feat(api): change the contract\nBREAKING CHANGE: clients must migrate",
     ):
-        assert any("BREAKING CHANGE footer" in error
-                   for error in validate_commit_message(message))
+        assert any(
+            "BREAKING CHANGE footer" in error
+            for error in validate_commit_message(message)
+        )
 
 
 def test_accepts_multiple_valid_commit_subjects():
