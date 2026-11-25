@@ -1,6 +1,6 @@
 """Pure projections of immutable route snapshots into compatibility matrices."""
 
-from collections.abc import Callable
+from typing import Callable
 
 from ..route_state import RegistrySnapshot, RouteRecord
 
