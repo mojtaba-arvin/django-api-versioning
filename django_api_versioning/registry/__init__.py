@@ -10,12 +10,14 @@ from django.urls import URLPattern, path
 from django.urls.resolvers import RegexPattern
 from django.views import View
 
-from ..exceptions import (
-    InvalidVersionError,  # noqa: F401 - retained as a compatibility module attribute
-    VersioningError,
-    VersionRangeError,  # noqa: F401 - retained as a compatibility module attribute
-    VersionTypeError,  # noqa: F401 - retained as a compatibility module attribute
-)
+from .. import exceptions as _exceptions
+from ..exceptions import VersioningError
+
+# Preserve historical module attributes for callers importing these names
+# from django_api_versioning.registry.
+InvalidVersionError = _exceptions.InvalidVersionError
+VersionRangeError = _exceptions.VersionRangeError
+VersionTypeError = _exceptions.VersionTypeError
 from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
 from ..settings import api_settings
