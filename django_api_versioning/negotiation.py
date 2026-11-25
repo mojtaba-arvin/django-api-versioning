@@ -77,9 +77,7 @@ class VersionNegotiationMiddleware:
         if scheme == "path":
             version = PathNegotiator(
                 _setting("API_BASE_PATH", "api/v{version}/"),
-                _setting(
-                    "API_MAX_VERSION", getattr(api_settings, "API_MAX_VERSION", 1)
-                ),
+                _setting("API_MAX_VERSION", 1),
             ).negotiate(request.path_info)
             if version is not None and version >= 0:
                 request.requested_api_version = version
@@ -104,10 +102,9 @@ class VersionNegotiationMiddleware:
 
         # This middleware is global; unrelated application URLs pass through.
         versioned_path = PathNegotiator(
-            _setting("API_BASE_PATH", "api/v{version}/"),
-            _setting("API_MAX_VERSION", getattr(api_settings, "API_MAX_VERSION", 1)),
-        ).negotiate(path_info)
-        if versioned_path is not None:
+            _setting("API_BASE_PATH", "api/v{version}/")
+        ).matches(path_info)
+        if versioned_path:
             return HttpResponseBadRequest(
                 "This deployment does not accept URL-path API versions."
             )
