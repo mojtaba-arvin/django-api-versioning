@@ -19,6 +19,21 @@ type(scope)!: lowercase imperative summary
 - The summary is required, starts with a lowercase letter or digit, uses lowercase
   letters throughout, has no leading/trailing whitespace, and has no final period.
 - The complete subject is at most 100 characters.
+
+| Type | Intended use |
+| --- | --- |
+| `feat` | Add user-visible behavior |
+| `fix` | Correct a defect |
+| `docs` | Change documentation only |
+| `test` | Add or change tests without production behavior changes |
+| `refactor` | Restructure code without changing behavior |
+| `style` | Formatting-only changes with no behavior impact |
+| `perf` | Improve performance |
+| `build` | Change packaging or build configuration |
+| `ci` | Change continuous-integration automation |
+| `chore` | Maintenance that does not fit a more specific type |
+| `revert` | Revert an earlier change |
+
 - Use imperative wording (for example, "add", "fix", "document", not "added" or
   "adding"). Imperative mood is a human writing/review convention: the validator
   deliberately does not pretend to infer English grammar with a fragile regex.
