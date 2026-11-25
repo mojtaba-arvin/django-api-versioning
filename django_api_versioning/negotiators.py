@@ -59,7 +59,8 @@ def _path_version(
         maximum = _setting("API_MAX_VERSION", api_settings.API_MAX_VERSION)
     if len(digits) > len(str(maximum)):
         return -1
-    return int(digits)
+    version = int(digits)
+    return version if version <= maximum else -1
 
 
 def _normalize_hostname(hostname: str) -> str | None:
