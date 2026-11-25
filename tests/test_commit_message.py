@@ -115,12 +115,15 @@ def test_rejects_empty_or_malformed_breaking_footer():
 
 
 def test_accepts_multiple_valid_commit_subjects():
-    assert validate_commit_subjects(
-        [
-            "feat(router): support nested route prefixes",
-            "test(router): cover nested route prefixes",
-        ]
-    ) == []
+    assert (
+        validate_commit_subjects(
+            [
+                "feat(router): support nested route prefixes",
+                "test(router): cover nested route prefixes",
+            ]
+        )
+        == []
+    )
 
 
 def test_rejects_invalid_subject_in_pull_request_history():
