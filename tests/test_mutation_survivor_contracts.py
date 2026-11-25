@@ -4046,9 +4046,7 @@ def test_resolution_preserves_none_action_for_non_drf_callbacks():
     assert operation is not None
     assert operation.action is None
 
-    registered = resolve_registered_operation(
-        target, "orders:order-list", 2, "GET"
-    )
+    registered = resolve_registered_operation(target, "orders:order-list", 2, "GET")
     assert registered is not None
     assert registered.action is None
 
@@ -4069,10 +4067,5 @@ def test_registered_operation_rejects_unmapped_method_by_default():
     pattern = _registered_pattern(target, callback)
     target.urlpatterns.append(pattern)
 
-    assert (
-        resolve_registered_operation(
-            target, "orders:order-list", 2, "PATCH"
-        )
-        is None
-    )
+    assert resolve_registered_operation(target, "orders:order-list", 2, "PATCH") is None
     assert calls == [(callback, "PATCH", False)]
