@@ -122,7 +122,7 @@ def test_rejects_invalid_subject_in_pull_request_history():
         ]
     )
     assert len(errors) == 1
-    assert errors[0].startswith("commit 2:")
+    assert errors[0].startswith("commit 2 (")
 
 
 def test_rejects_empty_pull_request_commit_list():
