@@ -20,6 +20,7 @@ CONTRACT_TEST_PREFIXES = {
     "lifecycle.py": ("test_mutation95_lifecycle", "test_mutation100_lifecycle"),
     "negotiation.py": ("test_mutation95_negotiation", "test_mutation100_negotiation"),
     "__init__.py": ("test_mutation95_registry", "test_mutation100_registry"),
+    "registry/lifecycle.py": ("test_registry_lifecycle_store",),
     "registration.py": ("test_mutation95_registry", "test_mutation100_registry"),
     "routers.py": ("test_mutation95_router", "test_mutation100_router"),
 }
@@ -44,6 +45,11 @@ TESTS_BY_SOURCE = {
         "tests/test_negotiation_properties.py",
         "tests/test_adversarial_router_combinations.py",
         "tests/test_mutation_80_percent_contracts.py",
+        "tests/test_mutation_survivor_contracts.py",
+    ),
+    "registry/lifecycle.py": (
+        "tests/test_registry_lifecycle_component.py",
+        "tests/test_registry.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
     "__init__.py": (
@@ -132,7 +138,8 @@ def _fallback_targets(test_paths, contract_node_ids):
 
 def pre_mutation(context):
     """Run line contexts and all focused tests for the mutated source domain."""
-    source_name = Path(context.filename).name
+    source_path = Path(context.filename).as_posix()
+    source_name = source_path.split("django_api_versioning/", 1)[-1]
     coverage_data = context.config.coverage_data or {}
     source_path = os.path.abspath(context.filename)
     contexts_by_line = coverage_data.get(source_path, {})
@@ -143,7 +150,9 @@ def pre_mutation(context):
         context_name.split("|", 1)[0] for context_name in line_contexts if context_name
     }
     contract_node_ids = set(_contract_test_node_ids(source_name))
-    test_paths = TESTS_BY_SOURCE.get(source_name)
+    test_paths = TESTS_BY_SOURCE.get(source_name) or TESTS_BY_SOURCE.get(
+        Path(source_name).name
+    )
     if line_node_ids and len(line_node_ids) <= MAX_LINE_CONTEXTS:
         node_ids = sorted(line_node_ids | contract_node_ids)
         context.config.test_command = (
