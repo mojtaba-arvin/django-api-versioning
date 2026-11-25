@@ -1,4 +1,4 @@
-"""Regression contracts for transport negotiation mutation survivors."""
+"""Regression contracts for transport negotiation fallback configuration."""
 
 from types import SimpleNamespace
 
@@ -8,7 +8,16 @@ from django.test import RequestFactory
 import django_api_versioning.negotiation as negotiation_module
 
 
-def test_path_mode_defaults_maximum_version_to_one(monkeypatch):
+def test_path_mode_uses_one_as_default_version_digit_limit(monkeypatch):
+    observed_maximums = []
+    original = negotiation_module.PathNegotiator
+
+    class RecordingPathNegotiator(original):
+        def __init__(self, template, maximum_version=None):
+            observed_maximums.append(maximum_version)
+            super().__init__(template, maximum_version)
+
+    monkeypatch.setattr(negotiation_module, "PathNegotiator", RecordingPathNegotiator)
     monkeypatch.setattr(
         negotiation_module,
         "django_settings",
@@ -25,6 +34,5 @@ def test_path_mode_defaults_maximum_version_to_one(monkeypatch):
     )(request)
 
     assert response.status_code == 200
-    assert not hasattr(request, "requested_api_version")
-    assert not hasattr(request, "api_version")
-    assert not hasattr(request, "version")
+    assert request.api_version == 2
+    assert observed_maximums == [1]
