@@ -80,7 +80,7 @@ def test_rejects_non_conventional_or_invalid_subjects():
         "feat(router):",
         "feat(router):  leading whitespace",
         "feat(router): trailing whitespace ",
-        "feat(router): reject invalid prefixes\\t",
+        "feat(router): reject invalid prefixes\t",
         "Merge pull request #123",
     ):
         assert validate_commit_message(subject), subject
