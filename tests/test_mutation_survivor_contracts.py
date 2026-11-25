@@ -3989,6 +3989,7 @@ def test_resolution_find_route_index_defaults_to_path_pattern_semantics():
 
 def test_resolution_defaults_reject_unmapped_and_non_exact_resolver_matches():
     target = UrlRegistry()
+
     def callback(request):
         return None
 
@@ -4053,7 +4054,10 @@ def test_resolution_preserves_none_action_for_non_drf_callbacks():
 
 def test_registered_operation_rejects_unmapped_method_by_default():
     target = UrlRegistry()
-    callback = lambda request: None
+
+    def callback(request):
+        return None
+
     calls = []
 
     def capability(received_callback, method, allow_unmapped_method):
