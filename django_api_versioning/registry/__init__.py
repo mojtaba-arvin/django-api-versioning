@@ -12,7 +12,6 @@ from django.views import View
 
 from .. import exceptions as _exceptions
 from ..exceptions import VersioningError
-
 from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
 from ..settings import api_settings
