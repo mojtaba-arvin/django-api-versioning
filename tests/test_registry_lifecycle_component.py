@@ -101,10 +101,25 @@ def test_registry_lifecycle_store_registration_is_idempotent_and_conflict_safe()
     [
         ("", 2, {"deprecated_at": "2027-01-01T00:00:00Z"}, VersioningError),
         ("orders", True, {"deprecated_at": "2027-01-01T00:00:00Z"}, VersioningError),
-        ("orders", 2, {"method": " ", "deprecated_at": "2027-01-01T00:00:00Z"}, VersioningError),
-        ("orders", 2, {"action": " ", "deprecated_at": "2027-01-01T00:00:00Z"}, VersioningError),
+        (
+            "orders",
+            2,
+            {"method": " ", "deprecated_at": "2027-01-01T00:00:00Z"},
+            VersioningError,
+        ),
+        (
+            "orders",
+            2,
+            {"action": " ", "deprecated_at": "2027-01-01T00:00:00Z"},
+            VersioningError,
+        ),
         ("orders", 2, {"deprecated_at": "not-a-date"}, VersioningError),
-        ("orders", 2, {"deprecated_at": "2028-01-01T00:00:00Z", "sunset": "2027-01-01T00:00:00Z"}, VersioningError),
+        (
+            "orders",
+            2,
+            {"deprecated_at": "2028-01-01T00:00:00Z", "sunset": "2027-01-01T00:00:00Z"},
+            VersioningError,
+        ),
     ],
 )
 def test_registry_lifecycle_store_rejects_invalid_declarations(

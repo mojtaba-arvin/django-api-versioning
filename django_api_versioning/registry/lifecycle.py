@@ -26,7 +26,9 @@ class EndpointLifecycleStore:
             EndpointLifecycle,
         ] = {}
 
-    def snapshot(self) -> dict[
+    def snapshot(
+        self,
+    ) -> dict[
         tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
     ]:
         """Capture an isolated transaction snapshot."""
