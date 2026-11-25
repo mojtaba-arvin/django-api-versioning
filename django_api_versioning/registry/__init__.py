@@ -190,7 +190,7 @@ class UrlRegistry:
             generation=self._snapshot.generation + 1,
             active_patterns=self.urlpatterns,
             removed_patterns=self._removed_patterns,
-            lifecycle_state=self._endpoint_lifecycle,
+            lifecycle_state=self._lifecycle_store.records,
             removal_boundaries=self._removal_boundaries,
             router_removal_boundaries=self._router_removal_boundaries,
         )
