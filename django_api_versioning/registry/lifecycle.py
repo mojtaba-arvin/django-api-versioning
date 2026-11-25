@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 
 from ..exceptions import (
     InvalidVersionError,
+    VersioningError,
     VersionRangeError,
     VersionTypeError,
-    VersioningError,
 )
 from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from ..settings import api_settings
