@@ -16,7 +16,7 @@ def clear(registry):
     registry._removal_boundaries.clear()
     registry._router_removal_boundaries.clear()
     registry._removed_patterns.clear()
-    registry._endpoint_lifecycle.clear()
+    registry._lifecycle_store.clear()
 
 
 def remove(registry, logical_endpoint, from_version, *, owner=None):
@@ -81,16 +81,13 @@ def remove(registry, logical_endpoint, from_version, *, owner=None):
         del registry.urlpatterns[index]
 
     # Lifecycle metadata belongs to a concrete active declaration segment.
-    # Preserve it only for versions that already have a newer active source.
-    for key in list(registry._endpoint_lifecycle):
-        endpoint, version, _, _, metadata_owner = key
-        if (
-            metadata_owner is owner
-            and endpoint == logical_endpoint
-            and version >= from_version
-            and version not in preserved_versions
-        ):
-            del registry._endpoint_lifecycle[key]
+    # The lifecycle component owns invalidation and preserves its mapping identity.
+    registry._lifecycle_store.invalidate_for_removal(
+        logical_endpoint,
+        from_version,
+        owner=owner,
+        preserved_versions=preserved_versions,
+    )
 
 
 def removal_boundary(
