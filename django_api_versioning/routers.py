@@ -150,8 +150,6 @@ class VersionedRouter:
         # A logical registration may expand into several concrete versions.
         # Treat the expansion as one transaction: a collision in a later
         # version must not leave earlier routes or router bookkeeping behind.
-        registry_urlpatterns = list(registry.urlpatterns)
-        removed_patterns = dict(registry._removed_patterns)
         route_keys = set(self._route_keys)
         basenames = dict(self._basenames)
         basename_prefixes = dict(self._basename_prefixes)
@@ -166,9 +164,6 @@ class VersionedRouter:
                     route_version=route_version,
                 )
         except Exception:
-            registry.urlpatterns[:] = registry_urlpatterns
-            registry._removed_patterns.clear()
-            registry._removed_patterns.update(removed_patterns)
             self._route_keys.clear()
             self._route_keys.update(route_keys)
             self._basenames.clear()
@@ -248,14 +243,11 @@ class VersionedRouter:
             and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
             is self._registry_owner
         ]
-        owned_tombstones = [
-            pattern
-            for key, pattern in registry._removed_patterns.items()
-            if key[0] == logical_endpoint
-            and getattr(pattern, registry._ROUTER_OWNER_ATTR, None)
-            is self._registry_owner
-        ]
-        if not owned_routes and not owned_tombstones:
+        has_owned_tombstone = registry._has_removed_route(
+            logical_endpoint,
+            owner=self._registry_owner,
+        )
+        if not owned_routes and not has_owned_tombstone:
             raise VersioningError(
                 f"Router does not own an active route for {logical_endpoint!r}."
             )
