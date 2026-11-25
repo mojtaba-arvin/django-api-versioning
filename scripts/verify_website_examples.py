@@ -10,8 +10,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-from scripts.verify_docs_contracts import (
+from verify_docs_contracts import (
     verify_compatibility_article,
     verify_settings_and_endpoint_contract,
 )
