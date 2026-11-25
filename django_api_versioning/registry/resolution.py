@@ -5,6 +5,7 @@ ResolverMatch with the registry's registered URLPattern records.
 """
 
 from collections.abc import Mapping
+
 from dataclasses import dataclass
 
 from django.urls import URLPattern
@@ -179,75 +180,6 @@ def get_resolved_route_version_for_match(
     return True, next(iter(versions))
 
 
-def get_resolved_route_version_for_match(
-    registry, resolver_match: object
-) -> tuple[bool, int | None]:
-    """Resolve version metadata for the exact URLPattern Django matched.
-
-    The boolean distinguishes an explicitly registered unversioned route
-    from a route that is absent from this registry. This matters for nested
-    includes: a parent URL prefix may contain an API-looking version even
-    when the matched child route is unversioned.
-    """
-    route = getattr(resolver_match, "route", None)
-    callback = getattr(resolver_match, "func", None)
-    if not isinstance(route, str) or callback is None:
-        return False, None
-
-    tried = getattr(resolver_match, "tried", None)
-    if isinstance(tried, (list, tuple)):
-        matched_pattern_ids = {
-            id(chain[-1])
-            for chain in tried
-            if chain and isinstance(chain[-1], URLPattern)
-        }
-        url_name = getattr(resolver_match, "url_name", None)
-        exact_matches = [
-            pattern
-            for pattern in registry.urlpatterns
-            if id(pattern) in matched_pattern_ids
-            and pattern.callback is callback
-            and (url_name is None or pattern.name == url_name)
-            and resolved_route_match_length(route, str(pattern.pattern))
-        ]
-        if not exact_matches:
-            return False, None
-        versions = {
-            getattr(pattern, registry._ROUTE_VERSION_ATTR, None)
-            for pattern in exact_matches
-        }
-        if len(versions) != 1:
-            return True, None
-        return True, next(iter(versions))
-
-    url_name = getattr(resolver_match, "url_name", None)
-    matches = []
-    for pattern in registry.urlpatterns:
-        if pattern.callback is not callback:
-            continue
-        if url_name is not None and pattern.name != url_name:
-            continue
-        matched_length = resolved_route_match_length(
-            route, str(pattern.pattern)
-        )
-        if matched_length:
-            matches.append(
-                (
-                    matched_length,
-                    getattr(pattern, registry._ROUTE_VERSION_ATTR, None),
-                )
-            )
-
-    if not matches:
-        return False, None
-
-    longest = max(length for length, _ in matches)
-    versions = {version for length, version in matches if length == longest}
-    if len(versions) != 1:
-        return True, None
-    return True, next(iter(versions))
-
-@_synchronized
 def get_resolved_route_version(registry, route: str) -> int | None:
     """Resolve a version from the longest registered route suffix.
 
