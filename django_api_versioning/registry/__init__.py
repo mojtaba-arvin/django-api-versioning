@@ -10,15 +10,17 @@ from django.urls import URLPattern, path
 from django.urls.resolvers import RegexPattern
 from django.views import View
 
-from ..exceptions import (
-    InvalidVersionError,
-    VersioningError,
-    VersionRangeError,
-    VersionTypeError,
-)
+from .. import exceptions as _exceptions
+from ..exceptions import VersioningError
 from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
 from ..settings import api_settings
+
+# Preserve historical module attributes for callers importing these names
+# from django_api_versioning.registry.
+InvalidVersionError = _exceptions.InvalidVersionError
+VersionRangeError = _exceptions.VersionRangeError
+VersionTypeError = _exceptions.VersionTypeError
 
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
@@ -222,11 +224,9 @@ class UrlRegistry:
     @_synchronized
     def clear(self) -> None:
         """Clear active routes and removal declarations."""
-        self.urlpatterns.clear()
-        self._removal_boundaries.clear()
-        self._router_removal_boundaries.clear()
-        self._removed_patterns.clear()
-        self._endpoint_lifecycle.clear()
+        from .removal import clear
+
+        clear(self)
 
     @_synchronized
     def remove(
@@ -237,76 +237,9 @@ class UrlRegistry:
         owner: object | None = None,
     ) -> None:
         """Suppress an endpoint from a concrete version until reintroduced."""
-        if not isinstance(logical_endpoint, str) or not logical_endpoint:
-            raise TypeError("logical_endpoint must be a non-empty string.")
-        if isinstance(from_version, bool) or not isinstance(from_version, int):
-            raise VersionTypeError("Removal version must be an integer.")
-        if from_version > api_settings.API_MAX_VERSION:
-            raise InvalidVersionError(
-                f"Removal version {from_version} is above the maximum allowed "
-                f"version {api_settings.API_MAX_VERSION}."
-            )
-        if from_version < api_settings.API_MIN_VERSION:
-            raise VersionRangeError(
-                f"Removal version {from_version} is below the minimum allowed "
-                f"version {api_settings.API_MIN_VERSION}."
-            )
+        from .removal import remove
 
-        if owner is None:
-            self._removal_boundaries.setdefault(logical_endpoint, set()).add(
-                from_version
-            )
-        else:
-            # A router tombstone applies to the same generated URL identity,
-            # not every route that happens to share its logical endpoint name.
-            # Distinct trailing-slash policies can coexist for one logical name.
-            owner_patterns = [
-                pattern
-                for pattern in [*self.urlpatterns, *self._removed_patterns.values()]
-                if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is owner
-                and getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None)
-                == logical_endpoint
-            ]
-            route_identities = {
-                (
-                    getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
-                    getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
-                )
-                for pattern in owner_patterns
-            }
-            for router_prefix, trailing_slash in route_identities:
-                self._router_removal_boundaries.setdefault(
-                    (logical_endpoint, router_prefix, trailing_slash), set()
-                ).add(from_version)
-
-        preserved_versions = set()
-        for index in range(len(self.urlpatterns) - 1, -1, -1):
-            pattern = self.urlpatterns[index]
-            if getattr(pattern, self._LOGICAL_ENDPOINT_ATTR, None) != logical_endpoint:
-                continue
-            if getattr(pattern, self._ROUTER_OWNER_ATTR, None) is not owner:
-                continue
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            source_version = getattr(pattern, self._SOURCE_VERSION_ATTR, None)
-            if route_version is None or route_version < from_version:
-                continue
-            if source_version is not None and source_version > from_version:
-                preserved_versions.add(route_version)
-                continue
-            self._record_removed(pattern, logical_endpoint)
-            del self.urlpatterns[index]
-
-        # Lifecycle metadata belongs to a concrete active declaration segment.
-        # Preserve it only for versions that already have a newer active source.
-        for key in list(self._endpoint_lifecycle):
-            endpoint, version, _, _, metadata_owner = key
-            if (
-                metadata_owner is owner
-                and endpoint == logical_endpoint
-                and version >= from_version
-                and version not in preserved_versions
-            ):
-                del self._endpoint_lifecycle[key]
+        remove(self, logical_endpoint, from_version, owner=owner)
 
     def _removal_boundary(
         self,
@@ -316,16 +249,16 @@ class UrlRegistry:
         router_prefix: str | None = None,
         trailing_slash: bool | None = None,
     ) -> int | None:
-        if logical_endpoint is None or route_version is None:
-            return None
-        if owner is None:
-            boundaries = self._removal_boundaries.get(logical_endpoint, set())
-        else:
-            boundaries = self._router_removal_boundaries.get(
-                (logical_endpoint, router_prefix, trailing_slash), set()
-            )
-        applicable = [boundary for boundary in boundaries if boundary <= route_version]
-        return max(applicable) if applicable else None
+        from .removal import removal_boundary
+
+        return removal_boundary(
+            self,
+            logical_endpoint,
+            route_version,
+            owner,
+            router_prefix,
+            trailing_slash,
+        )
 
     def _is_suppressed(
         self,
@@ -336,15 +269,16 @@ class UrlRegistry:
         router_prefix: str | None = None,
         trailing_slash: bool | None = None,
     ) -> bool:
-        boundary = self._removal_boundary(
+        from .removal import is_suppressed
+
+        return is_suppressed(
+            self,
             logical_endpoint,
             route_version,
+            source_version,
             owner,
             router_prefix,
             trailing_slash,
-        )
-        return boundary is not None and (
-            source_version is None or source_version <= boundary
         )
 
     def _clear_removed_pattern(
@@ -356,40 +290,26 @@ class UrlRegistry:
         router_prefix: str | None,
         trailing_slash: bool | None,
     ) -> None:
-        """Clear the matching tombstone when a declaration is reintroduced."""
-        if logical_endpoint is None or route_version is None:
-            return
-        if owner is None:
-            key = (logical_endpoint, route_version)
-        else:
-            key = (logical_endpoint, route_version, router_prefix, trailing_slash)
-        self._removed_patterns.pop(key, None)
+        from .removal import clear_removed_pattern
+
+        clear_removed_pattern(
+            self,
+            logical_endpoint,
+            route_version,
+            owner=owner,
+            router_prefix=router_prefix,
+            trailing_slash=trailing_slash,
+        )
 
     def _record_removed(self, pattern: URLPattern, logical_endpoint: str) -> None:
-        route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-        if route_version is None:
-            return
+        from .removal import record_removed
 
-        owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-        if owner is None:
-            key = (logical_endpoint, route_version)
-        else:
-            key = (
-                logical_endpoint,
-                route_version,
-                getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
-                getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
-            )
-        existing = self._removed_patterns.get(key)
-        if existing is not None:
-            existing_owner = getattr(existing, self._ROUTER_OWNER_ATTR, None)
-            new_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if existing_owner is not new_owner:
-                # A suppressed re-registration must not transfer a tombstone
-                # to a different router (or from an unowned endpoint).
-                return
+        record_removed(self, pattern, logical_endpoint)
 
-        self._removed_patterns[key] = pattern
+    def _has_removed_route(self, logical_endpoint: str, *, owner: object) -> bool:
+        from .removal import has_removed_route
+
+        return has_removed_route(self, logical_endpoint, owner=owner)
 
     @_synchronized
     def register(

@@ -1467,3 +1467,91 @@ def test_route_specificity_marks_leading_path_converter_as_dynamic(clear_registr
     pattern = path("<slug:slug>/", lambda request, slug: None)
 
     assert registry._route_specificity_key(pattern)[1] is True
+
+
+def test_removal_component_rolls_back_late_router_prefix_collision(clear_registry):
+    """A late-version router collision restores all earlier transaction state."""
+
+    def callback(request):
+        return None
+
+    existing_owner = object()
+    candidate_owner = object()
+
+    existing = path("api/v2/existing/", callback)
+    setattr(existing, registry._ROUTER_OWNER_ATTR, existing_owner)
+    setattr(existing, registry._ROUTER_PREFIX_ATTR, "api")
+    setattr(existing, registry._ROUTER_TRAILING_SLASH_ATTR, True)
+    registry.register_urlpattern(
+        existing,
+        source_version=1,
+        route_version=2,
+        logical_endpoint="orders",
+    )
+    before_snapshot = registry.current_snapshot
+
+    def owned_pattern(route, version):
+        pattern = path(route, callback)
+        setattr(pattern, registry._ROUTER_OWNER_ATTR, candidate_owner)
+        setattr(pattern, registry._ROUTER_PREFIX_ATTR, "api")
+        setattr(pattern, registry._ROUTER_TRAILING_SLASH_ATTR, True)
+        registry.register_urlpattern(
+            pattern,
+            source_version=1,
+            route_version=version,
+            logical_endpoint="orders",
+        )
+
+    with pytest.raises(VersioningError, match="already registered"):
+        with registry.transaction():
+            owned_pattern("api/v1/new/", 1)
+            owned_pattern("api/v2/new/", 2)
+
+    assert registry.urlpatterns == [existing]
+    assert registry.current_snapshot is before_snapshot
+    assert registry._removed_patterns == {}
+    assert registry._router_removal_boundaries == {}
+
+
+def test_remove_reintroduce_allows_fresh_lifecycle_metadata(clear_registry):
+    """Removal invalidates the old segment metadata; reintroduction starts clean."""
+
+    def callback(request):
+        return None
+
+    registry.register(
+        "api/v3/orders/",
+        callback,
+        source_version=1,
+        route_version=3,
+        logical_endpoint="orders:order-list",
+    )
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        3,
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    original_operation = _lifecycle_test_operation(route_version=3)
+    assert registry.get_endpoint_lifecycle(original_operation) is not None
+
+    registry.remove("orders:order-list", from_version=3)
+
+    assert registry.get_endpoint_lifecycle(original_operation) is None
+    assert ("orders:order-list", 3) in registry._removed_patterns
+
+    registry.register(
+        "api/v3/orders/",
+        callback,
+        source_version=4,
+        route_version=3,
+        logical_endpoint="orders:order-list",
+    )
+    assert ("orders:order-list", 3) not in registry._removed_patterns
+
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        3,
+        deprecated_at="2028-01-01T00:00:00Z",
+    )
+    lifecycle = registry.get_endpoint_lifecycle(original_operation)
+    assert lifecycle.deprecated_at == datetime(2028, 1, 1, tzinfo=timezone.utc)
