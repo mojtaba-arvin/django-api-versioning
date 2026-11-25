@@ -140,7 +140,6 @@ def test_rejects_empty_pull_request_commit_list():
     ]
 
 
-
 def test_cli_accepts_git_commit_message_file(tmp_path, monkeypatch):
     message_file = tmp_path / "COMMIT_EDITMSG"
     message_file.write_text("fix(api): reject malformed headers", encoding="utf-8")
