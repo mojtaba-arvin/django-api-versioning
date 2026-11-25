@@ -8,21 +8,29 @@ import re
 TICK = chr(96)
 
 
-def markdown_tables(source: str, first_header: str, second_header: str) -> list[list[list[str]]]:
+def markdown_tables(
+    source: str, first_header: str, second_header: str
+) -> list[list[list[str]]]:
     """Return rows from Markdown tables with the requested first two headers."""
     lines = source.splitlines()
     tables = []
     for index, line in enumerate(lines):
         if not line.lstrip().startswith("|"):
             continue
-        headers = [cell.strip().strip(TICK) for cell in line.strip().strip("|").split("|")]
+        headers = [
+            cell.strip().strip(TICK)
+            for cell in line.strip().strip("|").split("|")
+        ]
         if headers[:2] != [first_header, second_header]:
             continue
         rows = []
         for row in lines[index + 2 :]:
             if not row.lstrip().startswith("|"):
                 break
-            cells = [cell.strip().strip(TICK) for cell in row.strip().strip("|").split("|")]
+            cells = [
+                cell.strip().strip(TICK)
+                for cell in row.strip().strip("|").split("|")
+            ]
             if cells:
                 rows.append(cells)
         tables.append(rows)
@@ -51,7 +59,11 @@ def _literal(node: ast.AST, assignments: dict[str, ast.AST]):
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
         if node.func.id == "field":
             factory = next(
-                (item.value for item in node.keywords if item.arg == "default_factory"),
+                (
+                    item.value
+                    for item in node.keywords
+                    if item.arg == "default_factory"
+                ),
                 None,
             )
             if isinstance(factory, ast.Lambda):
@@ -136,7 +148,9 @@ def _classifiers(pyproject: str, prefix: str) -> set[str]:
 
 
 def _tox_matrix(tox: str) -> dict[str, list[str]]:
-    match = re.search(r"(?ms)^\[tox\]\s+.*?^envlist\s*=\s*(.*?)(?=^\S|\Z)", tox)
+    match = re.search(
+        r"(?ms)^\[tox\]\s+.*?^envlist\s*=\s*(.*?)(?=^\S|\Z)", tox
+    )
     if match is None:
         raise ValueError("tox.ini: canonical [tox] envlist could not be parsed.")
     matrix = {}
@@ -144,7 +158,9 @@ def _tox_matrix(tox: str) -> dict[str, list[str]]:
         r"py\{([^}]+)\}-django([0-9]+)", match.group(1)
     ):
         django = f"{django_version[0]}.{django_version[1:]}"
-        matrix[django] = [f"{item[0]}.{item[1:]}" for item in python_versions.split(",")]
+        matrix[django] = [
+            f"{item[0]}.{item[1:]}" for item in python_versions.split(",")
+        ]
     return matrix
 
 
@@ -186,7 +202,7 @@ def verify_compatibility_article(article: str, pyproject: str, tox: str) -> None
                 versions = [item.strip() for item in row[1].split(",")]
                 if int(row[2]) != len(versions):
                     raise ValueError(
-                        f"docs/articles/024...: Django {row[0]} environment count "
+                        f"docs/articles/024...: Django {row[0]} environment count from tox.ini "
                         "does not match its Python version list."
                     )
                 documented[row[0]] = versions
@@ -200,5 +216,6 @@ def verify_compatibility_article(article: str, pyproject: str, tox: str) -> None
         rf"This results in {total} configured test environments\.", article
     ):
         raise ValueError(
-            f"docs/articles/024...: environment total must be {total} according to tox.ini."
+            f"docs/articles/024...: environment total must be {total} "
+            "according to tox.ini."
         )
