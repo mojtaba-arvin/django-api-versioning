@@ -1,5 +1,5 @@
 # Conventional Commit template
-# Subject: type(scope)!: lowercase imperative summary (max 100 characters)
+# Subject: type(scope)!: lowercase imperative summary (max 100 characters; uppercase acronyms allowed)
 #
 # Types: feat, fix, docs, test, refactor, style, perf, build, ci, chore, revert
 # Scope is optional. Use lowercase scope segments separated by ., /, or -.
