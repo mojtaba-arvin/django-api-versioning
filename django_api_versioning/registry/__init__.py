@@ -15,6 +15,12 @@ from ..lifecycle_metadata import EndpointLifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
 from ..settings import api_settings  # noqa: F401
 from .lifecycle import EndpointLifecycleStore
+from .matrix import (
+    REMOVED_ROUTE,
+    VersionMatrix,
+    project_logical_version_matrix,
+    project_version_matrix,
+)
 from .resolution import OPERATION_ACTION_RESOLVER_ATTR, ResolvedOperation
 from .resolution import ResolvedRouteCandidate as _ResolvedRouteCandidate
 
@@ -27,12 +33,7 @@ VersionRangeError = _exceptions.VersionRangeError
 VersionTypeError = _exceptions.VersionTypeError
 
 VersionKey = int | None
-VersionMatrix = dict[str, dict[VersionKey, Callable]]
 RouteSortKey = tuple[bool, VersionKey, bool, int, int]
-_UNOWNED_OWNER_IDENTITY = object()
-_ROUTER_OWNER_IDENTITY = object()
-
-REMOVED_ROUTE = object()
 
 _MUTATING_METHODS = frozenset(
     {
@@ -378,88 +379,13 @@ class UrlRegistry:
 
     @_synchronized
     def get_version_matrix(self) -> VersionMatrix:
-        """
-        Return ``{route: {route_version: callback}}``.
-
-        ``route_version`` is ``None`` for unversioned routes.  This is the
-        source of truth for ``check_versions`` and ``assert_version_matrix``.
-        """
-        matrix: VersionMatrix = {}
-        for pattern in self.urlpatterns:
-            route = str(pattern.pattern)
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            matrix.setdefault(route, {})[route_version] = pattern.callback
-        for key, pattern in self._removed_patterns.items():
-            route_version = key[1]
-            tombstone_path = str(pattern.pattern)
-            matrix.setdefault(tombstone_path, {}).setdefault(
-                route_version, REMOVED_ROUTE
-            )
-        return matrix
+        """Return the physical route/version matrix projected from the snapshot."""
+        return project_version_matrix(self._snapshot)
 
     @_synchronized
     def get_logical_version_matrix(self) -> VersionMatrix:
-        """
-        Return ``{logical_endpoint: {route_version: callback}}``.
-
-        Groups physical URLs by their logical endpoint identity. This is used
-        by check_versions to correctly identify gaps within each logical
-        endpoint's version span, avoiding false warnings.
-        """
-        entries = []
-        for pattern in self.urlpatterns:
-            logical_id = getattr(
-                pattern, self._LOGICAL_ENDPOINT_ATTR, str(pattern.pattern)
-            )
-            route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
-            entries.append((logical_id, route_version, pattern, pattern.callback))
-
-        for key, pattern in self._removed_patterns.items():
-            logical_id, route_version = key[:2]
-            entries.append((logical_id, route_version, pattern, REMOVED_ROUTE))
-
-        # A logical endpoint/version can intentionally have more than one
-        # physical route when independent routers use different trailing-slash
-        # policies. A plain {logical_endpoint: version} map silently overwrites
-        # one callback. Keep the familiar key for unambiguous operations and
-        # add a stable router/route discriminator only when a collision exists.
-        counts = {}
-        owner_groups = {}
-        for logical_id, route_version, pattern, _callback in entries:
-            identity = (logical_id, route_version)
-            counts[identity] = counts.get(identity, 0) + 1
-
-            owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if owner is None:
-                owner_identity = (_UNOWNED_OWNER_IDENTITY,)  # pragma: no mutate
-            else:
-                owner_identity = (
-                    _ROUTER_OWNER_IDENTITY,
-                    getattr(pattern, self._ROUTER_PREFIX_ATTR, None),
-                    getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None),
-                )
-            owner_groups.setdefault(logical_id, set()).add(owner_identity)
-
-        matrix: VersionMatrix = {}
-        for logical_id, route_version, pattern, callback in entries:
-            owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            has_multiple_owners = len(owner_groups[logical_id]) > 1
-            has_same_version_collision = counts[(logical_id, route_version)] > 1
-
-            if has_multiple_owners or has_same_version_collision:
-                if owner is not None:
-                    discriminator = (
-                        f"router={getattr(pattern, self._ROUTER_PREFIX_ATTR, None)!r}, "
-                        "trailing_slash="
-                        f"{getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)!r}"
-                    )
-                else:
-                    discriminator = f"route={str(pattern.pattern)!r}"
-                matrix_key = f"{logical_id} [{discriminator}]"
-            else:
-                matrix_key = logical_id
-            matrix.setdefault(matrix_key, {})[route_version] = callback
-        return matrix
+        """Return the logical endpoint/version matrix projected from the snapshot."""
+        return project_logical_version_matrix(self._snapshot)
 
     @staticmethod
     def _canonical_route_key(route: str) -> str:
