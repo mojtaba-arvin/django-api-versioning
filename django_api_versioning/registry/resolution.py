@@ -5,7 +5,6 @@ ResolverMatch with the registry's registered URLPattern records.
 """
 
 from collections.abc import Mapping
-
 from dataclasses import dataclass
 
 from django.urls import URLPattern
