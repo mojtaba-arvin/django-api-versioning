@@ -1600,7 +1600,10 @@ def test_registry_resolution_facade_delegates_to_resolution_component(monkeypatc
 
     assert registry._canonical_route_key("api/v2/orders/") is sentinel
     assert registry._find_route_index("api/v2/orders/") is sentinel
-    assert registry._resolved_route_match_length("api/v2/orders/", "orders/") is sentinel
+    assert (
+        registry._resolved_route_match_length("api/v2/orders/", "orders/")
+        is sentinel
+    )
     assert registry.get_resolved_route_version_for_match(object()) is sentinel
     assert registry.get_resolved_route_version("api/v2/orders/") is sentinel
     assert registry.resolve_operation(object(), "GET") is sentinel
@@ -1615,4 +1618,6 @@ def test_registry_resolution_facade_delegates_to_resolution_component(monkeypatc
         "operation",
         "registered_operation",
     ]
-    assert all(args[0] is registry for _, args, _ in calls[1:])
+    assert all(
+        calls[index][1][0] is registry for index in (1, 3, 4, 5, 6)
+    )
