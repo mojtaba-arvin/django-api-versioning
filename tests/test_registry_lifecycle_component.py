@@ -173,3 +173,18 @@ def test_registry_lifecycle_store_snapshot_restore_and_clear_preserve_mapping_id
     store.clear()
     assert store.records is records
     assert records == {}
+
+
+def test_registry_module_preserves_historical_exception_and_settings_exports():
+    from importlib import import_module
+
+    from django_api_versioning import exceptions
+    from django_api_versioning.settings import api_settings
+
+    registry_module = import_module("django_api_versioning.registry")
+
+    assert registry_module.InvalidVersionError is exceptions.InvalidVersionError
+    assert registry_module.VersionRangeError is exceptions.VersionRangeError
+    assert registry_module.VersionTypeError is exceptions.VersionTypeError
+    assert registry_module.VersioningError is exceptions.VersioningError
+    assert registry_module.api_settings is api_settings

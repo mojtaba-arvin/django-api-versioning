@@ -128,7 +128,7 @@ def _contract_test_node_ids(source_name):
             continue
         name = line[len("def ") :].split("(", 1)[0]
         if name.startswith(prefixes):
-            node_ids.append(f"{CONTRACT_TEST_MODULE}::{name}")
+            node_ids.append(f"{test_file.as_posix()}::{name}")
     return sorted(node_ids)
 
 

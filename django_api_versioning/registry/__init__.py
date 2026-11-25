@@ -10,10 +10,10 @@ from django.urls.resolvers import RegexPattern
 from django.views import View
 
 from .. import exceptions as _exceptions
-from ..exceptions import VersioningError
+from ..exceptions import VersioningError  # noqa: F401
 from ..lifecycle_metadata import EndpointLifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
-from ..settings import api_settings
+from ..settings import api_settings  # noqa: F401
 from .lifecycle import EndpointLifecycleStore
 from .resolution import OPERATION_ACTION_RESOLVER_ATTR, ResolvedOperation
 from .resolution import ResolvedRouteCandidate as _ResolvedRouteCandidate
