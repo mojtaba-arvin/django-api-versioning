@@ -57,6 +57,7 @@ TESTS_BY_SOURCE = {
     ),
     "__init__.py": (
         "tests/test_registry.py",
+        "tests/test_registry_lifecycle_component.py",
         "tests/test_registry_router_ownership.py",
         "tests/test_segment_model.py",
         "tests/test_route_removal.py",
