@@ -10,9 +10,15 @@ from django.urls import URLPattern, path
 from django.urls.resolvers import RegexPattern
 from django.views import View
 
-from ..exceptions import VersioningError
+from ..exceptions import (
+    InvalidVersionError,  # noqa: F401 - retained as a compatibility module attribute
+    VersioningError,
+    VersionRangeError,  # noqa: F401 - retained as a compatibility module attribute
+    VersionTypeError,  # noqa: F401 - retained as a compatibility module attribute
+)
 from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
+from ..settings import api_settings
 
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
