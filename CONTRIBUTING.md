@@ -96,7 +96,7 @@ Prefer a small number of commits, each representing one coherent and independent
 
 Use the repository's Conventional Commit policy for every commit subject and PR title. The PR title becomes the final commit subject under squash merging. The complete, executable contract—including the allowed type list, scope grammar, breaking-change footer, examples, validator behavior, and adoption guide—is maintained in [docs/commit-message-policy.md](docs/commit-message-policy.md).
 
-Allowed types are `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `build`, `ci`, `chore`, and `revert`. Scope is optional. Use a lowercase imperative summary, no trailing period, and keep the complete subject at or below 100 characters. Imperative mood is reviewed as a writing convention; the validator enforces deterministic syntax and lowercase rules rather than guessing English grammar. Use `!` and/or a non-empty `BREAKING CHANGE:` footer for breaking changes.
+Allowed types are `feat`, `fix`, `docs`, `test`, `refactor`, `style`, `perf`, `build`, `ci`, `chore`, and `revert`. Scope is optional. Use a lowercase imperative summary, no trailing period, and keep the complete subject at or below 100 characters. Imperative mood is reviewed as a writing convention; the validator enforces deterministic syntax and lowercase rules rather than guessing English grammar. Use `!` and/or a non-empty `BREAKING CHANGE:` footer for breaking changes.
 
 Examples:
 
