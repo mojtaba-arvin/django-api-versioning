@@ -17,7 +17,9 @@ type(scope)!: lowercase imperative summary
   single `.`, `/`, or `-` characters; do not start or end with a separator.
 - `!` is optional and appears immediately before `: ` to mark a breaking change.
 - The summary is required, starts with a lowercase letter or digit, uses lowercase
-  letters throughout, has no leading/trailing whitespace, and has no final period.
+  words throughout, has no leading/trailing whitespace, and has no final period.
+  Standard all-uppercase acronyms (for example, API, HTTP, CLI) are allowed; mixed
+  case words such as Api or Versioning are not.
 - The complete subject is at most 100 characters.
 
 | Type | Intended use |
