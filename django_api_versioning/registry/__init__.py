@@ -15,11 +15,8 @@ from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
 from ..settings import api_settings
 
-from .resolution import (
-    OPERATION_ACTION_RESOLVER_ATTR,
-    ResolvedOperation,
-    ResolvedRouteCandidate as _ResolvedRouteCandidate,
-)
+from .resolution import OPERATION_ACTION_RESOLVER_ATTR, ResolvedOperation
+from .resolution import ResolvedRouteCandidate as _ResolvedRouteCandidate
 
 ResolvedRouteCandidate = _ResolvedRouteCandidate
 
