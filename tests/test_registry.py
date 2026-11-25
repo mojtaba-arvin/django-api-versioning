@@ -782,6 +782,10 @@ def test_resolve_operation_distinguishes_drf_methods_and_actions(clear_registry)
             return None
 
     callback = OrderViewSet.as_view({"get": "list", "post": "create"})
+    from django_api_versioning.registry.resolution import OPERATION_ACTION_RESOLVER_ATTR
+    from django_api_versioning.routers import resolve_drf_operation_action
+
+    setattr(callback, OPERATION_ACTION_RESOLVER_ATTR, resolve_drf_operation_action)
     pattern = path("api/v2/orders/", callback, name="order-list")
     registry.register_urlpattern(
         pattern,
@@ -1082,6 +1086,10 @@ def test_resolve_operation_maps_head_to_get_action(clear_registry):
             return None
 
     callback = OrderViewSet.as_view({"get": "list"})
+    from django_api_versioning.registry.resolution import OPERATION_ACTION_RESOLVER_ATTR
+    from django_api_versioning.routers import resolve_drf_operation_action
+
+    setattr(callback, OPERATION_ACTION_RESOLVER_ATTR, resolve_drf_operation_action)
     registry.register_urlpattern(
         path("api/v2/orders/", callback, name="order-list"),
         source_version=2,
