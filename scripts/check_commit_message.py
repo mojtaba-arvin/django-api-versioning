@@ -62,7 +62,9 @@ def validate_commit_message(message: str) -> list[str]:
         commit_type = match.group("type")
         if commit_type not in ALLOWED_TYPES:
             allowed = ", ".join(sorted(ALLOWED_TYPES))
-            errors.append(f"unknown commit type '{commit_type}'; allowed types: {allowed}")
+            errors.append(
+                f"unknown commit type '{commit_type}'; allowed types: {allowed}"
+            )
 
         summary = match.group("subject")
         if summary != summary.strip():
