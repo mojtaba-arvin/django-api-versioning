@@ -2,9 +2,29 @@
 
 from scripts.check_commit_message import (
     ALLOWED_TYPES,
+    main,
     validate_commit_message,
     validate_commit_subjects,
 )
+
+
+EXPECTED_TYPES = {
+    "feat",
+    "fix",
+    "docs",
+    "test",
+    "refactor",
+    "style",
+    "perf",
+    "build",
+    "ci",
+    "chore",
+    "revert",
+}
+
+
+def test_allowed_types_match_the_documented_contract():
+    assert ALLOWED_TYPES == EXPECTED_TYPES
 
 
 def test_accepts_every_documented_type():
@@ -109,3 +129,32 @@ def test_rejects_empty_pull_request_commit_list():
     assert validate_commit_subjects([]) == [
         "pull request contains no commits to validate"
     ]
+
+
+
+def test_cli_accepts_git_commit_message_file(tmp_path, monkeypatch):
+    message_file = tmp_path / "COMMIT_EDITMSG"
+    message_file.write_text("fix(api): reject malformed headers", encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["check_commit_message.py", str(message_file)])
+    assert main() == 0
+
+
+def test_cli_accepts_message_argument(monkeypatch):
+    monkeypatch.setattr(
+        "sys.argv",
+        ["check_commit_message.py", "--message", "fix(api): reject malformed headers"],
+    )
+    assert main() == 0
+
+
+def test_cli_accepts_subjects_file(tmp_path, monkeypatch):
+    subjects_file = tmp_path / "subjects.txt"
+    subjects_file.write_text(
+        "fix(api): reject malformed headers\\ntest(api): cover malformed headers\\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["check_commit_message.py", "--subjects-file", str(subjects_file)],
+    )
+    assert main() == 0
