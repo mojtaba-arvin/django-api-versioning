@@ -307,6 +307,11 @@ class UrlRegistry:
 
         record_removed(self, pattern, logical_endpoint)
 
+    def _has_removed_route(self, logical_endpoint: str, *, owner: object) -> bool:
+        from .removal import has_removed_route
+
+        return has_removed_route(self, logical_endpoint, owner=owner)
+
     @_synchronized
     def register(
         self,
