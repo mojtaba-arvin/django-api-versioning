@@ -13,14 +13,15 @@ from django.views import View
 from .. import exceptions as _exceptions
 from ..exceptions import VersioningError
 
+from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
+from ..route_state import RegistrySnapshot, build_registry_snapshot
+from ..settings import api_settings
+
 # Preserve historical module attributes for callers importing these names
 # from django_api_versioning.registry.
 InvalidVersionError = _exceptions.InvalidVersionError
 VersionRangeError = _exceptions.VersionRangeError
 VersionTypeError = _exceptions.VersionTypeError
-from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
-from ..route_state import RegistrySnapshot, build_registry_snapshot
-from ..settings import api_settings
 
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
