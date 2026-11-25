@@ -12,7 +12,7 @@ type(scope)!: lowercase imperative summary
 ```
 
 - `type` is required and must be one of: `feat`, `fix`, `docs`, `test`,
-  `refactor`, `perf`, `build`, `ci`, `chore`, `revert`.
+  `refactor`, `style`, `perf`, `build`, `ci`, `chore`, `revert`.
 - `scope` is optional. When present, use lowercase letters/digits separated by
   single `.`, `/`, or `-` characters; do not start or end with a separator.
 - `!` is optional and appears immediately before `: ` to mark a breaking change.
