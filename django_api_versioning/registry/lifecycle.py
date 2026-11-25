@@ -157,8 +157,6 @@ class EndpointLifecycleStore:
         sunset_dates = [
             record.sunset for record in records if record.sunset is not None
         ]
-        from datetime import datetime
-
         return EndpointLifecycle(
             deprecated_at=min(deprecation_dates) if deprecation_dates else None,
             sunset=min(sunset_dates) if sunset_dates else None,
