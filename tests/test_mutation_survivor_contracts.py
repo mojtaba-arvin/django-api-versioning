@@ -3997,7 +3997,7 @@ def test_resolution_defaults_reject_unmapped_and_non_exact_resolver_matches():
 
     def capability(received_callback, method, allow_unmapped_method):
         calls.append((received_callback, method, allow_unmapped_method))
-        return allow_unmapped_method, None
+        return method == "GET" or allow_unmapped_method, None
 
     setattr(callback, OPERATION_ACTION_RESOLVER_ATTR, capability)
     pattern = _registered_pattern(target, callback)
