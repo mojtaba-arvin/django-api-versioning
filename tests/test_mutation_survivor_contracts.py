@@ -3361,12 +3361,28 @@ def test_mutation100_negotiation_uses_explicit_settings_over_fallbacks(monkeypat
     monkeypatch.setattr(
         negotiation_module,
         "api_settings",
-        SimpleNamespace(API_MAX_VERSION=3),
+        SimpleNamespace(API_MAX_VERSION=10),
     )
-    request = RequestFactory().get("/Xapi/v2/X/orders/")
+    request = RequestFactory().get("/Xapi/v99/X/orders/")
     response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
     assert response.status_code == 200
-    assert request.api_version == 2
+    assert request.api_version == 99
+
+    # If neither settings source configures a maximum, the fallback is one.
+    monkeypatch.setattr(
+        negotiation_module,
+        "django_settings",
+        SimpleNamespace(API_BASE_PATH="api/v{version}/"),
+    )
+    monkeypatch.setattr(
+        negotiation_module,
+        "api_settings",
+        SimpleNamespace(API_BASE_PATH="api/v{version}/"),
+    )
+    request = RequestFactory().get("/api/v99/orders/")
+    response = VersionNegotiationMiddleware(lambda current: HttpResponse("ok"))(request)
+    assert response.status_code == 200
+    assert not hasattr(request, "api_version")
 
 
 def test_mutation100_negotiation_query_header_and_path_fallback_defaults(monkeypatch):
