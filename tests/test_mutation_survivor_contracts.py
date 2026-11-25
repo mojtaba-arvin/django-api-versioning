@@ -4069,3 +4069,16 @@ def test_registered_operation_rejects_unmapped_method_by_default():
 
     assert resolve_registered_operation(target, "orders:order-list", 2, "PATCH") is None
     assert calls == [(callback, "PATCH", False)]
+
+
+def test_drf_action_resolver_defaults_to_rejecting_unmapped_methods():
+    from django_api_versioning.routers import resolve_drf_operation_action
+
+    callback = SimpleNamespace(actions={"get": "list"})
+
+    assert resolve_drf_operation_action(callback, "PATCH") == (False, None)
+    assert resolve_drf_operation_action(
+        callback, "PATCH", allow_unmapped_method=True
+    ) == (True, None)
+    assert resolve_drf_operation_action(callback, "OPTIONS") == (True, None)
+    assert resolve_drf_operation_action(callback, "HEAD") == (True, "list")
