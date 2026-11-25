@@ -1,8 +1,9 @@
 # Conventional Commit template
-# Subject: type(scope): lowercase imperative summary (max 100 characters)
+# Subject: type(scope)!: lowercase imperative summary (max 100 characters)
 #
 # Types: feat, fix, docs, test, refactor, perf, build, ci, chore, revert
-# Use ! after type/scope for a breaking change.
+# Scope is optional. Use lowercase scope segments separated by ., /, or -.
+# Use ! after type/scope or a BREAKING CHANGE: footer for breaking changes.
 #
 # Explain WHY and relevant implementation details below. Wrap body lines
-# at a readable width. Add issue references or BREAKING CHANGE footer if needed.
+# at a readable width. Separate BREAKING CHANGE: footer with a blank line.
