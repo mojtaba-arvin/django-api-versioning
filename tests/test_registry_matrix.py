@@ -2,8 +2,6 @@
 
 from types import MappingProxyType
 
-from django.urls import path
-
 from django_api_versioning.registry import REMOVED_ROUTE, UrlRegistry
 from django_api_versioning.registry.matrix import (
     project_logical_version_matrix,
@@ -48,8 +46,12 @@ def _snapshot(active=(), removed=()):
         removed_routes=removed,
         lifecycle=(),
         removal_boundaries=(),
-        active_by_identity=MappingProxyType({record.identity: record for record in active}),
-        removed_by_identity=MappingProxyType({record.identity: record for record in removed}),
+        active_by_identity=MappingProxyType(
+            {record.identity: record for record in active}
+        ),
+        removed_by_identity=MappingProxyType(
+            {record.identity: record for record in removed}
+        ),
     )
 
 
@@ -112,7 +114,8 @@ def test_registry_matrix_logical_projection_discriminates_colliding_owners_and_r
     matrix = project_logical_version_matrix(snapshot)
 
     assert matrix == {
-        "orders [route='api/v1/orders/']": {1: unowned_v1, 2: unowned_v2},
+        "orders [route='api/v1/orders/']": {1: unowned_v1},
+        "orders [route='api/v2/orders/']": {2: unowned_v2},
         "orders [router='orders', trailing_slash=True]": {1: router_v1},
     }
 
