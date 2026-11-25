@@ -1564,6 +1564,7 @@ def test_remove_reintroduce_allows_fresh_lifecycle_metadata(clear_registry):
     lifecycle = registry.get_endpoint_lifecycle(original_operation)
     assert lifecycle.deprecated_at == datetime(2028, 1, 1, tzinfo=timezone.utc)
 
+
 def test_endpoint_lifecycle_compatibility_view_is_store_owned(clear_registry):
     assert registry._endpoint_lifecycle is registry._lifecycle_store.records
 
