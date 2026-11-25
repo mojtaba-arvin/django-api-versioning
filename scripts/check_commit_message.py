@@ -14,7 +14,18 @@ from pathlib import Path
 
 MAX_SUBJECT_LENGTH = 100
 ALLOWED_TYPES = frozenset(
-    {"feat", "fix", "docs", "test", "refactor", "perf", "build", "ci", "chore", "revert"}
+    {
+        "feat",
+        "fix",
+        "docs",
+        "test",
+        "refactor",
+        "perf",
+        "build",
+        "ci",
+        "chore",
+        "revert",
+    }
 )
 HEADER = re.compile(
     r"^(?P<type>[a-z][a-z0-9-]*)"
@@ -63,15 +74,18 @@ def validate_commit_message(message: str) -> list[str]:
             errors.append("subject must not end with a period")
 
     footer_indexes = [
-        index for index, line in enumerate(lines[1:], start=1)
+        index
+        for index, line in enumerate(lines[1:], start=1)
         if line.startswith(BREAKING_FOOTER)
     ]
     for index in footer_indexes:
-        description = lines[index][len(BREAKING_FOOTER):].strip()
+        description = lines[index][len(BREAKING_FOOTER) :].strip()
         if not description:
             errors.append("BREAKING CHANGE footer must include a non-empty description")
         if index < 2 or lines[index - 1].strip():
-            errors.append("BREAKING CHANGE footer must be separated from the body by a blank line")
+            errors.append(
+                "BREAKING CHANGE footer must be separated from the body by a blank line"
+            )
 
     return errors
 
