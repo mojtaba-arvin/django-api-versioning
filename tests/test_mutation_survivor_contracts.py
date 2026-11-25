@@ -58,7 +58,14 @@ from django_api_versioning.registry import (
     REMOVED_ROUTE,
     ResolvedOperation,
     UrlRegistry,
+    _optional_operation_action,
     registry,
+)
+from django_api_versioning.registry.resolution import (
+    OPERATION_ACTION_RESOLVER_ATTR,
+    find_route_index,
+    resolve_operation,
+    resolve_registered_operation,
 )
 from django_api_versioning.routers import (
     VersionedDefaultRouter,
@@ -3942,3 +3949,119 @@ def test_mutation100_router_uses_registered_route_when_namespace_is_empty(monkey
     )
 
     assert versioning.determine_version(request) == "2"
+
+
+def test_resolution_capability_attribute_remains_a_stable_callback_contract():
+    assert OPERATION_ACTION_RESOLVER_ATTR == (
+        "_django_api_versioning_operation_action_resolver"
+    )
+
+    callback = _view
+    calls = []
+
+    def capability(received_callback, method, allow_unmapped_method):
+        calls.append((received_callback, method, allow_unmapped_method))
+        return True, "list"
+
+    setattr(callback, OPERATION_ACTION_RESOLVER_ATTR, capability)
+    assert _optional_operation_action(callback, "GET") == (True, "list")
+    assert calls == [(callback, "GET", False)]
+    delattr(callback, OPERATION_ACTION_RESOLVER_ATTR)
+
+
+def test_optional_action_resolution_defaults_to_rejecting_unmapped_methods():
+    callback = lambda request: None
+    callback.actions = {"get": "list"}
+    assert _optional_operation_action(callback, "PATCH") == (False, None)
+
+
+def test_resolution_find_route_index_defaults_to_path_pattern_semantics():
+    target = UrlRegistry()
+    callback = _view
+    regex_pattern = re_path(r"^api/v2/orders/$", callback, name="orders")
+    target.urlpatterns.append(regex_pattern)
+
+    assert find_route_index(target, r"^api/v2/orders/$") is None
+    assert find_route_index(target, r"^api/v2/orders/$", regex_route=True) == 0
+
+
+def test_resolution_defaults_reject_unmapped_and_non_exact_resolver_matches():
+    target = UrlRegistry()
+    callback = lambda request: None
+    calls = []
+
+    def capability(received_callback, method, allow_unmapped_method):
+        calls.append((received_callback, method, allow_unmapped_method))
+        return allow_unmapped_method, None
+
+    setattr(callback, OPERATION_ACTION_RESOLVER_ATTR, capability)
+    pattern = _registered_pattern(target, callback)
+    target.urlpatterns.append(pattern)
+
+    exact_match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="order-list",
+        tried=[[pattern]],
+        namespaces=("v2",),
+        namespace="v2",
+    )
+    assert resolve_operation(target, exact_match, "PATCH") is None
+    assert calls == [(callback, "PATCH", False)]
+
+    no_exact_match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="order-list",
+        tried=[],
+        namespaces=("v2",),
+        namespace="v2",
+    )
+    assert resolve_operation(target, no_exact_match, "GET") is None
+
+
+def test_resolution_preserves_none_action_for_non_drf_callbacks():
+    target = UrlRegistry()
+    callback = lambda request: None
+    pattern = _registered_pattern(target, callback)
+    target.urlpatterns.append(pattern)
+    match = SimpleNamespace(
+        route="api/v2/orders/",
+        func=callback,
+        url_name="order-list",
+        tried=[[pattern]],
+        namespaces=("v2",),
+        namespace="v2",
+    )
+
+    operation = resolve_operation(target, match, "GET")
+    assert operation is not None
+    assert operation.action is None
+
+    registered = resolve_registered_operation(
+        target, "orders:order-list", 2, "GET"
+    )
+    assert registered is not None
+    assert registered.action is None
+
+
+def test_registered_operation_rejects_unmapped_method_by_default():
+    target = UrlRegistry()
+    callback = lambda request: None
+    calls = []
+
+    def capability(received_callback, method, allow_unmapped_method):
+        calls.append((received_callback, method, allow_unmapped_method))
+        return allow_unmapped_method, "unexpected"
+
+    setattr(callback, OPERATION_ACTION_RESOLVER_ATTR, capability)
+    pattern = _registered_pattern(target, callback)
+    target.urlpatterns.append(pattern)
+
+    assert (
+        resolve_registered_operation(
+            target, "orders:order-list", 2, "PATCH"
+        )
+        is None
+    )
+    assert calls == [(callback, "PATCH", False)]
