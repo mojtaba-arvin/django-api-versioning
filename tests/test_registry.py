@@ -15,6 +15,7 @@ from django_api_versioning.exceptions import (
 )
 from django_api_versioning.lifecycle_metadata import EndpointLifecycle
 from django_api_versioning.registry import REMOVED_ROUTE, ResolvedOperation, registry
+from django_api_versioning.registry import resolution as registry_resolution
 from django_api_versioning.urls import urlpatterns as api_urlpatterns
 
 # Optional DRF imports
@@ -1555,3 +1556,63 @@ def test_remove_reintroduce_allows_fresh_lifecycle_metadata(clear_registry):
     )
     lifecycle = registry.get_endpoint_lifecycle(original_operation)
     assert lifecycle.deprecated_at == datetime(2028, 1, 1, tzinfo=timezone.utc)
+
+
+def test_registry_resolution_facade_delegates_to_resolution_component(monkeypatch):
+    """The compatibility facade delegates every resolution decision."""
+    calls = []
+    sentinel = object()
+
+    def replacement(name):
+        def delegated(*args, **kwargs):
+            calls.append((name, args, kwargs))
+            return sentinel
+
+        return delegated
+
+    monkeypatch.setattr(
+        registry_resolution, "canonical_route_key", replacement("canonical")
+    )
+    monkeypatch.setattr(
+        registry_resolution, "find_route_index", replacement("find")
+    )
+    monkeypatch.setattr(
+        registry_resolution,
+        "resolved_route_match_length",
+        replacement("match_length"),
+    )
+    monkeypatch.setattr(
+        registry_resolution,
+        "get_resolved_route_version_for_match",
+        replacement("version_for_match"),
+    )
+    monkeypatch.setattr(
+        registry_resolution, "get_resolved_route_version", replacement("version")
+    )
+    monkeypatch.setattr(
+        registry_resolution, "resolve_operation", replacement("operation")
+    )
+    monkeypatch.setattr(
+        registry_resolution,
+        "resolve_registered_operation",
+        replacement("registered_operation"),
+    )
+
+    assert registry._canonical_route_key("api/v2/orders/") is sentinel
+    assert registry._find_route_index("api/v2/orders/") is sentinel
+    assert registry._resolved_route_match_length("api/v2/orders/", "orders/") is sentinel
+    assert registry.get_resolved_route_version_for_match(object()) is sentinel
+    assert registry.get_resolved_route_version("api/v2/orders/") is sentinel
+    assert registry.resolve_operation(object(), "GET") is sentinel
+    assert registry.resolve_registered_operation("orders", 2, "GET") is sentinel
+
+    assert [name for name, _, _ in calls] == [
+        "canonical",
+        "find",
+        "match_length",
+        "version_for_match",
+        "version",
+        "operation",
+        "registered_operation",
+    ]
+    assert all(args[0] is registry for _, args, _ in calls[1:])
