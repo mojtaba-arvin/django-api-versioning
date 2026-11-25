@@ -3970,7 +3970,9 @@ def test_resolution_capability_attribute_remains_a_stable_callback_contract():
 
 
 def test_optional_action_resolution_defaults_to_rejecting_unmapped_methods():
-    callback = lambda request: None
+    def callback(request):
+        return None
+
     callback.actions = {"get": "list"}
     assert _optional_operation_action(callback, "PATCH") == (False, None)
 
@@ -3987,7 +3989,9 @@ def test_resolution_find_route_index_defaults_to_path_pattern_semantics():
 
 def test_resolution_defaults_reject_unmapped_and_non_exact_resolver_matches():
     target = UrlRegistry()
-    callback = lambda request: None
+    def callback(request):
+        return None
+
     calls = []
 
     def capability(received_callback, method, allow_unmapped_method):
@@ -4022,7 +4026,9 @@ def test_resolution_defaults_reject_unmapped_and_non_exact_resolver_matches():
 
 def test_resolution_preserves_none_action_for_non_drf_callbacks():
     target = UrlRegistry()
-    callback = lambda request: None
+    def callback(request):
+        return None
+
     pattern = _registered_pattern(target, callback)
     target.urlpatterns.append(pattern)
     match = SimpleNamespace(
