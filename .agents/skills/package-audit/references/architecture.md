@@ -15,7 +15,7 @@
 
 2. **Review Core Components**
    - `decorators.py` - @endpoint decorator mechanism
-   - `registry.py` - URL registry pattern
+   - `registry/__init__.py` - URL registry compatibility facade and `registry/` components
    - `reverse.py` - URL reversal logic
    - `routers.py` - optional DRF `SimpleRouter` integration, generated route registration, and namespace-aware version adapter
    - `channels.py` - version extraction utility; trace call sites and do not assume end-to-end header/query dispatch

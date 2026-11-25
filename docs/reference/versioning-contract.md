@@ -749,7 +749,8 @@ The contract above is based on the following implementation and project files:
 
 - [decorators.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/decorators.py)
 - [routers.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/routers.py)
-- [registry.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/registry.py)
+- [registry package facade](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/registry/__init__.py)
+- [registration component](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/registry/registration.py)
 - [reverse.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/reverse.py)
 - [lifecycle.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/lifecycle.py)
 - [urls.py](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/django_api_versioning/urls.py)

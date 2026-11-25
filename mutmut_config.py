@@ -19,7 +19,8 @@ CONTRACT_TEST_PREFIXES = {
     "decorators.py": ("test_mutation95_decorator", "test_mutation100_decorator"),
     "lifecycle.py": ("test_mutation95_lifecycle", "test_mutation100_lifecycle"),
     "negotiation.py": ("test_mutation95_negotiation", "test_mutation100_negotiation"),
-    "registry.py": ("test_mutation95_registry", "test_mutation100_registry"),
+    "__init__.py": ("test_mutation95_registry", "test_mutation100_registry"),
+    "registration.py": ("test_mutation95_registry", "test_mutation100_registry"),
     "routers.py": ("test_mutation95_router", "test_mutation100_router"),
 }
 
@@ -45,7 +46,7 @@ TESTS_BY_SOURCE = {
         "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
-    "registry.py": (
+    "__init__.py": (
         "tests/test_registry.py",
         "tests/test_registry_router_ownership.py",
         "tests/test_segment_model.py",
@@ -59,6 +60,17 @@ TESTS_BY_SOURCE = {
         "tests/test_routers.py",
         "tests/test_settings.py",
         "tests/test_registry_mutation_contracts.py",
+        "tests/test_mutation_80_percent_contracts.py",
+        "tests/test_mutation_survivor_contracts.py",
+    ),
+    "registration.py": (
+        "tests/test_registration_component.py",
+        "tests/test_registry.py",
+        "tests/test_registry_router_ownership.py",
+        "tests/test_segment_model.py",
+        "tests/test_route_removal.py",
+        "tests/test_adversarial_router_combinations.py",
+        "tests/test_decorators.py",
         "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),

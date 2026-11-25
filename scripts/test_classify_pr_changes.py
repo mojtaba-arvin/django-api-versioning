@@ -10,7 +10,12 @@ from scripts.classify_pr_changes import (
 
 class ClassifyPullRequestChangesTests(unittest.TestCase):
     def test_package_source_runs_python_compatibility_artifacts_and_website(self):
-        result = classify_paths(["django_api_versioning/registry.py"])
+        result = classify_paths(
+            [
+                "django_api_versioning/registry/__init__.py",
+                "django_api_versioning/registry/registration.py",
+            ]
+        )
         self.assertTrue(result["python"])
         self.assertTrue(result["compatibility"])
         self.assertFalse(result["compatibility_full"])
@@ -21,7 +26,8 @@ class ClassifyPullRequestChangesTests(unittest.TestCase):
     def test_openapi_contract_runs_for_all_schema_affecting_runtime_modules(self):
         for path in (
             "django_api_versioning/routers.py",
-            "django_api_versioning/registry.py",
+            "django_api_versioning/registry/__init__.py",
+            "django_api_versioning/registry/registration.py",
             "django_api_versioning/decorators.py",
             "django_api_versioning/settings.py",
             "django_api_versioning/reverse.py",

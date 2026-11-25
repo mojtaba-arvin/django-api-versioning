@@ -10,15 +10,15 @@ from django.urls import URLPattern, path
 from django.urls.resolvers import RegexPattern
 from django.views import View
 
-from .exceptions import (
+from ..exceptions import (
     InvalidVersionError,
     VersioningError,
     VersionRangeError,
     VersionTypeError,
 )
-from .lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
-from .route_state import RegistrySnapshot, build_registry_snapshot
-from .settings import api_settings
+from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
+from ..route_state import RegistrySnapshot, build_registry_snapshot
+from ..settings import api_settings
 
 VersionKey = int | None
 VersionMatrix = dict[str, dict[VersionKey, Callable]]
@@ -347,6 +347,24 @@ class UrlRegistry:
             source_version is None or source_version <= boundary
         )
 
+    def _clear_removed_pattern(
+        self,
+        logical_endpoint: str | None,
+        route_version: int | None,
+        *,
+        owner: object | None,
+        router_prefix: str | None,
+        trailing_slash: bool | None,
+    ) -> None:
+        """Clear the matching tombstone when a declaration is reintroduced."""
+        if logical_endpoint is None or route_version is None:
+            return
+        if owner is None:
+            key = (logical_endpoint, route_version)
+        else:
+            key = (logical_endpoint, route_version, router_prefix, trailing_slash)
+        self._removed_patterns.pop(key, None)
+
     def _record_removed(self, pattern: URLPattern, logical_endpoint: str) -> None:
         route_version = getattr(pattern, self._ROUTE_VERSION_ATTR, None)
         if route_version is None:
@@ -383,49 +401,18 @@ class UrlRegistry:
         route_version: int | None = None,
         logical_endpoint: str | None = None,
     ) -> None:
-        """Register a route, preferring definitions from newer source versions."""
-        route_index = self._find_route_index(route)
-
-        if route_index is not None:
-            existing_pattern = self.urlpatterns[route_index]
-            if getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None) is not None:
-                raise VersioningError(
-                    f"Route pattern {route!r} is already owned by a VersionedRouter; "
-                    "decorator registration cannot replace it."
-                )
-
-            if not self._should_replace(existing_pattern, source_version):
-                return
+        """Register a route through the shared registration component."""
+        from .registration import register_pattern
 
         pattern = self._create_pattern(route, view, name)
-        setattr(pattern, self._SOURCE_VERSION_ATTR, source_version)
-        setattr(pattern, self._ROUTE_VERSION_ATTR, route_version)
-        if logical_endpoint is not None:
-            setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
-
-        if self._is_suppressed(logical_endpoint, route_version, source_version):
-            if route_index is not None:
-                existing = self.urlpatterns[route_index]
-                existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
-                existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
-                existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
-                if self._is_suppressed(
-                    existing_logical, existing_version, existing_source
-                ):
-                    del self.urlpatterns[route_index]
-            if logical_endpoint is not None:
-                self._record_removed(pattern, logical_endpoint)
-            return
-
-        if logical_endpoint is not None and route_version is not None:
-            self._removed_patterns.pop((logical_endpoint, route_version), None)
-
-        if route_index is None:
-            self.urlpatterns.append(pattern)
-        else:
-            self.urlpatterns[route_index] = pattern
-
-        self._sort_urlpatterns()
+        register_pattern(
+            self,
+            pattern,
+            source_version=source_version,
+            route_version=route_version,
+            logical_endpoint=logical_endpoint,
+            allow_router_owner=False,
+        )
 
     @_synchronized
     def register_urlpattern(
@@ -435,138 +422,19 @@ class UrlRegistry:
         route_version: int | None = None,
         logical_endpoint: str | None = None,
     ) -> None:
-        """Register an existing Django URLPattern without rebuilding it.
+        """Register an existing URLPattern through the shared registration core."""
+        from .registration import register_pattern
 
-        This is the lossless insertion path for integrations that generate
-        URLPatterns themselves (for example, DRF routers). The original
-        pattern, callback, converters, defaults, name, and callback metadata
-        are retained. Collision precedence is identical to ``register()``.
-        """
         if not isinstance(pattern, URLPattern):
             raise TypeError("pattern must be a django.urls.URLPattern instance.")
-
-        route_key = str(pattern.pattern)
-        pattern_owner = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-        route_index = self._find_route_index(
-            route_key,
-            regex_route=isinstance(pattern.pattern, RegexPattern),
+        register_pattern(
+            self,
+            pattern,
+            source_version=source_version,
+            route_version=route_version,
+            logical_endpoint=logical_endpoint,
+            allow_router_owner=True,
         )
-
-        if route_index is None:
-            new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            new_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
-            for existing in self.urlpatterns:
-                existing_router = getattr(existing, self._ROUTER_OWNER_ATTR, None)
-                existing_prefix = getattr(existing, self._ROUTER_PREFIX_ATTR, None)
-                if (
-                    new_router is not None
-                    and existing_router is not None
-                    and existing_router is not new_router
-                    and new_prefix is not None
-                    and existing_prefix == new_prefix
-                    and getattr(existing, self._ROUTER_TRAILING_SLASH_ATTR, None)
-                    == getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
-                    and getattr(existing, self._ROUTE_VERSION_ATTR, None)
-                    == route_version
-                ):
-                    raise VersioningError(
-                        f"Router prefix {new_prefix!r} in version {route_version} "
-                        "is already registered by another VersionedRouter instance."
-                    )
-
-        if route_index is not None:
-            existing_pattern = self.urlpatterns[route_index]
-            existing_router = getattr(existing_pattern, self._ROUTER_OWNER_ATTR, None)
-            new_router = getattr(pattern, self._ROUTER_OWNER_ATTR, None)
-            if (
-                existing_router is not None
-                and new_router is not None
-                and existing_router is not new_router
-            ):
-                existing_prefix = getattr(
-                    existing_pattern, self._ROUTER_PREFIX_ATTR, None
-                )
-                new_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
-                same_router_prefix = (
-                    existing_prefix is not None
-                    and existing_prefix == new_prefix
-                    and getattr(
-                        existing_pattern, self._ROUTER_TRAILING_SLASH_ATTR, None
-                    )
-                    == getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
-                    and getattr(existing_pattern, self._ROUTE_VERSION_ATTR, None)
-                    == route_version
-                )
-                if same_router_prefix:
-                    raise VersioningError(
-                        f"Router prefix {new_prefix!r} in version {route_version} "
-                        "is already registered by another VersionedRouter instance."
-                    )
-                raise VersioningError(
-                    f"Route pattern {route_key!r} is already registered by another "
-                    "VersionedRouter instance. Use a distinct route prefix for each router."
-                )
-            if (existing_router is None) != (new_router is None):
-                raise VersioningError(
-                    f"Route pattern {route_key!r} is already registered by a "
-                    "different registration owner. Use a distinct route path."
-                )
-            if not self._should_replace(existing_pattern, source_version):
-                return
-
-        setattr(pattern, self._SOURCE_VERSION_ATTR, source_version)
-        setattr(pattern, self._ROUTE_VERSION_ATTR, route_version)
-        if logical_endpoint is not None:
-            setattr(pattern, self._LOGICAL_ENDPOINT_ATTR, logical_endpoint)
-
-        router_prefix = getattr(pattern, self._ROUTER_PREFIX_ATTR, None)
-        router_trailing_slash = getattr(pattern, self._ROUTER_TRAILING_SLASH_ATTR, None)
-        if self._is_suppressed(
-            logical_endpoint,
-            route_version,
-            source_version,
-            owner=pattern_owner,
-            router_prefix=router_prefix,
-            trailing_slash=router_trailing_slash,
-        ):
-            if route_index is not None:
-                existing = self.urlpatterns[route_index]
-                existing_logical = getattr(existing, self._LOGICAL_ENDPOINT_ATTR, None)
-                existing_version = getattr(existing, self._ROUTE_VERSION_ATTR, None)
-                existing_source = getattr(existing, self._SOURCE_VERSION_ATTR, None)
-                if self._is_suppressed(
-                    existing_logical,
-                    existing_version,
-                    existing_source,
-                    owner=getattr(existing, self._ROUTER_OWNER_ATTR, None),
-                    router_prefix=getattr(existing, self._ROUTER_PREFIX_ATTR, None),
-                    trailing_slash=getattr(
-                        existing, self._ROUTER_TRAILING_SLASH_ATTR, None
-                    ),
-                ):
-                    del self.urlpatterns[route_index]
-            if logical_endpoint is not None:
-                self._record_removed(pattern, logical_endpoint)
-            return
-
-        if logical_endpoint is not None and route_version is not None:
-            if pattern_owner is None:
-                removed_key = (logical_endpoint, route_version)
-            else:
-                removed_key = (
-                    logical_endpoint,
-                    route_version,
-                    router_prefix,
-                    router_trailing_slash,
-                )
-            self._removed_patterns.pop(removed_key, None)
-
-        if route_index is None:
-            self.urlpatterns.append(pattern)
-        else:
-            self.urlpatterns[route_index] = pattern
-
-        self._sort_urlpatterns()
 
     @_synchronized
     def get_route_version(self, route: str) -> int | None:
@@ -1146,22 +1014,12 @@ class UrlRegistry:
         existing_pattern: URLPattern,
         source_version: int | None,
     ) -> bool:
-        """Return whether the new declaration should replace the existing one.
+        """Compatibility delegate to the registration component."""
+        from .registration import should_replace
 
-        Newer ``source_version`` values win. When either side has no source
-        version (e.g. unversioned endpoints or direct ``register()`` calls),
-        the last registration wins.
-        """
-        existing_version = getattr(
-            existing_pattern,
-            self._SOURCE_VERSION_ATTR,
-            None,
+        return should_replace(
+            existing_pattern, source_version, self._SOURCE_VERSION_ATTR
         )
-
-        if existing_version is None or source_version is None:
-            return True
-
-        return source_version >= existing_version
 
     @staticmethod
     def _create_pattern(

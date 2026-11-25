@@ -22,7 +22,7 @@ def _context(source_path, current_line_index, coverage_data):
 
 
 def test_pre_mutation_reads_the_one_based_coverage_line(tmp_path):
-    source_path = tmp_path / "registry.py"
+    source_path = tmp_path / "registration.py"
     node_id = "tests/test_registry.py::test_selected_for_actual_line"
     context = _context(
         source_path,
@@ -34,11 +34,11 @@ def test_pre_mutation_reads_the_one_based_coverage_line(tmp_path):
 
     selected_node_ids = set(shlex.split(context.config.test_command))
     assert node_id in selected_node_ids
-    assert set(_contract_test_node_ids("registry.py")) <= selected_node_ids
+    assert set(_contract_test_node_ids("registration.py")) <= selected_node_ids
 
 
 def test_pre_mutation_does_not_select_a_test_from_the_previous_line(tmp_path):
-    source_path = tmp_path / "registry.py"
+    source_path = tmp_path / "__init__.py"
     wrong_node_id = "tests/test_registry.py::test_previous_line_only"
     context = _context(
         source_path,
@@ -59,7 +59,8 @@ def test_pre_mutation_fallback_includes_survivor_contracts_for_every_domain(
         "decorators.py",
         "lifecycle.py",
         "negotiation.py",
-        "registry.py",
+        "__init__.py",
+        "registration.py",
         "routers.py",
     ):
         source_path = tmp_path / source_name
@@ -100,7 +101,14 @@ def test_pre_mutation_runs_every_context_recorded_for_the_mutated_line(tmp_path)
 
 @pytest.mark.parametrize(
     "source_name",
-    ["decorators.py", "lifecycle.py", "negotiation.py", "registry.py", "routers.py"],
+    [
+        "decorators.py",
+        "lifecycle.py",
+        "negotiation.py",
+        "__init__.py",
+        "registration.py",
+        "routers.py",
+    ],
 )
 def test_pre_mutation_uses_domain_fallback_for_excessive_contexts(
     tmp_path, source_name
@@ -124,7 +132,7 @@ def test_pre_mutation_uses_domain_fallback_for_excessive_contexts(
 
 
 def test_pre_mutation_fallback_does_not_duplicate_contract_module(tmp_path):
-    source_path = tmp_path / "registry.py"
+    source_path = tmp_path / "registration.py"
     context = _context(source_path, 0, {os.path.abspath(source_path): {}})
 
     pre_mutation(context)
@@ -136,7 +144,14 @@ def test_pre_mutation_fallback_does_not_duplicate_contract_module(tmp_path):
 
 @pytest.mark.parametrize(
     "source_name",
-    ["decorators.py", "lifecycle.py", "negotiation.py", "registry.py", "routers.py"],
+    [
+        "decorators.py",
+        "lifecycle.py",
+        "negotiation.py",
+        "__init__.py",
+        "registration.py",
+        "routers.py",
+    ],
 )
 def test_pre_mutation_selects_its_domain_contract_probes_for_covered_lines(
     tmp_path, source_name
