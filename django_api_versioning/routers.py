@@ -419,24 +419,17 @@ class VersionedRouter:
         sunset: str | None,
         owner: object | None = None,
     ) -> None:
-        # Conflicting existing declarations can fail during insertion. Restore
-        # the prior registry state so multi-method declarations are atomic.
-        previous_lifecycle = dict(registry._endpoint_lifecycle)
-        try:
-            for method, mapped_action in registrations:
-                registry.register_endpoint_lifecycle(
-                    logical_endpoint,
-                    version,
-                    method=method,
-                    action=mapped_action,
-                    deprecated_at=deprecated_at,
-                    sunset=sunset,
-                    owner=owner,
-                )
-        except Exception:
-            registry._endpoint_lifecycle.clear()
-            registry._endpoint_lifecycle.update(previous_lifecycle)
-            raise
+        # The enclosing registry transaction makes the whole declaration atomic.
+        for method, mapped_action in registrations:
+            registry.register_endpoint_lifecycle(
+                logical_endpoint,
+                version,
+                method=method,
+                action=mapped_action,
+                deprecated_at=deprecated_at,
+                sunset=sunset,
+                owner=owner,
+            )
 
     @staticmethod
     def _validate_version(version: int) -> None:
