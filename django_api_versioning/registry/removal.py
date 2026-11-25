@@ -180,3 +180,12 @@ def record_removed(registry, pattern: URLPattern, logical_endpoint: str) -> None
             return
 
     registry._removed_patterns[key] = pattern
+
+
+def has_removed_route(registry, logical_endpoint: str, *, owner: object) -> bool:
+    """Return whether an owner has a tombstone for one logical endpoint."""
+    return any(
+        key[0] == logical_endpoint
+        and getattr(pattern, registry._ROUTER_OWNER_ATTR, None) is owner
+        for key, pattern in registry._removed_patterns.items()
+    )
