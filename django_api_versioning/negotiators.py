@@ -244,9 +244,7 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
 class PathNegotiator:
     """Resolve a path transport candidate using an explicit route template."""
 
-    def __init__(
-        self, template: str, maximum_version: int | None = None
-    ) -> None:
+    def __init__(self, template: str, maximum_version: int | None = None) -> None:
         self.template = template
         self.maximum_version = maximum_version
 
