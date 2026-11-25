@@ -20,6 +20,7 @@ ALLOWED_TYPES = frozenset(
         "docs",
         "test",
         "refactor",
+        "style",
         "perf",
         "build",
         "ci",
