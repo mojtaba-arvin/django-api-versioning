@@ -33,15 +33,20 @@ def _parse_version(value: object) -> int:
     return int(raw)
 
 
-def _path_version(
-    path_info: str, template: str, maximum_version: int | None = None
-) -> int | None:
+def _path_match(path_info: str, template: str):
+    """Return the numeric path-version match without converting its digits."""
     if not isinstance(template, str) or template.count("{version}") != 1:
         return None
     prefix, suffix = template.split("{version}")
     pattern = "^" + re.escape(prefix.lstrip("/")) + r"([0-9]+)" + re.escape(suffix)
-    match = re.match(pattern, path_info.lstrip("/"))
-    if not match:
+    return re.match(pattern, path_info.lstrip("/"))
+
+
+def _path_version(
+    path_info: str, template: str, maximum_version: int | None = None
+) -> int | None:
+    match = _path_match(path_info, template)
+    if match is None:
         return None
 
     # A long numeric segment is still a versioned path, even when it cannot
@@ -239,12 +244,18 @@ def _header_version(request: HttpRequest, header_name: str) -> int | None:
 class PathNegotiator:
     """Resolve a path transport candidate using an explicit route template."""
 
-    def __init__(self, template: str, maximum_version: int) -> None:
+    def __init__(
+        self, template: str, maximum_version: int | None = None
+    ) -> None:
         self.template = template
         self.maximum_version = maximum_version
 
     def negotiate(self, path_info: str) -> int | None:
         return _path_version(path_info, self.template, self.maximum_version)
+
+    def matches(self, path_info: str) -> bool:
+        """Detect a versioned path without parsing or bounding its number."""
+        return _path_match(path_info, self.template) is not None
 
 
 class HeaderNegotiator:
