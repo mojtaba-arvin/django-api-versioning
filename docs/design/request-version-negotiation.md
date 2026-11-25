@@ -14,6 +14,16 @@ The application selects exactly one transport with `API_VERSIONING_SCHEME`:
 
 These are supported alternatives, not a fallback chain. A deployment must not accept conflicting sources as competing authorities. In header mode, if both the dedicated header and the Accept media-type parameter are present, they must identify the same version.
 
+## Internal architecture
+
+Transport candidate selection is implemented by four small internal strategies:
+`PathNegotiator`, `HeaderNegotiator`, `QueryNegotiator`, and
+`HostnameNegotiator`. They own transport-specific parsing and exact host
+normalization. `VersionNegotiationMiddleware` remains the sole orchestration
+boundary: it chooses the configured strategy, applies default/range policy,
+rewrites the internal path when needed, attaches request metadata, and calls
+the downstream response handler. The strategy module has no DRF dependency.
+
 ## Runtime dispatch
 
 Install `VersionNegotiationMiddleware` before middleware that depends on `request.path_info` (including `CommonMiddleware` and `LifecycleMiddleware`).
