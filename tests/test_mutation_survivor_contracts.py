@@ -4027,6 +4027,7 @@ def test_resolution_defaults_reject_unmapped_and_non_exact_resolver_matches():
 
 def test_resolution_preserves_none_action_for_non_drf_callbacks():
     target = UrlRegistry()
+
     def callback(request):
         return None
 
