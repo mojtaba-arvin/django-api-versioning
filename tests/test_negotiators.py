@@ -20,6 +20,13 @@ def test_path_negotiator_parses_only_the_configured_route_template():
     assert negotiator.negotiate("/api/v999999999999999999/orders/") == -1
 
 
+def test_path_negotiator_matches_long_versions_without_integer_conversion():
+    negotiator = PathNegotiator("api/v{version}/")
+
+    assert negotiator.matches("/api/v" + ("9" * 5000) + "/orders/")
+    assert not negotiator.matches("/health/")
+
+
 def test_header_negotiator_selects_the_preferred_accept_version():
     request = RequestFactory().get(
         "/api/orders/",
