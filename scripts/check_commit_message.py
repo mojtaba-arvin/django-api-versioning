@@ -69,8 +69,14 @@ def validate_commit_message(message: str) -> list[str]:
             errors.append("summary must not have leading or trailing whitespace")
         if not re.match(r"^[a-z0-9]", summary):
             errors.append("summary must start with a lowercase letter or digit")
-        if summary != summary.lower():
-            errors.append("summary must use lowercase letters throughout")
+        words = re.findall(r"[A-Za-z]+", summary)
+        if any(
+            any(character.isupper() for character in word) and not word.isupper()
+            for word in words
+        ):
+            errors.append(
+                "summary must be lowercase; all-uppercase acronyms such as API or CLI are allowed"
+            )
         if summary.endswith("."):
             errors.append("subject must not end with a period")
 
