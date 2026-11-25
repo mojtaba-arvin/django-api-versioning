@@ -379,12 +379,25 @@ class UrlRegistry:
 
     @_synchronized
     def get_version_matrix(self) -> VersionMatrix:
-        """Return the physical route/version matrix projected from the snapshot."""
+        """
+        Return ``{route: {route_version: callback}}``.
+
+        ``route_version`` is ``None`` for unversioned routes. This remains
+        the source of truth for ``check_versions`` and ``assert_version_matrix``,
+        projected from the latest immutable registry snapshot.
+        """
         return project_version_matrix(self._snapshot)
 
     @_synchronized
     def get_logical_version_matrix(self) -> VersionMatrix:
-        """Return the logical endpoint/version matrix projected from the snapshot."""
+        """
+        Return ``{logical_endpoint: {route_version: callback}}``.
+
+        Physical URLs are grouped by logical endpoint identity. When independent
+        routers or physical routes collide, stable discriminators preserve every
+        callback rather than silently overwriting one. The projection reads only
+        the latest immutable registry snapshot.
+        """
         return project_logical_version_matrix(self._snapshot)
 
     @staticmethod
