@@ -18,6 +18,7 @@ from .exceptions import (
     VersionTypeError,
 )
 from .registry import registry
+from .registry.resolution import OPERATION_ACTION_RESOLVER_ATTR
 from .reverse import format_negotiated_url
 from .settings import api_settings
 
@@ -34,6 +35,26 @@ except ImportError as exc:  # pragma: no cover - exercised without optional DRF
 RoutePattern = URLPattern | URLResolver
 VersionRange = int | None
 VersionDeclaration = tuple[VersionRange, VersionRange]
+
+
+def resolve_drf_operation_action(
+    callback: object,
+    method: str,
+    allow_unmapped_method: bool = False,
+) -> tuple[bool, str | None]:
+    """Resolve one DRF ViewSet action behind the optional capability seam."""
+    actions = getattr(callback, "actions", None)
+    if not isinstance(actions, Mapping):
+        return True, None
+    action = actions.get(method.lower())
+    if action is None and method == "HEAD":
+        action = actions.get("get")
+    if action is None and method != "OPTIONS" and not allow_unmapped_method:
+        return False, None
+    if action is not None and (not isinstance(action, str) or not action):
+        return False, None
+    return True, action
+
 
 logger = logging.getLogger(__name__)
 
@@ -475,6 +496,11 @@ class VersionedRouter:
         for pattern in router.urls:
             logical_endpoint = f"{prefix}:{pattern.name}"
             route_key = str(pattern.pattern)
+            setattr(
+                pattern.callback,
+                OPERATION_ACTION_RESOLVER_ATTR,
+                resolve_drf_operation_action,
+            )
             setattr(pattern, registry._ROUTER_OWNER_ATTR, self._registry_owner)
             setattr(pattern, registry._ROUTER_PREFIX_ATTR, route_prefix)
             setattr(
