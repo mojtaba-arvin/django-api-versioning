@@ -26,6 +26,9 @@ CONTRACT_TEST_PREFIXES = {
 }
 
 CONTRACT_TEST_MODULE = "tests/test_mutation_survivor_contracts.py"
+CONTRACT_TEST_MODULES = {
+    "registry/lifecycle.py": "tests/test_registry_lifecycle_component.py",
+}
 MAX_LINE_CONTEXTS = 500
 
 TESTS_BY_SOURCE = {
@@ -115,7 +118,7 @@ def _contract_test_node_ids(source_name):
     if not prefixes:
         return []
 
-    test_file = Path(CONTRACT_TEST_MODULE)
+    test_file = Path(CONTRACT_TEST_MODULES.get(source_name, CONTRACT_TEST_MODULE))
     if not test_file.is_file():
         raise RuntimeError(f"Missing mutation contract test module: {test_file}")
 
@@ -149,7 +152,10 @@ def pre_mutation(context):
     line_node_ids = {
         context_name.split("|", 1)[0] for context_name in line_contexts if context_name
     }
-    contract_node_ids = set(_contract_test_node_ids(source_name))
+    contract_source_name = (
+        source_name if source_name in CONTRACT_TEST_PREFIXES else Path(source_name).name
+    )
+    contract_node_ids = set(_contract_test_node_ids(contract_source_name))
     test_paths = TESTS_BY_SOURCE.get(source_name) or TESTS_BY_SOURCE.get(
         Path(source_name).name
     )
