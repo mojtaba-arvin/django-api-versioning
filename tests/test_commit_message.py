@@ -54,6 +54,15 @@ def test_accepts_multiline_message_without_footer():
     assert validate_commit_message(message) == []
 
 
+def test_accepts_uppercase_acronyms_in_lowercase_summaries():
+    assert validate_commit_message("test: cover CLI entry points") == []
+    assert validate_commit_message("feat: add HTTP API support") == []
+
+
+def test_rejects_mixed_case_words():
+    assert validate_commit_message("feat: add Http API support")
+
+
 def test_rejects_unknown_types():
     assert any(
         "unknown commit type" in error
