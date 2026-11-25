@@ -7,7 +7,6 @@ from scripts.check_commit_message import (
     validate_commit_subjects,
 )
 
-
 EXPECTED_TYPES = {
     "feat",
     "fix",
@@ -81,7 +80,7 @@ def test_rejects_non_conventional_or_invalid_subjects():
         "feat(router):",
         "feat(router):  leading whitespace",
         "feat(router): trailing whitespace ",
-        "feat(router): reject invalid prefixes\t",
+        "feat(router): reject invalid prefixes\\t",
         "Merge pull request #123",
     ):
         assert validate_commit_message(subject), subject
@@ -161,7 +160,7 @@ def test_cli_accepts_message_argument(monkeypatch):
 def test_cli_accepts_subjects_file(tmp_path, monkeypatch):
     subjects_file = tmp_path / "subjects.txt"
     subjects_file.write_text(
-        "fix(api): reject malformed headers\\ntest(api): cover malformed headers\\n",
+        "fix(api): reject malformed headers\ntest(api): cover malformed headers\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(
