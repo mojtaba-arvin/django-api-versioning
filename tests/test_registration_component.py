@@ -1,4 +1,4 @@
-""""Contracts for the shared registry registration component."""
+"""Contracts for the shared registry registration component."""
 
 import importlib
 from pathlib import Path
@@ -79,6 +79,7 @@ def test_router_prefix_collision_ignores_incomplete_owner_metadata(missing_metad
     existing_prefix = "shared" if missing_metadata == "owner" else None
     setattr(existing, target._ROUTER_PREFIX_ATTR, existing_prefix)
     setattr(existing, target._ROUTE_VERSION_ATTR, 1)
+    target.urlpatterns.append(existing)
 
     candidate_owner_value = None if missing_metadata == "owner" else candidate_owner
     setattr(candidate, target._ROUTER_OWNER_ATTR, candidate_owner_value)
