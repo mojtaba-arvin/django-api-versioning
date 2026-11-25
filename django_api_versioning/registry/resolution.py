@@ -60,7 +60,7 @@ def canonical_route_key(route: str) -> str:
 
 
 def find_route_index(
-    self,
+    registry,
     route: str,
     *,
     regex_route: bool = False,
@@ -111,7 +111,7 @@ def resolved_route_match_length(route: str, registered_route: str) -> int:
 
 
 def get_resolved_route_version_for_match(
-    self, resolver_match: object
+    registry, resolver_match: object
 ) -> tuple[bool, int | None]:
     """Resolve version metadata for the exact URLPattern Django matched.
 
@@ -180,7 +180,7 @@ def get_resolved_route_version_for_match(
 
 
 def get_resolved_route_version_for_match(
-    self, resolver_match: object
+    registry, resolver_match: object
 ) -> tuple[bool, int | None]:
     """Resolve version metadata for the exact URLPattern Django matched.
 
@@ -278,7 +278,7 @@ def get_resolved_route_version(registry, route: str) -> int | None:
 
 
 def resolve_operation(
-    self,
+    registry,
     resolver_match: object,
     method: str,
     *,
@@ -401,7 +401,7 @@ def resolve_operation(
 
 
 def resolve_registered_operation(
-    self, logical_endpoint: str, route_version: int, method: str
+    registry, logical_endpoint: str, route_version: int, method: str
 ) -> ResolvedOperation | None:
     """Resolve decorator metadata from its declared identity and schema version.
 
