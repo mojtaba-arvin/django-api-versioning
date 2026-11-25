@@ -10,10 +10,11 @@ from django.urls.resolvers import RegexPattern
 from django.views import View
 
 from .. import exceptions as _exceptions
-from ..exceptions import VersioningError
-from ..lifecycle_metadata import EndpointLifecycle, parse_endpoint_lifecycle
+from ..exceptions import VersioningError  # noqa: F401
+from ..lifecycle_metadata import EndpointLifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
-from ..settings import api_settings
+from ..settings import api_settings  # noqa: F401
+from .lifecycle import EndpointLifecycleStore
 from .resolution import OPERATION_ACTION_RESOLVER_ATTR, ResolvedOperation
 from .resolution import ResolvedRouteCandidate as _ResolvedRouteCandidate
 
@@ -110,15 +111,13 @@ class UrlRegistry:
             tuple[str, str | None, bool | None], set[int]
         ] = {}
         self._removed_patterns: dict[tuple[object, ...], URLPattern] = {}
-        self._endpoint_lifecycle: dict[
-            tuple[str, int, str | None, str | None, object | None], EndpointLifecycle
-        ] = {}
+        self._lifecycle_store = EndpointLifecycleStore()
         self._transaction_stack: list[tuple[object, ...]] = []
         self._snapshot = build_registry_snapshot(
             generation=0,
             active_patterns=self.urlpatterns,
             removed_patterns=self._removed_patterns,
-            lifecycle_state=self._endpoint_lifecycle,
+            lifecycle_state=self._lifecycle_store.records,
             removal_boundaries=self._removal_boundaries,
             router_removal_boundaries=self._router_removal_boundaries,
         )
@@ -135,7 +134,7 @@ class UrlRegistry:
             {key: set(value) for key, value in self._removal_boundaries.items()},
             {key: set(value) for key, value in self._router_removal_boundaries.items()},
             dict(self._removed_patterns),
-            dict(self._endpoint_lifecycle),
+            self._lifecycle_store.snapshot(),
             [
                 (
                     pattern,
@@ -174,16 +173,7 @@ class UrlRegistry:
         self._removed_patterns.update(
             cast(dict[tuple[object, ...], URLPattern], removed)
         )
-        self._endpoint_lifecycle.clear()
-        self._endpoint_lifecycle.update(
-            cast(
-                dict[
-                    tuple[str, int, str | None, str | None, object | None],
-                    EndpointLifecycle,
-                ],
-                lifecycle,
-            )
-        )
+        self._lifecycle_store.restore(cast(dict, lifecycle))
         saved_patterns = cast(
             list[tuple[URLPattern, dict[str, object]]], pattern_attributes
         )
@@ -200,7 +190,7 @@ class UrlRegistry:
             generation=self._snapshot.generation + 1,
             active_patterns=self.urlpatterns,
             removed_patterns=self._removed_patterns,
-            lifecycle_state=self._endpoint_lifecycle,
+            lifecycle_state=self._lifecycle_store.records,
             removal_boundaries=self._removal_boundaries,
             router_removal_boundaries=self._router_removal_boundaries,
         )
@@ -547,6 +537,11 @@ class UrlRegistry:
             action_resolver=action_resolver or _optional_operation_action,
         )
 
+    @property
+    def _endpoint_lifecycle(self) -> dict:
+        """Compatibility view of the lifecycle store's authoritative mapping."""
+        return self._lifecycle_store.records
+
     @_synchronized
     def register_endpoint_lifecycle(
         self,
@@ -560,105 +555,22 @@ class UrlRegistry:
         owner: object | None = None,
     ) -> None:
         """Register lifecycle dates for a route, HTTP method, or DRF action."""
-        if not isinstance(logical_endpoint, str) or not logical_endpoint:
-            raise VersioningError("logical_endpoint must be a non-empty string.")
-        if isinstance(route_version, bool) or not isinstance(route_version, int):
-            raise VersionTypeError("Endpoint lifecycle version must be an integer.")
-        if route_version < api_settings.API_MIN_VERSION:
-            raise VersionRangeError(
-                f"Endpoint lifecycle version {route_version} is below "
-                f"API_MIN_VERSION {api_settings.API_MIN_VERSION}."
-            )
-        if route_version > api_settings.API_MAX_VERSION:
-            raise InvalidVersionError(
-                f"Endpoint lifecycle version {route_version} is above "
-                f"API_MAX_VERSION {api_settings.API_MAX_VERSION}."
-            )
-
-        normalized_method = None
-        if method is not None:
-            if not isinstance(method, str) or not method.strip():
-                raise VersioningError("Endpoint lifecycle method must be a string.")
-            normalized_method = method.strip().upper()
-
-        normalized_action = None
-        if action is not None:
-            if not isinstance(action, str) or not action.strip():
-                raise VersioningError("Endpoint lifecycle action must be a string.")
-            normalized_action = action.strip()
-
-        lifecycle = parse_endpoint_lifecycle(deprecated_at, sunset)
-        key = (
+        self._lifecycle_store.register(
             logical_endpoint,
             route_version,
-            normalized_method,
-            normalized_action,
-            owner,
+            method=method,
+            action=action,
+            deprecated_at=deprecated_at,
+            sunset=sunset,
+            owner=owner,
         )
-        existing = self._endpoint_lifecycle.get(key)
-        if existing is not None and existing != lifecycle:
-            raise VersioningError(
-                "Conflicting endpoint lifecycle declarations for "
-                f"{logical_endpoint!r} version {route_version}."
-            )
-        self._endpoint_lifecycle[key] = lifecycle
 
     @_synchronized
     def get_endpoint_lifecycle(
         self, operation: ResolvedOperation
     ) -> EndpointLifecycle | None:
-        """Return the most conservative metadata applicable to an operation.
-
-        Route-wide, action-wide, method-wide, and exact method/action scopes
-        compose monotonically: the earliest configured instant wins for each
-        header. A narrower declaration can add metadata but cannot delay it.
-        """
-        # HTTP HEAD is the body-less form of GET. DRF maps it to the
-        # GET action, and GET-scoped lifecycle declarations must therefore
-        # apply to HEAD as well. Explicit HEAD declarations still compose.
-        methods = (
-            (operation.method, "GET")
-            if operation.method == "HEAD"
-            else (operation.method,)
-        )
-        scopes = [(None, None), (None, operation.action)]
-        for method in methods:
-            scopes.extend(
-                (
-                    (method, None),
-                    (method, operation.action),
-                )
-            )
-
-        records = []
-        for method, action in dict.fromkeys(scopes):
-            record = self._endpoint_lifecycle.get(
-                (
-                    operation.logical_endpoint,
-                    operation.route_version,
-                    method,
-                    action,
-                    operation.router_owner,
-                )
-            )
-            if record is not None:
-                records.append(record)
-
-        if not records:
-            return None
-
-        deprecation_dates = [
-            record.deprecated_at
-            for record in records
-            if record.deprecated_at is not None
-        ]
-        sunset_dates = [
-            record.sunset for record in records if record.sunset is not None
-        ]
-        return EndpointLifecycle(
-            deprecated_at=min(deprecation_dates) if deprecation_dates else None,
-            sunset=min(sunset_dates) if sunset_dates else None,
-        )
+        """Return the most conservative metadata applicable to an operation."""
+        return self._lifecycle_store.get(operation)
 
     def _should_replace(
         self,

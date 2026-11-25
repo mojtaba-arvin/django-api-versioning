@@ -1563,3 +1563,30 @@ def test_remove_reintroduce_allows_fresh_lifecycle_metadata(clear_registry):
     )
     lifecycle = registry.get_endpoint_lifecycle(original_operation)
     assert lifecycle.deprecated_at == datetime(2028, 1, 1, tzinfo=timezone.utc)
+
+
+def test_endpoint_lifecycle_compatibility_view_is_store_owned(clear_registry):
+    assert registry._endpoint_lifecycle is registry._lifecycle_store.records
+
+
+def test_registry_transaction_restores_lifecycle_store_in_place(clear_registry):
+    registry.register_endpoint_lifecycle(
+        "orders:order-list",
+        2,
+        deprecated_at="2027-01-01T00:00:00Z",
+    )
+    compatibility_view = registry._endpoint_lifecycle
+    before = dict(compatibility_view)
+
+    with pytest.raises(RuntimeError, match="abort lifecycle transaction"):
+        with registry.transaction():
+            registry.register_endpoint_lifecycle(
+                "orders:order-list",
+                3,
+                sunset="2028-01-01T00:00:00Z",
+            )
+            raise RuntimeError("abort lifecycle transaction")
+
+    assert registry._endpoint_lifecycle is compatibility_view
+    assert compatibility_view == before
+    assert registry._lifecycle_store.records is compatibility_view

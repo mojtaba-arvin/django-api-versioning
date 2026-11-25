@@ -20,11 +20,15 @@ CONTRACT_TEST_PREFIXES = {
     "lifecycle.py": ("test_mutation95_lifecycle", "test_mutation100_lifecycle"),
     "negotiation.py": ("test_mutation95_negotiation", "test_mutation100_negotiation"),
     "__init__.py": ("test_mutation95_registry", "test_mutation100_registry"),
+    "registry/lifecycle.py": ("test_registry_lifecycle_store",),
     "registration.py": ("test_mutation95_registry", "test_mutation100_registry"),
     "routers.py": ("test_mutation95_router", "test_mutation100_router"),
 }
 
 CONTRACT_TEST_MODULE = "tests/test_mutation_survivor_contracts.py"
+CONTRACT_TEST_MODULES = {
+    "registry/lifecycle.py": "tests/test_registry_lifecycle_component.py",
+}
 MAX_LINE_CONTEXTS = 500
 
 TESTS_BY_SOURCE = {
@@ -46,8 +50,14 @@ TESTS_BY_SOURCE = {
         "tests/test_mutation_80_percent_contracts.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
+    "registry/lifecycle.py": (
+        "tests/test_registry_lifecycle_component.py",
+        "tests/test_registry.py",
+        "tests/test_mutation_survivor_contracts.py",
+    ),
     "__init__.py": (
         "tests/test_registry.py",
+        "tests/test_registry_lifecycle_component.py",
         "tests/test_registry_router_ownership.py",
         "tests/test_segment_model.py",
         "tests/test_route_removal.py",
@@ -109,7 +119,7 @@ def _contract_test_node_ids(source_name):
     if not prefixes:
         return []
 
-    test_file = Path(CONTRACT_TEST_MODULE)
+    test_file = Path(CONTRACT_TEST_MODULES.get(source_name, CONTRACT_TEST_MODULE))
     if not test_file.is_file():
         raise RuntimeError(f"Missing mutation contract test module: {test_file}")
 
@@ -119,7 +129,7 @@ def _contract_test_node_ids(source_name):
             continue
         name = line[len("def ") :].split("(", 1)[0]
         if name.startswith(prefixes):
-            node_ids.append(f"{CONTRACT_TEST_MODULE}::{name}")
+            node_ids.append(f"{test_file.as_posix()}::{name}")
     return sorted(node_ids)
 
 
@@ -132,7 +142,8 @@ def _fallback_targets(test_paths, contract_node_ids):
 
 def pre_mutation(context):
     """Run line contexts and all focused tests for the mutated source domain."""
-    source_name = Path(context.filename).name
+    source_path = Path(context.filename).as_posix()
+    source_name = source_path.split("django_api_versioning/", 1)[-1]
     coverage_data = context.config.coverage_data or {}
     source_path = os.path.abspath(context.filename)
     contexts_by_line = coverage_data.get(source_path, {})
@@ -142,8 +153,13 @@ def pre_mutation(context):
     line_node_ids = {
         context_name.split("|", 1)[0] for context_name in line_contexts if context_name
     }
-    contract_node_ids = set(_contract_test_node_ids(source_name))
-    test_paths = TESTS_BY_SOURCE.get(source_name)
+    contract_source_name = (
+        source_name if source_name in CONTRACT_TEST_PREFIXES else Path(source_name).name
+    )
+    contract_node_ids = set(_contract_test_node_ids(contract_source_name))
+    test_paths = TESTS_BY_SOURCE.get(source_name) or TESTS_BY_SOURCE.get(
+        Path(source_name).name
+    )
     if line_node_ids and len(line_node_ids) <= MAX_LINE_CONTEXTS:
         node_ids = sorted(line_node_ids | contract_node_ids)
         context.config.test_command = (
