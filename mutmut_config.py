@@ -21,6 +21,7 @@ CONTRACT_TEST_PREFIXES = {
     "negotiation.py": ("test_mutation95_negotiation", "test_mutation100_negotiation"),
     "__init__.py": ("test_mutation95_registry", "test_mutation100_registry"),
     "registry/lifecycle.py": ("test_registry_lifecycle_store",),
+    "registry/matrix.py": ("test_registry_matrix_",),
     "registration.py": ("test_mutation95_registry", "test_mutation100_registry"),
     "routers.py": ("test_mutation95_router", "test_mutation100_router"),
 }
@@ -28,6 +29,7 @@ CONTRACT_TEST_PREFIXES = {
 CONTRACT_TEST_MODULE = "tests/test_mutation_survivor_contracts.py"
 CONTRACT_TEST_MODULES = {
     "registry/lifecycle.py": "tests/test_registry_lifecycle_component.py",
+    "registry/matrix.py": "tests/test_registry_matrix.py",
 }
 MAX_LINE_CONTEXTS = 500
 
@@ -55,6 +57,7 @@ TESTS_BY_SOURCE = {
         "tests/test_registry.py",
         "tests/test_mutation_survivor_contracts.py",
     ),
+    "registry/matrix.py": ("tests/test_registry_matrix.py",),
     "__init__.py": (
         "tests/test_registry.py",
         "tests/test_registry_lifecycle_component.py",
