@@ -23,6 +23,7 @@ CONTRACT_TEST_PREFIXES = {
     "registry/lifecycle.py": ("test_registry_lifecycle_store",),
     "registry/matrix.py": ("test_registry_matrix_",),
     "registration.py": ("test_mutation95_registry", "test_mutation100_registry"),
+    "removal.py": ("test_mutation95_registry", "test_mutation100_registry"),
     "routers.py": ("test_mutation95_router", "test_mutation100_router"),
 }
 
@@ -82,6 +83,16 @@ TESTS_BY_SOURCE = {
         "tests/test_registry_router_ownership.py",
         "tests/test_segment_model.py",
         "tests/test_route_removal.py",
+        "tests/test_adversarial_router_combinations.py",
+        "tests/test_decorators.py",
+        "tests/test_mutation_80_percent_contracts.py",
+        "tests/test_mutation_survivor_contracts.py",
+    ),
+    "removal.py": (
+        "tests/test_route_removal.py",
+        "tests/test_registry.py",
+        "tests/test_registry_router_ownership.py",
+        "tests/test_registry_mutation_contracts.py",
         "tests/test_adversarial_router_combinations.py",
         "tests/test_decorators.py",
         "tests/test_mutation_80_percent_contracts.py",

@@ -4082,3 +4082,38 @@ def test_drf_action_resolver_defaults_to_rejecting_unmapped_methods():
     ) == (True, None)
     assert resolve_drf_operation_action(callback, "OPTIONS") == (True, None)
     assert resolve_drf_operation_action(callback, "HEAD") == (True, "list")
+
+
+def test_registry_removal_mutants_select_focused_contract_tests():
+    from pathlib import Path
+
+    import mutmut_config
+
+    source_path = Path("django_api_versioning/registry/removal.py").resolve()
+    context = SimpleNamespace(
+        filename=str(source_path),
+        current_line_index=0,
+        config=SimpleNamespace(
+            coverage_data={
+                str(source_path): {
+                    1: [
+                        "tests/test_registry.py::"
+                        "test_registry_remove_tracks_router_prefix_and_slash_identity|1"
+                    ],
+                }
+            }
+        ),
+    )
+
+    mutmut_config.pre_mutation(context)
+
+    assert (
+        "tests/test_mutation_survivor_contracts.py::"
+        "test_mutation95_registry_removal_boundaries_are_inclusive_and_source_aware"
+        in context.config.test_command
+    )
+    assert (
+        "tests/test_mutation_survivor_contracts.py::"
+        "test_mutation100_registry_remove_preserves_owner_and_inclusive_boundaries"
+        in context.config.test_command
+    )
