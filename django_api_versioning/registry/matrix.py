@@ -27,7 +27,7 @@ def project_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
 
 def project_logical_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
     """Project logical endpoint/version callbacks without losing route collisions."""
-    entries: list[tuple[str, int | None, RouteRecord, object]] = []
+    entries = []
     for record in snapshot.active_routes:
         logical_id = (
             record.logical_endpoint
@@ -46,7 +46,7 @@ def project_logical_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
         )
         entries.append((logical_id, record.route_version, record, REMOVED_ROUTE))
 
-    counts: dict[tuple[str, int | None], int] = {}
+    counts = {}
     owner_groups: dict[str, set[tuple[object, ...]]] = {}
     for logical_id, route_version, record, _callback in entries:
         identity = (logical_id, route_version)
