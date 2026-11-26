@@ -77,9 +77,7 @@ class DRFRouteCapabilities:
         method: str,
         allow_unmapped_method: bool = False,
     ) -> tuple[bool, str | None]:
-        return resolve_drf_operation_action(
-            callback, method, allow_unmapped_method
-        )
+        return resolve_drf_operation_action(callback, method, allow_unmapped_method)
 
     @staticmethod
     def _registration_error(view: type) -> TypeError:
