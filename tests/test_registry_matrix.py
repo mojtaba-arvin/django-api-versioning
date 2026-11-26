@@ -208,4 +208,3 @@ def test_registry_matrix_disambiguates_unowned_and_router_across_versions():
         "legacy [route='legacy/v1/']": {1: unowned},
         "legacy [router=None, trailing_slash=None]": {2: router},
     }
-}
