@@ -77,12 +77,16 @@ def test_viewset_adapter_accepts_an_explicit_optional_action_map():
 
 
 def test_route_capability_defaults_fail_closed_for_unmapped_methods():
-    protocol_default = inspect.signature(
-        RouteCapabilities.resolve_operation_action
-    ).parameters["allow_unmapped_method"].default
-    adapter_default = inspect.signature(
-        DRFRouteCapabilities.resolve_operation_action
-    ).parameters["allow_unmapped_method"].default
+    protocol_default = (
+        inspect.signature(RouteCapabilities.resolve_operation_action)
+        .parameters["allow_unmapped_method"]
+        .default
+    )
+    adapter_default = (
+        inspect.signature(DRFRouteCapabilities.resolve_operation_action)
+        .parameters["allow_unmapped_method"]
+        .default
+    )
 
     callback = type("Callback", (), {"actions": {"get": "list"}})()
 
