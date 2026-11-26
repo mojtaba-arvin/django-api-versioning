@@ -20,50 +20,51 @@ from django_api_versioning import (
     ver_range,
 )
 
-# This is the single categorized inventory of supported module-level imports.
-# Keep root exports governed separately by the package's explicit __all__.
-STABLE_IMPORTS = {
-    "django_api_versioning.lifecycle": ("LifecycleMiddleware",),
-    "django_api_versioning.negotiation": ("VersionNegotiationMiddleware",),
-    "django_api_versioning.exceptions": (
-        "VersioningError",
-        "InvalidVersionError",
-        "VersionRangeError",
-        "VersionTypeError",
-        "AmbiguousVersionError",
-        "VersionMatrixError",
-        "ContractSnapshotError",
-    ),
-    "django_api_versioning.testing": (
-        "build_version_matrix",
-        "assert_version_matrix",
-        "assert_schema_snapshot",
+# One categorized inventory owns all documented module-level imports.
+# Root exports remain governed exclusively by django_api_versioning.__all__.
+IMPORT_CATEGORIES = {
+    "stable_django": {
+        "django_api_versioning.lifecycle": ("LifecycleMiddleware",),
+        "django_api_versioning.negotiation": ("VersionNegotiationMiddleware",),
+        "django_api_versioning.exceptions": (
+            "VersioningError",
+            "InvalidVersionError",
+            "VersionRangeError",
+            "VersionTypeError",
+            "AmbiguousVersionError",
+            "VersionMatrixError",
+            "ContractSnapshotError",
+        ),
+    },
+    "stable_testing": {
+        "django_api_versioning.testing": (
+            "build_version_matrix",
+            "assert_version_matrix",
+            "assert_schema_snapshot",
+        ),
+    },
+    "optional_drf": {
+        "django_api_versioning.routers": (
+            "rest_framework",
+            ("VersionedRouter", "VersionedDefaultRouter", "VersionedRouterVersioning"),
+        ),
+    },
+    "optional_schema": {
+        "django_api_versioning.spectacular": (
+            "drf_spectacular",
+            ("EndpointLifecycleAutoSchema",),
+        ),
+    },
+    "internal": (
+        "django_api_versioning.registry",
+        "django_api_versioning.registry.registration",
+        "django_api_versioning.registry.resolution",
+        "django_api_versioning.registry.removal",
+        "django_api_versioning.registry.lifecycle",
+        "django_api_versioning.registry.matrix",
+        "django_api_versioning.registry.router",
     ),
 }
-
-OPTIONAL_IMPORTS = {
-    "django_api_versioning.routers": (
-        "rest_framework",
-        ("VersionedRouter", "VersionedDefaultRouter", "VersionedRouterVersioning"),
-    ),
-    "django_api_versioning.spectacular": (
-        "drf_spectacular",
-        ("EndpointLifecycleAutoSchema",),
-    ),
-}
-
-# Importability is not a promise of compatibility. These implementation paths
-# are deliberately excluded from the supported import inventory.
-INTERNAL_IMPORTS = (
-    "django_api_versioning.registry",
-    "django_api_versioning.registry.registration",
-    "django_api_versioning.registry.resolution",
-    "django_api_versioning.registry.removal",
-    "django_api_versioning.registry.lifecycle",
-    "django_api_versioning.registry.matrix",
-    "django_api_versioning.registry.router",
-)
-
 
 def test_package_root_exports_the_complete_stable_public_api():
     expected = [
@@ -91,32 +92,37 @@ def test_package_root_exports_the_complete_stable_public_api():
 
 
 def test_categorized_module_imports_are_available_and_internal_paths_are_excluded():
-    for module_path, names in STABLE_IMPORTS.items():
-        module = importlib.import_module(module_path)
-        for name in names:
-            assert getattr(module, name) is not None, f"{module_path}.{name}"
+    stable_categories = ("stable_django", "stable_testing")
+    for category in stable_categories:
+        for module_path, names in IMPORT_CATEGORIES[category].items():
+            module = importlib.import_module(module_path)
+            for name in names:
+                assert getattr(module, name) is not None, f"{module_path}.{name}"
 
     stable_paths = {
         f"{module_path}.{name}"
-        for module_path, names in STABLE_IMPORTS.items()
+        for category in stable_categories
+        for module_path, names in IMPORT_CATEGORIES[category].items()
         for name in names
     }
+    internal_paths = IMPORT_CATEGORIES["internal"]
     assert not any(
         path == internal or path.startswith(f"{internal}.")
         for path in stable_paths
-        for internal in INTERNAL_IMPORTS
+        for internal in internal_paths
     )
-    assert not set(INTERNAL_IMPORTS).intersection(
+    assert not set(internal_paths).intersection(
         f"django_api_versioning.{name}" for name in django_api_versioning.__all__
     )
 
 
 def test_optional_import_categories_are_available_when_dependencies_are_installed():
-    for module_path, (dependency, names) in OPTIONAL_IMPORTS.items():
-        if importlib.util.find_spec(dependency) is not None:
-            module = importlib.import_module(module_path)
-            for name in names:
-                assert getattr(module, name) is not None, f"{module_path}.{name}"
+    for category in ("optional_drf", "optional_schema"):
+        for module_path, (dependency, names) in IMPORT_CATEGORIES[category].items():
+            if importlib.util.find_spec(dependency) is not None:
+                module = importlib.import_module(module_path)
+                for name in names:
+                    assert getattr(module, name) is not None, f"{module_path}.{name}"
 
 
 def test_core_package_import_does_not_load_optional_integrations_in_a_clean_interpreter():
