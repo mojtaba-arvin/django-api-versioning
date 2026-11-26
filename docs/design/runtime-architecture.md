@@ -40,20 +40,18 @@ flowchart TD
         V --> X["Django URL resolver"]
         W --> X
         X --> Y["Resolve the active URLPattern and callback"]
-        Y --> Z["DRF VersionedRouterVersioning exposes matched version when configured"]
-        Z --> AA["LifecycleMiddleware process_view"]
+        Y --> AA["LifecycleMiddleware process_view"]
         AA --> AB{"Version-wide sunset has passed?"}
         AB -->|Yes| AC["Return 410 Gone before the view"]
-        AB -->|No| AD["Execute selected Django view / DRF ViewSet"]
-        AD --> AE["Application business logic"]
-        AE --> AF["Build HTTP response"]
+        AB -->|No| AD["Dispatch selected Django view / DRF ViewSet"]
+        AD --> AE["DRF VersionedRouterVersioning exposes matched version during DRF initialization"]
+        AE --> AF["Execute application handler and build response"]
         AF --> AG["LifecycleMiddleware process_response"]
         AG --> AH["Apply endpoint/version Deprecation and Sunset headers"]
         AH --> AI["Return response to client"]
     end
 
     I -. "Django resolves these patterns" .-> X
-    J --> K
 ```
 
 ## 1. Startup and registration
