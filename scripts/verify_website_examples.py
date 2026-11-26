@@ -9,11 +9,12 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
 from verify_docs_contracts import (
     verify_compatibility_article,
     verify_settings_and_endpoint_contract,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "website" / "src" / "data" / "content.ts"
 GENERATED = ROOT / "website" / "src" / "data" / "generated"
 CLI_OUTPUT = GENERATED / "check_versions_output.txt"
@@ -22,7 +23,9 @@ REFERENCE = ROOT / "docs" / "reference" / "index.md"
 EXCEPTIONS = ROOT / "django_api_versioning" / "exceptions.py"
 SETTINGS = ROOT / "django_api_versioning" / "settings.py"
 DECORATORS = ROOT / "django_api_versioning" / "decorators.py"
-COMPATIBILITY_ARTICLE = ROOT / "docs" / "articles" / "024-django-api-versioning-supported-versions.md"
+COMPATIBILITY_ARTICLE = (
+    ROOT / "docs" / "articles" / "024-django-api-versioning-supported-versions.md"
+)
 PYPROJECT = ROOT / "pyproject.toml"
 TOX = ROOT / "tox.ini"
 MIGRATE_COMMAND = (
