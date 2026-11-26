@@ -38,16 +38,12 @@ def _owner_identity(record) -> tuple[object, ...] | None:
 def project_logical_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
     """Project logical endpoint/version callbacks without losing route collisions."""
     entries = []
-    for record in (*snapshot.active_routes, *snapshot.removed_routes):
+
+    def add_entry(record, callback):
         logical_id = (
             record.logical_endpoint
             if record.logical_endpoint is not None
             else record.route
-        )
-        callback = (
-            record.implementation
-            if record in snapshot.active_routes
-            else REMOVED_ROUTE
         )
         entries.append(
             (
@@ -58,6 +54,11 @@ def project_logical_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
                 _owner_identity(record),
             )
         )
+
+    for record in snapshot.active_routes:
+        add_entry(record, record.implementation)
+    for record in snapshot.removed_routes:
+        add_entry(record, REMOVED_ROUTE)
 
     counts = {}
     owner_groups = {}
