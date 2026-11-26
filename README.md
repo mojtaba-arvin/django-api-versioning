@@ -357,7 +357,7 @@ See [GOVERNANCE.md](https://github.com/mojtaba-arvin/django-api-versioning/blob/
 - [DRF integration guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/013-drf-version-negotiation-vs-endpoint-registration/).
 - [Python and Django compatibility guide](https://mojtaba-arvin.github.io/django-api-versioning/articles/024-django-api-versioning-supported-django-python-versions/).
 - [Documentation source map](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/README.md).
-- [Request version negotiation design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) — how the selected transport is dispatched, reversed, cached, and secured.
+- [Runtime architecture and request flow](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/runtime-architecture.md) — Mermaid diagram and technical walkthrough from endpoint registration through request dispatch and lifecycle processing.\n- [Request version negotiation design](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/request-version-negotiation.md) — how the selected transport is dispatched, reversed, cached, and secured.
 - [API compatibility boundaries](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/docs/design/api-compatibility-boundaries.md) — separates route, schema, and semantic compatibility and describes the consumer CI guardrails.
 - [Maintainer and ownership governance](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/GOVERNANCE.md) — maintainer progression, release handover, and project continuity.
 

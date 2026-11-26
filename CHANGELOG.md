@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-11-26
+
+### Compatibility
+
+- No migration is required when upgrading from 1.4.1. The documented public API, configuration, default path-based routing, optional DRF boundary, and runtime dependencies remain unchanged.
+
+### Documentation
+
+- Add an implementation-oriented architecture guide with a Mermaid diagram covering registration, version negotiation, Django resolution, DRF integration, and lifecycle processing.
+- Clarify the current request-negotiation implementation status and link the architecture guide from the package documentation.
+
 ## [1.4.1] - 2026-11-23
 
 ### Documentation
