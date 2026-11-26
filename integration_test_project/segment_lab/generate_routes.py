@@ -232,7 +232,7 @@ LINES = {
         "registry/registration.py",
         "if existing_version is None or source_version is None:",
     ),
-    "as_view_call": ("registry/__init__.py", "view = view.as_view()"),
+    "as_view_call": ("registry/router.py", "return view.as_view()"),
     "instance_check": ("registry/__init__.py", "if isinstance(view, View):"),
     "route_string": ("decorators.py", 'route = f"{base_path}{app_name_part}{postfix}"'),
     "api_settings_singleton": (

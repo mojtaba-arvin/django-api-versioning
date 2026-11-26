@@ -69,15 +69,8 @@ def _optional_operation_action(
     if callable(capability):
         return capability(callback, method, allow_unmapped_method)
 
-    # Direct UrlRegistry registrations predate the callback capability seam.
-    # Discover the optional DRF adapter only when the callback advertises
-    # method/action metadata; importing the core registry never imports DRF.
-    if getattr(callback, "actions", None) is None:
-        return True, None
-    try:
-        from ..routers import resolve_drf_operation_action
-    except ImportError:
-        return True, None
+    from .router import resolve_drf_operation_action
+
     return resolve_drf_operation_action(callback, method, allow_unmapped_method)
 
 
@@ -545,38 +538,10 @@ class UrlRegistry:
             )
 
         if isinstance(view, type) and callable(getattr(view, "as_view", None)):
-            # Check if this is a DRF ViewSet (has actions in signature)
-            # ViewSets require an action dict to be passed to as_view()
-            try:
-                import inspect
+            from .router import route_capabilities
 
-                sig = inspect.signature(view.as_view)
-            except (TypeError, ValueError):
-                # Some extension-backed callables do not expose a signature.
-                # Calling as_view() below remains the authoritative check.
-                sig = None
-
-            if sig is not None and "actions" in sig.parameters:
-                actions_param = sig.parameters["actions"]
-                if actions_param.default is inspect.Parameter.empty:
-                    raise TypeError(
-                        f"ViewSet '{view.__name__}' cannot be registered directly. "
-                        f"Pass a configured callable like: "
-                        f"{view.__name__}.as_view({{'get': 'list', 'post': 'create'}})"
-                    )
-
-            try:
-                view = view.as_view()
-            except TypeError as e:
-                # DRF ViewSetMixin exposes actions=None but rejects a missing map
-                # when called. Preserve that runtime signal and add class context.
-                if "actions" in str(e):
-                    raise TypeError(
-                        f"ViewSet '{view.__name__}' cannot be registered directly. "
-                        f"Pass a configured callable like: "
-                        f"{view.__name__}.as_view({{'get': 'list', 'post': 'create'}})"
-                    ) from e
-                raise
+            callback = route_capabilities.create_view_callback(view)
+            view = callback if callback is not None else view.as_view()
         return path(route, view, name=name)
 
     @staticmethod
