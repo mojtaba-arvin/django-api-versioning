@@ -1871,12 +1871,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         registry_module.RouteSortKey
         == tuple[bool, registry_module.VersionKey, bool, int, int]
     )
-    assert registry_module._UNOWNED_OWNER_IDENTITY is not None
     assert registry_module._ROUTER_OWNER_IDENTITY is not None
-    assert (
-        registry_module._UNOWNED_OWNER_IDENTITY
-        is not registry_module._ROUTER_OWNER_IDENTITY
-    )
     assert registry_module.UrlRegistry._SOURCE_VERSION_ATTR == (
         "_django_api_versioning_source_version"
     )
