@@ -114,14 +114,14 @@ def test_categorized_module_imports_are_available_and_internal_paths_are_exclude
 
 def test_optional_import_categories_are_available_when_dependencies_are_installed():
     for module_path, (dependency, names) in OPTIONAL_IMPORTS.items():
-        if importlib.util.find_spec(dependency) is None:
-            pytest.skip(f"optional dependency {dependency} is not installed")
-        module = importlib.import_module(module_path)
-        for name in names:
-            assert getattr(module, name) is not None, f"{module_path}.{name}"
+        if importlib.util.find_spec(dependency) is not None:
+            module = importlib.import_module(module_path)
+            for name in names:
+                assert getattr(module, name) is not None, f"{module_path}.{name}"
 
 
-def test_core_package_import_does_not_load_optional_integrations_in_a_clean_interpreter():
+def test_core_package_import_does_not_load_optional_integrations_in_a_clean_interpreter(
+):
     root = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
     env["DJANGO_SETTINGS_MODULE"] = "tests.settings"
@@ -139,7 +139,9 @@ class RejectOptionalIntegrations:
             or fullname == "drf_spectacular"
             or fullname.startswith("drf_spectacular.")
         ):
-            raise RuntimeError("Core package import attempted to load an optional integration")
+            raise RuntimeError(
+                "Core package import attempted to load an optional integration"
+            )
 
 sys.meta_path.insert(0, RejectOptionalIntegrations())
 import django_api_versioning
