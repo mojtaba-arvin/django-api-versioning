@@ -18,6 +18,7 @@ These documents have different responsibilities; do not maintain duplicate versi
 | [Root README](../README.md) | Package overview, install, Quick Start, high-level limitations | Complete API semantics |
 | [Reference page source](reference/index.md) | Human-facing settings, decorator, exceptions, commands, and public API summary for `/reference/` | Every routing edge case |
 | [Canonical routing contract](reference/versioning-contract.md) | Detailed URL construction, registration semantics, precedence, imports, reversal, DRF boundary, lifecycle, and request negotiation | General Django/DRF tutorials |
+| [Runtime architecture and request flow](design/runtime-architecture.md) | End-to-end Mermaid flow from startup registration through negotiation, Django resolution, DRF dispatch, and lifecycle processing | A promise of serializer/payload compatibility or tenant policy |
 | [Request version negotiation design](design/request-version-negotiation.md) | One configured version transport per deployment, middleware ordering, dispatch, reversal, cache and host security | Tenant policy, serializer/payload transformation, or release evidence | 
 | [Governance](../GOVERNANCE.md) | Contributor-to-maintainer progression, release handover, and ownership continuity | A guarantee that a successor has already been appointed |
 | [Changelog](../CHANGELOG.md) | Versioned release notes and migration notes | Current compatibility results |
