@@ -1,6 +1,7 @@
 """Contracts for the package's supported import surface."""
 
 import importlib
+import importlib.util
 import os
 import subprocess
 import sys
@@ -39,12 +40,17 @@ STABLE_IMPORTS = {
         "assert_version_matrix",
         "assert_schema_snapshot",
     ),
+}
+
+OPTIONAL_IMPORTS = {
     "django_api_versioning.routers": (
-        "VersionedRouter",
-        "VersionedDefaultRouter",
-        "VersionedRouterVersioning",
+        "rest_framework",
+        ("VersionedRouter", "VersionedDefaultRouter", "VersionedRouterVersioning"),
     ),
-    "django_api_versioning.spectacular": ("EndpointLifecycleAutoSchema",),
+    "django_api_versioning.spectacular": (
+        "drf_spectacular",
+        ("EndpointLifecycleAutoSchema",),
+    ),
 }
 
 # Importability is not a promise of compatibility. These implementation paths
@@ -104,6 +110,15 @@ def test_categorized_module_imports_are_available_and_internal_paths_are_exclude
     assert not set(INTERNAL_IMPORTS).intersection(
         f"django_api_versioning.{name}" for name in django_api_versioning.__all__
     )
+
+
+def test_optional_import_categories_are_available_when_dependencies_are_installed():
+    for module_path, (dependency, names) in OPTIONAL_IMPORTS.items():
+        if importlib.util.find_spec(dependency) is None:
+            pytest.skip(f"optional dependency {dependency} is not installed")
+        module = importlib.import_module(module_path)
+        for name in names:
+            assert getattr(module, name) is not None, f"{module_path}.{name}"
 
 
 def test_core_package_import_does_not_load_optional_integrations_in_a_clean_interpreter():
