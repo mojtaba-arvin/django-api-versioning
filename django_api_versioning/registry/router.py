@@ -5,8 +5,8 @@ This adapter has no Django REST Framework imports, so importing the registry
 or a Django-only URLconf never loads the optional dependency.
 """
 
-from collections.abc import Mapping
 import inspect
+from collections.abc import Mapping
 from inspect import Parameter
 from typing import Callable, Protocol
 
