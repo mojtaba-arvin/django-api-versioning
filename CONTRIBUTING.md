@@ -94,31 +94,27 @@ Website work is optional for package-only contributors. Only when changing the w
 
 Prefer a small number of commits, each representing one coherent and independently understandable change. Do not create a commit for every edited file, formatter run, generated timestamp, or intermediate checkpoint.
 
-Use the established Conventional Commit style. The subject is also the final squash-merge commit subject, so the PR title must follow exactly the same rule and is checked by the required PR gate:
+Use the repository's Conventional Commit policy for every commit subject and PR title. The PR title becomes the final commit subject under squash merging. The complete, executable contract—including the allowed type list, scope grammar, breaking-change footer, examples, validator behavior, and adoption guide—is maintained in [docs/commit-message-policy.md](docs/commit-message-policy.md).
 
-- `feat:` — new user-visible behavior
-- `fix:` — user-visible bug fix
-- `docs:` — documentation-only change
-- `test:` — tests without production behavior changes
-- `refactor:` — behavior-preserving restructuring
-- `chore:`, `build:`, `ci:` — maintenance, packaging, or automation
+Allowed types are `feat`, `fix`, `docs`, `test`, `refactor`, `style`, `perf`, `build`, `ci`, `chore`, and `revert`. Scope is optional. Use a lowercase imperative summary, allowing standard all-uppercase acronyms such as API, HTTP, and CLI; no trailing period, and keep the complete subject at or below 100 characters. Imperative mood is reviewed as a writing convention; the validator enforces deterministic syntax and lowercase rules rather than guessing English grammar. Use `!` and/or a non-empty `BREAKING CHANGE:` footer for breaking changes.
 
-Use a lowercase imperative summary, no trailing period, and keep the complete subject at or below 100 characters. A scope is optional; use `!` after the type/scope for an intentional breaking change. Put motivation, implementation details, and test evidence in the body—not in a long or multi-topic subject. Avoid vague subjects such as `updates`, `fix stuff`, `work`, `changes`, or progress narration. Examples:
+Examples:
 
 ```text
 feat(router): support nested route prefixes
 fix(negotiation): reject malformed version headers
 test(registry): cover concurrent registration
 chore(ci): enforce conventional commit subjects
+feat(api)!: change the public routing contract
 ```
 
-Validate a proposed subject before committing:
+Validate a proposed message before committing:
 
 ```bash
 python scripts/check_commit_message.py --message "fix(negotiation): reject malformed version headers"
 ```
 
-Add a scope where useful, such as `fix(registry): preserve endpoint precedence`. Mark an intentional breaking change with `!` or a `BREAKING CHANGE:` footer. Commit prefixes are for readable history; release impact must be determined from actual diffs, not prefixes alone.
+The local `commit-msg` hook and required PR gate invoke this same validator. Commit prefixes are for readable history; release impact must be determined from actual diffs, not prefixes alone.
 
 Before committing:
 

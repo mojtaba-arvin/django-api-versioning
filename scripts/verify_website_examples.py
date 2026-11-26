@@ -9,6 +9,11 @@ import re
 import sys
 from pathlib import Path
 
+from verify_docs_contracts import (
+    verify_compatibility_article,
+    verify_settings_and_endpoint_contract,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 CONTENT = ROOT / "website" / "src" / "data" / "content.ts"
 GENERATED = ROOT / "website" / "src" / "data" / "generated"
@@ -18,6 +23,11 @@ REFERENCE = ROOT / "docs" / "reference" / "index.md"
 EXCEPTIONS = ROOT / "django_api_versioning" / "exceptions.py"
 SETTINGS = ROOT / "django_api_versioning" / "settings.py"
 DECORATORS = ROOT / "django_api_versioning" / "decorators.py"
+COMPATIBILITY_ARTICLE = (
+    ROOT / "docs" / "articles" / "024-django-api-versioning-supported-versions.md"
+)
+PYPROJECT = ROOT / "pyproject.toml"
+TOX = ROOT / "tox.ini"
 MIGRATE_COMMAND = (
     ROOT / "django_api_versioning" / "management" / "commands" / "migrate_endpoints.py"
 )
@@ -112,6 +122,7 @@ def verify_reference(source: str, actual_output: str) -> None:
             raise ValueError(f"Reference settings entry {name!r} is missing or stale.")
 
     decorator_source = DECORATORS.read_text(encoding="utf-8")
+    verify_settings_and_endpoint_contract(source, settings_source, decorator_source)
     syntax = ast.parse(decorator_source)
     endpoint = next(
         node
@@ -189,9 +200,15 @@ def main() -> int:
         hero_example = snippet(source, "heroView")
         evidence = json.loads(ROUTES.read_text(encoding="utf-8"))
         verify_package_symbols(source, evidence)
+        reference_source = REFERENCE.read_text(encoding="utf-8")
         verify_reference(
-            REFERENCE.read_text(encoding="utf-8"),
+            reference_source,
             CLI_OUTPUT.read_text(encoding="utf-8").removeprefix(chr(10)),
+        )
+        verify_compatibility_article(
+            COMPATIBILITY_ARTICLE.read_text(encoding="utf-8"),
+            PYPROJECT.read_text(encoding="utf-8"),
+            TOX.read_text(encoding="utf-8"),
         )
     except (ValueError, json.JSONDecodeError) as exc:
         print(str(exc), file=sys.stderr)
