@@ -125,13 +125,9 @@ def test_registry_matrix_logical_projection_discriminates_colliding_owners_and_r
 
 
 def test_registry_matrix_logical_projection_keeps_removed_tombstones():
-    snapshot = _snapshot(
-        removed=(_record("api/v3/orders/", 3, None),)
-    )
+    snapshot = _snapshot(removed=(_record("api/v3/orders/", 3, None),))
 
-    assert project_logical_version_matrix(snapshot) == {
-        "orders": {3: REMOVED_ROUTE}
-    }
+    assert project_logical_version_matrix(snapshot) == {"orders": {3: REMOVED_ROUTE}}
 
 
 def test_registry_matrix_logical_projection_uses_physical_route_when_identity_is_missing():
