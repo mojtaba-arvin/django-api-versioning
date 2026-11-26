@@ -247,7 +247,10 @@ LINES = {
         "urls.py",
         "urlpatterns: list[URLPattern] = registry.urlpatterns",
     ),
-    "matrix_key": ("registry/__init__.py", "route = str(pattern.pattern)"),
+    "matrix_key": (
+        "registry/matrix.py",
+        "matrix.setdefault(matrix_key, {})[route_version] = callback",
+    ),
     "gap_warning": (
         "management/commands/check_versions.py",
         'f"  [{endpoint}] v{v} is not defined."',

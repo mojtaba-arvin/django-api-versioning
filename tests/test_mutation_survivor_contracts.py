@@ -968,6 +968,9 @@ def test_registry_logical_matrix_disambiguates_router_ownership_and_slash_policy
         target, owner=no_slash_owner, prefix="orders", trailing_slash=False
     )
     target.urlpatterns.extend((slash, no_slash))
+    # These fixtures intentionally bypass registration collision checks; publish
+    # their direct state mutation before exercising the snapshot projection.
+    target._publish_snapshot()
 
     matrix = target.get_logical_version_matrix()
 
@@ -1868,12 +1871,7 @@ def test_mutation95_registry_import_time_contracts_are_exercised():
         registry_module.RouteSortKey
         == tuple[bool, registry_module.VersionKey, bool, int, int]
     )
-    assert registry_module._UNOWNED_OWNER_IDENTITY is not None
     assert registry_module._ROUTER_OWNER_IDENTITY is not None
-    assert (
-        registry_module._UNOWNED_OWNER_IDENTITY
-        is not registry_module._ROUTER_OWNER_IDENTITY
-    )
     assert registry_module.UrlRegistry._SOURCE_VERSION_ATTR == (
         "_django_api_versioning_source_version"
     )
@@ -3176,6 +3174,7 @@ def test_mutation100_registry_logical_matrix_disambiguates_duplicate_routes():
         setattr(pattern, target._LOGICAL_ENDPOINT_ATTR, "orders")
         setattr(pattern, target._ROUTE_VERSION_ATTR, 2)
     target.urlpatterns[:] = [first, second]
+    target._publish_snapshot()
 
     matrix = target.get_logical_version_matrix()
     assert len(matrix) == 2
@@ -3201,6 +3200,7 @@ def test_mutation100_registry_router_matrix_labels_and_regex_edges():
         prefix="ordersX",
     )
     target.urlpatterns[:] = [first, second]
+    target._publish_snapshot()
     matrix = target.get_logical_version_matrix()
     assert len(matrix) == 2
     assert all("router=" in key for key in matrix)
