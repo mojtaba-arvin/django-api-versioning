@@ -18,8 +18,7 @@ def markdown_tables(
         if not line.lstrip().startswith("|"):
             continue
         headers = [
-            cell.strip().strip(TICK)
-            for cell in line.strip().strip("|").split("|")
+            cell.strip().strip(TICK) for cell in line.strip().strip("|").split("|")
         ]
         if headers[:2] != [first_header, second_header]:
             continue
@@ -28,8 +27,7 @@ def markdown_tables(
             if not row.lstrip().startswith("|"):
                 break
             cells = [
-                cell.strip().strip(TICK)
-                for cell in row.strip().strip("|").split("|")
+                cell.strip().strip(TICK) for cell in row.strip().strip("|").split("|")
             ]
             if cells:
                 rows.append(cells)
@@ -59,11 +57,7 @@ def _literal(node: ast.AST, assignments: dict[str, ast.AST]):
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
         if node.func.id == "field":
             factory = next(
-                (
-                    item.value
-                    for item in node.keywords
-                    if item.arg == "default_factory"
-                ),
+                (item.value for item in node.keywords if item.arg == "default_factory"),
                 None,
             )
             if isinstance(factory, ast.Lambda):
@@ -148,9 +142,7 @@ def _classifiers(pyproject: str, prefix: str) -> set[str]:
 
 
 def _tox_matrix(tox: str) -> dict[str, list[str]]:
-    match = re.search(
-        r"(?ms)^\[tox\]\s+.*?^envlist\s*=\s*(.*?)(?=^\S|\Z)", tox
-    )
+    match = re.search(r"(?ms)^\[tox\]\s+.*?^envlist\s*=\s*(.*?)(?=^\S|\Z)", tox)
     if match is None:
         raise ValueError("tox.ini: canonical [tox] envlist could not be parsed.")
     matrix = {}
