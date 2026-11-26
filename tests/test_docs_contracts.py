@@ -19,6 +19,8 @@ ARTICLE = (
 ).read_text(encoding="utf-8")
 PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 TOX = (ROOT / "tox.ini").read_text(encoding="utf-8")
+ARCHITECTURE = (ROOT / "docs/design/runtime-architecture.md").read_text(encoding="utf-8")
+ROOT_README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def test_reference_settings_defaults_and_endpoint_signature_match_source():
@@ -60,11 +62,6 @@ def test_stale_classifier_table_fails():
     stale = ARTICLE.replace("| 3.15 | Yes |", "| 3.15 | No |")
     with pytest.raises(ValueError, match="pyproject.toml"):
         verify_compatibility_article(stale, PYPROJECT, TOX)
-
-ARCHITECTURE = (
-    ROOT / "docs/design/runtime-architecture.md"
-).read_text(encoding="utf-8")
-ROOT_README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def test_runtime_architecture_diagram_covers_the_documented_request_pipeline():
