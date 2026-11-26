@@ -235,6 +235,23 @@ comparison does not prove business semantics, authorization, validation, or
 error-payload compatibility; keep real request-level tests for those
 contracts.
 
+## Public import stability
+
+The supported import surface is intentionally narrower than every importable
+module. The package root's `__all__` is the authoritative root-export list.
+Documented module-level imports (lifecycle middleware, request negotiation,
+exceptions, testing helpers, and the optional DRF/schema integrations) are
+classified and checked by the single executable inventory in
+[`tests/test_public_api_contracts.py`](https://github.com/mojtaba-arvin/django-api-versioning/blob/main/tests/test_public_api_contracts.py).
+
+The `django_api_versioning.registry` facade and its submodules, route-state
+records and snapshots, resolver/projection functions, and other implementation
+helpers are internal. Their current importability does not make them stable
+consumer APIs. Do not depend on them from application code. A change to a
+documented import path requires an explicit compatibility and deprecation
+decision; optional integrations remain optional and raise actionable
+`ImportError` messages when their dependencies are not installed.
+
 ## Exceptions
 
 | Exception | Raised when |
