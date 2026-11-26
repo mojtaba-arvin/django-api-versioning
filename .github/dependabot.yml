@@ -22,7 +22,7 @@ updates:
         patterns:
           - "*"
     commit-message:
-      prefix: "deps"
+      prefix: "chore(deps)"
 
   - package-ecosystem: npm
     directory: /website
