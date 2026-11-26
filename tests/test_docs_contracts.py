@@ -19,7 +19,9 @@ ARTICLE = (
 ).read_text(encoding="utf-8")
 PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 TOX = (ROOT / "tox.ini").read_text(encoding="utf-8")
-ARCHITECTURE = (ROOT / "docs/design/runtime-architecture.md").read_text(encoding="utf-8")
+ARCHITECTURE = (ROOT / "docs/design/runtime-architecture.md").read_text(
+    encoding="utf-8"
+)
 ROOT_README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
