@@ -15,9 +15,9 @@ from ..lifecycle_metadata import EndpointLifecycle
 from ..route_state import RegistrySnapshot, build_registry_snapshot
 from ..settings import api_settings  # noqa: F401
 from .lifecycle import EndpointLifecycleStore
+from .matrix import _ROUTER_OWNER_IDENTITY  # noqa: F401
+from .matrix import REMOVED_ROUTE  # noqa: F401
 from .matrix import (  # noqa: F401
-    REMOVED_ROUTE,  # noqa: F401
-    _ROUTER_OWNER_IDENTITY,  # noqa: F401
     VersionMatrix,
     project_logical_version_matrix,
     project_version_matrix,
