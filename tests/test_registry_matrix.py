@@ -8,7 +8,6 @@ from django_api_versioning.registry.matrix import (
     REMOVED_ROUTE as MATRIX_REMOVED_ROUTE,
     VersionMatrix,
     _ROUTER_OWNER_IDENTITY,
-    _UNOWNED_OWNER_IDENTITY,
     project_logical_version_matrix,
     project_version_matrix,
 )
@@ -184,11 +183,7 @@ def test_registry_matrix_facades_read_the_published_snapshot():
 def test_registry_matrix_identity_sentinels_and_typing_alias_are_stable():
     assert VersionMatrix == dict[str, dict[int | None, Callable]]
 
-    sentinels = (
-        MATRIX_REMOVED_ROUTE,
-        _UNOWNED_OWNER_IDENTITY,
-        _ROUTER_OWNER_IDENTITY,
-    )
+    sentinels = (MATRIX_REMOVED_ROUTE, _ROUTER_OWNER_IDENTITY)
     assert all(type(sentinel) is object for sentinel in sentinels)
     assert len({id(sentinel) for sentinel in sentinels}) == len(sentinels)
 
@@ -213,3 +208,4 @@ def test_registry_matrix_disambiguates_unowned_and_router_across_versions():
         "legacy [route='legacy/v1/']": {1: unowned},
         "legacy [router=None, trailing_slash=None]": {2: router},
     }
+}
