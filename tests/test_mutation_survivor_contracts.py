@@ -4096,7 +4096,10 @@ def test_registry_removal_mutants_select_focused_contract_tests():
         config=SimpleNamespace(
             coverage_data={
                 str(source_path): {
-                    1: ["tests/test_registry.py::test_registry_remove_tracks_router_prefix_and_slash_identity|1"]
+                    1: [
+                        "tests/test_registry.py::"
+                        "test_registry_remove_tracks_router_prefix_and_slash_identity|1"
+                    ],
                 }
             }
         ),
