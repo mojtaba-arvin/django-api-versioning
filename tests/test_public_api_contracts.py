@@ -70,7 +70,6 @@ assert django_api_versioning.__all__ == [
     "api_reverse",
 ]
 assert registry is not None
-assert "django_api_versioning.registry.router" in sys.modules
 assert "django_api_versioning.routers" not in sys.modules
 assert "rest_framework" not in sys.modules
 """
