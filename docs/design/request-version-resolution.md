@@ -2,7 +2,7 @@
 
 **Status:** Historical design record; superseded by [request-version-negotiation.md](request-version-negotiation.md)  
 **Original target:** A future minor release for non-path negotiation  
-**Current branch status:** The development branch now contains header, query, and hostname request negotiation middleware. The new document is authoritative for its current implementation contract. The published 1.2.2 release remains path-only until a later release includes this work.
+**Implementation status:** Path, header, query, and exact-hostname negotiation are implemented by `VersionNegotiationMiddleware` and the four transport negotiators. This ADR records the original problem and rejected alternatives; use [request-version-negotiation.md](request-version-negotiation.md) for the current supported behavior.
 
 ## 1. Decision summary
 
@@ -173,9 +173,9 @@ The package will not become a serializer transformation framework. It will not p
 
 The package will not silently rewrite arbitrary URLs, infer the tenant from untrusted request data, or perform authentication itself.
 
-## 6. Original implementation gates and current status
+## 6. Original implementation gates and implementation status
 
-The following list was the acceptance gate for the original proposal. The development branch now implements the dispatcher, route rewrite, lifecycle version propagation, URL reversal, header cache variation, and exact hostname mapping described in [request-version-negotiation.md](request-version-negotiation.md). The release remains blocked until the final PR gate and full compatibility/packaging verification pass. Tenant policy resolution is still intentionally deferred.
+The following list was the acceptance gate for the original proposal. The implementation is now part of the published package (request negotiation was introduced in 1.3.0 and remains supported in 1.4.x). The current behavior and release requirements are documented in [request-version-negotiation.md](request-version-negotiation.md) and [release-gates.md](../quality/release-gates.md). Tenant policy resolution remains intentionally deferred.
 
 The original gates were:
 
@@ -202,7 +202,7 @@ References:
 
 ## 8. Release decision
 
-This ADR and clearer compatibility guidance are documentation-only and do not justify a package release by themselves. Do not publish a new version until an actual runtime improvement has passed the implementation gates and the existing compatibility, packaging, security, and documentation checks.
+This historical ADR is not itself a release trigger. The implementation status is governed by the current negotiation contract and each release must satisfy the exact-source compatibility, packaging, security, and documentation gates in [release-gates.md](../quality/release-gates.md).
 
 
 ## 9. Completed adoption opportunity: DRF ViewSet router integration
