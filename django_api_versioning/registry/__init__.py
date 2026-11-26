@@ -69,9 +69,11 @@ def _optional_operation_action(
     if callable(capability):
         return capability(callback, method, allow_unmapped_method)
 
-    from .router import resolve_drf_operation_action
+    from .router import route_capabilities
 
-    return resolve_drf_operation_action(callback, method, allow_unmapped_method)
+    return route_capabilities.resolve_operation_action(
+        callback, method, allow_unmapped_method
+    )
 
 
 def _synchronized(method):
