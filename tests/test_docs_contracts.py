@@ -86,3 +86,8 @@ def test_runtime_architecture_diagram_covers_the_documented_request_pipeline():
 
     assert "runtime-architecture.md" in ROOT_README
     assert "runtime-architecture.md" in REFERENCE
+    assert "\\n- [Request version negotiation design]" not in ROOT_README
+    assert (
+        "- [Runtime architecture and request flow]" in ROOT_README
+        and "- [Request version negotiation design]" in ROOT_README
+    )
