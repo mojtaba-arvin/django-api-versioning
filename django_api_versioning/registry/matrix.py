@@ -14,9 +14,9 @@ def project_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
     """Project physical route/version callbacks and explicit tombstones."""
     matrix: VersionMatrix = {}
     for record in snapshot.active_routes:
-        matrix.setdefault(record.route, {})[record.route_version] = (
-            record.implementation
-        )
+        matrix.setdefault(record.route, {})[
+            record.route_version
+        ] = record.implementation
     for record in snapshot.removed_routes:
         matrix.setdefault(record.route, {}).setdefault(
             record.route_version, REMOVED_ROUTE
