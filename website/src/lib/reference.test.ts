@@ -23,6 +23,7 @@ describe('canonical Reference content', () => {
       'Validation and collisions',
       'Explicit endpoint removal (available since 1.2.0)',
       'Contract snapshots',
+      'Public import stability',
       'Exceptions',
       'Route-matrix tools',
       'API lifecycle',
