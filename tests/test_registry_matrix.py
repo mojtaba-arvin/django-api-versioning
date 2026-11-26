@@ -1,4 +1,4 @@
-""""Contracts for deterministic immutable route-matrix projections."""
+"""Contracts for deterministic immutable route-matrix projections."""
 
 from types import MappingProxyType
 from typing import Callable
