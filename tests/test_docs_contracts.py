@@ -19,6 +19,10 @@ ARTICLE = (
 ).read_text(encoding="utf-8")
 PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 TOX = (ROOT / "tox.ini").read_text(encoding="utf-8")
+ARCHITECTURE = (ROOT / "docs/design/runtime-architecture.md").read_text(
+    encoding="utf-8"
+)
+ROOT_README = (ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def test_reference_settings_defaults_and_endpoint_signature_match_source():
@@ -60,3 +64,30 @@ def test_stale_classifier_table_fails():
     stale = ARTICLE.replace("| 3.15 | Yes |", "| 3.15 | No |")
     with pytest.raises(ValueError, match="pyproject.toml"):
         verify_compatibility_article(stale, PYPROJECT, TOX)
+
+
+def test_runtime_architecture_diagram_covers_the_documented_request_pipeline():
+    diagram_start = ARCHITECTURE.index("```mermaid")
+    diagram_end = ARCHITECTURE.index("```", diagram_start + len("```mermaid"))
+    diagram = ARCHITECTURE[diagram_start:diagram_end]
+
+    assert "flowchart TD" in diagram
+    for component in (
+        "VersionNegotiationMiddleware",
+        "PathNegotiator",
+        "HeaderNegotiator",
+        "QueryNegotiator",
+        "HostnameNegotiator",
+        "Django URL resolver",
+        "LifecycleMiddleware",
+        "VersionedRouterVersioning",
+    ):
+        assert component in diagram
+
+    assert "runtime-architecture.md" in ROOT_README
+    assert "runtime-architecture.md" in REFERENCE
+    assert "\\n- [Request version negotiation design]" not in ROOT_README
+    assert (
+        "- [Runtime architecture and request flow]" in ROOT_README
+        and "- [Request version negotiation design]" in ROOT_README
+    )
