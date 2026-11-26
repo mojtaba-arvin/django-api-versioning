@@ -1,8 +1,12 @@
 """Contracts for the narrow optional router capability seam."""
 
+import inspect
+
 import pytest
 
 from django_api_versioning.registry.router import (
+    DRFRouteCapabilities,
+    RouteCapabilities,
     resolve_drf_operation_action,
     route_capabilities,
 )
@@ -70,3 +74,25 @@ def test_viewset_adapter_accepts_an_explicit_optional_action_map():
             return callback
 
     assert route_capabilities.create_view_callback(OptionalActionsViewSet) is callback
+
+
+def test_route_capability_defaults_fail_closed_for_unmapped_methods():
+    protocol_default = inspect.signature(
+        RouteCapabilities.resolve_operation_action
+    ).parameters["allow_unmapped_method"].default
+    adapter_default = inspect.signature(
+        DRFRouteCapabilities.resolve_operation_action
+    ).parameters["allow_unmapped_method"].default
+
+    callback = type("Callback", (), {"actions": {"get": "list"}})()
+
+    assert protocol_default is False
+    assert adapter_default is False
+    assert route_capabilities.resolve_operation_action(callback, "PATCH") == (
+        False,
+        None,
+    )
+    assert route_capabilities.resolve_operation_action(callback, "OPTIONS") == (
+        True,
+        None,
+    )
