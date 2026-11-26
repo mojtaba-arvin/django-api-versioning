@@ -1,7 +1,7 @@
 # Quality and release gates
 
 **Status:** Maintainer contract for changes targeting `main` and package releases.  
-**Published baseline:** `django-api-versioning 1.3.0`.  
+**Previous published baseline:** `django-api-versioning 1.4.1`.  
 **Runtime dependencies added by these gates:** None.
 
 This document defines the evidence required to claim that the package meets its release-quality targets. A configured workflow is not proof of a passing result: every result must identify a successful workflow run and a matching source/configuration fingerprint. See the [CI execution architecture](ci-execution-architecture.md) for tier selection, scheduling, and evidence reuse.
