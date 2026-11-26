@@ -6,7 +6,8 @@ or a Django-only URLconf never loads the optional dependency.
 """
 
 from collections.abc import Mapping
-from inspect import Parameter, signature
+import inspect
+from inspect import Parameter
 from typing import Callable, Protocol
 
 
@@ -49,7 +50,7 @@ class DRFRouteCapabilities:
 
     def create_view_callback(self, view: type) -> Callable | None:
         try:
-            view_signature = signature(view.as_view)
+            view_signature = inspect.signature(view.as_view)
         except (TypeError, ValueError):
             # Some extension-backed callables hide their signature. Calling
             # as_view() remains the authoritative check in that case.

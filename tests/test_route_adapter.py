@@ -1,7 +1,5 @@
 """Contracts for the narrow optional router capability seam."""
 
-import pytest
-
 from django_api_versioning.registry.router import (
     resolve_drf_operation_action,
     route_capabilities,
@@ -9,11 +7,7 @@ from django_api_versioning.registry.router import (
 
 
 def test_action_resolution_handles_head_options_and_unmapped_methods():
-    callback = type(
-        "Callback",
-        (),
-        {"actions": {"get": "list", "post": "create"}},
-    )()
+    callback = type("Callback", (), {"actions": {"get": "list", "post": "create"}})()
 
     assert resolve_drf_operation_action(callback, "GET") == (True, "list")
     assert resolve_drf_operation_action(callback, "HEAD") == (True, "list")
@@ -23,20 +17,14 @@ def test_action_resolution_handles_head_options_and_unmapped_methods():
 
 
 def test_action_resolution_ignores_callbacks_without_an_action_map():
-    def callback(request):
-        return None
-
-    assert resolve_drf_operation_action(callback, "GET") == (True, None)
+    assert resolve_drf_operation_action(lambda request: None, "GET") == (True, None)
 
 
 def test_generic_django_cbv_is_left_to_the_core_registry():
     class GenericView:
         @classmethod
         def as_view(cls):
-            def callback(request):
-                return None
-
-            return callback
+            return lambda request: None
 
     assert route_capabilities.create_view_callback(GenericView) is None
 
@@ -45,24 +33,22 @@ def test_viewset_adapter_preserves_actionable_registration_error():
     class RequiredActionsViewSet:
         @classmethod
         def as_view(cls, actions):
-            def callback(request):
-                return None
+            return lambda request: None
 
-            return callback
-
-    with pytest.raises(TypeError) as exc:
+    try:
         route_capabilities.create_view_callback(RequiredActionsViewSet)
-
-    assert str(exc.value) == (
-        "ViewSet 'RequiredActionsViewSet' cannot be registered directly. "
-        "Pass a configured callable like: "
-        "RequiredActionsViewSet.as_view({'get': 'list', 'post': 'create'})"
-    )
+    except TypeError as exc:
+        assert str(exc) == (
+            "ViewSet 'RequiredActionsViewSet' cannot be registered directly. "
+            "Pass a configured callable like: "
+            "RequiredActionsViewSet.as_view({'get': 'list', 'post': 'create'})"
+        )
+    else:
+        raise AssertionError("a ViewSet without an action map must be rejected")
 
 
 def test_viewset_adapter_accepts_an_explicit_optional_action_map():
-    def callback(request):
-        return None
+    callback = lambda request: None
 
     class OptionalActionsViewSet:
         @classmethod
