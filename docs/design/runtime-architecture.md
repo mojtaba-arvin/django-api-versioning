@@ -46,6 +46,7 @@ flowchart TD
         AB -->|No| AD["Dispatch selected Django view / DRF ViewSet"]
         AD --> AE["DRF VersionedRouterVersioning exposes matched version during DRF initialization"]
         AE --> AF["Execute application handler and build response"]
+        AC --> AG
         AF --> AG["LifecycleMiddleware process_response"]
         AG --> AH["Apply endpoint/version Deprecation and Sunset headers"]
         AH --> AI["Return response to client"]
