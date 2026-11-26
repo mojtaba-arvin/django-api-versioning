@@ -20,7 +20,6 @@ from django_api_versioning import (
     ver_range,
 )
 
-
 # This is the single categorized inventory of supported module-level imports.
 # Keep root exports governed separately by the package's explicit __all__.
 STABLE_IMPORTS = {
@@ -120,8 +119,7 @@ def test_optional_import_categories_are_available_when_dependencies_are_installe
                 assert getattr(module, name) is not None, f"{module_path}.{name}"
 
 
-def test_core_package_import_does_not_load_optional_integrations_in_a_clean_interpreter(
-):
+def test_core_package_import_does_not_load_optional_integrations_in_a_clean_interpreter():
     root = Path(__file__).resolve().parents[1]
     env = os.environ.copy()
     env["DJANGO_SETTINGS_MODULE"] = "tests.settings"
