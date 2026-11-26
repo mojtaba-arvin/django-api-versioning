@@ -4,10 +4,10 @@ from types import MappingProxyType
 from typing import Callable
 
 from django_api_versioning.registry import REMOVED_ROUTE, UrlRegistry
+from django_api_versioning.registry.matrix import _ROUTER_OWNER_IDENTITY
+from django_api_versioning.registry.matrix import REMOVED_ROUTE as MATRIX_REMOVED_ROUTE
 from django_api_versioning.registry.matrix import (
-    REMOVED_ROUTE as MATRIX_REMOVED_ROUTE,
     VersionMatrix,
-    _ROUTER_OWNER_IDENTITY,
     project_logical_version_matrix,
     project_version_matrix,
 )
