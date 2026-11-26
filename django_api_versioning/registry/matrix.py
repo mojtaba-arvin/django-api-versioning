@@ -2,12 +2,11 @@
 
 from typing import Callable
 
-from ..route_state import RegistrySnapshot, RouteRecord
+from ..route_state import RegistrySnapshot
 
 VersionMatrix = dict[str, dict[int | None, Callable]]
 
 REMOVED_ROUTE = object()
-_UNOWNED_OWNER_IDENTITY = object()
 _ROUTER_OWNER_IDENTITY = object()
 
 
@@ -47,13 +46,13 @@ def project_logical_version_matrix(snapshot: RegistrySnapshot) -> VersionMatrix:
         entries.append((logical_id, record.route_version, record, REMOVED_ROUTE))
 
     counts = {}
-    owner_groups: dict[str, set[tuple[object, ...]]] = {}
+    owner_groups: dict[str, set[tuple[object, ...] | None]] = {}
     for logical_id, route_version, record, _callback in entries:
         identity = (logical_id, route_version)
         counts[identity] = counts.get(identity, 0) + 1
 
         if record.owner == "unowned":
-            owner_identity = (_UNOWNED_OWNER_IDENTITY,)
+            owner_identity = None
         else:
             owner_identity = (
                 _ROUTER_OWNER_IDENTITY,
