@@ -42,7 +42,9 @@ BOT_MARKERS = (
     "openai codex",
     "chatgpt",
     "gemini cli",
-    "openai",
+    "openai agent",
+    "openai assistant",
+    "openai codex",
     "gpt",
 )
 
