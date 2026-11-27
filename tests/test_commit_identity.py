@@ -170,8 +170,7 @@ def test_allows_only_canonical_automation_author_with_explicit_label(login) -> N
 def test_rejects_automation_without_explicit_label() -> None:
     item = automation_commit()
     assert any(
-        "bot/agent author rejected" in error
-        for error in module.validate(pr(), [item])
+        "bot/agent author rejected" in error for error in module.validate(pr(), [item])
     )
 
 
@@ -182,6 +181,15 @@ def test_rejects_automation_with_a_different_committer() -> None:
         "email": "noreply@github.com",
     }
     item["committer"] = {"login": "web-flow", "type": "Bot"}
+    assert any(
+        "bot/agent author rejected" in error
+        for error in module.validate(pr(labels=[module.AUTO_LABEL]), [item])
+    )
+
+
+def test_automation_exception_requires_github_bot_account_type() -> None:
+    item = automation_commit()
+    item["author"]["type"] = "User"
     assert any(
         "bot/agent author rejected" in error
         for error in module.validate(pr(labels=[module.AUTO_LABEL]), [item])
