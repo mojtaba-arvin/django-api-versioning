@@ -102,6 +102,12 @@ def test_rejects_bot_and_agent_authors(name, email, login, account_type) -> None
     )
 
 
+def test_preserves_human_names_that_overlap_ai_product_names() -> None:
+    for name in ("Claude Martin", "Cursor Smith", "Gemini Patel"):
+        item = commit(name, "human@example.org", "human-contributor")
+        assert module.validate(pr(), [item]) == []
+
+
 def test_human_author_with_web_flow_committer_remains_human() -> None:
     item = commit(
         "External Contributor",
