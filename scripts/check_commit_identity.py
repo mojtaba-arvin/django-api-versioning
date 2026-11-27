@@ -4,20 +4,36 @@
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
 
 NAME = "Mojtaba Arvin"
 EMAIL = "m.arvin@live.com"
+MAINTAINER_LOGIN = "mojtaba-arvin"
 MARKER = "<!-- maintainer-directed-ai-work -->"
 AUTO_LABEL = "allow-automation-commits"
-AUTO_LOGINS = {"github-actions[bot]", "dependabot[bot]"}
+AUTOMATION_IDENTITIES = {
+    "github-actions[bot]": (
+        "github-actions[bot]",
+        "41898282+github-actions[bot]@users.noreply.github.com",
+    ),
+    "dependabot[bot]": (
+        "dependabot[bot]",
+        "49699333+dependabot[bot]@users.noreply.github.com",
+    ),
+}
 BOT_MARKERS = (
     "[bot]",
     "ai agent",
     "ai-agent",
     "agent bot",
+    "assistant bot",
+    "ai assistant",
+    "github actions",
+    "dependabot",
+    "renovate",
     "copilot",
     "claude",
     "cursor",
@@ -27,42 +43,72 @@ BOT_MARKERS = (
     "gemini",
     "openai",
     "gpt",
-    "ai assistant",
-    "assistant bot",
 )
 
 
+def _contains_marker(value, marker):
+    if marker in {"gpt", "openai"}:
+        pattern = r"(?<![a-z0-9])" + re.escape(marker) + r"(?![a-z0-9])"
+        return re.search(pattern, value) is not None
+    return marker in value
+
+
 def is_bot(name, email, login=None, account_type=None):
+    """Identify known bot/agent labels without matching ordinary substrings."""
     if (account_type or "").lower() == "bot":
         return True
     if login and login.lower().endswith("[bot]"):
         return True
     value = (name + " " + email + " " + (login or "")).lower()
-    return any(marker in value for marker in BOT_MARKERS)
+    return any(_contains_marker(value, marker) for marker in BOT_MARKERS)
+
+
+def _is_allowed_automation(item, allow_automation):
+    """Allow only explicitly labelled commits with canonical GitHub bot authors."""
+    if not allow_automation:
+        return False
+    author = item.get("author") or {}
+    login = author.get("login")
+    expected = AUTOMATION_IDENTITIES.get(login)
+    if expected is None or author.get("type") != "Bot":
+        return False
+    commit_author = (item.get("commit") or {}).get("author") or {}
+    expected_name, expected_email = expected
+    return (
+        commit_author.get("name") == expected_name
+        and (commit_author.get("email") or "").lower() == expected_email.lower()
+    )
 
 
 def validate(pr, commits):
+    """Return policy violations for a PR and its complete commit list."""
     errors = []
     labels = {x.get("name", "") for x in pr.get("labels", [])}
-    allow_auto = AUTO_LABEL in labels
+    allow_automation = AUTO_LABEL in labels
     maintainer_work = MARKER in (pr.get("body") or "")
     maintainer_commit_seen = False
+
     for item in commits:
-        c = item.get("commit", {})
-        a = c.get("author") or {}
-        gh = item.get("author") or {}
-        name, email = a.get("name") or "", a.get("email") or ""
-        login, typ = gh.get("login"), gh.get("type")
+        commit = item.get("commit") or {}
+        author = commit.get("author") or {}
+        github_author = item.get("author") or {}
+        name = author.get("name") or ""
+        email = author.get("email") or ""
+        login = github_author.get("login")
+        account_type = github_author.get("type")
         sha = (item.get("sha") or "unknown")[:12]
+
         if not name or not email:
             errors.append(sha + ": missing author name/email")
-        if is_bot(name, email, login, typ):
-            allowed = allow_auto and login in AUTO_LOGINS and typ == "Bot"
-            if not allowed:
-                errors.append(
-                    f"{sha}: bot/agent author rejected: {name!r} <{email}> login={login!r}"
-                )
-        if login == "mojtaba-arvin":
+
+        allowed_automation = _is_allowed_automation(item, allow_automation)
+        if is_bot(name, email, login, account_type) and not allowed_automation:
+            errors.append(
+                f"{sha}: bot/agent author rejected: {name!r} <{email}> "
+                f"login={login!r}"
+            )
+
+        if login == MAINTAINER_LOGIN:
             maintainer_commit_seen = True
             if name != NAME or email.lower() != EMAIL.lower():
                 errors.append(
@@ -71,26 +117,29 @@ def validate(pr, commits):
                 )
         elif email.lower() == EMAIL.lower():
             errors.append(
-                f"{sha}: maintainer email must resolve to mojtaba-arvin, "
+                f"{sha}: maintainer email must resolve to {MAINTAINER_LOGIN}, "
                 f"not {login!r}"
             )
-        for line in (c.get("message") or "").splitlines():
-            if line.lower().startswith("co-authored-by:"):
-                identity = line.split(":", 1)[1].strip()
+
+        for line in (commit.get("message") or "").splitlines():
+            trailer = line.strip()
+            if trailer.lower().startswith("co-authored-by:"):
+                identity = trailer.split(":", 1)[1].strip()
                 if is_bot(identity, ""):
                     errors.append(
                         f"{sha}: bot/AI Co-authored-by trailer rejected: {identity!r}"
                     )
+
     if maintainer_work and not maintainer_commit_seen:
         errors.append(
             "maintainer-directed AI work marker requires at least one commit "
-            "authored by mojtaba-arvin"
+            f"authored by {MAINTAINER_LOGIN}"
         )
     return errors
 
 
 def get_json(url, token):
-    req = urllib.request.Request(
+    request = urllib.request.Request(
         url,
         headers={
             "Accept": "application/vnd.github+json",
@@ -99,70 +148,71 @@ def get_json(url, token):
             "User-Agent": "commit-identity-policy-check",
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as res:
-        return json.loads(res.read().decode())
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode())
 
 
 def self_test():
-    def item(name, email, login, typ, message="feat: test"):
+    """Small standard-library smoke suite; detailed cases live in pytest."""
+    def item(name, email, login, account_type, message="feat: test"):
         return {
             "sha": "a" * 40,
-            "commit": {"author": {"name": name, "email": email}, "message": message},
-            "author": {"login": login, "type": typ},
+            "commit": {
+                "author": {"name": name, "email": email},
+                "committer": {"name": "web-flow", "email": "noreply@github.com"},
+                "message": message,
+            },
+            "author": {"login": login, "type": account_type},
+            "committer": {"login": "web-flow", "type": "Bot"},
         }
 
-    assert not validate(
-        {"body": "", "labels": []}, [item(NAME, EMAIL, "mojtaba-arvin", "User")]
+    human = item(NAME, EMAIL, MAINTAINER_LOGIN, "User")
+    assert not validate({"body": MARKER, "labels": []}, [human])
+    external = item("External Human", "x@example.org", "human", "User")
+    assert not validate({"body": "", "labels": []}, [external])
+    copilot = item("Copilot", "bot@example.org", "copilot[bot]", "Bot")
+    assert validate({"body": "", "labels": []}, [copilot])
+    bot_trailer = (
+        "feat: test\n"
+        "Co-authored-by: Copilot <copilot[bot]@users.noreply.github.com>"
     )
-    assert not validate(
+    assert validate(
         {"body": "", "labels": []},
-        [item("External Human", "x@example.org", "human", "User")],
+        [item("Human", "h@example.org", "human", "User", bot_trailer)],
     )
-    assert validate(
-        {"body": "", "labels": []},
-        [item("Copilot", "bot@example.org", "copilot[bot]", "Bot")],
+    github_actions = item(
+        "github-actions[bot]",
+        "41898282+github-actions[bot]@users.noreply.github.com",
+        "github-actions[bot]",
+        "Bot",
     )
-    msg = "feat: test\nCo-authored-by: Copilot <copilot[bot]@users.noreply.github.com>"
-    assert validate(
-        {"body": "", "labels": []}, [item("Human", "h@e.org", "human", "User", msg)]
-    )
+    assert validate({"body": "", "labels": []}, [github_actions])
     assert not validate(
-        {"body": MARKER, "labels": []}, [item(NAME, EMAIL, "mojtaba-arvin", "User")]
+        {"body": "", "labels": [{"name": AUTO_LABEL}]}, [github_actions]
     )
-    assert validate(
-        {"body": MARKER, "labels": []},
-        [item("Other Human", "x@example.org", "human", "User")],
-    )
-    assert not validate(
-        {"body": "", "labels": [{"name": AUTO_LABEL}]},
-        [
-            item(
-                "github-actions[bot]",
-                "bot@users.noreply.github.com",
-                "github-actions[bot]",
-                "Bot",
-            )
-        ],
-    )
+    assert validate({"body": MARKER, "labels": []}, [external])
     print("PASS: commit identity policy self-tests")
 
 
 def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--repository", default=os.getenv("GITHUB_REPOSITORY"))
-    p.add_argument("--pr-number", type=int, default=int(os.getenv("PR_NUMBER", "0")))
-    p.add_argument("--token", default=os.getenv("GITHUB_TOKEN"))
-    p.add_argument("--self-test", action="store_true")
-    args = p.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repository", default=os.getenv("GITHUB_REPOSITORY"))
+    parser.add_argument("--pr-number", type=int, default=int(os.getenv("PR_NUMBER", "0")))
+    parser.add_argument("--token", default=os.getenv("GITHUB_TOKEN"))
+    parser.add_argument("--self-test", action="store_true")
+    args = parser.parse_args()
+
     if args.self_test:
         self_test()
     if not (args.repository and args.pr_number and args.token):
         if args.self_test and not args.pr_number:
             return 0
-        p.error("--repository, --pr-number and --token are required")
+        parser.error("--repository, --pr-number and --token are required")
+
     base = "https://api.github.com/repos/" + args.repository
     pr = get_json(base + "/pulls/" + str(args.pr_number), args.token)
-    commits, page = [], 1
+    commits = []
+    page = 1
     while True:
         batch = get_json(
             base + f"/pulls/{args.pr_number}/commits?per_page=100&page={page}",
@@ -174,13 +224,15 @@ def main():
         if len(batch) < 100:
             break
         page += 1
+
     if not commits:
         print("ERROR: empty PR commit list; refusing to pass")
         return 2
+
     errors = validate(pr, commits)
     print(f"Checked {len(commits)} commits in {args.repository}#{args.pr_number}")
     if errors:
-        print("\n".join("ERROR: " + e for e in errors))
+        print("\n".join("ERROR: " + error for error in errors))
         return 1
     print("PASS: no prohibited bot/agent authors or co-author trailers")
     return 0
@@ -189,9 +241,9 @@ def main():
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except urllib.error.HTTPError as e:
-        print(f"ERROR: GitHub API HTTP {e.code}: {e.reason}", file=sys.stderr)
+    except urllib.error.HTTPError as error:
+        print(f"ERROR: GitHub API HTTP {error.code}: {error.reason}", file=sys.stderr)
         sys.exit(2)
-    except (urllib.error.URLError, TimeoutError, ValueError, RuntimeError) as e:
-        print(f"ERROR: identity validation incomplete: {e}", file=sys.stderr)
+    except (urllib.error.URLError, TimeoutError, ValueError, RuntimeError) as error:
+        print(f"ERROR: identity validation incomplete: {error}", file=sys.stderr)
         sys.exit(2)

@@ -62,6 +62,12 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/commits?per_page=100" \
             --jq '.[].commit.message | split("\n")[0]' > "$RUNNER_TEMP/commit-subjects.txt"
           python scripts/check_commit_message.py --subjects-file "$RUNNER_TEMP/commit-subjects.txt"
+      - name: Validate commit authors and co-author trailers
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: python scripts/check_commit_identity.py
       - name: Classify checks required by the changed files
         id: classify
         env:
