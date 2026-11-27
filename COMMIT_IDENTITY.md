@@ -6,7 +6,7 @@ Include `<!-- maintainer-directed-ai-work -->` in the PR body for owner-authoriz
 
 Preserve every real human contributor's original author name/email. Never relabel another person as the maintainer and never rewrite historical commits.
 
-Genuine GitHub Actions/Dependabot automation may author a commit only when all of the following hold: the PR has the explicit `allow-automation-commits` label; GitHub resolves the commit author to the exact `github-actions[bot]` or `dependabot[bot]` account with Bot account type; and the commit's author name/email match that account's canonical GitHub noreply identity. The exception does not cover agent-written implementation or other bot accounts. Bot co-author trailers remain prohibited. The commit author is the attribution identity; a distinct `web-flow` committer does not turn a human-authored commit into a bot-authored commit.
+Genuine GitHub Actions/Dependabot automation may author a commit only when all of the following hold: the PR has the explicit `allow-automation-commits` label; GitHub resolves both the commit author and committer to the same exact `github-actions[bot]` or `dependabot[bot]` account with Bot account type; and both Git author/committer name-email pairs match that account's canonical GitHub noreply identity. A bot author paired with a human or `web-flow` committer is not accepted as an automation exception. The exception does not cover agent-written implementation or other bot accounts. Bot co-author trailers remain prohibited. The commit author is the attribution identity; a distinct `web-flow` committer does not turn a human-authored commit into a bot-authored commit.
 
 Convenience defaults (not enforcement):
 

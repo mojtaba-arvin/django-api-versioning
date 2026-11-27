@@ -143,7 +143,10 @@ def test_allows_human_coauthor_trailer() -> None:
 
 def automation_commit(login: str = "github-actions[bot]") -> dict:
     name, email = module.AUTOMATION_IDENTITIES[login]
-    return commit(name, email, login, "Bot")
+    item = commit(name, email, login, "Bot")
+    item["commit"]["committer"] = {"name": name, "email": email}
+    item["committer"] = {"login": login, "type": "Bot"}
+    return item
 
 
 @pytest.mark.parametrize("login", ["github-actions[bot]", "dependabot[bot]"])
@@ -157,6 +160,19 @@ def test_rejects_automation_without_explicit_label() -> None:
     assert any(
         "bot/agent author rejected" in error
         for error in module.validate(pr(), [item])
+    )
+
+
+def test_rejects_automation_with_a_different_committer() -> None:
+    item = automation_commit()
+    item["commit"]["committer"] = {
+        "name": "web-flow",
+        "email": "noreply@github.com",
+    }
+    item["committer"] = {"login": "web-flow", "type": "Bot"}
+    assert any(
+        "bot/agent author rejected" in error
+        for error in module.validate(pr(labels=[module.AUTO_LABEL]), [item])
     )
 
 

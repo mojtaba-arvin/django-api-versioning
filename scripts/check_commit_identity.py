@@ -73,11 +73,18 @@ def _is_allowed_automation(item, allow_automation):
     expected = AUTOMATION_IDENTITIES.get(login)
     if expected is None or author.get("type") != "Bot":
         return False
-    commit_author = (item.get("commit") or {}).get("author") or {}
+    commit = item.get("commit") or {}
+    commit_author = commit.get("author") or {}
+    commit_committer = commit.get("committer") or {}
+    github_committer = item.get("committer") or {}
     expected_name, expected_email = expected
     return (
-        commit_author.get("name") == expected_name
+        github_committer.get("login") == login
+        and github_committer.get("type") == "Bot"
+        and commit_author.get("name") == expected_name
         and (commit_author.get("email") or "").lower() == expected_email.lower()
+        and commit_committer.get("name") == expected_name
+        and (commit_committer.get("email") or "").lower() == expected_email.lower()
     )
 
 
@@ -187,6 +194,8 @@ def self_test():
         "github-actions[bot]",
         "Bot",
     )
+    github_actions["commit"]["committer"] = github_actions["commit"]["author"]
+    github_actions["committer"] = {"login": "github-actions[bot]", "type": "Bot"}
     assert validate({"body": "", "labels": []}, [github_actions])
     assert not validate(
         {"body": "", "labels": [{"name": AUTO_LABEL}]}, [github_actions]
