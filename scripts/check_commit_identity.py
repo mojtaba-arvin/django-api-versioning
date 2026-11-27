@@ -164,6 +164,7 @@ def get_json(url, token):
 
 def self_test():
     """Small standard-library smoke suite; detailed cases live in pytest."""
+
     def item(name, email, login, account_type, message="feat: test"):
         return {
             "sha": "a" * 40,
