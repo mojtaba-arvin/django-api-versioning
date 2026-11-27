@@ -190,8 +190,7 @@ def self_test():
     copilot = item("Copilot", "bot@example.org", "copilot[bot]", "Bot")
     assert validate({"body": "", "labels": []}, [copilot])
     bot_trailer = (
-        "feat: test\n"
-        "Co-authored-by: Copilot <copilot[bot]@users.noreply.github.com>"
+        "feat: test\n" "Co-authored-by: Copilot <copilot[bot]@users.noreply.github.com>"
     )
     assert validate(
         {"body": "", "labels": []},

@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT_PATH = (
     Path(__file__).resolve().parent.parent / "scripts" / "check_commit_identity.py"
 )
@@ -52,6 +51,10 @@ def test_accepts_verified_maintainer_identity_for_declared_ai_work() -> None:
     assert module.validate(pr(module.MARKER), [item]) == []
 
 
+def test_standalone_self_test_fixtures() -> None:
+    module.self_test()
+
+
 def test_rejects_wrong_name_for_maintainer_account() -> None:
     item = commit("Mojtaba", module.EMAIL, module.MAINTAINER_LOGIN)
     assert any(
@@ -70,9 +73,7 @@ def test_rejects_wrong_email_for_maintainer_account() -> None:
 
 def test_rejects_maintainer_email_attributed_to_another_account() -> None:
     item = commit(module.NAME, module.EMAIL, "someone-else")
-    assert any(
-        "must resolve to" in error for error in module.validate(pr(), [item])
-    )
+    assert any("must resolve to" in error for error in module.validate(pr(), [item]))
 
 
 def test_preserves_and_accepts_external_human_contributor_identity() -> None:
@@ -99,8 +100,7 @@ def test_preserves_and_accepts_external_human_contributor_identity() -> None:
 def test_rejects_bot_and_agent_authors(name, email, login, account_type) -> None:
     item = commit(name, email, login, account_type)
     assert any(
-        "bot/agent author rejected" in error
-        for error in module.validate(pr(), [item])
+        "bot/agent author rejected" in error for error in module.validate(pr(), [item])
     )
 
 
@@ -208,9 +208,11 @@ def test_automation_label_does_not_allow_unlisted_bot_account() -> None:
 
 def test_automation_exception_never_allows_bot_coauthor_trailer() -> None:
     item = automation_commit()
-    item["commit"]["message"] += (
-        "\n\nCo-authored-by: Copilot <copilot[bot]@users.noreply.github.com>"
+    trailer = (
+        "\n\nCo-authored-by: Copilot "
+        "<copilot[bot]@users.noreply.github.com>"
     )
+    item["commit"]["message"] += trailer
     assert any(
         "Co-authored-by trailer rejected" in error
         for error in module.validate(pr(labels=[module.AUTO_LABEL]), [item])
@@ -220,8 +222,7 @@ def test_automation_exception_never_allows_bot_coauthor_trailer() -> None:
 def test_marker_requires_a_maintainer_authored_commit() -> None:
     item = commit("External Contributor", "external@example.org", "contributor")
     assert any(
-        "requires at least one commit"
-        in error
+        "requires at least one commit" in error
         for error in module.validate(pr(module.MARKER), [item])
     )
 
@@ -233,8 +234,7 @@ def test_marker_requires_a_maintainer_authored_commit() -> None:
 def test_rejects_missing_author_metadata(name, email) -> None:
     item = commit(name, email, "human")
     assert any(
-        "missing author name/email" in error
-        for error in module.validate(pr(), [item])
+        "missing author name/email" in error for error in module.validate(pr(), [item])
     )
 
 
