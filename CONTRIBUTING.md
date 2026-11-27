@@ -92,6 +92,10 @@ Website work is optional for package-only contributors. Only when changing the w
 
 ## Commits
 
+### Author identity and attribution
+
+Maintainer-directed AI-assisted commits use the verified Git author `Mojtaba Arvin <m.arvin@live.com>`. Preserve every human contributor's original author name/email and do not add bot/AI `Co-authored-by` trailers. See [COMMIT_IDENTITY.md](COMMIT_IDENTITY.md) for enforcement and the narrowly scoped genuine-automation exception.
+
 Prefer a small number of commits, each representing one coherent and independently understandable change. Do not create a commit for every edited file, formatter run, generated timestamp, or intermediate checkpoint.
 
 Use the repository's Conventional Commit policy for every commit subject and PR title. The PR title becomes the final commit subject under squash merging. The complete, executable contract—including the allowed type list, scope grammar, breaking-change footer, examples, validator behavior, and adoption guide—is maintained in [docs/commit-message-policy.md](docs/commit-message-policy.md).
