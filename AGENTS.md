@@ -60,6 +60,6 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 - Canonical workflows live only in the repository-root `.agents/skills/`. Claude adapters under `.claude/skills/` and the Copilot review adapter under `.github/skills/` delegate to them. Scoped `AGENTS.md` files may add local constraints but cannot redefine shared policy; do not create nested skill registries under project directories.
 - Each skill needs a distinct trigger, bounded responsibility, inputs, verification criteria, and stop conditions. Put detailed reference material behind on-demand links; deterministic repeated work belongs in scripts.
 
-## GitHub Issue title convention
+## Issue title policy
 
-Every Issue title must use `<type>(<scope>): <short, clear description>`. Use one lowercase Conventional Commit type: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`, `perf`, or `revert`. Scope must be concise lowercase kebab-case and identify the affected domain/component. Keep priority, milestone, feature/command IDs, phase, agent identity, dates, and run metadata in labels, milestones, or the Issue body—not the title. Do not use bracketed prefixes, standalone priority codes, `Recover:`, or agent/supervisor identity prefixes. Use `chore(roadmap): ...` for milestone bookkeeping and `chore(supervisor): ...` for run ledgers. Preserve all Issue metadata and relationships when renaming; change only the title. See the [shared canonical contract](https://github.com/mojtaba-arvin/commands/blob/main/_shared/issue-title-contract.md).
+Use `<type>(<scope>): <short, clear description>` for Issues; see CONTRIBUTING.md and the [shared contract](https://github.com/mojtaba-arvin/commands/blob/main/_shared/issue-title-contract.md).
