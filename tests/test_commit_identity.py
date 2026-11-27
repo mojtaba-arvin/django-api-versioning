@@ -92,6 +92,8 @@ def test_preserves_and_accepts_external_human_contributor_identity() -> None:
         ("OpenAI Agent", "agent@example.org", None, None),
         ("Renovate", "renovate@example.org", "renovate[bot]", "Bot"),
         ("Assistant Bot", "assistant@example.org", None, None),
+        ("Agent", "agent@example.org", "agent", "User"),
+        ("Bot", "bot@example.org", "bot", "User"),
     ],
 )
 def test_rejects_bot_and_agent_authors(name, email, login, account_type) -> None:
@@ -104,6 +106,11 @@ def test_rejects_bot_and_agent_authors(name, email, login, account_type) -> None
 
 def test_preserves_human_contributor_at_ai_company_email_domain() -> None:
     item = commit("Human Contributor", "human@openai.com", "human-contributor")
+    assert module.validate(pr(), [item]) == []
+
+
+def test_preserves_human_contributor_named_agent() -> None:
+    item = commit("Agent Smith", "agent.smith@example.org", "agent-smith")
     assert module.validate(pr(), [item]) == []
 
 

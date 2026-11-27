@@ -24,6 +24,8 @@ AUTOMATION_IDENTITIES = {
         "49699333+dependabot[bot]@users.noreply.github.com",
     ),
 }
+GENERIC_AGENT_IDENTITIES = {"agent", "ai-agent", "ai_agent", "assistant", "bot"}
+
 BOT_MARKERS = (
     "[bot]",
     "ai agent",
@@ -61,6 +63,10 @@ def is_bot(name, email, login=None, account_type=None):
     if (account_type or "").lower() == "bot":
         return True
     if login and login.lower().endswith("[bot]"):
+        return True
+    if name.strip().lower() in GENERIC_AGENT_IDENTITIES:
+        return True
+    if login and login.strip().lower() in GENERIC_AGENT_IDENTITIES:
         return True
     value = (name + " " + email + " " + (login or "")).lower()
     return any(_contains_marker(value, marker) for marker in BOT_MARKERS)
