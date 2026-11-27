@@ -61,3 +61,4 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 - Each skill needs a distinct trigger, bounded responsibility, inputs, verification criteria, and stop conditions. Put detailed reference material behind on-demand links; deterministic repeated work belongs in scripts.
 
 Issue titles use `<type>(<scope>): <description>`; see CONTRIBUTING.md.
+Read `COMMIT_IDENTITY.md` before committing.
