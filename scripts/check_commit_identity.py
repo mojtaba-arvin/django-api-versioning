@@ -46,6 +46,7 @@ def validate(pr, commits):
     labels = {x.get("name", "") for x in pr.get("labels", [])}
     allow_auto = AUTO_LABEL in labels
     maintainer_work = MARKER in (pr.get("body") or "")
+    maintainer_commit_seen = False
     for item in commits:
         c = item.get("commit", {})
         a = c.get("author") or {}
@@ -61,8 +62,18 @@ def validate(pr, commits):
                 errors.append(
                     f"{sha}: bot/agent author rejected: {name!r} <{email}> login={login!r}"
                 )
-        if maintainer_work and (name != NAME or email.lower() != EMAIL.lower()):
-            errors.append(f"{sha}: expected {NAME} <{EMAIL}>, got {name!r} <{email}>")
+        if login == "mojtaba-arvin":
+            maintainer_commit_seen = True
+            if name != NAME or email.lower() != EMAIL.lower():
+                errors.append(
+                    f"{sha}: maintainer account must use {NAME} <{EMAIL}>, "
+                    f"got {name!r} <{email}>"
+                )
+        elif email.lower() == EMAIL.lower():
+            errors.append(
+                f"{sha}: maintainer email must resolve to mojtaba-arvin, "
+                f"not {login!r}"
+            )
         for line in (c.get("message") or "").splitlines():
             if line.lower().startswith("co-authored-by:"):
                 identity = line.split(":", 1)[1].strip()
@@ -70,6 +81,11 @@ def validate(pr, commits):
                     errors.append(
                         f"{sha}: bot/AI Co-authored-by trailer rejected: {identity!r}"
                     )
+    if maintainer_work and not maintainer_commit_seen:
+        errors.append(
+            "maintainer-directed AI work marker requires at least one commit "
+            "authored by mojtaba-arvin"
+        )
     return errors
 
 
