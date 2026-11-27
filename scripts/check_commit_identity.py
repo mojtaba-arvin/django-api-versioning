@@ -198,7 +198,9 @@ def self_test():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repository", default=os.getenv("GITHUB_REPOSITORY"))
-    parser.add_argument("--pr-number", type=int, default=int(os.getenv("PR_NUMBER", "0")))
+    parser.add_argument(
+        "--pr-number", type=int, default=int(os.getenv("PR_NUMBER", "0"))
+    )
     parser.add_argument("--token", default=os.getenv("GITHUB_TOKEN"))
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
