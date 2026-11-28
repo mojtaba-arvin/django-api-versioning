@@ -85,10 +85,11 @@ jobs:
             # Git refs are a single path parameter. Encode the complete ref so
             # branch names containing slashes are addressed as one ref.
             encoded_ref="$(jq -rn --arg ref "heads/$branch" '$ref | @uri')"
-            ref_endpoint="repos/$repository/git/ref/$encoded_ref"
+            get_ref_endpoint="repos/$repository/git/ref/$encoded_ref"
+            delete_ref_endpoint="repos/$repository/git/refs/$encoded_ref"
 
-            if gh api "$ref_endpoint" >/dev/null 2>&1; then
-              if error="$(gh api --method DELETE "$ref_endpoint" 2>&1)"; then
+            if gh api "$get_ref_endpoint" >/dev/null 2>&1; then
+              if error="$(gh api --method DELETE "$delete_ref_endpoint" 2>&1)"; then
                 echo "Deleted obsolete branch: $branch"
               else
                 echo "Could not delete $branch: $error" >&2
