@@ -21,6 +21,7 @@ These documents have different responsibilities; do not maintain duplicate versi
 | [Runtime architecture and request flow](design/runtime-architecture.md) | End-to-end Mermaid flow from startup registration through negotiation, Django resolution, DRF dispatch, and lifecycle processing | A promise of serializer/payload compatibility or tenant policy |
 | [Request version negotiation design](design/request-version-negotiation.md) | One configured version transport per deployment, middleware ordering, dispatch, reversal, cache and host security | Tenant policy, serializer/payload transformation, or release evidence | 
 | [Governance](../GOVERNANCE.md) | Contributor-to-maintainer progression, release handover, and ownership continuity | A guarantee that a successor has already been appointed |
+| [Community adoption and sustainability plan](community-sustainability.md) | Reproducible external evaluation, consumer integration checklist, outreach draft, contributor path, and evidence-based community reporting | Evidence that independent adoption, external review, or successor commitment has already occurred |
 | [Changelog](../CHANGELOG.md) | Versioned release notes and migration notes | Current compatibility results |
 | [Compatibility configuration](../tox.ini) | Exact configured Python/Django test environments | Proof that an environment passed |
 | [Compatibility workflow](../.github/workflows/compatibility.yml) | How the configured environments are executed in CI | Results for commits that have not run |
@@ -75,8 +76,9 @@ The files in `articles/` are the only editable article sources. Each article's f
 - [Installing and configuring django-api-versioning](articles/023-django-api-versioning-pypi-installation.md)
 - [Python and Django compatibility](articles/024-django-api-versioning-supported-versions.md)
 
-### Maintainer and ownership continuity
+### Community adoption and maintenance continuity
 
+- [Community adoption and sustainability plan](community-sustainability.md): reproducible real-project evaluation, middleware/cache/host checks, consumer adapter and OpenAPI adoption, contribution tasks, outreach draft, and a staged 90-day plan.
 - [Governance and maintenance continuity](../GOVERNANCE.md): how contributors become maintainers, how GitHub and PyPI ownership can be handed over safely, and what to do if active maintenance stops.
 
 ## Historical release evidence
