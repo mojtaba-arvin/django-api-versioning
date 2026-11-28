@@ -58,7 +58,7 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 ## Agent configuration ownership
 
 - This file owns shared repository policy. `CLAUDE.md` and `.github/copilot-instructions.md` are thin client adapters, not copies of this contract.
-- Canonical workflows live only in the repository-root `.agents/skills/`. Claude adapters under `.claude/skills/` and the Copilot review adapter under `.github/skills/` delegate to them. Scoped `AGENTS.md` files may add local constraints but cannot redefine shared policy; do not create nested skill registries under project directories.
+- Canonical skills live only in root `.agents/skills/`; Claude/Copilot adapters delegate there. Scoped `AGENTS.md` may add constraints but cannot redefine shared policy; do not create nested registries.
 - Each skill needs a distinct trigger, bounded responsibility, inputs, verification criteria, and stop conditions. Put detailed reference material behind on-demand links; deterministic repeated work belongs in scripts.
 
 Issue titles use `<type>(<scope>): <description>`; see CONTRIBUTING.md.
