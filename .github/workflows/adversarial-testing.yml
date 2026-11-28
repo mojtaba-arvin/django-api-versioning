@@ -8,6 +8,27 @@ on:
         type: boolean
         required: false
         default: false
+  push:
+    branches: [main]
+    paths:
+      - "django_api_versioning/**"
+      - "tests/**"
+      - "integration_test_project/**"
+      - "examples/**"
+      - "setup.cfg"
+      - "mutmut_config.py"
+      - "pyproject.toml"
+      - "tox.ini"
+      - "requirements*.txt"
+      - "fuzz_corpus/negotiation/**"
+      - "scripts/export_mutation_report.py"
+      - "scripts/fuzz_negotiation.py"
+      - ".github/workflows/adversarial-testing.yml"
+      - ".github/workflows/mutation-shard.yml"
+      - ".github/workflows/tests.yml"
+      - ".github/workflows/pull-request-gate.yml"
+      - ".github/workflows/compatibility.yml"
+      - ".github/actions/mutation-shard/action.yml"
   workflow_dispatch:
     inputs:
       run_mutation:
@@ -23,7 +44,7 @@ permissions:
 
 jobs:
   mutation-coverage:
-    if: inputs.run_mutation == true
+    if: github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true
     name: Mutation test coverage baseline
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -79,7 +100,7 @@ jobs:
           retention-days: 1
 
   mutation-decorators:
-    if: inputs.run_mutation == true
+    if: github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true
     name: Decorator mutation shard
     needs: mutation-coverage
     runs-on: ubuntu-latest
@@ -96,7 +117,7 @@ jobs:
           target_id: decorators
           target_path: django_api_versioning/decorators.py
   decorator-score:
-    if: always() && inputs.run_mutation == true
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true)
     name: Decorator mutation gate (100% threshold)
     needs: mutation-decorators
     runs-on: ubuntu-latest
@@ -141,7 +162,7 @@ jobs:
           PY
 
   mutation-others:
-    if: inputs.run_mutation == true
+    if: github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true
     name: Downstream mutation shard (${{ matrix.id }})
     needs: mutation-coverage
     runs-on: ubuntu-latest
@@ -171,7 +192,7 @@ jobs:
           target_id: ${{ matrix.id }}
           target_path: ${{ matrix.path }}
   mutation-score:
-    if: always() && inputs.run_mutation == true
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true)
     name: Mutation score (combined)
     runs-on: ubuntu-latest
     needs:

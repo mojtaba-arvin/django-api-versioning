@@ -177,6 +177,8 @@ def classify_paths(
         or path
         in {
             "pytest.ini",
+            "setup.cfg",
+            "mutmut_config.py",
             ".github/workflows/tests.yml",
             ".github/workflows/adversarial-testing.yml",
             ".github/actions/mutation-shard/action.yml",

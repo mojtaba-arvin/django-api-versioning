@@ -298,6 +298,14 @@ content-hash = "new"
         self.assertTrue(result["dependency"])
         self.assertTrue(result["website"])
 
+    def test_mutation_configuration_changes_run_all_five_mutation_shards(self):
+        for path in ("setup.cfg", "mutmut_config.py"):
+            with self.subTest(path=path):
+                result = classify_paths([path])
+                self.assertTrue(result["python"])
+                self.assertTrue(result["deep"])
+                self.assertTrue(result["compatibility"])
+
     def test_package_support_files_run_python_and_artifact_checks(self):
         result = classify_paths(
             [
