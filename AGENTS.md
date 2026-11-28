@@ -52,6 +52,7 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 
 - Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.
 - Commit subjects and PR titles (squash subjects) follow the executable policy in [docs/commit-message-policy.md](docs/commit-message-policy.md). Keep agent guidance as a pointer; do not duplicate the allowed type list or validator rules here. Validate using `python scripts/check_commit_message.py --message "type(scope): summary"`; the local hook and required PR gate enforce the same validator.
+- AI-assisted maintainer commits use verified author `Mojtaba Arvin <m.arvin@live.com>`; preserve human authorship. See `COMMIT_IDENTITY.md`.
 - GitHub Actions commits must use the `github-actions[bot]` identity, never the maintainer's personal identity. Manual commits use the repository's verified maintainer identity.
 
 ## Agent configuration ownership
