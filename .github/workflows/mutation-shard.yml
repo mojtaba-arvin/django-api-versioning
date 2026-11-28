@@ -37,7 +37,7 @@ jobs:
           path: |
             .mutmut-cache
             mutants
-          key: mutmut-${{ runner.os }}-${{ inputs.target_id }}-${{ github.event_name }}-mutmut-2.5.1-contexts-v6-exact-key-${{ hashFiles('django_api_versioning/**/*.py', 'mutmut_config.py', 'tests/**/*.py', '!tests/test_mutation_coverage_alignment.py', '!tests/test_mutmut_config.py', 'setup.cfg', 'pyproject.toml', 'requirements-ci.txt') }}
+          key: mutmut-${{ runner.os }}-${{ inputs.target_id }}-mutmut-2.5.1-contexts-v6-shared-exact-key-${{ hashFiles('django_api_versioning/**/*.py', 'mutmut_config.py', 'tests/**/*.py', '!tests/test_mutation_coverage_alignment.py', '!tests/test_mutmut_config.py', 'setup.cfg', 'pyproject.toml', 'requirements-ci.txt') }}
       - name: Install test and mutation dependencies
         run: |
           python -m pip install -e . -r requirements-ci.txt "mutmut==2.5.1"
