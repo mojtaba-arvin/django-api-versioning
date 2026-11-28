@@ -52,12 +52,13 @@ Shared policy lives here; task procedures belong in skills and domain contracts 
 
 - Commit one coherent, reviewed change at a time. Batch related files and run Black/isort once across the complete changed Python scope; do not create per-file formatting or whitespace commits.
 - Commit subjects and PR titles (squash subjects) follow the executable policy in [docs/commit-message-policy.md](docs/commit-message-policy.md). Keep agent guidance as a pointer; do not duplicate the allowed type list or validator rules here. Validate using `python scripts/check_commit_message.py --message "type(scope): summary"`; the local hook and required PR gate enforce the same validator.
+- AI-assisted maintainer commits use verified author `Mojtaba Arvin <m.arvin@live.com>`; preserve human authorship. See `COMMIT_IDENTITY.md`.
 - GitHub Actions commits must use the `github-actions[bot]` identity, never the maintainer's personal identity. Manual commits use the repository's verified maintainer identity.
 
 ## Agent configuration ownership
 
 - This file owns shared repository policy. `CLAUDE.md` and `.github/copilot-instructions.md` are thin client adapters, not copies of this contract.
-- Canonical workflows live only in the repository-root `.agents/skills/`. Claude adapters under `.claude/skills/` and the Copilot review adapter under `.github/skills/` delegate to them. Scoped `AGENTS.md` files may add local constraints but cannot redefine shared policy; do not create nested skill registries under project directories.
+- Canonical skills live only in root `.agents/skills/`; Claude/Copilot adapters delegate there. Scoped `AGENTS.md` may add constraints but cannot redefine shared policy; do not create nested registries.
 - Each skill needs a distinct trigger, bounded responsibility, inputs, verification criteria, and stop conditions. Put detailed reference material behind on-demand links; deterministic repeated work belongs in scripts.
 
 Issue titles use `<type>(<scope>): <description>`; see CONTRIBUTING.md.
