@@ -4,6 +4,13 @@ This repository follows a **main-based, short-lived-branch workflow**. `main` is
 
 The goals are to keep `main` releasable, make every change reviewable, and avoid long-lived branches that drift away from the current source of truth. Project ownership, maintainer progression, and handover procedures are defined in [GOVERNANCE.md](GOVERNANCE.md).
 
+## Community adoption and first contributions
+
+The [community adoption and sustainability plan](docs/community-sustainability.md) contains a reproducible real-project evaluation checklist, middleware/resolver/cache/trusted-host checks, the consumer-owned adapter and OpenAPI snapshot workflow, a staged contributor-to-maintainer path, and outreach copy prepared for maintainers to adapt (not sent). It distinguishes repository examples from independent adoption and does not imply external review or successor commitments.
+
+Useful first contributions include a minimal real-project reproducer, a focused regression test, a correction to a verified integration step, a DRF adapter/OpenAPI contract review, or a cache/host-security test. Contributors need no repository write access; use a fork and a focused pull request. Include exact package/framework versions, sanitized configuration, commands, and expected versus actual results.
+
+
 ## Start from the latest main
 
 Inspect the working tree first. Preserve unrelated or uncommitted work; do not reset or clean it to make switching branches easier.
