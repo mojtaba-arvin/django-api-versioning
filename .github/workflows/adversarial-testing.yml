@@ -100,7 +100,7 @@ jobs:
           retention-days: 1
 
   mutation-decorators:
-    if: inputs.run_mutation == true
+    if: github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true
     name: Decorator mutation shard
     needs: mutation-coverage
     runs-on: ubuntu-latest
@@ -162,7 +162,7 @@ jobs:
           PY
 
   mutation-others:
-    if: inputs.run_mutation == true
+    if: github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true
     name: Downstream mutation shard (${{ matrix.id }})
     needs: mutation-coverage
     runs-on: ubuntu-latest
@@ -192,7 +192,7 @@ jobs:
           target_id: ${{ matrix.id }}
           target_path: ${{ matrix.path }}
   mutation-score:
-    if: always() && inputs.run_mutation == true
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'push' || inputs.run_mutation == true)
     name: Mutation score (combined)
     runs-on: ubuntu-latest
     needs:
